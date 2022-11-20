@@ -582,19 +582,23 @@ DataSourceDOS::get_sound(size_t index) {
 
 PBuffer
 DataSourceDOS::get_music(size_t index) {
+  Log::Info["data-source-dos.cc"] << "inside get_music, trying to get index " << index;
   PBuffer data = get_object(DATA_MUSIC_GAME + index);
   if (!data) {
     Log::Error["data"] << "Could not extract XMI clip: #" << index;
     return nullptr;
   }
+  Log::Info["data-source-dos.cc"] << "inside get_music, debugA" << index;
 
   try {
     ConvertorXMI2MID convertor(data);
+    Log::Info["data-source-dos.cc"] << "inside get_music, successfully got music with index " << index;
     return convertor.convert();
   } catch (...) {
     Log::Error["data"] << "Could not convert XMI clip to MID: #" << index;
     return nullptr;
   }
+  Log::Info["data-source-dos.cc"] << "inside get_music, successfully got music with index " << index;
 }
 
 DataSourceDOS::ColorDOS *

@@ -1,7 +1,9 @@
 Forkserf
 ========
 
-A continuation of Freeserf, a SerfCity/Settlers1 clone in C/C++.  Freeserf was created by jonls and wdigger.  It seems they have abandoned it so I am moving forward with it in my own way.  My vision is an authentic version of the original game but with an outstanding AI instead of the terrible one in the original, plus many *optional* features to tweak things that interest me.  I am only interested in random single player vs AI games at this time, I am not playtesting the single-player Missions nor working on multiplayer.  If you are looking for a very accurate SerfCity/Settlers1 experience with original AI, missions, and multiplayer I suggest trying Serflings by nicymike or playing the original game with DosBox
+A continuation of Freeserf, a SerfCity/Settlers1 clone in C/C++.  Freeserf was created by jonls and wdigger.  
+
+I am moving forward with it in my own way.  My vision is an authentic version of the original game but with an outstanding AI instead of the terrible one in the original, plus many *optional* features to tweak things that interest me.  I am only interested in random single player vs AI games at this time, I am not playtesting the single-player Missions nor working on multiplayer.  If you are looking for a very accurate SerfCity/Settlers1 experience with original AI, missions, and multiplayer I suggest trying Serflings by nicymike or playing the original game with DosBox
 
 One unique thing about Freeserf (and remains in Forkserf) is that you can play with the original Amiga graphics, sounds, and music if you like.  The default is to prefer DOS graphics and a mix of Amiga & DOS audio if both are supplied.
 

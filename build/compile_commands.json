@@ -1,0 +1,277 @@
+[
+{
+  "directory": "/home/penis/forkserf_newstable/forkserf/build/src",
+  "command": "/opt/rh/devtoolset-7/root/usr/bin/g++   -DPACKAGE_BUGREPORT=\\\"https://github.com/freeserf/freeserf/issues\\\" -std=gnu++14  -g -I/home/penis/forkserf_newstable/forkserf -I/home/penis/forkserf_newstable/forkserf/build -I/usr/include/SDL2    -o CMakeFiles/FreeSerf.dir/freeserf.cc.o -c /home/penis/forkserf_newstable/forkserf/src/freeserf.cc",
+  "file": "/home/penis/forkserf_newstable/forkserf/src/freeserf.cc"
+},
+{
+  "directory": "/home/penis/forkserf_newstable/forkserf/build/src",
+  "command": "/opt/rh/devtoolset-7/root/usr/bin/g++   -DPACKAGE_BUGREPORT=\\\"https://github.com/freeserf/freeserf/issues\\\" -std=gnu++14  -g -I/home/penis/forkserf_newstable/forkserf -I/home/penis/forkserf_newstable/forkserf/build -I/usr/include/SDL2    -o CMakeFiles/FreeSerf.dir/ai_pathfinder.cc.o -c /home/penis/forkserf_newstable/forkserf/src/ai_pathfinder.cc",
+  "file": "/home/penis/forkserf_newstable/forkserf/src/ai_pathfinder.cc"
+},
+{
+  "directory": "/home/penis/forkserf_newstable/forkserf/build/src",
+  "command": "/opt/rh/devtoolset-7/root/usr/bin/g++   -DPACKAGE_BUGREPORT=\\\"https://github.com/freeserf/freeserf/issues\\\" -std=gnu++14  -g -I/home/penis/forkserf_newstable/forkserf -I/home/penis/forkserf_newstable/forkserf/build -I/usr/include/SDL2    -o CMakeFiles/FreeSerf.dir/pathfinder.cc.o -c /home/penis/forkserf_newstable/forkserf/src/pathfinder.cc",
+  "file": "/home/penis/forkserf_newstable/forkserf/src/pathfinder.cc"
+},
+{
+  "directory": "/home/penis/forkserf_newstable/forkserf/build/src",
+  "command": "/opt/rh/devtoolset-7/root/usr/bin/g++   -DPACKAGE_BUGREPORT=\\\"https://github.com/freeserf/freeserf/issues\\\" -std=gnu++14  -g -I/home/penis/forkserf_newstable/forkserf -I/home/penis/forkserf_newstable/forkserf/build -I/usr/include/SDL2    -o CMakeFiles/FreeSerf.dir/gfx.cc.o -c /home/penis/forkserf_newstable/forkserf/src/gfx.cc",
+  "file": "/home/penis/forkserf_newstable/forkserf/src/gfx.cc"
+},
+{
+  "directory": "/home/penis/forkserf_newstable/forkserf/build/src",
+  "command": "/opt/rh/devtoolset-7/root/usr/bin/g++   -DPACKAGE_BUGREPORT=\\\"https://github.com/freeserf/freeserf/issues\\\" -std=gnu++14  -g -I/home/penis/forkserf_newstable/forkserf -I/home/penis/forkserf_newstable/forkserf/build -I/usr/include/SDL2    -o CMakeFiles/FreeSerf.dir/viewport.cc.o -c /home/penis/forkserf_newstable/forkserf/src/viewport.cc",
+  "file": "/home/penis/forkserf_newstable/forkserf/src/viewport.cc"
+},
+{
+  "directory": "/home/penis/forkserf_newstable/forkserf/build/src",
+  "command": "/opt/rh/devtoolset-7/root/usr/bin/g++   -DPACKAGE_BUGREPORT=\\\"https://github.com/freeserf/freeserf/issues\\\" -std=gnu++14  -g -I/home/penis/forkserf_newstable/forkserf -I/home/penis/forkserf_newstable/forkserf/build -I/usr/include/SDL2    -o CMakeFiles/FreeSerf.dir/minimap.cc.o -c /home/penis/forkserf_newstable/forkserf/src/minimap.cc",
+  "file": "/home/penis/forkserf_newstable/forkserf/src/minimap.cc"
+},
+{
+  "directory": "/home/penis/forkserf_newstable/forkserf/build/src",
+  "command": "/opt/rh/devtoolset-7/root/usr/bin/g++   -DPACKAGE_BUGREPORT=\\\"https://github.com/freeserf/freeserf/issues\\\" -std=gnu++14  -g -I/home/penis/forkserf_newstable/forkserf -I/home/penis/forkserf_newstable/forkserf/build -I/usr/include/SDL2    -o CMakeFiles/FreeSerf.dir/interface.cc.o -c /home/penis/forkserf_newstable/forkserf/src/interface.cc",
+  "file": "/home/penis/forkserf_newstable/forkserf/src/interface.cc"
+},
+{
+  "directory": "/home/penis/forkserf_newstable/forkserf/build/src",
+  "command": "/opt/rh/devtoolset-7/root/usr/bin/g++   -DPACKAGE_BUGREPORT=\\\"https://github.com/freeserf/freeserf/issues\\\" -std=gnu++14  -g -I/home/penis/forkserf_newstable/forkserf -I/home/penis/forkserf_newstable/forkserf/build -I/usr/include/SDL2    -o CMakeFiles/FreeSerf.dir/gui.cc.o -c /home/penis/forkserf_newstable/forkserf/src/gui.cc",
+  "file": "/home/penis/forkserf_newstable/forkserf/src/gui.cc"
+},
+{
+  "directory": "/home/penis/forkserf_newstable/forkserf/build/src",
+  "command": "/opt/rh/devtoolset-7/root/usr/bin/g++   -DPACKAGE_BUGREPORT=\\\"https://github.com/freeserf/freeserf/issues\\\" -std=gnu++14  -g -I/home/penis/forkserf_newstable/forkserf -I/home/penis/forkserf_newstable/forkserf/build -I/usr/include/SDL2    -o CMakeFiles/FreeSerf.dir/popup.cc.o -c /home/penis/forkserf_newstable/forkserf/src/popup.cc",
+  "file": "/home/penis/forkserf_newstable/forkserf/src/popup.cc"
+},
+{
+  "directory": "/home/penis/forkserf_newstable/forkserf/build/src",
+  "command": "/opt/rh/devtoolset-7/root/usr/bin/g++   -DPACKAGE_BUGREPORT=\\\"https://github.com/freeserf/freeserf/issues\\\" -std=gnu++14  -g -I/home/penis/forkserf_newstable/forkserf -I/home/penis/forkserf_newstable/forkserf/build -I/usr/include/SDL2    -o CMakeFiles/FreeSerf.dir/game-init.cc.o -c /home/penis/forkserf_newstable/forkserf/src/game-init.cc",
+  "file": "/home/penis/forkserf_newstable/forkserf/src/game-init.cc"
+},
+{
+  "directory": "/home/penis/forkserf_newstable/forkserf/build/src",
+  "command": "/opt/rh/devtoolset-7/root/usr/bin/g++   -DPACKAGE_BUGREPORT=\\\"https://github.com/freeserf/freeserf/issues\\\" -std=gnu++14  -g -I/home/penis/forkserf_newstable/forkserf -I/home/penis/forkserf_newstable/forkserf/build -I/usr/include/SDL2    -o CMakeFiles/FreeSerf.dir/notification.cc.o -c /home/penis/forkserf_newstable/forkserf/src/notification.cc",
+  "file": "/home/penis/forkserf_newstable/forkserf/src/notification.cc"
+},
+{
+  "directory": "/home/penis/forkserf_newstable/forkserf/build/src",
+  "command": "/opt/rh/devtoolset-7/root/usr/bin/g++   -DPACKAGE_BUGREPORT=\\\"https://github.com/freeserf/freeserf/issues\\\" -std=gnu++14  -g -I/home/penis/forkserf_newstable/forkserf -I/home/penis/forkserf_newstable/forkserf/build -I/usr/include/SDL2    -o CMakeFiles/FreeSerf.dir/panel.cc.o -c /home/penis/forkserf_newstable/forkserf/src/panel.cc",
+  "file": "/home/penis/forkserf_newstable/forkserf/src/panel.cc"
+},
+{
+  "directory": "/home/penis/forkserf_newstable/forkserf/build/src",
+  "command": "/opt/rh/devtoolset-7/root/usr/bin/g++   -DPACKAGE_BUGREPORT=\\\"https://github.com/freeserf/freeserf/issues\\\" -std=gnu++14  -g -I/home/penis/forkserf_newstable/forkserf -I/home/penis/forkserf_newstable/forkserf/build -I/usr/include/SDL2    -o CMakeFiles/FreeSerf.dir/version.cc.o -c /home/penis/forkserf_newstable/forkserf/src/version.cc",
+  "file": "/home/penis/forkserf_newstable/forkserf/src/version.cc"
+},
+{
+  "directory": "/home/penis/forkserf_newstable/forkserf/build/src",
+  "command": "/opt/rh/devtoolset-7/root/usr/bin/g++   -DPACKAGE_BUGREPORT=\\\"https://github.com/freeserf/freeserf/issues\\\" -std=gnu++14  -g -I/home/penis/forkserf_newstable/forkserf -I/home/penis/forkserf_newstable/forkserf/build -I/usr/include/SDL2    -o CMakeFiles/FreeSerf.dir/text-input.cc.o -c /home/penis/forkserf_newstable/forkserf/src/text-input.cc",
+  "file": "/home/penis/forkserf_newstable/forkserf/src/text-input.cc"
+},
+{
+  "directory": "/home/penis/forkserf_newstable/forkserf/build/src",
+  "command": "/opt/rh/devtoolset-7/root/usr/bin/g++   -DPACKAGE_BUGREPORT=\\\"https://github.com/freeserf/freeserf/issues\\\" -std=gnu++14  -g -I/home/penis/forkserf_newstable/forkserf -I/home/penis/forkserf_newstable/forkserf/build -I/usr/include/SDL2    -o CMakeFiles/FreeSerf.dir/list.cc.o -c /home/penis/forkserf_newstable/forkserf/src/list.cc",
+  "file": "/home/penis/forkserf_newstable/forkserf/src/list.cc"
+},
+{
+  "directory": "/home/penis/forkserf_newstable/forkserf/build/src",
+  "command": "/opt/rh/devtoolset-7/root/usr/bin/g++   -DPACKAGE_BUGREPORT=\\\"https://github.com/freeserf/freeserf/issues\\\" -std=gnu++14  -g -I/home/penis/forkserf_newstable/forkserf -I/home/penis/forkserf_newstable/forkserf/build -I/usr/include/SDL2    -o CMakeFiles/FreeSerf.dir/command_line.cc.o -c /home/penis/forkserf_newstable/forkserf/src/command_line.cc",
+  "file": "/home/penis/forkserf_newstable/forkserf/src/command_line.cc"
+},
+{
+  "directory": "/home/penis/forkserf_newstable/forkserf/build/src",
+  "command": "/opt/rh/devtoolset-7/root/usr/bin/g++   -DPACKAGE_BUGREPORT=\\\"https://github.com/freeserf/freeserf/issues\\\" -std=gnu++14  -g -I/home/penis/forkserf_newstable/forkserf -I/home/penis/forkserf_newstable/forkserf/build -I/usr/include/SDL2    -o CMakeFiles/data.dir/data.cc.o -c /home/penis/forkserf_newstable/forkserf/src/data.cc",
+  "file": "/home/penis/forkserf_newstable/forkserf/src/data.cc"
+},
+{
+  "directory": "/home/penis/forkserf_newstable/forkserf/build/src",
+  "command": "/opt/rh/devtoolset-7/root/usr/bin/g++   -DPACKAGE_BUGREPORT=\\\"https://github.com/freeserf/freeserf/issues\\\" -std=gnu++14  -g -I/home/penis/forkserf_newstable/forkserf -I/home/penis/forkserf_newstable/forkserf/build -I/usr/include/SDL2    -o CMakeFiles/data.dir/data-source-dos.cc.o -c /home/penis/forkserf_newstable/forkserf/src/data-source-dos.cc",
+  "file": "/home/penis/forkserf_newstable/forkserf/src/data-source-dos.cc"
+},
+{
+  "directory": "/home/penis/forkserf_newstable/forkserf/build/src",
+  "command": "/opt/rh/devtoolset-7/root/usr/bin/g++   -DPACKAGE_BUGREPORT=\\\"https://github.com/freeserf/freeserf/issues\\\" -std=gnu++14  -g -I/home/penis/forkserf_newstable/forkserf -I/home/penis/forkserf_newstable/forkserf/build -I/usr/include/SDL2    -o CMakeFiles/data.dir/data-source-amiga.cc.o -c /home/penis/forkserf_newstable/forkserf/src/data-source-amiga.cc",
+  "file": "/home/penis/forkserf_newstable/forkserf/src/data-source-amiga.cc"
+},
+{
+  "directory": "/home/penis/forkserf_newstable/forkserf/build/src",
+  "command": "/opt/rh/devtoolset-7/root/usr/bin/g++   -DPACKAGE_BUGREPORT=\\\"https://github.com/freeserf/freeserf/issues\\\" -std=gnu++14  -g -I/home/penis/forkserf_newstable/forkserf -I/home/penis/forkserf_newstable/forkserf/build -I/usr/include/SDL2    -o CMakeFiles/data.dir/data-source-legacy.cc.o -c /home/penis/forkserf_newstable/forkserf/src/data-source-legacy.cc",
+  "file": "/home/penis/forkserf_newstable/forkserf/src/data-source-legacy.cc"
+},
+{
+  "directory": "/home/penis/forkserf_newstable/forkserf/build/src",
+  "command": "/opt/rh/devtoolset-7/root/usr/bin/g++   -DPACKAGE_BUGREPORT=\\\"https://github.com/freeserf/freeserf/issues\\\" -std=gnu++14  -g -I/home/penis/forkserf_newstable/forkserf -I/home/penis/forkserf_newstable/forkserf/build -I/usr/include/SDL2    -o CMakeFiles/data.dir/data-source-custom.cc.o -c /home/penis/forkserf_newstable/forkserf/src/data-source-custom.cc",
+  "file": "/home/penis/forkserf_newstable/forkserf/src/data-source-custom.cc"
+},
+{
+  "directory": "/home/penis/forkserf_newstable/forkserf/build/src",
+  "command": "/opt/rh/devtoolset-7/root/usr/bin/g++   -DPACKAGE_BUGREPORT=\\\"https://github.com/freeserf/freeserf/issues\\\" -std=gnu++14  -g -I/home/penis/forkserf_newstable/forkserf -I/home/penis/forkserf_newstable/forkserf/build -I/usr/include/SDL2    -o CMakeFiles/data.dir/tpwm.cc.o -c /home/penis/forkserf_newstable/forkserf/src/tpwm.cc",
+  "file": "/home/penis/forkserf_newstable/forkserf/src/tpwm.cc"
+},
+{
+  "directory": "/home/penis/forkserf_newstable/forkserf/build/src",
+  "command": "/opt/rh/devtoolset-7/root/usr/bin/g++   -DPACKAGE_BUGREPORT=\\\"https://github.com/freeserf/freeserf/issues\\\" -std=gnu++14  -g -I/home/penis/forkserf_newstable/forkserf -I/home/penis/forkserf_newstable/forkserf/build -I/usr/include/SDL2    -o CMakeFiles/data.dir/sfx2wav.cc.o -c /home/penis/forkserf_newstable/forkserf/src/sfx2wav.cc",
+  "file": "/home/penis/forkserf_newstable/forkserf/src/sfx2wav.cc"
+},
+{
+  "directory": "/home/penis/forkserf_newstable/forkserf/build/src",
+  "command": "/opt/rh/devtoolset-7/root/usr/bin/g++   -DPACKAGE_BUGREPORT=\\\"https://github.com/freeserf/freeserf/issues\\\" -std=gnu++14  -g -I/home/penis/forkserf_newstable/forkserf -I/home/penis/forkserf_newstable/forkserf/build -I/usr/include/SDL2    -o CMakeFiles/data.dir/xmi2mid.cc.o -c /home/penis/forkserf_newstable/forkserf/src/xmi2mid.cc",
+  "file": "/home/penis/forkserf_newstable/forkserf/src/xmi2mid.cc"
+},
+{
+  "directory": "/home/penis/forkserf_newstable/forkserf/build/src",
+  "command": "/opt/rh/devtoolset-7/root/usr/bin/g++   -DPACKAGE_BUGREPORT=\\\"https://github.com/freeserf/freeserf/issues\\\" -std=gnu++14  -g -I/home/penis/forkserf_newstable/forkserf -I/home/penis/forkserf_newstable/forkserf/build -I/usr/include/SDL2    -o CMakeFiles/data.dir/pcm2wav.cc.o -c /home/penis/forkserf_newstable/forkserf/src/pcm2wav.cc",
+  "file": "/home/penis/forkserf_newstable/forkserf/src/pcm2wav.cc"
+},
+{
+  "directory": "/home/penis/forkserf_newstable/forkserf/build/src",
+  "command": "/opt/rh/devtoolset-7/root/usr/bin/g++   -DPACKAGE_BUGREPORT=\\\"https://github.com/freeserf/freeserf/issues\\\" -std=gnu++14  -g -I/home/penis/forkserf_newstable/forkserf -I/home/penis/forkserf_newstable/forkserf/build -I/usr/include/SDL2    -o CMakeFiles/data.dir/data-source.cc.o -c /home/penis/forkserf_newstable/forkserf/src/data-source.cc",
+  "file": "/home/penis/forkserf_newstable/forkserf/src/data-source.cc"
+},
+{
+  "directory": "/home/penis/forkserf_newstable/forkserf/build/src",
+  "command": "/opt/rh/devtoolset-7/root/usr/bin/g++   -DPACKAGE_BUGREPORT=\\\"https://github.com/freeserf/freeserf/issues\\\" -std=gnu++14  -g -I/home/penis/forkserf_newstable/forkserf -I/home/penis/forkserf_newstable/forkserf/build -I/usr/include/SDL2    -o CMakeFiles/data.dir/sprite-file-sdl.cc.o -c /home/penis/forkserf_newstable/forkserf/src/sprite-file-sdl.cc",
+  "file": "/home/penis/forkserf_newstable/forkserf/src/sprite-file-sdl.cc"
+},
+{
+  "directory": "/home/penis/forkserf_newstable/forkserf/build/src",
+  "command": "/opt/rh/devtoolset-7/root/usr/bin/g++   -DPACKAGE_BUGREPORT=\\\"https://github.com/freeserf/freeserf/issues\\\" -std=gnu++14  -g -I/home/penis/forkserf_newstable/forkserf -I/home/penis/forkserf_newstable/forkserf/build -I/usr/include/SDL2    -o CMakeFiles/game.dir/ai.cc.o -c /home/penis/forkserf_newstable/forkserf/src/ai.cc",
+  "file": "/home/penis/forkserf_newstable/forkserf/src/ai.cc"
+},
+{
+  "directory": "/home/penis/forkserf_newstable/forkserf/build/src",
+  "command": "/opt/rh/devtoolset-7/root/usr/bin/g++   -DPACKAGE_BUGREPORT=\\\"https://github.com/freeserf/freeserf/issues\\\" -std=gnu++14  -g -I/home/penis/forkserf_newstable/forkserf -I/home/penis/forkserf_newstable/forkserf/build -I/usr/include/SDL2    -o CMakeFiles/game.dir/ai_roadbuilder.cc.o -c /home/penis/forkserf_newstable/forkserf/src/ai_roadbuilder.cc",
+  "file": "/home/penis/forkserf_newstable/forkserf/src/ai_roadbuilder.cc"
+},
+{
+  "directory": "/home/penis/forkserf_newstable/forkserf/build/src",
+  "command": "/opt/rh/devtoolset-7/root/usr/bin/g++   -DPACKAGE_BUGREPORT=\\\"https://github.com/freeserf/freeserf/issues\\\" -std=gnu++14  -g -I/home/penis/forkserf_newstable/forkserf -I/home/penis/forkserf_newstable/forkserf/build -I/usr/include/SDL2    -o CMakeFiles/game.dir/ai_util.cc.o -c /home/penis/forkserf_newstable/forkserf/src/ai_util.cc",
+  "file": "/home/penis/forkserf_newstable/forkserf/src/ai_util.cc"
+},
+{
+  "directory": "/home/penis/forkserf_newstable/forkserf/build/src",
+  "command": "/opt/rh/devtoolset-7/root/usr/bin/g++   -DPACKAGE_BUGREPORT=\\\"https://github.com/freeserf/freeserf/issues\\\" -std=gnu++14  -g -I/home/penis/forkserf_newstable/forkserf -I/home/penis/forkserf_newstable/forkserf/build -I/usr/include/SDL2    -o CMakeFiles/game.dir/building.cc.o -c /home/penis/forkserf_newstable/forkserf/src/building.cc",
+  "file": "/home/penis/forkserf_newstable/forkserf/src/building.cc"
+},
+{
+  "directory": "/home/penis/forkserf_newstable/forkserf/build/src",
+  "command": "/opt/rh/devtoolset-7/root/usr/bin/g++   -DPACKAGE_BUGREPORT=\\\"https://github.com/freeserf/freeserf/issues\\\" -std=gnu++14  -g -I/home/penis/forkserf_newstable/forkserf -I/home/penis/forkserf_newstable/forkserf/build -I/usr/include/SDL2    -o CMakeFiles/game.dir/flag.cc.o -c /home/penis/forkserf_newstable/forkserf/src/flag.cc",
+  "file": "/home/penis/forkserf_newstable/forkserf/src/flag.cc"
+},
+{
+  "directory": "/home/penis/forkserf_newstable/forkserf/build/src",
+  "command": "/opt/rh/devtoolset-7/root/usr/bin/g++   -DPACKAGE_BUGREPORT=\\\"https://github.com/freeserf/freeserf/issues\\\" -std=gnu++14  -g -I/home/penis/forkserf_newstable/forkserf -I/home/penis/forkserf_newstable/forkserf/build -I/usr/include/SDL2    -o CMakeFiles/game.dir/game.cc.o -c /home/penis/forkserf_newstable/forkserf/src/game.cc",
+  "file": "/home/penis/forkserf_newstable/forkserf/src/game.cc"
+},
+{
+  "directory": "/home/penis/forkserf_newstable/forkserf/build/src",
+  "command": "/opt/rh/devtoolset-7/root/usr/bin/g++   -DPACKAGE_BUGREPORT=\\\"https://github.com/freeserf/freeserf/issues\\\" -std=gnu++14  -g -I/home/penis/forkserf_newstable/forkserf -I/home/penis/forkserf_newstable/forkserf/build -I/usr/include/SDL2    -o CMakeFiles/game.dir/inventory.cc.o -c /home/penis/forkserf_newstable/forkserf/src/inventory.cc",
+  "file": "/home/penis/forkserf_newstable/forkserf/src/inventory.cc"
+},
+{
+  "directory": "/home/penis/forkserf_newstable/forkserf/build/src",
+  "command": "/opt/rh/devtoolset-7/root/usr/bin/g++   -DPACKAGE_BUGREPORT=\\\"https://github.com/freeserf/freeserf/issues\\\" -std=gnu++14  -g -I/home/penis/forkserf_newstable/forkserf -I/home/penis/forkserf_newstable/forkserf/build -I/usr/include/SDL2    -o CMakeFiles/game.dir/map.cc.o -c /home/penis/forkserf_newstable/forkserf/src/map.cc",
+  "file": "/home/penis/forkserf_newstable/forkserf/src/map.cc"
+},
+{
+  "directory": "/home/penis/forkserf_newstable/forkserf/build/src",
+  "command": "/opt/rh/devtoolset-7/root/usr/bin/g++   -DPACKAGE_BUGREPORT=\\\"https://github.com/freeserf/freeserf/issues\\\" -std=gnu++14  -g -I/home/penis/forkserf_newstable/forkserf -I/home/penis/forkserf_newstable/forkserf/build -I/usr/include/SDL2    -o CMakeFiles/game.dir/map-generator.cc.o -c /home/penis/forkserf_newstable/forkserf/src/map-generator.cc",
+  "file": "/home/penis/forkserf_newstable/forkserf/src/map-generator.cc"
+},
+{
+  "directory": "/home/penis/forkserf_newstable/forkserf/build/src",
+  "command": "/opt/rh/devtoolset-7/root/usr/bin/g++   -DPACKAGE_BUGREPORT=\\\"https://github.com/freeserf/freeserf/issues\\\" -std=gnu++14  -g -I/home/penis/forkserf_newstable/forkserf -I/home/penis/forkserf_newstable/forkserf/build -I/usr/include/SDL2    -o CMakeFiles/game.dir/mission.cc.o -c /home/penis/forkserf_newstable/forkserf/src/mission.cc",
+  "file": "/home/penis/forkserf_newstable/forkserf/src/mission.cc"
+},
+{
+  "directory": "/home/penis/forkserf_newstable/forkserf/build/src",
+  "command": "/opt/rh/devtoolset-7/root/usr/bin/g++   -DPACKAGE_BUGREPORT=\\\"https://github.com/freeserf/freeserf/issues\\\" -std=gnu++14  -g -I/home/penis/forkserf_newstable/forkserf -I/home/penis/forkserf_newstable/forkserf/build -I/usr/include/SDL2    -o CMakeFiles/game.dir/player.cc.o -c /home/penis/forkserf_newstable/forkserf/src/player.cc",
+  "file": "/home/penis/forkserf_newstable/forkserf/src/player.cc"
+},
+{
+  "directory": "/home/penis/forkserf_newstable/forkserf/build/src",
+  "command": "/opt/rh/devtoolset-7/root/usr/bin/g++   -DPACKAGE_BUGREPORT=\\\"https://github.com/freeserf/freeserf/issues\\\" -std=gnu++14  -g -I/home/penis/forkserf_newstable/forkserf -I/home/penis/forkserf_newstable/forkserf/build -I/usr/include/SDL2    -o CMakeFiles/game.dir/random.cc.o -c /home/penis/forkserf_newstable/forkserf/src/random.cc",
+  "file": "/home/penis/forkserf_newstable/forkserf/src/random.cc"
+},
+{
+  "directory": "/home/penis/forkserf_newstable/forkserf/build/src",
+  "command": "/opt/rh/devtoolset-7/root/usr/bin/g++   -DPACKAGE_BUGREPORT=\\\"https://github.com/freeserf/freeserf/issues\\\" -std=gnu++14  -g -I/home/penis/forkserf_newstable/forkserf -I/home/penis/forkserf_newstable/forkserf/build -I/usr/include/SDL2    -o CMakeFiles/game.dir/savegame.cc.o -c /home/penis/forkserf_newstable/forkserf/src/savegame.cc",
+  "file": "/home/penis/forkserf_newstable/forkserf/src/savegame.cc"
+},
+{
+  "directory": "/home/penis/forkserf_newstable/forkserf/build/src",
+  "command": "/opt/rh/devtoolset-7/root/usr/bin/g++   -DPACKAGE_BUGREPORT=\\\"https://github.com/freeserf/freeserf/issues\\\" -std=gnu++14  -g -I/home/penis/forkserf_newstable/forkserf -I/home/penis/forkserf_newstable/forkserf/build -I/usr/include/SDL2    -o CMakeFiles/game.dir/serf.cc.o -c /home/penis/forkserf_newstable/forkserf/src/serf.cc",
+  "file": "/home/penis/forkserf_newstable/forkserf/src/serf.cc"
+},
+{
+  "directory": "/home/penis/forkserf_newstable/forkserf/build/src",
+  "command": "/opt/rh/devtoolset-7/root/usr/bin/g++   -DPACKAGE_BUGREPORT=\\\"https://github.com/freeserf/freeserf/issues\\\" -std=gnu++14  -g -I/home/penis/forkserf_newstable/forkserf -I/home/penis/forkserf_newstable/forkserf/build -I/usr/include/SDL2    -o CMakeFiles/game.dir/game-manager.cc.o -c /home/penis/forkserf_newstable/forkserf/src/game-manager.cc",
+  "file": "/home/penis/forkserf_newstable/forkserf/src/game-manager.cc"
+},
+{
+  "directory": "/home/penis/forkserf_newstable/forkserf/build/src",
+  "command": "/opt/rh/devtoolset-7/root/usr/bin/g++   -DPACKAGE_BUGREPORT=\\\"https://github.com/freeserf/freeserf/issues\\\" -std=gnu++14  -g -I/home/penis/forkserf_newstable/forkserf -I/home/penis/forkserf_newstable/forkserf/build -I/usr/include/SDL2    -o CMakeFiles/platform.dir/video.cc.o -c /home/penis/forkserf_newstable/forkserf/src/video.cc",
+  "file": "/home/penis/forkserf_newstable/forkserf/src/video.cc"
+},
+{
+  "directory": "/home/penis/forkserf_newstable/forkserf/build/src",
+  "command": "/opt/rh/devtoolset-7/root/usr/bin/g++   -DPACKAGE_BUGREPORT=\\\"https://github.com/freeserf/freeserf/issues\\\" -std=gnu++14  -g -I/home/penis/forkserf_newstable/forkserf -I/home/penis/forkserf_newstable/forkserf/build -I/usr/include/SDL2    -o CMakeFiles/platform.dir/audio.cc.o -c /home/penis/forkserf_newstable/forkserf/src/audio.cc",
+  "file": "/home/penis/forkserf_newstable/forkserf/src/audio.cc"
+},
+{
+  "directory": "/home/penis/forkserf_newstable/forkserf/build/src",
+  "command": "/opt/rh/devtoolset-7/root/usr/bin/g++   -DPACKAGE_BUGREPORT=\\\"https://github.com/freeserf/freeserf/issues\\\" -std=gnu++14  -g -I/home/penis/forkserf_newstable/forkserf -I/home/penis/forkserf_newstable/forkserf/build -I/usr/include/SDL2    -o CMakeFiles/platform.dir/event_loop.cc.o -c /home/penis/forkserf_newstable/forkserf/src/event_loop.cc",
+  "file": "/home/penis/forkserf_newstable/forkserf/src/event_loop.cc"
+},
+{
+  "directory": "/home/penis/forkserf_newstable/forkserf/build/src",
+  "command": "/opt/rh/devtoolset-7/root/usr/bin/g++   -DPACKAGE_BUGREPORT=\\\"https://github.com/freeserf/freeserf/issues\\\" -std=gnu++14  -g -I/home/penis/forkserf_newstable/forkserf -I/home/penis/forkserf_newstable/forkserf/build -I/usr/include/SDL2    -o CMakeFiles/platform.dir/video-sdl.cc.o -c /home/penis/forkserf_newstable/forkserf/src/video-sdl.cc",
+  "file": "/home/penis/forkserf_newstable/forkserf/src/video-sdl.cc"
+},
+{
+  "directory": "/home/penis/forkserf_newstable/forkserf/build/src",
+  "command": "/opt/rh/devtoolset-7/root/usr/bin/g++   -DPACKAGE_BUGREPORT=\\\"https://github.com/freeserf/freeserf/issues\\\" -std=gnu++14  -g -I/home/penis/forkserf_newstable/forkserf -I/home/penis/forkserf_newstable/forkserf/build -I/usr/include/SDL2    -o CMakeFiles/platform.dir/event_loop-sdl.cc.o -c /home/penis/forkserf_newstable/forkserf/src/event_loop-sdl.cc",
+  "file": "/home/penis/forkserf_newstable/forkserf/src/event_loop-sdl.cc"
+},
+{
+  "directory": "/home/penis/forkserf_newstable/forkserf/build/src",
+  "command": "/opt/rh/devtoolset-7/root/usr/bin/g++   -DPACKAGE_BUGREPORT=\\\"https://github.com/freeserf/freeserf/issues\\\" -std=gnu++14  -g -I/home/penis/forkserf_newstable/forkserf -I/home/penis/forkserf_newstable/forkserf/build -I/usr/include/SDL2    -o CMakeFiles/platform.dir/audio-sdlmixer.cc.o -c /home/penis/forkserf_newstable/forkserf/src/audio-sdlmixer.cc",
+  "file": "/home/penis/forkserf_newstable/forkserf/src/audio-sdlmixer.cc"
+},
+{
+  "directory": "/home/penis/forkserf_newstable/forkserf/build/src",
+  "command": "/opt/rh/devtoolset-7/root/usr/bin/g++   -DPACKAGE_BUGREPORT=\\\"https://github.com/freeserf/freeserf/issues\\\" -std=gnu++14  -g -I/home/penis/forkserf_newstable/forkserf -I/home/penis/forkserf_newstable/forkserf/build -I/usr/include/SDL2    -o CMakeFiles/profiler.dir/profiler.cc.o -c /home/penis/forkserf_newstable/forkserf/src/profiler.cc",
+  "file": "/home/penis/forkserf_newstable/forkserf/src/profiler.cc"
+},
+{
+  "directory": "/home/penis/forkserf_newstable/forkserf/build/src",
+  "command": "/opt/rh/devtoolset-7/root/usr/bin/g++   -DPACKAGE_BUGREPORT=\\\"https://github.com/freeserf/freeserf/issues\\\" -std=gnu++14  -g -I/home/penis/forkserf_newstable/forkserf -I/home/penis/forkserf_newstable/forkserf/build -I/usr/include/SDL2    -o CMakeFiles/profiler.dir/version.cc.o -c /home/penis/forkserf_newstable/forkserf/src/version.cc",
+  "file": "/home/penis/forkserf_newstable/forkserf/src/version.cc"
+},
+{
+  "directory": "/home/penis/forkserf_newstable/forkserf/build/src",
+  "command": "/opt/rh/devtoolset-7/root/usr/bin/g++   -DPACKAGE_BUGREPORT=\\\"https://github.com/freeserf/freeserf/issues\\\" -std=gnu++14  -g -I/home/penis/forkserf_newstable/forkserf -I/home/penis/forkserf_newstable/forkserf/build -I/usr/include/SDL2    -o CMakeFiles/profiler.dir/command_line.cc.o -c /home/penis/forkserf_newstable/forkserf/src/command_line.cc",
+  "file": "/home/penis/forkserf_newstable/forkserf/src/command_line.cc"
+},
+{
+  "directory": "/home/penis/forkserf_newstable/forkserf/build/src",
+  "command": "/opt/rh/devtoolset-7/root/usr/bin/g++   -DPACKAGE_BUGREPORT=\\\"https://github.com/freeserf/freeserf/issues\\\" -std=gnu++14  -g -I/home/penis/forkserf_newstable/forkserf -I/home/penis/forkserf_newstable/forkserf/build -I/usr/include/SDL2    -o CMakeFiles/tools.dir/debug.cc.o -c /home/penis/forkserf_newstable/forkserf/src/debug.cc",
+  "file": "/home/penis/forkserf_newstable/forkserf/src/debug.cc"
+},
+{
+  "directory": "/home/penis/forkserf_newstable/forkserf/build/src",
+  "command": "/opt/rh/devtoolset-7/root/usr/bin/g++   -DPACKAGE_BUGREPORT=\\\"https://github.com/freeserf/freeserf/issues\\\" -std=gnu++14  -g -I/home/penis/forkserf_newstable/forkserf -I/home/penis/forkserf_newstable/forkserf/build -I/usr/include/SDL2    -o CMakeFiles/tools.dir/log.cc.o -c /home/penis/forkserf_newstable/forkserf/src/log.cc",
+  "file": "/home/penis/forkserf_newstable/forkserf/src/log.cc"
+},
+{
+  "directory": "/home/penis/forkserf_newstable/forkserf/build/src",
+  "command": "/opt/rh/devtoolset-7/root/usr/bin/g++   -DPACKAGE_BUGREPORT=\\\"https://github.com/freeserf/freeserf/issues\\\" -std=gnu++14  -g -I/home/penis/forkserf_newstable/forkserf -I/home/penis/forkserf_newstable/forkserf/build -I/usr/include/SDL2    -o CMakeFiles/tools.dir/configfile.cc.o -c /home/penis/forkserf_newstable/forkserf/src/configfile.cc",
+  "file": "/home/penis/forkserf_newstable/forkserf/src/configfile.cc"
+},
+{
+  "directory": "/home/penis/forkserf_newstable/forkserf/build/src",
+  "command": "/opt/rh/devtoolset-7/root/usr/bin/g++   -DPACKAGE_BUGREPORT=\\\"https://github.com/freeserf/freeserf/issues\\\" -std=gnu++14  -g -I/home/penis/forkserf_newstable/forkserf -I/home/penis/forkserf_newstable/forkserf/build -I/usr/include/SDL2    -o CMakeFiles/tools.dir/buffer.cc.o -c /home/penis/forkserf_newstable/forkserf/src/buffer.cc",
+  "file": "/home/penis/forkserf_newstable/forkserf/src/buffer.cc"
+}
+]

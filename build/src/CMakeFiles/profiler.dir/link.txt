@@ -1,0 +1,1 @@
+/opt/rh/devtoolset-7/root/usr/bin/g++   -std=gnu++14  -g    CMakeFiles/profiler.dir/profiler.cc.o CMakeFiles/profiler.dir/version.cc.o CMakeFiles/profiler.dir/command_line.cc.o  -o profiler -rdynamic libgame.a libtools.a 

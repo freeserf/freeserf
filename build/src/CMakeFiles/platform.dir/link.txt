@@ -1,0 +1,2 @@
+/opt/rh/devtoolset-7/root/usr/bin/ar cr libplatform.a  CMakeFiles/platform.dir/video.cc.o CMakeFiles/platform.dir/audio.cc.o CMakeFiles/platform.dir/event_loop.cc.o CMakeFiles/platform.dir/video-sdl.cc.o CMakeFiles/platform.dir/event_loop-sdl.cc.o CMakeFiles/platform.dir/audio-sdlmixer.cc.o
+/opt/rh/devtoolset-7/root/usr/bin/ranlib libplatform.a

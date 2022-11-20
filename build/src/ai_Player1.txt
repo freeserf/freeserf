@@ -1,0 +1,35 @@
+Info: [init] inside AI::AI constructor with player_index: 1
+Debug: [init] AI log level is at least debug
+Info: [init] AI log level is at least info
+Warn: [init] AI log level is at least warn
+Error: [init] AI log level is at least error
+Info: [start] AI is starting, thread_id: 139892666803968
+Debug: [next_loop] inside AI::next_loop()
+Debug: [next_loop] sleeping 6sec at start of new loop
+Info: [next_loop] starting AI loop #1
+Debug: [do_place_castle] inside do_place_castle()
+Debug: [do_place_castle] does not yet have a castle
+Debug: [do_place_castle] sleeping 1sec so each AI player thread gets different seed for random map pos
+Debug: [do_place_castle]  considering placing castle at random pos 399
+Debug: [do_place_castle] cannot build a castle at pos 399
+Debug: [do_place_castle]  considering placing castle at random pos 601
+Debug: [do_place_castle] cannot build a castle at pos 601
+Debug: [do_place_castle]  considering placing castle at random pos 829
+Debug: [util_place_castle] inside AI::place_castle, center_pos 829, distance 217, desperation 0
+Debug: [util_place_castle] found trees: 22, stones: 11, building_sites: 458 in area 829. Desperation is 0
+Debug: [util_place_castle] center_pos: 829 is an acceptable building site for a castle.  Desperation is 0
+Debug: [util_place_castle] done AI::place_castle
+Debug: [do_place_castle] found acceptable place to build castle, at pos: 829
+Debug: [do_place_castle] : built castle at pos: 829 after 3 tries
+Debug: [do_place_castle] castle has position 829, with castle_flag_pos 894
+Debug: [do_update_clear_reset] inside do_update_clear_reset
+Debug: [util_update_stocks_pos] inside AI::update_stocks_pos
+Debug: [util_update_stocks_pos] found a building of type Building::TypeCastle stock flag: 894
+Debug: [util_update_stocks_pos] the castle was found at pos 829, with its flag at pos 894
+Debug: [util_update_stocks_pos] done AI::update_stocks_pos
+Debug: [util_update_stocks_pos] done AI::update_stocks_pos call took 0
+Debug: [util_update_buildings] start
+Debug: [util_update_buildings] debug has a building of type 24 at pos 829, with flag_pos 894
+Debug: [util_update_buildings] player's castle isn't finished building yet
+Debug: [util_update_buildings] player's castle isn't finished building yet.  Sleeping a bit
+Debug: [util_update_buildings] player's castle isn't finished building yet.  Sleeping a bit

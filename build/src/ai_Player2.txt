@@ -1,0 +1,8 @@
+Info: [init] inside AI::AI constructor with player_index: 2
+Debug: [init] AI log level is at least debug
+Info: [init] AI log level is at least info
+Warn: [init] AI log level is at least warn
+Error: [init] AI log level is at least error
+Info: [start] AI is starting, thread_id: 140369396233984
+Debug: [next_loop] inside AI::next_loop()
+Debug: [next_loop] sleeping 6sec at start of new loop
