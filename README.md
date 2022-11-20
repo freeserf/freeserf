@@ -9,8 +9,8 @@ Forkserf adds:
 - advanced AI for non-human players
   - greatly improved building placement logic
   - greatly improved road building logic
-  - builds stocks intelligently, with parallel economies around them
-  - note that all AI characters use same logic for now, I will add "flavors" back in at some point
+  - builds stocks (warehouses) intelligently, with entire parallel economies surrounding them
+  - note that all AI characters use same logic for now, I will add Character flavors back in at some point
 - fixes for Freeserf bugs
   - major crash bugs during normal gameplay fixed
   - crash & other bugs related to combat
@@ -64,21 +64,24 @@ Keyboard gameplay controls:
 * `1`, `2`, `3`, `4`, `5`: Activate one of the five buttons in the panel.
 * `b`: Toggle overlay showing possibilities for constructions.
 * ~~`TAB`/SHIFT-`TAB`: Open next notification message; or return from last message.~~ removed for now because of alt-tab issues
-* `+`/`-`: Increase/decrease game speed.
+* `+`/`-`: Increase/decrease game speed.  Default is 2, can go up to 40
 * `0`: Reset game speed.
 * `p`: Pause game.
-* `j`: Switch player.
+* `j`: Switch player, you can control even AI players games while they play, though it might cause instability if you go too crazy with it
 * `y`: AI/debug overlay (only shows for AI players)
 * `g`: grid/serf state debug overlay
 * `h`: hidden resource overlay (THIS IS CHEATING!)
+* `w`: enable/disable Four Seasons & Advanced Farming (they are tied together right now, will allow separation later)
+* ~~`q`: advance to next season~~  disabled for now, season is now tied to tick so it works with save/load game)
+* ~~`e`: advance to next subseason~~ disabled for now, subseason is now tied to tick so it works with save/load game
 
 Other keyboard controls:
 
-* `F10`: Return to main menu to start a new game
+* `CTRL`+`n` or `F10`: Raise game-init popup, can start a new game
 * `s`: Enable/disable sounds playback
 * `m`: Enable/disable music playback
-* `CTRL`+`f`: Switch fullscreen mode on/off.
-* `CTRL`+`z`: Save game in current directory.
+* `CTRL`+`f`: Switch fullscreen mode on/off.  (should add ALT-ENTER at some point also)
+* `CTRL`+`z`: Quicksave game in current directory.
 * `[`/`]`: Zoom -/+
 * `CTRL`-`MouseWheel`: Zoom -/+     
   *note there's a bug where if you resize the game window after zooming you need to zoom again or cursor gets messed up
