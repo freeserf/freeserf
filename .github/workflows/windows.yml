@@ -40,12 +40,12 @@ jobs:
           cd build
           nmake
 
-      - name: Run Tests
-        shell: bash
-        run: |
-          cd build
-          nmake test
-
+#      - name: Run Tests
+#        shell: bash
+#        run: |
+#          cd build
+#          nmake test
+#
       - name: Pack Forkserf
         shell: bash
         run: |
