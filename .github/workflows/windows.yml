@@ -36,7 +36,9 @@ jobs:
           echo foo4
           dir C:\vcpkg\installed\x64-windows
           echo foo5
-          env
           set SDL2_LIBRARY=C:\vcpkg\installed\x64-windows
-          cmake -B build -G "NMake Makefiles" -DCMAKE_BUILD_TYPE=${{ matrix.buildtype }}
+          echo foo6
+          env
+          echo foo7
+          cmake -DCMAKE_TOOLCHAIN_FILE=C:/vcpkg/scripts/buildsystems/vcpkg.cmake -B build -G "NMake Makefiles" -DCMAKE_BUILD_TYPE=${{ matrix.buildtype }}
 
