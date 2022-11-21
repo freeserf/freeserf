@@ -34,29 +34,29 @@ jobs:
       - name: Configure Forkserf
         run: |
           dir -s D:\
-#          cmake -B build -G "NMake Makefiles" -DCMAKE_BUILD_TYPE=${{ matrix.buildtype }}
-#
-#      - name: Build Forkserf
-#        shell: bash
-#        run: |
-#          cd build
-#          nmake
-#
-#      - name: Run Tests
-#        shell: bash
-#        run: |
-#          cd build
-#          nmake test
-#
-#      - name: Pack Forkserf
-#        shell: bash
-#        run: |
-#          cd build
-#          nmake package
-#
-#      - name: Upload artifact
-#        uses: actions/upload-artifact@v1
-#        with:
-#          name: Forkserf-${{ matrix.architecture }}-${{ matrix.buildtype }}
-#          path: ./build/Forkserf-${{ matrix.architecture }}-${{ matrix.buildtype }}.exe
+          cmake -B build -G "NMake Makefiles" -DCMAKE_BUILD_TYPE=${{ matrix.buildtype }}
+
+      - name: Build Forkserf
+        shell: bash
+        run: |
+          cd build
+          nmake
+
+      - name: Run Tests
+       shell: bash
+        run: |
+          cd build
+          nmake test
+
+      - name: Pack Forkserf
+        shell: bash
+        run: |
+          cd build
+          nmake package
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v1
+       with:
+          name: Forkserf-${{ matrix.architecture }}-${{ matrix.buildtype }}
+          path: ./build/Forkserf-${{ matrix.architecture }}-${{ matrix.buildtype }}.exe
 
