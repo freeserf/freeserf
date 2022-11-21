@@ -32,13 +32,11 @@ jobs:
           vcpkg.exe --triplet x64-windows install sdl2 sdl2-mixer[core,libmodplug,nativemidi] sdl2-image
           echo foo1
           dir C:\vcpkg\installed\x64-windows
-          echo foo2
-          dir C:\vcpkg\installed\x64-windows\share
-          echo foo3
-          dir C:\vcpkg\installed\x64-windows\share\SDL2_mixer
           vcpkg.exe integrate install
-
-      - name: Configure Forkserf
-        run: |
+          echo foo4
+          dir C:\vcpkg\installed\x64-windows
+          echo foo5
+          env
+          set SDL2_LIBRARY=C:\vcpkg\installed\x64-windows
           cmake -B build -G "NMake Makefiles" -DCMAKE_BUILD_TYPE=${{ matrix.buildtype }}
 
