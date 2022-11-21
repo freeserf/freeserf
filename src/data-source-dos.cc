@@ -588,7 +588,6 @@ DataSourceDOS::get_music(size_t index) {
     Log::Error["data"] << "Could not extract XMI clip: #" << index;
     return nullptr;
   }
-  Log::Info["data-source-dos.cc"] << "inside get_music, debugA" << index;
 
   try {
     ConvertorXMI2MID convertor(data);
@@ -598,7 +597,6 @@ DataSourceDOS::get_music(size_t index) {
     Log::Error["data"] << "Could not convert XMI clip to MID: #" << index;
     return nullptr;
   }
-  Log::Info["data-source-dos.cc"] << "inside get_music, successfully got music with index " << index;
 }
 
 DataSourceDOS::ColorDOS *
