@@ -27,18 +27,35 @@ jobs:
         with:
           arch: ${{ matrix.architecture }}
 
-      - name: Install dependencies
+      - name: Install PreReq and CMAKE Configure
         run: |
           vcpkg.exe --triplet x64-windows install sdl2 sdl2-mixer[core,libmodplug,nativemidi] sdl2-image
-          echo foo1
-          dir C:\vcpkg\installed\x64-windows
           vcpkg.exe integrate install
-          echo foo4
-          dir C:\vcpkg\installed\x64-windows
-          echo foo5
           set SDL2_LIBRARY=C:\vcpkg\installed\x64-windows
-          echo foo6
-          env
-          echo foo7
           cmake -DCMAKE_TOOLCHAIN_FILE=C:/vcpkg/scripts/buildsystems/vcpkg.cmake -B build -G "NMake Makefiles" -DCMAKE_BUILD_TYPE=${{ matrix.buildtype }}
+
+      - name: Build Forkserf
+        shell: bash
+        run: |
+          cd build
+          nmake
+
+      - name: Run Tests
+        shell: bash
+        run: |
+          cd build
+          nmake test
+
+      - name: Pack Forkserf
+        shell: bash
+        run: |
+          cd build
+          nmake package
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v1
+        with:
+          name: Forkserf-${{ matrix.architecture }}-${{ matrix.buildtype }}
+          path: ./build/Forkserf-${{ matrix.architecture }}-${{ matrix.buildtype }}.exe
+
 
