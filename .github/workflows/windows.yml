@@ -35,7 +35,7 @@ jobs:
           echo foo2
           dir C:\vcpkg\installed\x64-windows\share
           echo foo3
-          dir C:\vcpkg\installed\x64-windows\packages
+          dir C:\vcpkg\installed\x64-windows\share\SDL2_mixer
           vcpkg.exe integrate install
 
       - name: Configure Forkserf
