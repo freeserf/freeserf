@@ -36,7 +36,7 @@ jobs:
 
       - name: Configure Forkserf
         run: |
-          dir -s C:\vcpkg\installed\x64-windows
+          dir -s D:\a\forkserf\forkserf\vcpkg
           cmake -B build -G "NMake Makefiles" -DCMAKE_BUILD_TYPE=${{ matrix.buildtype }}
 
       - name: Build Forkserf
