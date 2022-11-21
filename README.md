@@ -47,12 +47,14 @@ Details about all of the above are on the wiki: https://github.com/forkserf/fork
 
 Build status
 ------------
-coming eventually
+check here: https://github.com/forkserf/forkserf/actions
 
 Last build downloads
 --------------------
 
-coming soon
+Because Github Actions is kind of half-baked, it doesn't allow linking directly to the most recent commit's artifact.
+You must manually go here: https://github.com/forkserf/forkserf/actions  and select either the linux or windows build workflow, scroll 
+ down to the bottom under Artifacts, and you can download the compiled binary there.  Hopefully they will improve this soon.
 
 Play
 ------
