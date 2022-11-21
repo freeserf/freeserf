@@ -30,7 +30,8 @@ jobs:
       - name: Install dependencies
         run: |
           vcpkg.exe --triplet x64-windows install sdl2 sdl2-mixer[core,libmodplug,nativemidi] sdl2-image
-          dir /s C:/vcpkg/packages/
+          dir C:\vcpkg
+          dir /s C:\vcpkg\packages\
           vckpkg.exe integrate install
 
       - name: Configure Forkserf
