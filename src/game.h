@@ -116,6 +116,7 @@ class Game {
   bool ai_locked;
   bool signal_ai_exit;
   unsigned int ai_threads_remaining;
+  ColorDotMap debug_mark_pos;  // list of positions for LayerDebug to mark
 
  public:
   Game();
@@ -144,6 +145,12 @@ class Game {
   std::mutex * get_mutex() { return &mutex; }
   // used by AI to check if game is paused
   unsigned int get_game_speed() const { return game_speed; }
+  // used for Debug overlay LayerDebug to mark MapPos on screen
+  ColorDotMap * get_debug_mark_pos() { return &debug_mark_pos; }
+  void set_debug_mark_pos(MapPos pos, std::string color){ 
+    debug_mark_pos.erase(pos);
+    debug_mark_pos.insert(ColorDot(pos, color));
+  }
 
   unsigned int get_tick() const { return tick; }
   unsigned int get_const_tick() const { return const_tick; }

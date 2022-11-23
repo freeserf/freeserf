@@ -1087,11 +1087,13 @@ Game::prepare_ground_analysis(MapPos pos, int estimates[5]) {
      with the distance to the center. */
   for (int i = 0; i < GROUND_ANALYSIS_RADIUS-1; i++) {
     pos = map->move_right(pos);
-
+    // debug - show area considered on debug overlay 
+    set_debug_mark_pos(pos, "cyan");
     for (Direction d : cycle_directions_cw(DirectionDown)) {
       for (int j = 0; j < i+1; j++) {
         get_resource_estimate(pos, GROUND_ANALYSIS_RADIUS-i, estimates);
         pos = map->move(pos, d);
+        set_debug_mark_pos(pos, "cyan");
       }
     }
   }

@@ -49,7 +49,7 @@
 #define MAP_TILE_COLS  16
 #define MAP_TILE_ROWS  16
 
-MapPos ai_overlay_clicked_pos = bad_map_pos;
+MapPos debug_overlay_clicked_pos = bad_map_pos;
 
 static const uint8_t tri_spr[] = {
   32, 32, 32, 32, 32, 32, 32, 32,
@@ -2899,7 +2899,7 @@ Viewport::draw_map_cursor_possible_build() {
 }
 
 void
-Viewport::draw_ai_grid_overlay() {
+Viewport::draw_ai_overlay() {
   int x_off = 0;
   int y_off = 0;
   MapPos base_pos = get_offset(&x_off, &y_off);
@@ -3150,18 +3150,12 @@ Viewport::draw_ai_grid_overlay() {
     }
   }
 
-
-  // draw player number/color text box
-  frame->draw_string(1, 1, "Player" + std::to_string(current_player_index), interface->get_player_color(current_player_index));
-
   // draw AI status text box
   std::string status = ai->get_ai_status();
   //    got a segfault drawing this string once, I think the status string changed while iterating over its chars?
   //  got it again same day, trying questionable work-around
   //  still getting it, work-around not fixing, check Visual Studio on windows debugger
   frame->draw_string(65, 1, status, Color::white);
-
-
 
 /*  this is causing exceptions frequently, not sure why, disabling for now
   // draw AI expansion goals text box
@@ -3176,15 +3170,70 @@ Viewport::draw_ai_grid_overlay() {
   // draw Inventory pos
   frame->draw_string(450, 1, "Inv " + std::to_string(ai->get_ai_inventory_pos()), Color::white);
 
+  // draw current loop count
+  frame->draw_string(800, 10, "AI loop: " + std::to_string(ai->get_loop_count()), Color::white);
+
+}
+
+
+void
+Viewport::draw_debug_overlay() {
+  int x_off = 0;
+  int y_off = 0;
+  MapPos base_pos = get_offset(&x_off, &y_off);
+  PGame game = interface->get_game();
+  unsigned int current_player_index = interface->get_player()->get_index();
+  ColorDotMap debug_mark_pos = *(game->get_debug_mark_pos());
+  // iterate over every MapPos in view
+  for (int x_base = x_off; x_base < width + MAP_TILE_WIDTH;
+    x_base += MAP_TILE_WIDTH) {
+    MapPos pos = base_pos;
+    int y_base = y_off;
+    int row = 0;
+    while (1) {
+      int lx;
+      if (row % 2 == 0) {
+        lx = x_base;
+      }
+      else {
+        lx = x_base - MAP_TILE_WIDTH / 2;
+      }
+      int ly = y_base - 4 * map->get_height(pos);
+      if (ly >= height) break;
+      if (debug_mark_pos.count(pos) > 0) {
+        if (pos != map->pos(0, 0)) {
+          // first two args are x/y offset, if made bigger start more negatively
+          // second two args are x/y coord of corners, increase to make bigger
+          // small-medium dots
+          frame->fill_rect(lx - 2, ly + 0, 5, 5, colors.at(debug_mark_pos.at(pos)));
+          frame->fill_rect(lx - 3, ly + 1, 7, 3, colors.at(debug_mark_pos.at(pos)));
+          // large dots
+          //frame->fill_rect(lx - 7, ly + 0, 16, 16, colors.at(debug_mark_pos.at(pos)));
+          //frame->fill_rect(lx - 9, ly + 1, 20, 14, colors.at(debug_mark_pos.at(pos)));
+        }
+      }
+      if (row % 2 == 0) {
+        pos = map->move_down(pos);
+      }
+      else {
+        pos = map->move_down_right(pos);
+      }
+      y_base += MAP_TILE_HEIGHT;
+      row += 1;
+    }
+    base_pos = map->move_right(base_pos);
+  }
+  
+  // draw player number/color text box
+  frame->draw_string(1, 1, "Player" + std::to_string(current_player_index), interface->get_player_color(current_player_index));
+
   // draw cursor map click position
-  if (ai_overlay_clicked_pos != bad_map_pos) {
-    frame->draw_string(600, 1, "clicked on " + std::to_string(ai_overlay_clicked_pos), Color::white);
+  if (debug_overlay_clicked_pos != bad_map_pos) {
+    frame->draw_string(600, 1, "clicked on " + std::to_string(debug_overlay_clicked_pos), Color::white);
   }
 
   // draw current game speed
-  frame->draw_string(800, 1, "game speed: " + std::to_string(ai->get_game_speed()), Color::white);
-  // draw current loop count
-  frame->draw_string(800, 10, "AI loop: " + std::to_string(ai->get_loop_count()), Color::white);
+  frame->draw_string(800, 1, "game speed: " + std::to_string(game->get_game_speed()), Color::white);
 
 }
 
@@ -3373,20 +3422,23 @@ Viewport::internal_draw() {
   if (map == NULL) {
     return;
   }
-
   if (layers & LayerLandscape) {
     draw_landscape();
   }
   if (layers & LayerGrid) {
     draw_base_grid_overlay(Color(0xcf, 0x63, 0x63));
     draw_height_grid_overlay(Color(0xef, 0xef, 0x8f));
+    // note that this also shows serf states, which is drawn elsewhere in Viewport (I think)
   }
   if (layers & LayerPaths) {
     draw_paths_and_borders();
   }
   draw_game_objects(layers);
+  if (layers & LayerDebug){
+    draw_debug_overlay();
+  }
   if (layers & LayerAI) {
-    draw_ai_grid_overlay();
+    draw_ai_overlay();
   }
   if (layers & LayerHiddenResources) {
     draw_hidden_res_overlay();
@@ -3401,7 +3453,7 @@ Viewport::handle_click_left(int lx, int ly, int modifier) {
   set_redraw();
   MapPos clk_pos = map_pos_from_screen_pix(lx, ly);
 
-  ai_overlay_clicked_pos = clk_pos;
+  debug_overlay_clicked_pos = clk_pos;
   // CTRL-click:  KMOD_CTRL = (KMOD_LCTRL|KMOD_RCTRL) which is 64|128
   if (modifier == 64 || modifier == 128){
     Log::Debug["viewport"] << "CTRL-clicked on pos " << clk_pos << " with x,y " << map->pos_col(clk_pos) << "," << map->pos_row(clk_pos);

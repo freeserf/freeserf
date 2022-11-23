@@ -341,7 +341,7 @@ class Map {
 
   MapPos pos_add_spirally(MapPos pos_, unsigned int off) const {
     if (off > 295) {
-      Log::Error["map"] << "cannot use pos_add_spirally() beyond 295 positions (~10 shells)";
+      Log::Error["map"] << "cannot use pos_add_spirally() beyond 295 positions (~10 shells), instead try pos_add_extended_spirally";
     }
     return pos_add(pos_, spiral_pos_pattern[off]); }
 

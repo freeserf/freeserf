@@ -1371,7 +1371,7 @@ Serf::change_direction(Direction dir, int alt_end) {
 /* Precondition: serf state is in WALKING or TRANSPORTING state */
 void
 Serf::transporter_move_to_flag(Flag *flag) {
-  //Log::Debug["serf"] << "inside Serf::transporter_move_to_flag(), for a serf with index " << get_index();
+  Log::Debug["serf.cc"] << "inside Serf::transporter_move_to_flag(), for a serf with index " << get_index() << ", moving to flag at pos " << flag->get_position();
   // is s.transporting.dir the direction that the transporter is travelling?
   //  or, is it the direction that the res at the reached flag is heading (i.e. the reverse dir)?
   //   it seems to be the latter, but that could be faulty logic in sailor transport serf code
@@ -1410,7 +1410,9 @@ Serf::transporter_move_to_flag(Flag *flag) {
       //  as the passenger becomes s.transporting.res TypeSerf
       else if (s.transporting.res != Resource::TypeNone) {
         /* Drop resource at flag */
+        Log::Info["serf.cc"] << "inside transporter_move_to_flag(water), calling flag->drop_resource for s.transporting.res of type " << NameResource[s.transporting.res];
         if (flag->drop_resource(s.transporting.res, s.transporting.dest)) {
+          Log::Info["serf.cc"] << "inside transporter_move_to_flag(water), flag->drop_resource call returned true";
           s.transporting.res = Resource::TypeNone;
         }
       }
@@ -1445,15 +1447,17 @@ Serf::transporter_move_to_flag(Flag *flag) {
    //Log::Info["serf"] << "debug: sailor inside Serf::transporter_move_to_flag B";
   }
   if (flag->is_scheduled(dir)) {
+    int res_index = flag->scheduled_slot(dir);
+    Log::Info["serf.cc"] << "debug: inside Serf::transporter_move_to_flag, flag at pos " << flag->get_position() << ", flag->is_scheduled in dir " << dir << ", slot #" << res_index << ", to pickup res type " << NameResource[flag->get_resource_at_slot(res_index)];
     //if (get_type() == Serf::TypeSailor){
-     //Log::Info["serf"] << "debug: sailor inside Serf::transporter_move_to_flag, flag->is_scheduled in dir " << NameDirection[dir];
+     //Log::Info["serf.cc"] << "debug: sailor inside Serf::transporter_move_to_flag, flag->is_scheduled in dir " << NameDirection[dir];
     //}
     /* Fetch resource from flag */
     s.transporting.wait_counter = 0;
-    int res_index = flag->scheduled_slot(dir);
 
     if (s.transporting.res == Resource::TypeNone) {
       /* Pick up resource. */
+      Log::Info["serf.cc"] << "debug: inside Serf::transporter_move_to_flag, flag at pos " << flag->get_position() << ", flag->is_scheduled in dir " << dir << ", no res carried, calling flag->pick_up_resource, slot #" << res_index << ", to pickup res type " << NameResource[flag->get_resource_at_slot(res_index)];
       flag->pick_up_resource(res_index, &s.transporting.res,
                              &s.transporting.dest);
       // NOTE - pyrdacor's Freeserf.NET seems to check the result of the flag->pick_up_resource call
@@ -1462,6 +1466,7 @@ Serf::transporter_move_to_flag(Flag *flag) {
       // I am not sure if this is to work around a bug in Freeserf's logic (which Freeserf.NET is based on) or if
       //  it is a fix to something unique to Freeserf.NET (which uses s.Walking instead of s.transporting for this work)
     } else {
+      Log::Info["serf.cc"] << "debug: inside Serf::transporter_move_to_flag, flag at pos " << flag->get_position() << ", flag->is_scheduled in dir " << dir << ", res " << NameResource[s.transporting.res] << " currently carried, switching resource at flag with slot #" << res_index << ", res type " << NameResource[flag->get_resource_at_slot(res_index)];
       /* Switch resources and destination. */
       Resource::Type temp_res = s.transporting.res;
       int temp_dest = s.transporting.dest;
@@ -1474,13 +1479,17 @@ Serf::transporter_move_to_flag(Flag *flag) {
 
     /* Find next resource to be picked up */
     Player *player = game->get_player(get_owner());
+    Log::Info["serf.cc"] << "debug: inside Serf::transporter_move_to_flag, flag at pos " << flag->get_position() << ", calling flag->prioritize_pickup for flag at pos " << flag->get_position() << ", ";
     flag->prioritize_pickup((Direction)dir, player);
   } else if (s.transporting.res != Resource::TypeNone) {
+    Log::Info["serf.cc"] << "debug: inside Serf::transporter_move_to_flag, flag at pos " << flag->get_position() << ", s.transporting.res != TypeNone";
     //if (get_type() == Serf::TypeSailor){
      //Log::Info["serf"] << "debug: inside Serf::transporter_move_to_flag C";
     //}
       /* Drop resource at flag */
+      Log::Info["serf.cc"] << "inside transporter_move_to_flag, flag at pos " << flag->get_position() << ", calling flag->drop_resource for s.transporting.res of type " << NameResource[s.transporting.res];
       if (flag->drop_resource(s.transporting.res, s.transporting.dest)) {
+        Log::Info["serf.cc"] << "inside transporter_move_to_flag, flag at pos " << flag->get_position() << ", flag->drop_resource returned true, dropping resource call returned true";
         s.transporting.res = Resource::TypeNone;
       }
     //}
@@ -1489,6 +1498,7 @@ Serf::transporter_move_to_flag(Flag *flag) {
    //Log::Info["serf"] << "debug: inside Serf::transporter_move_to_flag D";
   //}
 
+  Log::Info["serf.cc"] << "debug: inside Serf::transporter_move_to_flag,  flag at pos " << flag->get_position() << ", calling change_direction";
   change_direction(dir, 1);
   //if (get_type() == Serf::TypeSailor){
    //Log::Info["serf"] << "debug: inside Serf::transporter_move_to_flag E";
@@ -3184,6 +3194,8 @@ Serf::drop_resource(Resource::Type res) {
   if (result) {
     Player *player = game->get_player(get_owner());
     player->increase_res_count(res);
+  }else{
+    Log::Info["serf.cc"] << "inside drop_resource, a resource of type " << NameResource[res] << " was removed from the game because there was no free slot for flag at pos " << flag->get_position();
   }
 }
 

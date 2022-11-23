@@ -1027,6 +1027,8 @@ Interface::handle_key_pressed(char key, int modifier) {
       break;
     }
     */
+
+    // what is this?   backspace or escape maybe? to cancel popup?
     case 27: {
       if ((notification_box != nullptr) && notification_box->is_displayed()) {
         close_message();
@@ -1056,7 +1058,7 @@ Interface::handle_key_pressed(char key, int modifier) {
       break;
     }
 
-    /* Audio */
+    // toggle sounds
     case 's': {
       Audio &audio = Audio::get_instance();
       Audio::PPlayer splayer = audio.get_sound_player();
@@ -1065,6 +1067,7 @@ Interface::handle_key_pressed(char key, int modifier) {
       }
       break;
     }
+    // toggle music
     case 'm': {
       Audio &audio = Audio::get_instance();
       Audio::PPlayer splayer = audio.get_music_player();
@@ -1075,22 +1078,29 @@ Interface::handle_key_pressed(char key, int modifier) {
       break;
     }
 
-    /* Debug */
+    // old Freeserf debug overlay, shows map grid and serf states
     case 'g': {
       viewport->switch_layer(Viewport::LayerGrid);
       break;
     }
 
-    /* Game control */
+    // show building placement possibilities on map
     case 'b': {
       viewport->switch_layer(Viewport::LayerBuilds);
       break;
     }
 
-    /* AI overlay grid - colored dots showing AI searching positions, roads being build, AI status, serf status, etc. */
+    // AI overlay grid - colored dots showing AI searching positions, roads being build, AI status, serf status, etc.
     case 'y': {
       Log::Info["interface"] << "'y' key pressed, switching to LayerAI";
       viewport->switch_layer(Viewport::LayerAI);
+      break;
+    }
+
+    // new Forkserf debug overlay, highlight items on map and provide misc debug info as needed
+    case 'd': {
+      Log::Info["interface"] << "'y' key pressed, switching to LayerDebug";
+      viewport->switch_layer(Viewport::LayerDebug);
       break;
     }
 
