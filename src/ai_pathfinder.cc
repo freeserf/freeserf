@@ -570,7 +570,7 @@ MapPosVector
 AI::find_nearest_inventories_to_military_building(MapPos pos) {
 	// hardcoding this here for now, put it in some tuning vars later?
 	unsigned int overlap_threshold = 8;  // 8 tiles
-	AILogDebug["find_nearest_inventories_to_military_building"] << "inside find_nearest_inventory_to_military_building to pos " << pos << ", overlap_threshold " << overlap_threshold << ", currently selected inventory_pos is " << inventory_pos;
+	AILogDebug["find_nearest_inventories_to_military_building"] << "inside find_nearest_inventories_to_military_building to pos " << pos << ", overlap_threshold " << overlap_threshold << ", currently selected inventory_pos is " << inventory_pos;
 	MapPosVector closest_inventories = {};
 	// get inventory distances by straight-line map distance only, ignoring roads, flags, obstacles, etc.
 	unsigned int best_dist = bad_score;

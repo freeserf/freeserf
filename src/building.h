@@ -107,7 +107,7 @@ class Building : public GameObject {
   /* Building under construction */
   bool constructing;
   /* Flags */
-  size_t threat_level;
+  size_t threat_level;  // 0 is safest/white flag, 3 is highest threat, thick cross
   bool playing_sfx;
   bool serf_request_failed;
   bool serf_requested;
@@ -167,7 +167,7 @@ class Building : public GameObject {
 
   /* The threat level of the building. Higher values mean that
    the building is closer to the enemy. */
-  size_t get_threat_level() const { return threat_level; }
+  size_t get_threat_level() const { return threat_level; }  // 0 is safest/white flag, 3 is highest threat, thick cross
   /* Building is currently playing back a sound effect. */
   //
   // THESE FUNCTION NAMES ARE MISLEADING:

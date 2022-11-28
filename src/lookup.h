@@ -241,7 +241,7 @@ const std::string NameTool[]{
 };
 
 const std::string NameResource[] = {
-  //  "Resource::TypeNone = -1",
+  //  "Resource::TypeNone" = -1   // NOTE because this is an array of strings, and not a real enum, you cannot have negative values!  
       "Resource::TypeFish",
       "Resource::TypePig",
       "Resource::TypeMeat",

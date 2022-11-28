@@ -74,13 +74,14 @@ class AI {
   SerfWaitTimer serf_wait_idle_on_road_timers;
   MapPosVector realm_occupied_military_pos;
   Building *castle;
-  Inventory *stock_inv;
+  unsigned int this_stock_inv_index = -1; // default to integer max? which will always be invalid... right?
   RoadOptions road_options;
   Serf::SerfMap serfs_idle;
   Serf::SerfMap serfs_potential;
   int *serfs_total;
   bool need_tools;
   unsigned int last_sent_geologist_tick = 0;  // used to throttle sending geologists
+  bool have_inventory_building = false;  // used to quit loop early if AI is essentially defeated (has no Castle or Stocks)
   std::set<MapPos> new_stocks = {};  // AI STATEFULNESS WARNING - this is used to detect when a stock transitions from completed-but-not-occupied to occupied, and will not trigger if game saved/loaded between
   // Now that multiple economies implemented I think the entire XXX_building_counts are worthless
   //   remove the entire concept and instead just search for nearby buildings
@@ -178,9 +179,6 @@ class AI {
         return "white";
     }
   }
-  // got a segfault here too, try debugging in visual studio on windows 
-  // got again jan03 2022
-  // again jan04 2022
   std::string get_ai_status() { return ai_status; }
   // stupid way to pass game speed and AI loop count to viewport for AI overlay
   unsigned int get_game_speed() { return game->get_game_speed(); }
@@ -203,6 +201,8 @@ class AI {
   std::set<std::string> get_ai_expansion_goals() { return expand_towards; }
   MapPos get_ai_inventory_pos() { return inventory_pos; }
   void set_serf_lost();
+  // return a pointer to the currently selected stock's Inventory
+  Inventory * get_stock_inv() { return game->get_inventory(this_stock_inv_index); }
   
  protected:
   //
@@ -290,6 +290,7 @@ class AI {
   // ai.cc
   //
   void do_place_castle();
+  void do_consider_capitulation();
   void do_get_inventory(MapPos);
   void do_update_clear_reset();
   void do_get_serfs();

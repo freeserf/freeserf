@@ -93,6 +93,13 @@ class Collection {
 
   T*
   allocate() {
+    // I assume this means that Inventory and other index #s are never re-used?
+    //  when an Inventory is removed, its number will not be re-used as far as I can
+    //  see, the removed inventory is .erased, and a new one is created at the next
+    //  value (inventories.size + 1)
+    // I think I recall reading somewhere that there is a limitation of 255 inventories in the game?
+    //  and this likely means that it isn't a limit of 255 Inventories concurrently, but 255 Inventories
+    //  EVER, even if some have been removed
     unsigned int new_index = 0;
     T *new_object = nullptr;
 

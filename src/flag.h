@@ -134,6 +134,9 @@ class Flag : public GameObject {
   }
 
   void prioritize_pickup(Direction dir, Player *player);
+  // used for new feature of increasing flag-priority of immediately-usable resources
+  // returns adjusted priority (base 0-26, additional +26 if adjusted)
+  static int get_immediate_use_adjusted_prio(int res_type, int orig_prio, unsigned int dest_flag_index, Game *game, Player *player, int dir, int slot);
 
   /* Owner of this flag. */
   unsigned int get_owner() const { return owner; }

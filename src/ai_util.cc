@@ -138,6 +138,8 @@ AI::place_castle(PGame game, MapPos center_pos, unsigned int distance, unsigned 
 
 
 // update current AI player's inventory of buildings of all types for lookup by various functions
+//  does this need to be mutex-wrapped?  sometimes getting exceptions with seemingly invalid building
+//  variable/pointer
 void
 AI::update_buildings() {
   // time this function for debugging
@@ -243,6 +245,14 @@ AI::update_buildings() {
 	  //  as these are used for general selection of nearby huts when looking for things
 	  //  in a certain area around an Inventory and its borders, duplicates are allowed.
 	  if (building->is_military() && building->is_done() && building->is_active()) {
+      // require that the building have at least one path to avoid causing AI to try to build
+      //  new buildings near newly-conquered enemy buildings that are not connected to our road network
+      //  Could also check if they are actually "connected to network" even if they have a path
+      //  but this is probably good enough...
+      if (game->get_flag(building->get_flag_index()) != nullptr && !game->get_flag(building->get_flag_index())->is_connected()){
+        AILogInfo["util_update_buildings"] << "occupied military building at pos " << pos << " has no paths, not including it in occupied_military_pos lists";
+        continue;
+      }
 		  AILogVerbose["util_update_buildings"] << "adding occupied military building at " << pos << " to realm_occupied_military_pos list";
 		  realm_occupied_military_pos.push_back(flag_pos);
 		  AILogVerbose["util_update_buildings"] << "about to call find_nearest_inventories_to_military_building for connected building of type " << NameBuilding[type] << " at pos " << pos << ", with flag_pos " << flag_pos;
@@ -564,9 +574,11 @@ AI::build_best_road(MapPos start_pos, RoadOptions road_options, Road *built_road
       if (fallback_inv_pos == bad_map_pos){
         fallback_inv_pos = inventory_pos;
         //AILogDebug["util_build_best_road"] << "" << calling_function << " no affinity target found and could not find nearest_inv_pos, setting target to current inventory_pos " << inventory_pos;
-        AILogWarn["util_build_best_road"] << "" << calling_function << " no affinity target found and could not find nearest_inv_pos BY STRAIGHTLINE DIST - WHY???, setting target to current inventory_pos " << inventory_pos;
+        AILogWarn["util_build_best_road"] << "" << calling_function << " no affinity target found and could not find nearest_inv_pos " << inventory_pos << ", returning false.  NOTE this seems to only happen when player loses their castle/last stock!";
         // could change the fallback to simply be nearest flag, but I don't think this should never happen if using StraightLineOnly
-        throw ExceptionFreeserf("failed to find inventory by StraightLine, this should always work");
+        //  this seems to trigger when AI player loses their castle/last stock, don't throw exception instead return false and let AI handle it
+        //throw ExceptionFreeserf("failed to find inventory by StraightLine, this should always work");
+        return false;
       }
       targets.push_back(fallback_inv_pos);
     }
@@ -2295,6 +2307,7 @@ AI::build_near_pos(MapPos center_pos, unsigned int distance, Building::Type buil
     if (map->get_owner(pos) != player_index && map->get_owner(pos) != -1) {
       AILogDebug["util_build_near_pos"] << "enemy territory found near this center_pos";
       enemy_near = true;
+      break;
     }
   }
 
@@ -2895,6 +2908,18 @@ AI::score_enemy_area(MapPos center_pos, unsigned int distance) {
     size_t pos_value = 0;  // easier to make this size_t than static_cast all the .size values
 
     //
+    // prioritize any enemy building that is close to OUR castle
+    //
+    if (obj == Map::ObjectCastle && map->get_owner(pos) == player_index){
+      AILogDebug["util_score_enemy_area"] << "found our own castle in attack area!  scoring this area highly to reduce risk of our castle flag paths becoming blocked";
+      if (obj == Map::ObjectCastle){
+        pos_value += 50;
+        //AILogDebug["util_score_enemy_area"] << "adding attack value 20 for enemy castle at pos " << pos;
+        continue;
+      }
+    }
+
+    //
     // mined resources
     //
     unsigned int gold_signs = 0;
@@ -3030,7 +3055,7 @@ AI::score_enemy_targets(MapPosSet *scored_targets) {
   //AILogVerbose["util_score_enemy_targets"] << "thread #" << std::this_thread::get_id() << " AI is unlocking mutex before calling game->get_player_buildings(player) (for score_enemy_targets)";
   //game->get_mutex()->unlock();
   //AILogVerbose["util_score_enemy_targets"] << "thread #" << std::this_thread::get_id() << " AI has unlocked mutex before calling game->get_player_buildings(player) (for score_enemy_targets)";
-  std::set<MapPos> unique_enemy_targets;
+  std::set<MapPos> unique_enemy_targets = {};
   // foreach my hut in range of attacking enemy
   //    foreach enemy hut within range of attack
   //      score
@@ -3086,27 +3111,22 @@ AI::score_enemy_targets(MapPosSet *scored_targets) {
       //  << " at pos " << target_pos << " belonging to player " << target_player_index << " / " << target_player_face;
       AILogDebug["util_score_enemy_targets"] << "send up to " << attacking_knights << " knights to attack enemy building of type " << NameBuilding[target_building_type]
         << " at pos " << target_pos << " belonging to player " << target_player_index;
-      /* TEMP DISABLING THIS FOR SCORE TESTING!!!!
-      //
-      // !!!!!!!
       if (attacking_knights <= 0) {
         AILogDebug["util_score_enemy_targets"] << "cannot send any knights, not marking target for scoring";
         continue;
       }
-      //
-      // !!!!!!!
-      // */
-
       if (target_building_type == Building::TypeCastle){
         //
         // DO SOMETHING HERE IF TARGET IS ENEMY CASTLE - EITHER NEVER ATTACK IT OR ALWAYS ATTACK IT
         //  IF IT IS REACHABLE, BASED ON OWN MORALE AND KNIGHT COUNT?
         //
-        // for now, just do not attack castle
-        AILogDebug["util_score_enemy_targets"] << "enemy castle is attackable!  At target_pos " << target_pos << ".  not attacking - needs additional logic";
+        // for now, simply including it in scorable targets
+        AILogDebug["util_score_enemy_targets"] << "enemy castle is attackable!  At target_pos " << target_pos << ".  Including it in unique_targets list for scoring";
+        //ai_mark_pos.insert(ColorDot(target_pos, "lt_blue"));
+        unique_enemy_targets.insert(target_pos);
       }else{
         AILogDebug["util_score_enemy_targets"] << "adding target_pos " << target_pos << " to unique_enemy_targets set to score";
-        ai_mark_pos.insert(ColorDot(target_pos, "black"));
+        //ai_mark_pos.insert(ColorDot(target_pos, "black"));
         unique_enemy_targets.insert(target_pos);
       }
     }
@@ -3115,22 +3135,12 @@ AI::score_enemy_targets(MapPosSet *scored_targets) {
   // score the targets found
   for (MapPos target_pos : unique_enemy_targets){
     AILogDebug["util_score_enemy_targets"] << "scoring attackable building at pos " << target_pos;
-
-    /*
-    // debug
-    AILogDebug["util_score_enemy_targets"] << "debug dumping attackable debug expand_towards";
-    for (std::string goal : last_expand_towards) {
-      AILogDebug["util_score_enemy_targets"] << "debug attackable last_expand_towards goal list includes item: " << goal;
-    }
-    for (std::string goal : expand_towards) {
-      AILogDebug["util_score_enemy_targets"] << "debug attackable expand_towards goal list includes item: " << goal;
-    }
-    */
-
     //unsigned int score = AI::score_enemy_area(target_pos, AI::spiral_dist(8));
     unsigned int score = AI::score_enemy_area(target_pos, AI::spiral_dist(10)); // try scoring a bit wider
     AILogDebug["util_score_enemy_targets"] << "attackable enemy target at pos " << target_pos << " has score " << score;
     scored_targets->insert(std::make_pair(target_pos, score));
+    /*
+    // debug - mark score of each target on AI overlay
     if (score >  12){ ai_mark_pos.erase(target_pos); ai_mark_pos.insert(ColorDot(target_pos, "dk_gray"));}
     if (score >  25){ ai_mark_pos.erase(target_pos); ai_mark_pos.insert(ColorDot(target_pos, "gray"));}
     if (score >  37){ ai_mark_pos.erase(target_pos); ai_mark_pos.insert(ColorDot(target_pos, "yellow"));}
@@ -3138,6 +3148,7 @@ AI::score_enemy_targets(MapPosSet *scored_targets) {
     if (score >  75){ ai_mark_pos.erase(target_pos); ai_mark_pos.insert(ColorDot(target_pos, "red"));}
     if (score > 100){ ai_mark_pos.erase(target_pos); ai_mark_pos.insert(ColorDot(target_pos, "magenta"));}
     if (score > 125){ ai_mark_pos.erase(target_pos); ai_mark_pos.insert(ColorDot(target_pos, "cyan"));}
+    */
   }
 
   // second part of stupid hack to work-around it
@@ -3159,7 +3170,7 @@ AI::attack_nearest_target(MapPosSet *scored_targets, unsigned int min_score, dou
     unsigned int target_score = target.second;
     AILogDebug["util_attack_nearest_target"] << "found target with target_pos " << target_pos << " and score " << target_score;
     if (target_score < min_score){
-      AILogDebug["util_attack_nearest_target"] << "target with target_pos " << target_pos << " has a score too low for attack, skipping";
+      AILogDebug["util_attack_nearest_target"] << "target with target_pos " << target_pos << " has a score too low for attack, min is " << min_score << ", skipping";
       continue;
     }
     int attacking_knights = player->knights_available_for_attack(target_pos);

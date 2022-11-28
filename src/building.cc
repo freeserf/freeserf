@@ -34,7 +34,7 @@ Building::Building(Game *game, unsigned int index)
   constructing = true; /* Unfinished building */
   flag = 0;
   playing_sfx = false;
-  threat_level = 0;
+  threat_level = 0;  // 0 is safest/white flag, 3 is highest threat, thick cross
   owner = 0;
   serf_requested = false;
   serf_request_failed = false;
@@ -635,8 +635,11 @@ Building::burnup() {
   if (!constructing && (type == TypeCastle || type == TypeStock)) {
     /* Cancel resources in the out queue and remove gold from map total. */
     if (active) {
+      Log::Warn["building.cc"] << "inside Building::burnup, this is a Castle/Stock that is ACTIVE, deleting its inventory from game";
       game->delete_inventory(inventory);
       inventory = nullptr;
+    }else{
+      Log::Warn["building.cc"] << "inside Building::burnup, this is a Castle/Stock that is NOT ACTIVE, NOT deleting its inventory from game";
     }
 
     /* Let some serfs escape while the building is burning. */

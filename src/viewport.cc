@@ -1309,6 +1309,9 @@ void
 Viewport::draw_flag_and_res(MapPos pos, int lx, int ly) {
   Flag *flag = interface->get_game()->get_flag_at_pos(pos);
 
+  // debug - highlight all flags on Debug overlay
+  //interface->get_game()->set_debug_mark_pos(pos, "red");
+
   int res_pos[] = {  6, -4,
                     10, -2,
                     -4, -4,
@@ -2642,7 +2645,11 @@ Viewport::draw_serf_row_behind(MapPos pos, int y_base, int cols, int x_base) {
     /* Active serf */
     if (map->has_serf(pos)) {
       Serf *serf = interface->get_game()->get_serf_at_pos(pos);
-
+      // got a nullptr here once, adding check
+      if (serf == nullptr){
+        Log::Warn["viewport.cc"] << "inside draw_serf_row_behind, got nullptr for serf!  not drawing this one";
+        continue;
+      }
       if (serf->get_state() == Serf::StateMining &&
           (serf->get_mining_substate() == 3 ||
            serf->get_mining_substate() == 4 ||
@@ -3205,11 +3212,11 @@ Viewport::draw_debug_overlay() {
           // first two args are x/y offset, if made bigger start more negatively
           // second two args are x/y coord of corners, increase to make bigger
           // small-medium dots
-          frame->fill_rect(lx - 2, ly + 0, 5, 5, colors.at(debug_mark_pos.at(pos)));
-          frame->fill_rect(lx - 3, ly + 1, 7, 3, colors.at(debug_mark_pos.at(pos)));
+          //frame->fill_rect(lx - 2, ly + 0, 5, 5, colors.at(debug_mark_pos.at(pos)));
+          //frame->fill_rect(lx - 3, ly + 1, 7, 3, colors.at(debug_mark_pos.at(pos)));
           // large dots
-          //frame->fill_rect(lx - 7, ly + 0, 16, 16, colors.at(debug_mark_pos.at(pos)));
-          //frame->fill_rect(lx - 9, ly + 1, 20, 14, colors.at(debug_mark_pos.at(pos)));
+          frame->fill_rect(lx - 7, ly + 0, 16, 16, colors.at(debug_mark_pos.at(pos)));
+          frame->fill_rect(lx - 9, ly + 1, 20, 14, colors.at(debug_mark_pos.at(pos)));
         }
       }
       if (row % 2 == 0) {

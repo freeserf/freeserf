@@ -399,6 +399,15 @@ Game::update_inventories() {
         //  Building *foo = get_building(inventory->get_building_index());
         //  Log::Info["game"] << "debug: OUT QUEUE FULL for player" << player->get_index() << "'s inventory at " << NameBuilding[foo->get_type()] << " at pos " << foo->get_position();
         //}
+        
+        //
+        // got nullptr when player's castle destroyed, add nullptr check
+        if (inventory == nullptr){
+          Log::Warn["game.cc"] << "inside Game::update_inventories for Player" << player->get_index() << ", inventory is nullptr!  was it just destroyed?";
+          continue;
+        }
+        Log::Debug["game.cc"] << "inside Game::update_inventories for Player" << player->get_index() << ", inventory is valid pointer";
+        //
 
         // find inventories (whose out-queue is not full) 
         //  that have this selected resource type, and add
@@ -1248,6 +1257,10 @@ Game::flag_reset_transport(Flag *flag) {
 
   /* Inventories. */
   for (Inventory *inventory : inventories) {
+    if (inventory == nullptr){
+      Log::Warn["game.cc"] << "inside Game::flag_reset_transport, inventory is nullptr!  was this inventory just destroyed?  skipping it";
+      continue;
+    }
     inventory->reset_queue_for_dest(flag);
   }
 }
@@ -2061,6 +2074,39 @@ Game::demolish_building_(MapPos pos) {
       flag_reset_transport(flag);
     }
 
+    /*
+    // !!!
+    // !!!  NEVERMIND, do not do this here.  when building is burned the game should be calling game->delete_inventory
+    // !!!   which does this, investigate why it doesn't seem to be working
+    // !!!
+    //----------------------------------------
+    // tlongstretch - delete the inventory
+    //  I am seeing crash where AI thread tries to check
+    //  the inventory contents, AND THE POINTER IS STILL VALID
+    //  but the inventory building was destroyed already
+    //  and I guess it invalidates the contents
+    //  NOTE - when a Castle (and possibly Stock) is captured, its ownership
+    //   is transferred to the conquering player BEFORE this triggers, meaning this code appears to delete
+    //   a CONQUERING player's inventory.  Does this actually cause a problem, though?  it should be
+    //   okay actually
+    if (building->get_type() == Building::TypeCastle || building->get_type() == Building::TypeStock){
+      Log::Warn["game.cc"] << "inside Game::demolish_building_, this is an inventory building of type " << NameBuilding[building->get_type()] << " at pos " << pos << ", deleting its index from game inventories array";
+      //Inventory *destroyed_inventory = building->get_inventory();
+      //destroyed_inventory = nullptr;
+      //try this instead
+      inventories.erase(building->get_inventory()->get_index());
+      Log::Debug["game.cc"] << "inside Game::demolish_building_, this is an inventory building of type " << NameBuilding[building->get_type()] << " at pos " << pos << ", inventory has been erased from game";
+    }
+    */
+    // sanity check
+    if (building->get_type() == Building::TypeCastle || building->get_type() == Building::TypeStock){
+      if (building->get_inventory() == nullptr){
+        Log::Warn["game.cc"] << "inside Game::demolish_building_, this is an inventory building of type " << NameBuilding[building->get_type()] << " its inventory pointer is nullptr, which it should be";
+      }else{
+        Log::Warn["game.cc"] << "inside Game::demolish_building_, this is an inventory building of type " << NameBuilding[building->get_type()] << " its inventory pointer is NOT nullptr, WHY NOT???";
+      }
+    }
+
     return true;
   }
 
@@ -2075,6 +2121,7 @@ Game::demolish_building(MapPos pos, Player *player) {
   if (building->get_owner() != player->get_index()) return false;
   if (building->is_burning()) return false;
 
+  Log::Debug["game.cc"] << "inside Game::demolish_building, calling demolish_building_ on building at pos " << pos << " owned by player #" << player->get_index();
   return demolish_building_(pos);
 }
 
@@ -2084,6 +2131,7 @@ Game::surrender_land(MapPos pos) {
   /* Remove building. */
   if (map->get_obj(pos) >= Map::ObjectSmallBuilding &&
       map->get_obj(pos) <= Map::ObjectCastle) {
+    Log::Debug["game.cc"] << "inside Game::surrender_land, calling demolish_building_ on building at pos " << pos;
     demolish_building_(pos);
   }
 
@@ -2099,6 +2147,7 @@ Game::surrender_land(MapPos pos) {
 
     if (map->get_obj(p) >= Map::ObjectSmallBuilding &&
         map->get_obj(p) <= Map::ObjectCastle) {
+      Log::Debug["game.cc"] << "inside Game::surrender_land around pos " << pos << ", currently at pos " << p << " with dir " << d << ", B calling demolish_building_";
       demolish_building_(p);
     }
 
@@ -2304,12 +2353,16 @@ Game::demolish_flag_and_roads(MapPos pos) {
    occupied by player. */
 void
 Game::occupy_enemy_building(Building *building, int player_num) {
+  // debug only
+  int old_owner = building->get_owner();
+
   /* Take the building. */
   Player *player = players[player_num];
 
   player->building_captured(building);
 
   if (building->get_type() == Building::TypeCastle) {
+    Log::Debug["game.cc"] << "inside Game::occupy_enemy_building, calling demolish_building_ on building at pos " << building->get_position() << " of type " << NameBuilding[building->get_type()] << ", which was owned by Player#" << old_owner << " and has just been taken by Player" << player->get_index();
     demolish_building_(building->get_position());
   } else {
     Flag *flag = flags[building->get_flag_index()];
@@ -2607,6 +2660,10 @@ Game::get_player_inventories(Player *player) {
   ListInventories player_inventories;
 
   for (Inventory *inventory : inventories) {
+    if (inventory == nullptr){
+      Log::Warn["game.cc"] << "inside Game::get_player_inventories for player #" << player->get_index() << ", an inventory is nullptr!  was it just destroyed?  NOTE THAT THIS INVENTORY COULD HAVE BEEN OWNED BY ANY PLAYER NOT JUST Player" << player->get_index();
+      continue;
+    }
     if (inventory->get_owner() == player->get_index()) {
       player_inventories.push_back(inventory);
     }

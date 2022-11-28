@@ -113,8 +113,10 @@ main(int argc, char *argv[]) {
   Graphics &gfx = Graphics::get_instance();
 
   /* TODO move to right place */
-  Audio &audio = Audio::get_instance();
-  Audio::PPlayer player = audio.get_music_player();
+  //TEMP DISABLING AUDIO WHILE RUNNING DEBUGGER BECAUSE OF ANNOYING RANDOM CRASH!
+  /*
+  Audio &audio = Audio::get_instance();  // 
+  Audio::PPlayer player = audio.get_music_player();  // TEMP DISABLING AUDIO WHILE RUNNING DEBUGGER BECAUSE OF ANNOYING RANDOM CRASH!
   // NOTE - it seems Amiga has a single long track, 
   //  while DOS has three or four similar tracks that play one after another
   if (player) {
@@ -139,6 +141,7 @@ main(int argc, char *argv[]) {
     // DOS MUSIC DOES NOT WORK IN LINUX AT ALL - at least not for me, but Amiga works fine in linux
     //Audio::PTrack t = player->play_track(Audio::TypeMidiTrack0, DataSourceType::DOS);  // 0=Amiga, 1=DOS, 2=Custom
   }
+  */
 
   GameManager &game_manager = GameManager::get_instance();
 

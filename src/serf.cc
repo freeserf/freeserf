@@ -605,9 +605,9 @@ Serf::flag_deleted(MapPos flag_pos) {
 
         //debug
         if (game->get_flag(recent_dest) != nullptr){
-          Log::Debug["serf"] << "inside flag_deleted, serf of type " << NameSerf[type] << " being set to Lost, dest when it exited Inventory was flag# " << recent_dest << " which has pos " << game->get_flag(recent_dest)->get_position();
+          Log::Debug["serf"] << "inside flag_deleted, serf of type " << NameSerf[type] << " being set to Lost, dest when it exited Inventory was flag #" << recent_dest << " which has pos " << game->get_flag(recent_dest)->get_position();
         }else{
-          Log::Debug["serf"] << "inside flag_deleted, serf of type " << NameSerf[type] << " being set to Lost, dest when it exited Inventory was flag# " << recent_dest << " which is a nullptr";
+          Log::Debug["serf"] << "inside flag_deleted, serf of type " << NameSerf[type] << " being set to Lost, dest when it exited Inventory was flag #" << recent_dest << " which is a nullptr";
         }
 
         set_state(StateLost);
@@ -865,9 +865,9 @@ Serf::set_lost_state() {
 
     //debug
     if (game->get_flag(recent_dest) != nullptr){
-      Log::Debug["serf"] << "inside set_lost_state A, serf of type " << NameSerf[type] << " being set to Lost, dest when it exited Inventory was flag# " << recent_dest << " which has pos " << game->get_flag(recent_dest)->get_position();
+      Log::Debug["serf"] << "inside set_lost_state A, serf of type " << NameSerf[type] << " being set to Lost, dest when it exited Inventory was flag #" << recent_dest << " which has pos " << game->get_flag(recent_dest)->get_position();
     }else{
-      Log::Debug["serf"] << "inside set_lost_state A, serf of type " << NameSerf[type] << " being set to Lost, dest when it exited Inventory was flag# " << recent_dest << " which is a nullptr";
+      Log::Debug["serf"] << "inside set_lost_state A, serf of type " << NameSerf[type] << " being set to Lost, dest when it exited Inventory was flag #" << recent_dest << " which is a nullptr";
     }
 
     set_state(StateLost);
@@ -885,9 +885,9 @@ Serf::set_lost_state() {
 
       //debug
       if (game->get_flag(recent_dest) != nullptr){
-        Log::Debug["serf"] << "inside set_lost_state, B serf of type " << NameSerf[type] << " being set to Lost, dest when it exited Inventory was flag# " << recent_dest << " which has pos " << game->get_flag(recent_dest)->get_position();
+        Log::Debug["serf"] << "inside set_lost_state, B serf of type " << NameSerf[type] << " being set to Lost, dest when it exited Inventory was flag #" << recent_dest << " which has pos " << game->get_flag(recent_dest)->get_position();
       }else{
-        Log::Debug["serf"] << "inside set_lost_state, B serf of type " << NameSerf[type] << " being set to Lost, dest when it exited Inventory was flag# " << recent_dest << " which is a nullptr";
+        Log::Debug["serf"] << "inside set_lost_state, B serf of type " << NameSerf[type] << " being set to Lost, dest when it exited Inventory was flag #" << recent_dest << " which is a nullptr";
       }
 
       set_state(StateLost);
@@ -899,9 +899,9 @@ Serf::set_lost_state() {
 
     //debug
     if (game->get_flag(recent_dest) != nullptr){
-      Log::Debug["serf"] << "inside set_lost_state C, serf of type " << NameSerf[type] << " being set to Lost, dest when it exited Inventory was flag# " << recent_dest << " which has pos " << game->get_flag(recent_dest)->get_position();
+      Log::Debug["serf"] << "inside set_lost_state C, serf of type " << NameSerf[type] << " being set to Lost, dest when it exited Inventory was flag #" << recent_dest << " which has pos " << game->get_flag(recent_dest)->get_position();
     }else{
-      Log::Debug["serf"] << "inside set_lost_state C, serf of type " << NameSerf[type] << " being set to Lost, dest when it exited Inventory was flag# " << recent_dest << " which is a nullptr";
+      Log::Debug["serf"] << "inside set_lost_state C, serf of type " << NameSerf[type] << " being set to Lost, dest when it exited Inventory was flag #" << recent_dest << " which is a nullptr";
     }
 
     set_state(StateLost);
@@ -1371,7 +1371,7 @@ Serf::change_direction(Direction dir, int alt_end) {
 /* Precondition: serf state is in WALKING or TRANSPORTING state */
 void
 Serf::transporter_move_to_flag(Flag *flag) {
-  Log::Debug["serf.cc"] << "inside Serf::transporter_move_to_flag(), for a serf with index " << get_index() << ", moving to flag at pos " << flag->get_position();
+  //Log::Debug["serf.cc"] << "inside Serf::transporter_move_to_flag(), for a serf with index " << get_index() << ", moving to flag at pos " << flag->get_position();
   // is s.transporting.dir the direction that the transporter is travelling?
   //  or, is it the direction that the res at the reached flag is heading (i.e. the reverse dir)?
   //   it seems to be the latter, but that could be faulty logic in sailor transport serf code
@@ -1410,9 +1410,9 @@ Serf::transporter_move_to_flag(Flag *flag) {
       //  as the passenger becomes s.transporting.res TypeSerf
       else if (s.transporting.res != Resource::TypeNone) {
         /* Drop resource at flag */
-        Log::Info["serf.cc"] << "inside transporter_move_to_flag(water), calling flag->drop_resource for s.transporting.res of type " << NameResource[s.transporting.res];
+        //Log::Info["serf.cc"] << "inside transporter_move_to_flag(water), calling flag->drop_resource for s.transporting.res of type " << NameResource[s.transporting.res];
         if (flag->drop_resource(s.transporting.res, s.transporting.dest)) {
-          Log::Info["serf.cc"] << "inside transporter_move_to_flag(water), flag->drop_resource call returned true";
+          //Log::Info["serf.cc"] << "inside transporter_move_to_flag(water), flag->drop_resource call returned true";
           s.transporting.res = Resource::TypeNone;
         }
       }
@@ -1448,7 +1448,11 @@ Serf::transporter_move_to_flag(Flag *flag) {
   }
   if (flag->is_scheduled(dir)) {
     int res_index = flag->scheduled_slot(dir);
-    Log::Info["serf.cc"] << "debug: inside Serf::transporter_move_to_flag, flag at pos " << flag->get_position() << ", flag->is_scheduled in dir " << dir << ", slot #" << res_index << ", to pickup res type " << NameResource[flag->get_resource_at_slot(res_index)];
+    if (flag->get_resource_at_slot(res_index) == Resource::TypeNone){
+      Log::Warn["serf.cc"] << "inside Serf::transporter_move_to_flag, flag at pos " << flag->get_position() << ", flag->is_scheduled in dir " << dir << ", slot #" << res_index << ", to pickup res, but resource type is TypeNone!";
+    }
+    //Log::Info["serf.cc"] << "debug: inside Serf::transporter_move_to_flag, flag at pos " << flag->get_position() << ", flag->is_scheduled in dir " << dir << ", slot #" << res_index << ", to pickup res type " << NameResource[flag->get_resource_at_slot(res_index)];
+    //Log::Info["serf.cc"] << "debug: inside Serf::transporter_move_to_flag, flag at pos " << flag->get_position() << ", flag->is_scheduled in dir " << dir << ", slot #" << res_index << ", to pickup res type #" << flag->get_resource_at_slot(res_index);
     //if (get_type() == Serf::TypeSailor){
      //Log::Info["serf.cc"] << "debug: sailor inside Serf::transporter_move_to_flag, flag->is_scheduled in dir " << NameDirection[dir];
     //}
@@ -1457,16 +1461,21 @@ Serf::transporter_move_to_flag(Flag *flag) {
 
     if (s.transporting.res == Resource::TypeNone) {
       /* Pick up resource. */
-      Log::Info["serf.cc"] << "debug: inside Serf::transporter_move_to_flag, flag at pos " << flag->get_position() << ", flag->is_scheduled in dir " << dir << ", no res carried, calling flag->pick_up_resource, slot #" << res_index << ", to pickup res type " << NameResource[flag->get_resource_at_slot(res_index)];
-      flag->pick_up_resource(res_index, &s.transporting.res,
-                             &s.transporting.dest);
-      // NOTE - pyrdacor's Freeserf.NET seems to check the result of the flag->pick_up_resource call
-      //  and if it returns false, it sets the equivalent of s.transporting.res to TypeNone again (if that matters)
-      //   and also sets the equivalent of s.transporting.dest to '0u' which I'm sure has some binary meaning
-      // I am not sure if this is to work around a bug in Freeserf's logic (which Freeserf.NET is based on) or if
-      //  it is a fix to something unique to Freeserf.NET (which uses s.Walking instead of s.transporting for this work)
+      //Log::Info["serf.cc"] << "debug: inside Serf::transporter_move_to_flag, flag at pos " << flag->get_position() << ", flag->is_scheduled in dir " << dir << ", no res carried, calling flag->pick_up_resource, slot #" << res_index << ", to pickup res type " << NameResource[flag->get_resource_at_slot(res_index)];
+      //Log::Info["serf.cc"] << "debug: inside Serf::transporter_move_to_flag, flag at pos " << flag->get_position() << ", flag->is_scheduled in dir " << dir << ", no res carried, calling flag->pick_up_resource, slot #" << res_index << ", to pickup res type #" << flag->get_resource_at_slot(res_index);
+      if (!flag->pick_up_resource(res_index, &s.transporting.res, &s.transporting.dest)){
+        Log::Warn["serf.cc"] << "inside Serf::transporter_move_to_flag, flag at pos " << flag->get_position() << ", flag->is_scheduled in dir " << dir << ", no res carried, calling flag->pick_up_resource, slot #" << res_index << ", to pickup res type #" << flag->get_resource_at_slot(res_index) << ", flag->pick_up_resource call returned false!  this is ignored";
+        // NOTE - pyrdacor's Freeserf.NET seems to check the result of the flag->pick_up_resource call
+        //  and if it returns false, it sets the equivalent of s.transporting.res to TypeNone again (if that matters)
+        //   and also sets the equivalent of s.transporting.dest to '0u' which I'm sure has some binary meaning
+        // I am not sure if this is to work around a bug in Freeserf's logic (which Freeserf.NET is based on) or if
+        //  it is a fix to something unique to Freeserf.NET (which uses s.Walking instead of s.transporting for this work)
+        
+        // looking more closely, it seems that when flag->pick_up_resource returns false, it does not change the values
+        //  of .dest or .res, so I am not seeing the need to do this yet...
+      }
     } else {
-      Log::Info["serf.cc"] << "debug: inside Serf::transporter_move_to_flag, flag at pos " << flag->get_position() << ", flag->is_scheduled in dir " << dir << ", res " << NameResource[s.transporting.res] << " currently carried, switching resource at flag with slot #" << res_index << ", res type " << NameResource[flag->get_resource_at_slot(res_index)];
+      //Log::Info["serf.cc"] << "debug: inside Serf::transporter_move_to_flag, flag at pos " << flag->get_position() << ", flag->is_scheduled in dir " << dir << ", res " << NameResource[s.transporting.res] << " currently carried, switching resource at flag with slot #" << res_index << ", res type #" << flag->get_resource_at_slot(res_index);
       /* Switch resources and destination. */
       Resource::Type temp_res = s.transporting.res;
       int temp_dest = s.transporting.dest;
@@ -1479,17 +1488,17 @@ Serf::transporter_move_to_flag(Flag *flag) {
 
     /* Find next resource to be picked up */
     Player *player = game->get_player(get_owner());
-    Log::Info["serf.cc"] << "debug: inside Serf::transporter_move_to_flag, flag at pos " << flag->get_position() << ", calling flag->prioritize_pickup for flag at pos " << flag->get_position() << ", ";
+    //Log::Info["serf.cc"] << "debug: inside Serf::transporter_move_to_flag, flag at pos " << flag->get_position() << ", calling flag->prioritize_pickup for flag at pos " << flag->get_position() << ", ";
     flag->prioritize_pickup((Direction)dir, player);
   } else if (s.transporting.res != Resource::TypeNone) {
-    Log::Info["serf.cc"] << "debug: inside Serf::transporter_move_to_flag, flag at pos " << flag->get_position() << ", s.transporting.res != TypeNone";
+    //Log::Info["serf.cc"] << "debug: inside Serf::transporter_move_to_flag, flag at pos " << flag->get_position() << ", s.transporting.res != TypeNone";
     //if (get_type() == Serf::TypeSailor){
      //Log::Info["serf"] << "debug: inside Serf::transporter_move_to_flag C";
     //}
       /* Drop resource at flag */
-      Log::Info["serf.cc"] << "inside transporter_move_to_flag, flag at pos " << flag->get_position() << ", calling flag->drop_resource for s.transporting.res of type " << NameResource[s.transporting.res];
+      //Log::Info["serf.cc"] << "inside transporter_move_to_flag, flag at pos " << flag->get_position() << ", calling flag->drop_resource for s.transporting.res of type " << NameResource[s.transporting.res];
       if (flag->drop_resource(s.transporting.res, s.transporting.dest)) {
-        Log::Info["serf.cc"] << "inside transporter_move_to_flag, flag at pos " << flag->get_position() << ", flag->drop_resource returned true, dropping resource call returned true";
+        //Log::Info["serf.cc"] << "inside transporter_move_to_flag, flag at pos " << flag->get_position() << ", flag->drop_resource returned true, dropping resource call returned true";
         s.transporting.res = Resource::TypeNone;
       }
     //}
@@ -1498,7 +1507,7 @@ Serf::transporter_move_to_flag(Flag *flag) {
    //Log::Info["serf"] << "debug: inside Serf::transporter_move_to_flag D";
   //}
 
-  Log::Info["serf.cc"] << "debug: inside Serf::transporter_move_to_flag,  flag at pos " << flag->get_position() << ", calling change_direction";
+  //Log::Info["serf.cc"] << "debug: inside Serf::transporter_move_to_flag,  flag at pos " << flag->get_position() << ", calling change_direction";
   change_direction(dir, 1);
   //if (get_type() == Serf::TypeSailor){
    //Log::Info["serf"] << "debug: inside Serf::transporter_move_to_flag E";
@@ -1752,9 +1761,9 @@ Serf::handle_serf_walking_state() {
 
           //debug
           if (game->get_flag(recent_dest) != nullptr){
-            Log::Debug["serf"] << "inside handle_serf_walking_state A, serf of type " << NameSerf[type] << " being set to Lost, dest when it exited Inventory was flag# " << recent_dest << " which has pos " << game->get_flag(recent_dest)->get_position();
+            Log::Debug["serf"] << "inside handle_serf_walking_state A, serf of type " << NameSerf[type] << " being set to Lost, dest when it exited Inventory was flag #" << recent_dest << " which has pos " << game->get_flag(recent_dest)->get_position();
           }else{
-            Log::Debug["serf"] << "inside handle_serf_walking_state A, serf of type " << NameSerf[type] << " being set to Lost, dest when it exited Inventory was flag# " << recent_dest << " which is a nullptr";
+            Log::Debug["serf"] << "inside handle_serf_walking_state A, serf of type " << NameSerf[type] << " being set to Lost, dest when it exited Inventory was flag #" << recent_dest << " which is a nullptr";
           }
 
           set_state(StateLost);
@@ -1875,9 +1884,9 @@ Serf::handle_serf_walking_state() {
 
         //debug
         if (game->get_flag(recent_dest) != nullptr){
-          Log::Debug["serf"] << "inside serf_walking_state B, serf of type " << NameSerf[type] << " being set to Lost, dest when it exited Inventory was flag# " << recent_dest << " which has pos " << game->get_flag(recent_dest)->get_position();
+          Log::Debug["serf"] << "inside serf_walking_state B, serf of type " << NameSerf[type] << " being set to Lost, dest when it exited Inventory was flag #" << recent_dest << " which has pos " << game->get_flag(recent_dest)->get_position();
         }else{
-          Log::Debug["serf"] << "inside serf_walking_state B, serf of type " << NameSerf[type] << " being set to Lost, dest when it exited Inventory was flag# " << recent_dest << " which is a nullptr";
+          Log::Debug["serf"] << "inside serf_walking_state B, serf of type " << NameSerf[type] << " being set to Lost, dest when it exited Inventory was flag #" << recent_dest << " which is a nullptr";
         }
 
         set_state(StateLost);
@@ -2007,9 +2016,9 @@ Serf::handle_serf_transporting_state() {
 
         //debug
         if (game->get_flag(recent_dest) != nullptr){
-          Log::Debug["serf"] << "inside handle_serf_transporting_state, serf of type " << NameSerf[type] << " being set to Lost, dest when it exited Inventory was flag# " << recent_dest << " which has pos " << game->get_flag(recent_dest)->get_position();
+          Log::Debug["serf"] << "inside handle_serf_transporting_state, serf of type " << NameSerf[type] << " being set to Lost, dest when it exited Inventory was flag #" << recent_dest << " which has pos " << game->get_flag(recent_dest)->get_position();
         }else{
-          Log::Debug["serf"] << "inside handle_serf_transporting_state, serf of type " << NameSerf[type] << " being set to Lost, dest when it exited Inventory was flag# " << recent_dest << " which is a nullptr";
+          Log::Debug["serf"] << "inside handle_serf_transporting_state, serf of type " << NameSerf[type] << " being set to Lost, dest when it exited Inventory was flag #" << recent_dest << " which is a nullptr";
         }
 
         set_state(StateLost);
@@ -2166,6 +2175,7 @@ Serf::enter_inventory() {
 
 void
 Serf::handle_serf_entering_building_state() {
+  //Log::Debug["serf.cc"] << "start of handle_serf_entering_building_state, serf # " << index << " has type " << type;
   uint16_t delta = game->get_tick() - tick;
   tick = game->get_tick();
   counter -= delta;
@@ -2196,7 +2206,17 @@ Serf::handle_serf_entering_building_state() {
         Building *building = game->get_building_at_pos(pos);
         if (building->is_done() && !building->is_burning() &&
             building->get_type() != Building::TypeStock && building->get_type() != Building::TypeCastle){
-          Log::Debug["serf"] << "a generic serf at pos " << pos << " has arrived in a non-inventory building of type " << NameBuilding[building->get_type()] << ", assuming this was a Lost Serf";
+          // NOTE - this message seems to be very frequently triggered by what seem like Knights entering a Hut, so why are they showing up as generic serfs instead of knights??
+          //  I saw it very obviously after a fight... see the Fight message 4 times, then 4 of these messages about generic serfs entering Hut
+          Log::Debug["serf.cc"] << "a generic serf at pos " << pos << " has arrived in a non-inventory building of type " << NameBuilding[building->get_type()] << ", assuming this was a Lost Serf";
+          
+          /// DEBUG
+          game->set_debug_mark_pos(pos, "magenta");
+          // interface is inaccessible, consider making it accessible or having debug_mark_pos mark the entire row + col to make the pos easier to find
+          //interface->update_map_cursor_pos(clk_pos);
+          game->pause();
+
+
           //
           // try to find a way to nullify the serf, as deleting it seems hard.  "teleporting" it back to the castle might work also
           //
@@ -3195,7 +3215,7 @@ Serf::drop_resource(Resource::Type res) {
     Player *player = game->get_player(get_owner());
     player->increase_res_count(res);
   }else{
-    Log::Info["serf.cc"] << "inside drop_resource, a resource of type " << NameResource[res] << " was removed from the game because there was no free slot for flag at pos " << flag->get_position();
+    Log::Info["serf.cc"] << "inside drop_resource, a resource of type " << NameResource[res] << " was removed from the game because there was no free slot for flag at pos " << flag->get_position() << ".  This is normal game behavior";
   }
 }
 
@@ -3223,9 +3243,9 @@ Serf::find_inventory() {
 
   //debug
   if (game->get_flag(recent_dest) != nullptr){
-    Log::Debug["serf"] << "inside find_inventory, serf of type " << NameSerf[type] << " being set to Lost, dest when it exited Inventory was flag# " << recent_dest << " which has pos " << game->get_flag(recent_dest)->get_position();
+    Log::Debug["serf"] << "inside find_inventory, serf of type " << NameSerf[type] << " being set to Lost, dest when it exited Inventory was flag #" << recent_dest << " which has pos " << game->get_flag(recent_dest)->get_position();
   }else{
-    Log::Debug["serf"] << "inside find_inventory, serf of type " << NameSerf[type] << " being set to Lost, dest when it exited Inventory was flag# " << recent_dest << " which is a nullptr";
+    Log::Debug["serf"] << "inside find_inventory, serf of type " << NameSerf[type] << " being set to Lost, dest when it exited Inventory was flag #" << recent_dest << " which is a nullptr";
   }
 
   set_state(StateLost);
@@ -3234,12 +3254,27 @@ Serf::find_inventory() {
 }
 
 void
-Serf::  handle_serf_free_walking_state_dest_reached() {
+Serf::handle_serf_free_walking_state_dest_reached() {
   if (s.free_walking.neg_dist1 == -128 &&
       s.free_walking.neg_dist2 < 0) {
+    //NOTE - I originally left this code in place so that if a serf was already on way to a non-Inventory building to clear
+    //  but option_LostTransportersClearFaster was off (either because of game load, or simply turned off), the serf would 
+    //  still be able to exit into the non-Inv building to avoid contention and possibly crash bugs.  But, what I am noticing
+    //  is that Lost generic serfs that simply *approach* a building flag by random chance will be able to enter it even
+    //  though option_LostTransportersClearFaster was never turned on.  So, seeing what happens if a check for the option
+    //  is actually enforced... hoping that if it is turned off after serf on way that they will simply become Lost again
+    //  with a new destination once they are rejected from entering
+    // ah, I am thinking this will be okay because Serf::handle_serf_entering_building_state allows it without the option set
+    //  but checking it here should prevent the serf from attempting to enter at all
+    //
+    //  NOOOO this was all wrong, was_lost was often being set true because the was_lost bool was not properly initialized to zero
+    //    and was getting random values that returned true even if option_LostTransportersClearFaster was never once enabled!
+    ///  fixed that bug, see how this works now...
+    //
     //Log::Info["serf"] << "debug : Serf::handle_serf_free_walking_state_dest_reached s.free_walking.neg_dist1: " << s.free_walking.neg_dist1 << ", s.free_walking.neg_dist2: " << s.free_walking.neg_dist2;
     // support allowing Lost serfs to enter any nearby friendly building
-    if ((get_type() == Serf::TypeTransporter || get_type() == Serf::TypeGeneric || get_type() == Serf::TypeNone) && was_lost){
+    //if (option_LostTransportersClearFaster && (this->get_type() == Serf::TypeTransporter || this->get_type() == Serf::TypeGeneric || this->get_type() == Serf::TypeNone) && was_lost){
+    if ((this->get_type() == Serf::TypeTransporter || this->get_type() == Serf::TypeGeneric || this->get_type() == Serf::TypeNone) && was_lost){
       PMap map = game->get_map();
       MapPos upleft_pos = map->move_up_left(pos);
       if (map->has_building(upleft_pos)){
@@ -3249,7 +3284,7 @@ Serf::  handle_serf_free_walking_state_dest_reached() {
             building->get_type() != Building::TypeStock && building->get_type() != Building::TypeCastle &&
             // disallow mines because they can deadlock when miner runs out of food and holds the pos
             (building->get_type() < Building::TypeStoneMine || building->get_type() > Building::TypeGoldMine)){
-          Log::Debug["serf"] << "a generic serf at pos " << pos << " is about to enter a non-inventory building of type " << NameBuilding[building->get_type()] << " at pos " << upleft_pos << ", assuming this was a Lost Serf";
+          Log::Debug["serf"] << "a generic serf of type " << this->get_type() << " at pos " << pos << " is about to enter a non-inventory building of type " << NameBuilding[building->get_type()] << " at pos " << upleft_pos << ", assuming this was a Lost Serf and letting him in (to be disappeared)";
           set_state(StateReadyToEnter);
           s.ready_to_enter.field_B = 0;
           counter = 0;
@@ -3673,9 +3708,9 @@ Serf::handle_free_walking_follow_edge() {
 
         //debug
         if (game->get_flag(recent_dest) != nullptr){
-          Log::Debug["serf"] << "inside handle_free_walking_state_follow_edge, serf of type " << NameSerf[type] << " being set to Lost, dest when it exited Inventory was flag# " << recent_dest << " which has pos " << game->get_flag(recent_dest)->get_position();
+          Log::Debug["serf"] << "inside handle_free_walking_state_follow_edge, serf of type " << NameSerf[type] << " being set to Lost, dest when it exited Inventory was flag #" << recent_dest << " which has pos " << game->get_flag(recent_dest)->get_position();
         }else{
-          Log::Debug["serf"] << "inside handle_free_walking_state_follow_edge, serf of type " << NameSerf[type] << " being set to Lost, dest when it exited Inventory was flag# " << recent_dest << " which is a nullptr";
+          Log::Debug["serf"] << "inside handle_free_walking_state_follow_edge, serf of type " << NameSerf[type] << " being set to Lost, dest when it exited Inventory was flag #" << recent_dest << " which is a nullptr";
         }
 
         set_state(StateLost);
@@ -5642,8 +5677,7 @@ Serf::handle_knight_occupy_enemy_building() {
     return;
   }
 
-  Building *building =
-                  game->get_building_at_pos(game->get_map()->move_up_left(pos));
+  Building *building = game->get_building_at_pos(game->get_map()->move_up_left(pos));
   if (building != NULL) {
     if (!building->is_burning() && building->is_military()) {
       if (building->get_owner() == owner) {
@@ -5680,8 +5714,8 @@ Serf::handle_knight_occupy_enemy_building() {
     }
   }
 
-  /* Something is wrong. */
-  Log::Warn["serf"] << "inside handle_knight_occupy_enemy_building(), a serf at pos " << get_pos() << " is being set to StateLost! because Something is wrong";
+  // the building is a nullptr, likely it was demolished while knight attempting to enter
+  Log::Info["serf"] << "inside handle_knight_occupy_enemy_building(), a knight at pos " << pos << " is being set to StateLost because the enemy building he is attempting to occupy is a nullptr.  The building was probably demolished";
   set_state(StateLost);
   s.lost.field_B = 0;
   counter = 0;
@@ -6064,9 +6098,9 @@ Serf::handle_serf_idle_on_path_state() {
 
     //debug
     if (game->get_flag(recent_dest) != nullptr){
-      Log::Debug["serf"] << "inside handle_serf_idle_on_path_state, serf of type " << NameSerf[type] << " being set to Lost, dest when it exited Inventory was flag# " << recent_dest << " which has pos " << game->get_flag(recent_dest)->get_position();
+      Log::Debug["serf"] << "inside handle_serf_idle_on_path_state, serf of type " << NameSerf[type] << " being set to Lost, dest when it exited Inventory was flag #" << recent_dest << " which has pos " << game->get_flag(recent_dest)->get_position();
     }else{
-      Log::Debug["serf"] << "inside handle_serf_idle_on_path_state, serf of type " << NameSerf[type] << " being set to Lost, dest when it exited Inventory was flag# " << recent_dest << " which is a nullptr";
+      Log::Debug["serf"] << "inside handle_serf_idle_on_path_state, serf of type " << NameSerf[type] << " being set to Lost, dest when it exited Inventory was flag #" << recent_dest << " which is a nullptr";
     }
 
     set_state(StateLost);
@@ -6228,9 +6262,9 @@ Serf::handle_serf_wake_at_flag_state() {
       //debug
       //  not logging this here because it appears to happen to transporters working roads that have just been deleted, which is common
       //if (game->get_flag(recent_dest) != nullptr){
-      //  Log::Debug["serf"] << "inside handle_serf_wake_at_flag_state, serf of type " << NameSerf[type] << " being set to Lost, dest when it exited Inventory was flag# " << recent_dest << " which has pos " << game->get_flag(recent_dest)->get_position();
+      //  Log::Debug["serf"] << "inside handle_serf_wake_at_flag_state, serf of type " << NameSerf[type] << " being set to Lost, dest when it exited Inventory was flag #" << recent_dest << " which has pos " << game->get_flag(recent_dest)->get_position();
       //}else{
-      //  Log::Debug["serf"] << "inside handle_serf_take_at_flag_state, serf of type " << NameSerf[type] << " being set to Lost, dest when it exited Inventory was flag# " << recent_dest << " which is a nullptr";
+      //  Log::Debug["serf"] << "inside handle_serf_take_at_flag_state, serf of type " << NameSerf[type] << " being set to Lost, dest when it exited Inventory was flag #" << recent_dest << " which is a nullptr";
       //}
 
       set_state(StateLost);

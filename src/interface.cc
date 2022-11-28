@@ -984,6 +984,7 @@ Interface::update() {
 
   if (option_EnableAutoSave){
     // auto-save if interval reached
+    //  note that this is const tick so should save at regular real time interval not game-tick interval (which increases with game speed)
     if (game->get_const_tick() >= AUTOSAVE_INTERVAL + last_autosave_tick){
       Log::Debug["interface"] << "auto-save interval reached, preparing to auto-save game...";
       Log::Verbose["interface"] << "thread #" << std::this_thread::get_id() << " is locking mutex before auto-saving game";

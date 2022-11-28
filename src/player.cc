@@ -677,6 +677,8 @@ Player::building_demolished(Building *building_) {
     if (building_->get_type() != Building::TypeCastle) {
       completed_building_count[building_->get_type()] -= 1;
     } else {
+      Log::Warn["player.cc"] << "Player" << index << "'s castle has just been destroyed!";
+      //game->pause();
       build &= ~BIT(3);
       castle_score -= 1;
     }
@@ -718,6 +720,7 @@ Player::spawn_serf(Serf **serf, Inventory **inventory, bool want_knight) {
 
   Game::ListInventories inventories = game->get_player_inventories(this);
   if (inventories.size() < 1) {
+    Log::Warn["game.cc"] << "inside Player::spawn_serf, inventories.size is <1, it is currently " << inventories.size() << ", does this mean max inventories reached?  Game just returns false";
     return false;
   }
 
