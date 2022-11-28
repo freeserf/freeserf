@@ -400,14 +400,11 @@ Game::update_inventories() {
         //  Log::Info["game"] << "debug: OUT QUEUE FULL for player" << player->get_index() << "'s inventory at " << NameBuilding[foo->get_type()] << " at pos " << foo->get_position();
         //}
         
-        //
         // got nullptr when player's castle destroyed, add nullptr check
         if (inventory == nullptr){
           Log::Warn["game.cc"] << "inside Game::update_inventories for Player" << player->get_index() << ", inventory is nullptr!  was it just destroyed?";
           continue;
         }
-        Log::Debug["game.cc"] << "inside Game::update_inventories for Player" << player->get_index() << ", inventory is valid pointer";
-        //
 
         // find inventories (whose out-queue is not full) 
         //  that have this selected resource type, and add
@@ -2131,7 +2128,7 @@ Game::surrender_land(MapPos pos) {
   /* Remove building. */
   if (map->get_obj(pos) >= Map::ObjectSmallBuilding &&
       map->get_obj(pos) <= Map::ObjectCastle) {
-    Log::Debug["game.cc"] << "inside Game::surrender_land, calling demolish_building_ on building at pos " << pos;
+    //Log::Debug["game.cc"] << "inside Game::surrender_land, calling demolish_building_ on building at pos " << pos;
     demolish_building_(pos);
   }
 
@@ -2147,7 +2144,7 @@ Game::surrender_land(MapPos pos) {
 
     if (map->get_obj(p) >= Map::ObjectSmallBuilding &&
         map->get_obj(p) <= Map::ObjectCastle) {
-      Log::Debug["game.cc"] << "inside Game::surrender_land around pos " << pos << ", currently at pos " << p << " with dir " << d << ", B calling demolish_building_";
+      //Log::Debug["game.cc"] << "inside Game::surrender_land around pos " << pos << ", currently at pos " << p << " with dir " << d << ", B calling demolish_building_";
       demolish_building_(p);
     }
 

@@ -271,7 +271,7 @@ AI::next_loop(){
   ai_status.assign("END OF LOOP");
   AILogDebug["next_loop"] << "loop complete, sleeping 2sec";
   loop_clock_duration = (std::clock() - loop_clock_start) / static_cast<double>(CLOCKS_PER_SEC);
-  AILogDebug["next_loop"] << "done next_loop, call took " << loop_clock_duration;
+  AILogDebug["next_loop"] << "done next_loop, loop took " << loop_clock_duration;
   sleep_speed_adjusted(2000);
 }
 
