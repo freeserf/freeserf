@@ -29,17 +29,10 @@ jobs:
       - name: Configure Forkserf
         run: |
           cmake -B build -G "Unix Makefiles"
-      - name: Build Forkserf
-        run: |
-          cd build
-          make
-      - name: Pack Forkserf
-        run: |
-          cd build
-          make package
+          ls -l
       # it seems the default cmake make package version is 0.1.1, see https://stackoverflow.com/questions/40445763/how-to-idiomatically-set-the-version-number-in-a-cmake-cpack-project
       - name: Upload artifact
         uses: actions/upload-artifact@v2
         with:
           name: Forkserf-${{ matrix.buildtype }}
-          path: ./build/Forkserf-0.1.1-Linux.tar.*
+          path: ./build/*
