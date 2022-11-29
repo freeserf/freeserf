@@ -34,16 +34,9 @@ Forkserf adds:
 
 Details about all of the above are on the wiki: https://github.com/forkserf/forkserf/wiki
 
-Build Status & Direct Download Links
+Precompiled Binaries for Download
 ------------
-Builds I have personally tested
-* [Linux, Legacy glibc2.6+] - tested on CentOS/RHEL 7
-
-Builds I have not personally tested
-* [Linux, Newest glibc3.4+](https://github.com/forkserf/forkserf/suites/9555534951/artifacts/454681456)
-* [Windows 64bit](https://github.com/forkserf/forkserf/suites/9555534903/artifacts/454684886) - need to test on Windows 7 64bit
-* MacOS coming soon
-
+https://github.com/forkserf/forkserf-binaries
 
 
 Play
