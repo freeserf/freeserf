@@ -51,6 +51,7 @@ bool option_QuickDemoEmptyBuildSites = false;
 bool option_TreesReproduce = false;
 bool option_BabyTreesMatureSlowly = false;
 bool option_ResourceRequestsTimeOut = true;  // this is forced true to indicate that the code to make them optional isn't added yet
+bool option_PrioritizeUsableResources = true;    // this is forced true to indicate that the code to make them optional isn't added yet
 bool option_LostTransportersClearFaster = false;
 bool option_FourSeasons = false;
 bool option_FishSpawnSlowly = false;
@@ -967,6 +968,7 @@ Game::update() {
   Log::Info["game"] << "option_TreesReproduce is " << option_TreesReproduce;
   Log::Info["game"] << "option_BabyTreesMatureSlowly is " << option_BabyTreesMatureSlowly;
   Log::Info["game"] << "option_ResourceRequestsTimeOut is " << option_ResourceRequestsTimeOut;
+  //PrioritizeUsableResources
   Log::Info["game"] << "option_LostTransportersClearFaster is " << option_LostTransportersClearFaster;
   Log::Info["game"] << "option_FourSeasons is " << option_FourSeasons;
   Log::Info["game"] << "option_FishSpawnSlowly is " << option_FishSpawnSlowly;

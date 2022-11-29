@@ -12,6 +12,7 @@ extern bool option_QuickDemoEmptyBuildSites;
 extern bool option_TreesReproduce;
 extern bool option_BabyTreesMatureSlowly;
 extern bool option_ResourceRequestsTimeOut;
+extern bool option_PrioritizeUsableResources;
 extern bool option_LostTransportersClearFaster;
 extern bool option_FourSeasons;
 extern bool option_FishSpawnSlowly;

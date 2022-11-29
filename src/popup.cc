@@ -301,6 +301,7 @@ typedef enum Action {
   ACTION_GAME_OPTIONS_TREES_REPRODUCE,
   ACTION_GAME_OPTIONS_BABY_TREES_MATURE_SLOWLY,
   ACTION_GAME_OPTIONS_ResourceRequestsTimeOut,
+  ACTION_GAME_OPTIONS_PrioritizeUsableResources,
   ACTION_GAME_OPTIONS_LostTransportersClearFaster,
   ACTION_GAME_OPTIONS_FourSeasons,
   ACTION_GAME_OPTIONS_FishSpawnSlowly,
@@ -2038,6 +2039,8 @@ PopupBox::draw_game_options_box() {
 
   //draw_green_string(3, 29, "Pigs Require No Wheat");
   //draw_popup_icon(1, 26, option_ImprovedPigFarms ? 288 : 220);  // removing this as it turns out the default behavior for pig farms is to require almost no grain
+  draw_green_string(3, 29, "Prioritize Usable Resources");
+  draw_popup_icon(1, 26, option_PrioritizeUsableResources ? 288 : 220);  // this is forced on until code to make it optional added and tested
 
   draw_green_string(3, 48, "Can Transport Serfs In Boats");
   draw_popup_icon(1, 45, option_CanTransportSerfsInBoats ? 288 : 220);
@@ -2059,7 +2062,7 @@ void
 PopupBox::draw_game_options2_box() {
   draw_large_box_background(PatternDiagonalGreen);
   draw_green_string(3, 10, "Resource Requests Time Out");
-  draw_popup_icon(1, 7, option_ResourceRequestsTimeOut ? 288 : 220);
+  draw_popup_icon(1, 7, option_ResourceRequestsTimeOut ? 288 : 220);  // this is forced on until code to make it optional added and tested
 
   draw_green_string(3, 29, "Lost Transporters Clear Faster");
   draw_popup_icon(1, 26, option_LostTransportersClearFaster ? 288 : 220);
@@ -3778,6 +3781,15 @@ PopupBox::handle_action(int action, int x_, int /*y_*/) {
     //}
     play_sound(Audio::TypeSfxNotAccepted);  // play sound to indicate this can't be disabled
     break;
+  // forced true to indicate that the code to make optional isn't added yet
+  case ACTION_GAME_OPTIONS_PrioritizeUsableResources:
+    //if (option_PrioritizeUsableResources){
+    //  option_PrioritizeUsableResources = false;
+    //} else{
+    //  option_PrioritizeUsableResources = true;
+    //}
+    play_sound(Audio::TypeSfxNotAccepted);  // play sound to indicate this can't be disabled
+    break;
   case ACTION_GAME_OPTIONS_LostTransportersClearFaster:
     if (option_LostTransportersClearFaster){
       option_LostTransportersClearFaster = false;
@@ -4160,6 +4172,7 @@ PopupBox::handle_box_game_options_clk(int cx, int cy) {
   const int clkmap[] = {
     ACTION_GAME_OPTIONS_ENABLE_AUTOSAVE, 7, 7, 150, 16,
     //ACTION_GAME_OPTIONS_IMPROVED_PIG_FARMS, 7, 26, 150, 16,   // removing this as it turns out the default behavior for pig farms is to require almost no grain
+    ACTION_GAME_OPTIONS_PrioritizeUsableResources, 7, 26, 150, 16,
     ACTION_GAME_OPTIONS_CAN_TRANSPORT_SERFS_IN_BOATS, 7, 45, 150, 16,
     ACTION_GAME_OPTIONS_QUICK_DEMO_EMPTY_BUILD_SITES, 7, 64, 150, 16,
     ACTION_GAME_OPTIONS_TREES_REPRODUCE, 7, 83, 150, 16,

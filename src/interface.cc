@@ -463,6 +463,7 @@ Interface::update_interface() {
   Log::Info["interface"] << "option_TreesReproduce is " << option_TreesReproduce;
   Log::Info["interface"] << "option_BabyTreesMatureSlowly is " << option_BabyTreesMatureSlowly;
   Log::Info["interface"] << "option_ResourceRequestsTimeOut is " << option_ResourceRequestsTimeOut;
+  //PrioritizeUsableResources
   Log::Info["interface"] << "option_LostTransportersClearFaster is " << option_LostTransportersClearFaster;
   Log::Info["interface"] << "option_FourSeasons is " << option_FourSeasons;
   Log::Info["interface"] << "option_FishSpawnSlowly is " << option_FishSpawnSlowly;
