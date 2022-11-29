@@ -36,8 +36,8 @@ Details about all of the above are on the wiki: https://github.com/forkserf/fork
 
 Build status
 ------------
-Linux [![linux](https://github.com/forkserf/forkserf/actions/workflows/linux.yml/badge.svg)](https://github.com/forkserf/forkserf/actions/workflows/linux.yml)
-Windows 64bit [![windows](https://github.com/forkserf/forkserf/actions/workflows/windows.yml/badge.svg)](https://github.com/forkserf/forkserf/actions/workflows/windows.yml)
+* Linux [![linux](https://github.com/forkserf/forkserf/actions/workflows/linux.yml/badge.svg)](https://github.com/forkserf/forkserf/actions/workflows/linux.yml)
+* Windows 64bit [![windows](https://github.com/forkserf/forkserf/actions/workflows/windows.yml/badge.svg)](https://github.com/forkserf/forkserf/actions/workflows/windows.yml)
 
 Last build downloads
 --------------------
