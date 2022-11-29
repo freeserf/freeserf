@@ -606,6 +606,8 @@ AI::build_best_road(MapPos start_pos, RoadOptions road_options, Road *built_road
     //
     // TEMP UNTIL REVAMP
     //
+    // Nov 2022 - it seems this logic has been here for a long time, maybe just leave it?
+    //
     target_num++;
     if (target_num > 2){
       AILogDebug["util_build_best_road"] << "" << calling_function << " TEMPORARY -  NOT ALLOWING MORE THAN 2 TARGETS - breaking";

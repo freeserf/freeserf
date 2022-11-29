@@ -741,6 +741,17 @@ Building::burnup() {
 /* Calculate the flag state of military buildings (distance to enemy). */
 void
 Building::update_military_flag_state() {
+  // from nicymike:
+  //"Btw. new information about the internals of Settlers 1:
+  // I created a debug overlay to show all of the positions 
+  // wich the military buildings do check for enemy territory 
+  // to define their flag state (from white to thick cross). 
+  // As you can see in the following screenshot only certain 
+  // positions are beeing checked which can lead to a white 
+  // flag even near an enemy building." 
+  // 
+  // it seems it would be easy to fix this by changing to spirally check
+  //  that considers every pos in range
   const int border_check_offsets[] = {
     31,  32,  33,  34,  35,  36,  37,  38,  39,  40,  41,  42,
     100, 101, 102, 103, 104, 105, 106, 107, 108,

@@ -108,6 +108,34 @@ FlagSearch::execute(flag_search_func *callback, bool land,
         //if (flag->has_path(i) && flag->is_water_path(i)){
         // checking flag->has_path earlier now
         if (flag->is_water_path(i)){
+          //
+          // disallow sailors from ever becoming passengers in other sailor's boats
+          //  this is sort of a hack to fix an issue where when a sailor arrives to pick
+          //  up a passenger serf, the sailor himself is put into WaitForBoat state and
+          //  becomes stuck.  If this is not done, the new sailor will walk-on-water along
+          //  the water path to get to his new water route destination, which looks ridiculous
+          // ALSO, it seems silly that a sailor could carry his own boat while sitting in
+          //  another sailor's boat, so making him appear as a passenger isn't good either 
+          // A BETTER WAY would be to allow the sailor to paddle himself along the path, going
+          //  through/around the existing sailor working the path.  However, I think this requires
+          //  adding (or at least testing) the "sidestep other serf on road" animation" with boats
+          //  which would be really slick, and might be very easy to do.  
+          //   Adding this as a TODO: https://github.com/forkserf/forkserf/issues/142
+          // 
+          //if (
+          //
+          //  CRAP!!!! I can't actually tell if the serf being routed by this flagsearch is a sailor
+          //   because it doesn't know what serf is being routed.  Need to implement the TODO now
+          //   or this can't work at all
+          //
+          //  OKAY, I have updated the viewport.cc serf_get_body function so that it will draw
+          //   a paddling serf if the serf is "walking on water".  In the original game, because
+          //   serfs cannot be transported in boats, any serf entering a water tile is *certain*
+          //   to be a sailor that is entering a water path that he is assigned to, so he will be
+          //   in SerfTransporting state, which triggers the paddling animation instead of walking
+          //   The new logic is to allow a sailor in StateWalking to be drawn as paddling if 
+          //   the appropriate checks pass (in water, option_CanTransportSerfsInBoats)
+          //
           // debug - I am seeing serfs walking on water paths when CanTransportSerfsInBoats is *OFF* 
           // hmm... I cannot reproduce this now using a human player
           //Log::Info["flag"] << "debug SERFS WALKING ON WATER, skipping flag " << flag->get_index() << " dir " << NameDirection[i] << " is water path";

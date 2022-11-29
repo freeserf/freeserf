@@ -902,7 +902,7 @@ Interface::update() {
     int season_offset = year_offset % 62500;
     subseason = season_offset / 3906;
     int subseason_offset = season_offset % 3906;
-    Log::Debug["interface.cc"] << "FourSeasons calendar:  tick " << game->get_tick() << ", year " << year << ", year_offset " << year_offset << ", season " << season << ", season_offset " << season_offset << ", subseason " << subseason << ", subseason_offset " << subseason_offset;
+    //Log::Debug["interface.cc"] << "FourSeasons calendar:  tick " << game->get_tick() << ", year " << year << ", year_offset " << year_offset << ", season " << season << ", season_offset " << season_offset << ", subseason " << subseason << ", subseason_offset " << subseason_offset;
 
     // IN THE FUTURE, ALLOW IT TO BE RANDOMIZED BY starting tick + random-seed offset up to 1yr
 

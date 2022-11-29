@@ -4618,8 +4618,8 @@ AI::do_connect_disconnected_road_networks(){
         rejected = true;
       }else if (other_end_flag == nullptr){
         AILogWarn["do_connect_disconnected_road_networks"] << "RARE sanity check failed! other_end_flag in dir " << dir << " / " << NameDirection[dir] << " is nullptr, but map has path in dir! is this Dir4/UpLeft?  is there a building here?";
-        AILogError["do_connect_disconnected_road_networks"] << "pausing game for debugging RARE sanity checked failed other_end_flag in dir";
-        game->pause();
+        //AILogError["do_connect_disconnected_road_networks"] << "pausing game for debugging RARE sanity checked failed other_end_flag in dir";
+        //game->pause();
       }
 
       if (rejected)

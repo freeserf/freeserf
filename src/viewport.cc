@@ -1763,7 +1763,24 @@ Viewport::serf_get_body(Serf *serf) {
       // try this way, now that extra zeroes added for fake resource types 26+
       // nope this doesn't work... hmm figure it out later
       //t += sailor_type[serf->get_delivery()];
+    } else if (option_CanTransportSerfsInBoats && serf->get_state() == Serf::StateWalking && map->is_in_water(serf->get_pos())) {
+      // if this is a Sailor that is traversing an existing water path that may be worked by another sailor, on way to reach
+      //  this new sailor's water path destination!  Show this sailor as padding animation otherwise he will walk on water
+      // Do NOT want sailors to become passengers in other sailors' boats at this time
+      // copying this animation/sound stuff from the Transporting section, could instead move this logic into there to avoid duplication
+      if (t < 0x80) {
+        if (((t & 7) == 4 && !serf->playing_sfx()) ||
+            (t & 7) == 3) {
+          serf->start_playing_sfx();
+          //play_sound(Audio::TypeSfxRowing);
+          play_sound(Audio::TypeSfxRowing, DataSourceType::DOS);  // DOS sound is a little better
+        } else {
+          serf->stop_playing_sfx();
+        }
+      }
+      t += 0x200;
     } else {
+      // normal walking?
       t += 0x100;
     }
     break;

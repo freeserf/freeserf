@@ -270,7 +270,8 @@ Game::update_inventories_cb(Flag *flag, void *d) {
       //  continue;
       //}
       //Log::Info["game"] << "debug: inside Game::update_inventories_cb, 4";
-      if (data->prev_flag->has_path_IMPROVED(d) && data->prev_flag->get_other_end_flag(d)->get_index() == flag->get_index()) {
+      if (data->prev_flag->has_path_IMPROVED(d) && flag != nullptr 
+       && data->prev_flag->get_other_end_flag(d)->get_index() == flag->get_index()) {
         // could also use flag->get_other_end_flag(d)? but this reads better
         // to try to approximate the original road length, bit-shift >>4, or divide by 16
         //  and then triple it to get pretty close the reversing the above table
@@ -402,7 +403,8 @@ Game::update_inventories() {
         
         // got nullptr when player's castle destroyed, add nullptr check
         if (inventory == nullptr){
-          Log::Warn["game.cc"] << "inside Game::update_inventories for Player" << player->get_index() << ", inventory is nullptr!  was it just destroyed?";
+          // do NOT log this, once any Inventory is destroyed its index will always be a nullptr and it will repeat the message constantly
+          //Log::Warn["game.cc"] << "inside Game::update_inventories for Player" << player->get_index() << ", inventory is nullptr!  was it just destroyed?  NOTE THAT THIS INVENTORY COULD HAVE BEEN OWNED BY ANY PLAYER NOT JUST Player" << player->get_index();
           continue;
         }
 
@@ -2644,6 +2646,11 @@ Game::get_player_buildings(Player *player) {
   ListBuildings player_buildings;
 
   for (Building *building : buildings) {
+    // got exception here Nov 2022, adding nullptr check
+    if (building == nullptr){
+      Log::Warn["game.cc"] << "inside Game::get_player_buildings for Player" << player->get_index() << ", building is nullptr! skipping it";
+      continue;
+    }      
     if (building->get_owner() == player->get_index()) {
       player_buildings.push_back(building);
     }
@@ -2658,7 +2665,8 @@ Game::get_player_inventories(Player *player) {
 
   for (Inventory *inventory : inventories) {
     if (inventory == nullptr){
-      Log::Warn["game.cc"] << "inside Game::get_player_inventories for player #" << player->get_index() << ", an inventory is nullptr!  was it just destroyed?  NOTE THAT THIS INVENTORY COULD HAVE BEEN OWNED BY ANY PLAYER NOT JUST Player" << player->get_index();
+      // do NOT log this, once any Inventory is destroyed its index will always be a nullptr and it will repeat the message constantly
+      //Log::Warn["game.cc"] << "inside Game::get_player_inventories for player #" << player->get_index() << ", an inventory is nullptr!  was it just destroyed?  NOTE THAT THIS INVENTORY COULD HAVE BEEN OWNED BY ANY PLAYER NOT JUST Player" << player->get_index();
       continue;
     }
     if (inventory->get_owner() == player->get_index()) {
