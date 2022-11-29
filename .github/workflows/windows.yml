@@ -39,6 +39,8 @@ jobs:
         run: |
           cd build
           nmake
+          dir
+          dir */*
 
 #      - name: Run Tests
 #        shell: bash
