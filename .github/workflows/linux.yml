@@ -8,7 +8,7 @@ on:
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-18.04
 
     strategy:
       matrix:
@@ -38,4 +38,4 @@ jobs:
         uses: actions/upload-artifact@v2
         with:
           name: Forkserf-${{ matrix.buildtype }}
-          path: /home/runner/work/forkserf/forkserf/build/*
+          path: /home/runner/work/forkserf/forkserf/build/src/*
