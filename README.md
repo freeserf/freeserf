@@ -36,8 +36,14 @@ Details about all of the above are on the wiki: https://github.com/forkserf/fork
 
 Build Status & Direct Download Links
 ------------
-* [![linux](https://github.com/forkserf/forkserf/actions/workflows/linux.yml/badge.svg)](https://github.com/forkserf/forkserf/actions/workflows/linux.yml) [Linux Stable Release](https://github.com/forkserf/forkserf/suites/9555534951/artifacts/454681456)
-* [![windows](https://github.com/forkserf/forkserf/actions/workflows/windows.yml/badge.svg)](https://github.com/forkserf/forkserf/actions/workflows/windows.yml) [Windows 64bit Stable Release](https://github.com/forkserf/forkserf/suites/9555534903/artifacts/454684886)
+Builds I have personally tested
+* [Linux, Legacy glibc2.6]
+
+Builds I have not personally tested
+* [![linux](https://github.com/forkserf/forkserf/actions/workflows/linux.yml/badge.svg)](https://github.com/forkserf/forkserf/actions/workflows/linux.yml) [Linux, Newest glibc (untested)](https://github.com/forkserf/forkserf/suites/9555534951/artifacts/454681456)
+* [Windows 64bit Stable Release](https://github.com/forkserf/forkserf/suites/9555534903/artifacts/454684886)
+
+
 
 Play
 ------
