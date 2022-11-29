@@ -35,7 +35,7 @@ jobs:
           make
       - name: Package Forkserf
         run: |
-          cd build
+          cd build/src/
           mv CMakeFiles /tmp/
           rm -f *.cmake
           rm -f ./Makefile
