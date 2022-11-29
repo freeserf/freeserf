@@ -33,6 +33,12 @@ jobs:
         run: |
           cd build
           make
+      - name: Package Forkserf
+        run: |
+          cd build
+          mv CMakeFiles /tmp/
+          rm -f *.cmake
+          rm -f ./Makefile
       # it seems the default cmake make package version is 0.1.1, see https://stackoverflow.com/questions/40445763/how-to-idiomatically-set-the-version-number-in-a-cmake-cpack-project
       - name: Upload artifact
         uses: actions/upload-artifact@v2
