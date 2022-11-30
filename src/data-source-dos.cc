@@ -242,20 +242,20 @@ DataSourceDOS::get_sprite_parts(Data::Resource res, size_t index) {
     if (!data) {
       return std::make_tuple(nullptr, nullptr);
     }
-    Data::PSprite torso = std::make_shared<SpriteDosTransparent>(data, palette, res,
+    Data::PSprite torso = std::make_shared<SpriteDosTransparent>(data, palette, res, dos_res.index + index,
                                                                  64);
 
     data = get_object(dos_res.index + index);
     if (!data) {
       return std::make_tuple(nullptr, nullptr);
     }
-    Data::PSprite torso2 = std::make_shared<SpriteDosTransparent>(data, palette, res,
+    Data::PSprite torso2 = std::make_shared<SpriteDosTransparent>(data, palette, res, dos_res.index + index,
                                                                   72);
 
     Data::MaskImage mi = separate_sprites(torso, torso2);
 
     data = get_object(DATA_SERF_ARMS + index);
-    Data::PSprite arms = std::make_shared<SpriteDosTransparent>(data, palette, res);
+    Data::PSprite arms = std::make_shared<SpriteDosTransparent>(data, palette, res, DATA_SERF_ARMS + index);
     torso->stick(arms, 0, 0);
 
     return mi;
@@ -266,12 +266,12 @@ DataSourceDOS::get_sprite_parts(Data::Resource res, size_t index) {
       if (!data) {
         return std::make_tuple(nullptr, nullptr);
       }
-      Data::PSprite s1 = std::make_shared<SpriteDosTransparent>(data, palette, res);
+      Data::PSprite s1 = std::make_shared<SpriteDosTransparent>(data, palette, res, dos_res.index + 128 + flag_frame);
       data = get_object(dos_res.index + 128 + 4 + flag_frame);
       if (!data) {
         return std::make_tuple(nullptr, nullptr);
       }
-      Data::PSprite s2 = std::make_shared<SpriteDosTransparent>(data, palette, res);
+      Data::PSprite s2 = std::make_shared<SpriteDosTransparent>(data, palette, res, dos_res.index + 128 + 4 + flag_frame);
 
       return separate_sprites(s1, s2);
     }
@@ -281,7 +281,7 @@ DataSourceDOS::get_sprite_parts(Data::Resource res, size_t index) {
       return std::make_tuple(nullptr, nullptr);
     }
     return std::make_tuple(std::make_shared<SpriteDosTransparent>(data,
-                                                                  palette, res),
+                                                                  palette, res, dos_res.index + index),
                            nullptr);
   }
 
@@ -299,7 +299,7 @@ DataSourceDOS::get_sprite_parts(Data::Resource res, size_t index) {
     }
     case SpriteTypeTransparent: {
       //sprite = std::make_shared<SpriteDosTransparent>(data, palette);
-      sprite = std::make_shared<SpriteDosTransparent>(data, palette, res);
+      sprite = std::make_shared<SpriteDosTransparent>(data, palette, res, dos_res.index + index);
       break;
     }
     case SpriteTypeOverlay: {
@@ -384,8 +384,61 @@ DataSourceDOS::SpriteDosSolid::SpriteDosSolid(PBuffer _data, ColorDOS *palette, 
       //if (color.g > 50){color.g -= 30;}
 
       if (option_FourSeasons){
+
         if (season == 0){
-          // SPRING do nothing
+          //// SPRING do nothing
+          // SPRING reverse-fade from WINTER to normal
+          // REDUCE IMPACT OF WINTER's slightly reduce reds saturation
+          if (color.r > color.g && color.r > color.b    // is red
+                && color.r > 50){
+            if (subseason == 1){  // fade from winter to spring
+              color.r -=  2;
+              color.g +=  3;
+              color.b +=  3;
+            }else if (subseason == 0){  // fade from winter to spring
+              color.r -=  5;
+              color.g +=  6;
+              color.b +=  6;
+            }
+          }
+          // REDUCE IMPACT OF WINTER's reduce greens saturation and shift blue slightly
+          else if (color.g > color.r && color.g > color.b) {   // is green
+            if ((color.r + color.g + color.b) / 3 > avg_brightness + 2) {    // is bright
+              if (subseason == 1){  // fade from winter to spring
+                color.r +=  3;
+                color.g -= 10;
+                color.b +=  8;
+              }else if (subseason == 0){  // fade from winter to spring
+                color.r +=  6;
+                color.g -= 20;
+                color.b += 16;
+              }
+            }else{
+              // is not bright
+              if (subseason == 1){  // fade from winter to spring
+                color.r += 10;
+                color.g -=  7;
+                color.b += 12;
+              }else if (subseason == 0){  // fade from winter to spring
+                color.r += 20;
+                color.g -= 14;
+                color.b += 24;
+              }
+            }
+          }
+          // REDUCE IMPACT OF WINTER's slightly reduce blues saturation
+          else if (color.b > color.r && color.b > color.g    // is blue
+                && color.b > 60){
+            if (subseason == 1){  // fade from winter to spring
+              color.r +=  3;
+              color.g +=  3;
+              color.b -= 13;
+            }else if (subseason == 0){  // fade from winter to spring
+              color.r +=  6;
+              color.g +=  6;
+              color.b -= 27;
+            }
+          }
         }
 
         if (season == 1){
@@ -396,40 +449,106 @@ DataSourceDOS::SpriteDosSolid::SpriteDosSolid(PBuffer _data, ColorDOS *palette, 
           // FALL reduce saturation of greens and shift highlights yellow to look like long grass
           if (color.g > color.r && color.g > color.b  // is green
               && ((color.r + color.g + color.b) / 3 > avg_brightness + 2)) {    // is bright
-            color.g -= 0;
-            color.r += 85;
-            color.b += 15;
+            if (subseason == 0){  // fade from summer to fall
+              color.g -=  0;
+              color.r += 28;
+              color.b +=  5;
+            } else if (subseason == 1){ // fade from summer to fall
+              color.g -=  0;
+              color.r += 56;
+              color.b += 10;
+            } else {
+              color.g -=  0;
+              color.r += 85;
+              color.b += 15;
+            }
           }
         }
 
         if (season == 3){
           // WINTER
+
+          // during fade in only, reverse impact of FALL changes
+          // REDUCE IMPACT OF FALL's reduce saturation of greens and shift highlights yellow to look like long grass
+          if (color.g > color.r && color.g > color.b  // is green
+              && ((color.r + color.g + color.b) / 3 > avg_brightness + 2)) {    // is bright
+            if (subseason == 1){  // fade from summer to fall
+              color.g -=  0;
+              color.r += 28;
+              color.b +=  5;
+            } else if (subseason == 0){ // fade from summer to fall
+              color.g -=  0;
+              color.r += 56;
+              color.b += 10;
+            }
+          }
+
           // slightly reduce reds saturation
           if (color.r > color.g && color.r > color.b    // is red
                 && color.r > 50){
-            color.r -= 5;
-            color.g += 10;
-            color.b += 10;
+            if (subseason == 0){  // fade from fall to winter
+              color.r -=  2;
+              color.g +=  3;
+              color.b +=  3;
+            }else if (subseason == 1){  // fade from fall to winter
+              color.r -=  5;
+              color.g +=  6;
+              color.b +=  6;
+            }else{
+              color.r -=  5;
+              color.g += 10;
+              color.b += 10;
+            }
           }
           // reduce greens saturation and shift blue slightly
           else if (color.g > color.r && color.g > color.b) {   // is green
             if ((color.r + color.g + color.b) / 3 > avg_brightness + 2) {    // is bright
-              color.g -= 30;
-              color.r += 10;
-              color.b += 25;
+              if (subseason == 0){  // fade from fall to winter
+                color.r +=  3;
+                color.g -= 10;
+                color.b +=  8;
+              }else if (subseason == 1){  // fade from fall to winter
+                color.r +=  6;
+                color.g -= 20;
+                color.b += 16;
+              }else{
+                color.r += 10;
+                color.g -= 30;
+                color.b += 25;
+              }
             }else{
               // is not bright
-              color.g -= 20;
-              color.r += 30;
-              color.b += 35;
+              if (subseason == 0){  // fade from fall to winter
+                color.r += 10;
+                color.g -=  7;
+                color.b += 12;
+              }else if (subseason == 1){  // fade from fall to winter
+                color.r += 20;
+                color.g -= 14;
+                color.b += 24;
+              }else{
+                color.r += 30;
+                color.g -= 20;
+                color.b += 35;
+              }
             }
           }
           // slightly reduce blues saturation
           else if (color.b > color.r && color.b > color.g    // is blue
                 && color.b > 60){
-            color.b -= 40;
-            color.g += 10;
-            color.r += 10;
+            if (subseason == 0){  // fade from fall to winter
+              color.r +=  3;
+              color.g +=  3;
+              color.b -= 13;
+            }else if (subseason == 1){  // fade from fall to winter
+              color.r +=  6;
+              color.g +=  6;
+              color.b -= 27;
+            }else{
+              color.r += 10;
+              color.g += 10;
+              color.b -= 40;
+            }
           }
         }
       } // if option_FourSeasons
@@ -459,9 +578,18 @@ DataSourceDOS::SpriteDosTransparent::SpriteDosTransparent(PBuffer _data,
   : SpriteBaseDOS(_data) {
 */
 // added passing of resource type to assist with weather/seasons/palette messing
+/*
 DataSourceDOS::SpriteDosTransparent::SpriteDosTransparent(PBuffer _data,
                                                           ColorDOS *palette,
                                                           Data::Resource res,
+                                                          uint8_t color)
+  : SpriteBaseDOS(_data) {
+*/
+// added passing of resource type AND sprite index to also allow manipulating specific sprites
+DataSourceDOS::SpriteDosTransparent::SpriteDosTransparent(PBuffer _data,
+                                                          ColorDOS *palette,
+                                                          Data::Resource res,
+                                                          size_t index,
                                                           uint8_t color)
   : SpriteBaseDOS(_data) {
 
@@ -498,6 +626,34 @@ DataSourceDOS::SpriteDosTransparent::SpriteDosTransparent(PBuffer _data,
         }
       }
       */
+
+      // testing FourSeasons manipulating Seeds / Field sprites
+      //  THESE ARE BEING CACHED EVEN IF option_FourSeasons IS TURNED OFF!!!
+      /// NEED TO FIGURE OUT HOW TO FLUSH THE CACHE!
+      if (option_FourSeasons && season == 3){
+        if (res == Data::AssetMapObject){
+          // I haven't bothered to check how the sprite indexes are numbered, there must be some offset
+          //  for each data type, instead I found through trial and error, only need one as a reference point
+          int base = 1241;
+          //if (index >= base + 105 && index <= base + 111){      // ObjectSeeds0 - ObjectFieldExpired 
+          if ((index >= base + 105 && index <= base + 111)    // ObjectSeeds0 - ObjectFieldExpired 
+           || (index >= base + 121 && index <= base + 121)){  // ObjectField0 - ObjectField0
+            if (color.r < 200){  // is *NOT* red (i.e., is yellow or green, or blue I guess)
+            //if (color.g > color.r && color.g > color.b){  // is green
+              //if (color.g + color.r + color.b > 158){ // is bright
+                // make more gray
+                int tmpr = color.r + 50; if (tmpr < 1){ tmpr = 0;} if (tmpr >255){ tmpr = 255;} color.r=tmpr;
+                int tmpg = color.g - 45; if (tmpg < 1){ tmpg = 0;} if (tmpg >255){ tmpg = 255;} color.g=tmpg;
+                int tmpb = color.b +  0; if (tmpb < 1){ tmpb = 0;} if (tmpb >255){ tmpb = 255;} color.b=tmpb;
+                // make black
+                //color.r = 0;
+                //color.g = 0;
+                //color.b = 0;
+            //  }         
+            }
+          }
+        }
+      }
 
 
       result->push<uint8_t>(color.b);  // Blue

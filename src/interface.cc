@@ -907,11 +907,12 @@ Interface::update() {
 
     // IN THE FUTURE, ALLOW IT TO BE RANDOMIZED BY starting tick + random-seed offset up to 1yr
 
-    /*
+/* disable manual adjustment, instead it is tied to game tick
+
     if (game->get_tick() > 3906 + last_subseason_tick){
       Log::Debug["interface"] << "inside Interface::update, incrementing subseason, subseason is now " << subseason << ", last_subseason_tick " << last_subseason_tick << ", game tick " << game->get_tick();
       last_subseason_tick = game->get_tick();
-      if (subseason < 16){
+      if (subseason < 15){
         subseason++;
       }else{
         Log::Debug["interface"] << "inside Interface::update, incrementing season, resetting subseason, tick " << game->get_tick();
@@ -926,16 +927,21 @@ Interface::update() {
       clear_custom_graphics_cache();
       viewport->set_size(width, height);  // this does the magic refresh without affecting popups (as Interface->layout() does)
     }
-    */
+*/
 
     if (last_subseason != subseason){
       if (last_season != season){
         Log::Info["interface.cc"] << "FourSeasons: changing season to " << NameSeason[season];
         last_season = season;
       }
-      Log::Debug["interface.cc"] << "FourSeasons: changing subseason to " << subseason << " and clearing image cache";
       last_subseason = subseason;
-      clear_custom_graphics_cache();
+      // handle fade at start of new seasons
+      if (subseason <= 2 && season != 1){ // if fading into a new season (and not Summer which has no changes), flush tile cache
+        Log::Debug["interface.cc"] << "FourSeasons: changing subseason to " << subseason << " and clearing tile cache because this season has tile changes";
+        clear_custom_graphics_cache();
+      }else{
+        Log::Debug["interface.cc"] << "FourSeasons: changing subseason to " << subseason << " and NOT clearing tile cache, because this season/subseason has no tile changes";
+      }
       viewport->set_size(width, height);  // this does the magic refresh without affecting popups (as Interface->layout() does)
     }
 
@@ -1177,14 +1183,16 @@ Interface::handle_key_pressed(char key, int modifier) {
       //disabled for now, season is now tied to tick so it works with save/load game
       play_sound(Audio::TypeSfxNotAccepted);
       /*
-      if (subseason < 16){  // allow subseason to go to be  "tree + 1" so that it can have a 0 state with no change yet
+      if (subseason < 15){  // allow subseason to go to be  "tree + 1" so that it can have a 0 state with no change yet
         subseason++;
       }else{
         subseason = 0;
       }
       Log::Info["interface"] << "Changing Sub-Season to #" << subseason << " and clearing image cache";
-      // subseason does not require purging of tile cache because only ground tiles seem to be cached
-      //  and sub-seasons only affect map_objects (trees)
+      //// subseason does not require purging of tile cache because only ground tiles seem to be cached
+      ////  and sub-seasons only affect map_objects (trees)
+      // CHANGING TILES AS PART OF SUBSEASON, NOW MUST PURGE TILE CACHE
+      clear_custom_graphics_cache();
       viewport->set_size(width, height);  // this does the magic refresh without affecting popups (as Interface->layout() does)
       */
       break;
@@ -1290,6 +1298,17 @@ Interface::clear_custom_graphics_cache() {
       to_purge.insert( Data::Sprite::create_id(Data::AssetMapGround, map_ground_index, Data::AssetMapMaskUp, mask_index, {0,0,0,0}) );
       to_purge.insert( Data::Sprite::create_id(Data::AssetMapGround, map_ground_index, Data::AssetMapMaskDown, mask_index, {0,0,0,0}) );
     }
+  }
+
+  // for FourSeasons MapObject sprite manipulation (for Seeds Fields)
+  //  try purging non-masked sprites, hopefully simpler...  yes this is easier
+  // REMEMBER THAT
+  //  'sprite' is reduced by 8 / Map::ObjectTree0 earlier in this function because 0-7 are some placeholders?
+  //   so sprite for Seeds0 which is index 105 is actually sprite index 97 because 105-8=97
+  //for (int unknown_index=Map::ObjectSeeds0 - 8; unknown_index <= Map::ObjectSeeds2 - 8; unknown_index++){
+  //for (int unknown_index=Map::ObjectSeeds0 - 8; unknown_index <= Map::ObjectField5 - 8; unknown_index++){
+    for (int unknown_index=Map::ObjectSeeds0 - 8; unknown_index <= Map::ObjectFieldExpired - 8; unknown_index++){
+    to_purge.insert( Data::Sprite::create_id(Data::AssetMapObject, unknown_index, Data::AssetNone, 0, {0,0,0,0}) );
   }
     
   //for (uint64_t id : to_purge){

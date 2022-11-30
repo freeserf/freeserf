@@ -100,19 +100,30 @@ Viewport::draw_triangle_up(int lx, int ly, int m, int left, int right,
   Map::Terrain type = map->type_up(map->move_up(pos));
 
   // messing with weather/seasons/palette
-  // WINTER
-  // make snow cover a bit more of mountains by changing the *appearance*
-  // of Tundra0/1/2 to Snow, but it still functions as normal Tundra in game
-  if (option_FourSeasons && season == 3){
-    if (type >= Map::TerrainTundra2){  // a bit more snow on mountains in winter
-      type = Map::TerrainSnow0;
+  //  by changing the *appearance* of Tundra0/1/2 to Snow, but it still functions as normal Tundra in game
+  //*******************************************************************************************
+  // WHEN CHANGING THESE, DON'T FORGET TO ALSO CHANGE THE OTHER TRIANGLE UP/DOWN FUNCTION!!!!
+  //*******************************************************************************************
+
+  //  *** MAKE THIS GRADUAL, by checking if MapPos is even/odd?  and only doing half at once
+
+  if (option_FourSeasons){
+    // MID-WINTER
+    // make snow cover a bit more of mountains than usual
+    if (season == 3 && subseason >= 3 && subseason <= 14){
+      if (type >= Map::TerrainTundra2){  // a bit more snow on mountains
+        type = Map::TerrainSnow0;
+      }
     }
-  }
-  // SUMMER - a bit less snow on mountains
-  if (option_FourSeasons && season == 1){
-    if (type == Map::TerrainSnow0){  // a bit less snow on mountains in summer
-      type = Map::TerrainTundra2;
+    // MID-SUMMER - a bit less snow on mountains than usual
+    if (season == 1 && subseason >= 3 && subseason <= 14){
+      if (type == Map::TerrainSnow0){    // a bit less snow on mountains
+        type = Map::TerrainTundra2;
+      }
     }
+    //
+    // other times, normal amount
+    //
   }
 
   int index = (type << 3) | tri_mask[mask];
@@ -156,19 +167,27 @@ Viewport::draw_triangle_down(int lx, int ly, int m, int left, int right,
   int type = map->type_down(map->move_up_left(pos));
 
   // messing with weather/seasons/palette
-  // WINTER
-  // make snow cover a bit more of mountains by changing the *appearance*
-  // of Tundra0/1/2 to Snow, but it still functions as normal Tundra in game
-  if (option_FourSeasons && season == 3){
-    if (type >= Map::TerrainTundra2){  // a bit more snow on mountains in winter
-      type = Map::TerrainSnow0;
+  //  by changing the *appearance* of Tundra0/1/2 to Snow, but it still functions as normal Tundra in game
+  //*******************************************************************************************
+  // WHEN CHANGING THESE, DON'T FORGET TO ALSO CHANGE THE OTHER TRIANGLE UP/DOWN FUNCTION!!!!
+  //*******************************************************************************************
+  if (option_FourSeasons){
+    // MID-WINTER
+    // make snow cover a bit more of mountains than usual
+    if (season == 3 && subseason >= 3 && subseason <= 14){
+      if (type >= Map::TerrainTundra2){  // a bit more snow on mountains
+        type = Map::TerrainSnow0;
+      }
     }
-  }
-  // SUMMER - a bit less snow on mountains
-  if (option_FourSeasons && season == 1){
-    if (type == Map::TerrainSnow0){  // a bit less snow on mountains in summer
-      type = Map::TerrainTundra2;
+    // MID-SUMMER - a bit less snow on mountains than usual
+    if (season == 1 && subseason >= 3 && subseason <= 14){
+      if (type == Map::TerrainSnow0){    // a bit less snow on mountains
+        type = Map::TerrainTundra2;
+      }
     }
+    //
+    // other times, normal amount
+    //
   }
 
   int index = (type << 3) | tri_mask[mask];
@@ -1554,10 +1573,35 @@ Viewport::draw_map_objects_row(MapPos pos, int y_base, int cols, int x_base, int
 
       } // if sprite < 24 (trees and junk objects)
 
+      /* disabling this, instead modifying the rgb palette color of the original sprites
+
+      // FourSeasons - in WINTER make Seed# objects (immature fields) appear as spent fields
+      //   though they are just dormant and will revert to their original graphics in spring
+      //   THIS IS SOLELY BECAUSE THE Seeds0/1/2 are too GREEN and it clashes
+      //  a much better approach is to set a custom graphic that is less green but looks like Seed0
+      //   otherwise and use that for all new fields
+      // ObjectSeeds0, // #105  - 8
+      // ObjectSeeds1,
+      // ObjectSeeds2,
+      // ObjectSeeds3,  <-- these are mature enough to not be "seeds" anymore, leave these
+      // ObjectSeeds4,
+      // ObjectSeeds5, // #110  - 8
+      // ObjectFieldExpired, // #111   - 8
+      if (option_FourSeasons && season == 3){
+        // REMEMBER THAT
+        //  'sprite' is reduced by 8 / Map::ObjectTree0 earlier in this function because 0-7 are some placeholders?
+        if ((sprite >= Map::ObjectSeeds0 - Map::ObjectTree0) && (sprite <= Map::ObjectSeeds2 - Map::ObjectTree0)){  // a bit more snow on mountains in winter
+          Log::Debug["viewport.cc"] << "using alternate sprite 111 ObjectFieldExpired for ObjectSeeds sprite " << sprite;
+          sprite = Map::ObjectFieldExpired - Map::ObjectTree0;
+        }else{
+          Log::Debug["viewport.cc"] << "using original " << sprite << " for non-ObjectSeeds object type #" << sprite;
+        }
+      }
+      */
+
       if (use_custom_set){
         draw_map_sprite_special(x_base, ly, sprite, pos, map->get_obj(pos));
       }else{
-        // this says shadow and building but it seems to include ANY map object sprite such as trees, stones
         draw_shadow_and_building_sprite(x_base, ly, sprite);
       }
 
