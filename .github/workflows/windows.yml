@@ -54,7 +54,8 @@ jobs:
       #    cd build
       #    nmake package
       - name: Package Forkserf
-        shell: |
+        shell: bash
+        run: |
           mkdir -p package
           cp -rp build/src/* package/
           cd package/
