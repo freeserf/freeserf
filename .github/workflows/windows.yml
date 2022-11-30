@@ -39,6 +39,8 @@ jobs:
         run: |
           cd build
           nmake
+          dir
+          dir */*
 
 #      - name: Run Tests
 #        shell: bash
@@ -46,16 +48,31 @@ jobs:
 #          cd build
 #          nmake test
 #
-      - name: Pack Forkserf
+      #- name: Pack Forkserf
+      #  shell: bash
+      #  run: |
+      #    cd build
+      #    nmake package
+      - name: Package Forkserf
         shell: bash
         run: |
-          cd build
-          nmake package
-
+          mkdir -p package
+          cp -rp build/src/* package/
+          cd package/
+          rm -f profiler* cmake* *manifest* version*
+          pwd
+          ls -l
+          
+      - name: WTF
+        run: |
+          pwd
+          dir
+          dir d:\
+          
       - name: Upload artifact
         uses: actions/upload-artifact@v1
         with:
-          name: Forkserf-${{ matrix.architecture }}-${{ matrix.buildtype }}
-          path: ./build/Forkserf-${{ matrix.architecture }}-${{ matrix.buildtype }}.exe
+          name: Forkserf-0.4.0-Win64.zip
+          path: ./package/*
 
 
