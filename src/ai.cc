@@ -3347,6 +3347,28 @@ AI::do_build_food_buildings() {
   AILogDebug["do_build_food_buildings"] << inventory_pos << " debug, here need_farm is " << need_farm;
 
   if (need_farm){
+    // the minimum number of open tiles (where fields could be built) is a range
+    //  with an absolute minimum where a farm will never be built unless more.
+    //  This floor is increased by 2x the number of knights available, the idea being that if knights are available more huts can
+    //   be built and more land claimed, allowing better farm placement.  But, if few knights available lower the standards
+    //   so that at least SOME farm can be built, otherwise it risks never building any farm because of suboptimal areas and
+    //   running out of knights.  Saw this in a game I played against AI Nov 2022. 
+    //  and a "maximum minimum" which caps the influence of knights on the land requirements 
+    AILogVerbose["do_build_food_buildings"] << "thread #" << std::this_thread::get_id() << " AI is locking mutex before calling player->get_stats_serfs_idle()";
+    game->get_mutex()->lock();
+    AILogVerbose["do_build_food_buildings"] << "thread #" << std::this_thread::get_id() << " AI has locked mutex before calling player->get_stats_serfs_idle()";
+    serfs_idle = player->get_stats_serfs_idle();
+    AILogVerbose["do_build_food_buildings"] << "thread #" << std::this_thread::get_id() << " AI is unlocking mutex after calling player->get_stats_serfs_idle()";
+    game->get_mutex()->unlock();
+    AILogVerbose["do_build_food_buildings"] << "thread #" << std::this_thread::get_id() << " AI has unlocked mutex after calling player->get_stats_serfs_idle()";
+    unsigned int idle_knights = serfs_idle[Serf::TypeKnight0] + serfs_idle[Serf::TypeKnight1] + serfs_idle[Serf::TypeKnight2] + serfs_idle[Serf::TypeKnight3] + serfs_idle[Serf::TypeKnight4];
+    AILogDebug["do_build_food_buildings"] << inventory_pos << " lower_min_openspace_farm is " << lower_min_openspace_farm << ", idle_knights is " << idle_knights << ", upper_min_openspace_farm is " << upper_min_openspace_farm;
+    unsigned int min_openspace_farm = lower_min_openspace_farm + idle_knights * 2;  // 2x the number of idle_knights
+    if (min_openspace_farm > upper_min_openspace_farm){
+      AILogDebug["do_build_food_buildings"] << inventory_pos << " min_openspace_farm of " << min_openspace_farm << " will be capped at the value of upper_min_openspace_farm" << upper_min_openspace_farm;
+      min_openspace_farm = upper_min_openspace_farm;
+    }
+    AILogDebug["do_build_food_buildings"] << inventory_pos << " min_openspace_farm is " << min_openspace_farm;
     MapPos built_pos = bad_map_pos;
     // if this is not the first farm, try to build near existing food infrastructure
     //
