@@ -110,21 +110,39 @@ Viewport::draw_triangle_up(int lx, int ly, int m, int left, int right,
   if (option_FourSeasons){
     // MID-WINTER
     // make snow cover a bit more of mountains than usual
-    if (season == 3 && subseason >= 3 && subseason <= 14){
+    if (season == 3 && subseason >= 3 && subseason <= 14){      
       if (type >= Map::TerrainTundra2){  // a bit more snow on mountains
-        type = Map::TerrainSnow0;
+        // do a partial change for one subseason
+        if ((subseason == 3 || subseason == 14) && (pos % 7 == 0 || pos % 11 == 0 || pos % 13 == 0 || pos % 17 == 0 || pos % 19 == 0)){  // sort of "is prime?"
+          // skip every other pos
+        }else{
+          type = Map::TerrainSnow0;
+        }
       }
     }
     // MID-SUMMER - a bit less snow on mountains than usual
     if (season == 1 && subseason >= 3 && subseason <= 14){
       if (type == Map::TerrainSnow0){    // a bit less snow on mountains
-        type = Map::TerrainTundra2;
+        // do a partial change for one subseason
+        if ((subseason == 3 || subseason == 14) && (pos % 7 == 0 || pos % 11 == 0 || pos % 13 == 0 || pos % 17 == 0 || pos % 19 == 0)){  // sort of "is prime?"
+          // skip every other pos
+        }else{
+          type = Map::TerrainTundra2;
+        }  
       }
     }
     //
     // other times, normal amount
     //
+
+    // SNOWSTORM!!!!!
+    //  need to add custom snow-on-buildings and trees for this to look acceptable
+    //if (season == 3 && type > Map::TerrainWater3){
+    //  type = Map::TerrainSnow0;
+    //}
   }
+
+
 
   int index = (type << 3) | tri_mask[mask];
   if (index >= 128) {
@@ -171,25 +189,43 @@ Viewport::draw_triangle_down(int lx, int ly, int m, int left, int right,
   //*******************************************************************************************
   // WHEN CHANGING THESE, DON'T FORGET TO ALSO CHANGE THE OTHER TRIANGLE UP/DOWN FUNCTION!!!!
   //*******************************************************************************************
+   //  *** MAKE THIS GRADUAL, by checking if MapPos is even/odd?  and only doing half at once
+
   if (option_FourSeasons){
     // MID-WINTER
     // make snow cover a bit more of mountains than usual
-    if (season == 3 && subseason >= 3 && subseason <= 14){
+    if (season == 3 && subseason >= 3 && subseason <= 14){      
       if (type >= Map::TerrainTundra2){  // a bit more snow on mountains
-        type = Map::TerrainSnow0;
+        // do a partial change for one subseason
+        if ((subseason == 3 || subseason == 14) && (pos % 7 == 0 || pos % 11 == 0 || pos % 13 == 0 || pos % 17 == 0 || pos % 19 == 0)){  // sort of "is prime?"
+          // skip every other pos
+        }else{
+          type = Map::TerrainSnow0;
+        }
       }
     }
     // MID-SUMMER - a bit less snow on mountains than usual
     if (season == 1 && subseason >= 3 && subseason <= 14){
       if (type == Map::TerrainSnow0){    // a bit less snow on mountains
-        type = Map::TerrainTundra2;
+        // do a partial change for one subseason
+        if ((subseason == 3 || subseason == 14) && (pos % 7 == 0 || pos % 11 == 0 || pos % 13 == 0 || pos % 17 == 0 || pos % 19 == 0)){  // sort of "is prime?"
+          // skip every other pos
+        }else{
+          type = Map::TerrainTundra2;
+        }  
       }
     }
     //
     // other times, normal amount
     //
-  }
 
+    // SNOWSTORM!!!!!
+    //  need to add custom snow-on-buildings and trees for this to look acceptable
+    //if (season == 3 && type > Map::TerrainWater3){
+    //  type = Map::TerrainSnow0;
+    //}
+  }
+  
   int index = (type << 3) | tri_mask[mask];
   if (index >= 128) {
     throw ExceptionFreeserf("Failed to draw triangle down (4).");
