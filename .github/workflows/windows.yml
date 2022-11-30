@@ -60,13 +60,13 @@ jobs:
           cp -rp build/src/* package/
           cd package/
           rm -f profiler* cmake* *manifest* version*
-          zip -r Forkserf-0.4.0-Win64.zip *
+          #zip -r Forkserf-0.4.0-Win64.zip *
           
 
       - name: Upload artifact
         uses: actions/upload-artifact@v1
         with:
           name: Forkserf-0.4.0-Win64.zip
-          path: ./package/Forkserf-0.4.0-Win64.zip
+          path: ./package/*
 
 
