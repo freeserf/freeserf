@@ -63,7 +63,12 @@ jobs:
           pwd
           ls -l
           
-
+      - name: WTF
+        run: |
+          pwd
+          dir d:\a\forkserf\forkserf
+          dir d:\a\forkserf\forkserf\packages\
+          
       - name: Upload artifact
         uses: actions/upload-artifact@v1
         with:
