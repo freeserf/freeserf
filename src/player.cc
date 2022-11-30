@@ -934,7 +934,7 @@ Player::update() {
             knights_to_spawn -= 1;
             //inventory->specialize_serf(serf, Serf::TypeKnight0);
             if (inventory->specialize_serf(serf, Serf::TypeKnight0)){
-              //Log::Debug["player"] << "inside player->update for player " << index << ", creating knight, successful return from specialize_serf";
+              Log::Debug["player"] << "inside player->update for player " << index << ", creating knight, successful return from specialize_serf";
             }else{
               Log::Warn["player"] << "inside player->update for player " << index << ", creating knight, FAILURE from specialize_serf";
             }

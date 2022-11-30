@@ -43,7 +43,7 @@ class Serf : public GameObject {
     TypeSailor,
     TypeDigger,
     TypeBuilder,
-    TypeTransporterInventory,
+    TypeTransporterInventory,  // this is the serf that is "holder" to a castle or Stock.  He carries resources in/out.  A new stock cannot be active until this serf occupies it
     TypeLumberjack,  // 5
     TypeSawmiller,
     TypeStonecutter,

@@ -610,6 +610,9 @@ typedef struct SendSerfToFlagData {
   Resource::Type res2;
 } SendSerfToFlagData;
 
+
+// The "if have tools" check is done here, and the tool consumption
+//  happens at the calling function send_sert_to_flag
 bool
 Game::send_serf_to_flag_search_cb(Flag *flag, void *d) {
   if (!flag->has_inventory()) {
@@ -673,6 +676,12 @@ Game::send_serf_to_flag_search_cb(Flag *flag, void *d) {
         return true;
       }
     } else {
+      // check to see if available tool[s] to specialize a generic serf
+      //  into a new professional
+      // NOTE - this check is here, instead of much earlier as might seem logical,
+      //  because the tool needs to come from the same inventory the generic serf
+      //  is specialized from, and to figure out which Inventory that is, the 
+      //  flagsearch must be done!
       if (data->inventory == NULL &&
           inv->have_serf(Serf::TypeGeneric) &&
           (data->res1 == -1 || inv->get_count_of(data->res1) > 0) &&
@@ -686,25 +695,34 @@ Game::send_serf_to_flag_search_cb(Flag *flag, void *d) {
     }
   }
   if (data->serf_type == Serf::TypeGeologist){
-    //Log::Info["game"] << "debug: inside Game::send_serf_to_flag_search_cb with GEOLOGIST, F false";
+    Log::Info["game"] << "debug: inside Game::send_serf_to_flag_search_cb with GEOLOGIST, F false";
   }
   return false;
 }
 
-/* Dispatch serf from (nearest?) inventory to flag. */
-// it seems that this function is NOT used for calling transporters to roads, 
+// Dispatches non-road-transporter serfs from the nearest
+//  *capable* inventory to flags/buildings.  Includes both
+//  knights and specialized/professioal serfs that may require
+//  tools.
+// The "if have tools" check is done here inside the flagsearch call back
+//  send_serf_to_flag_cb, and the tool consumption
+//  happens here
+// NOTE - this function is NOT used for calling transporters to roads, 
 //  if I create a new road I see a transporter sent and arrive but never see this called for it
-// instead, it looks like Inventory->call_transporter is called
+//  instead, it looks like Inventory->call_transporter is called
+// NOTE - specialize_serf and specialize_free_serf functios are NOT USED HERE
+//  it seems those are only used during initial castle creation and when
+//  new knights are spawned inside the castle/stock/warehouse
 bool
 Game::send_serf_to_flag(Flag *dest, Serf::Type type, Resource::Type res1,
                         Resource::Type res2) {
-  //Log::Debug["game"] << "debug: inside Game::send_serf_to_flag, AA, dest flag is at pos " << dest->get_position();
-  //Log::Info["game"] << "debug: inside Game::send_serf_to_flag, serf type " << type << ", res1 " << res1 << ", res2 " << res2;         
+  Log::Debug["game"] << "debug: inside Game::send_serf_to_flag, AA, dest flag is at pos " << dest->get_position();
+  Log::Info["game"] << "debug: inside Game::send_serf_to_flag, serf type " << type << ", res1 " << res1 << ", res2 " << res2;         
   Building *building = NULL;
   if (dest->has_building()) {
     building = dest->get_building();
   }
-  //Log::Info["game"] << "debug: inside Game::send_serf_to_flag, A";
+  Log::Info["game"] << "debug: inside Game::send_serf_to_flag, A";
 
   /* If type is negative, building is non-NULL. */
   if ((type < 0) && (building != NULL)) {
@@ -712,20 +730,21 @@ Game::send_serf_to_flag(Flag *dest, Serf::Type type, Resource::Type res1,
     type = player->get_cycling_serf_type(type);
   }
 
-  //Log::Info["game"] << "debug: inside Game::send_serf_to_flag, B";
-  //Log::Debug["game"] << "debug: inside Game::send_serf_to_flag, B, dest flag is at pos " << dest->get_position();
+  Log::Info["game"] << "debug: inside Game::send_serf_to_flag, B";
+  Log::Debug["game"] << "debug: inside Game::send_serf_to_flag, B, dest flag is at pos " << dest->get_position();
 
   SendSerfToFlagData data;
   data.inventory = NULL;
   data.building = building;
   data.serf_type = type;
   data.dest_index = dest->get_index();
-  data.res1 = res1;
-  data.res2 = res2;
+  data.res1 = res1;  // tool1
+  data.res2 = res2;  // tool2
 
-
+  Log::Debug["game"] << "debug: inside Game::send_serf_to_flag, before flagsearch, data.inventory = " << data.inventory;
   bool r = FlagSearch::single(dest, send_serf_to_flag_search_cb, true, false,
                               &data);
+  Log::Debug["game"] << "debug: inside Game::send_serf_to_flag, after flagsearch, data.inventory = " << data.inventory;
 
   if (!r) {
     if (type == Serf::TypeGeologist) {Log::Info["game"] << "inside send_serf_to_flag, serf type " << NameSerf[type] << ", FAILED because flagsearch failed!";}
@@ -762,6 +781,7 @@ Game::send_serf_to_flag(Flag *dest, Serf::Type type, Resource::Type res1,
 
       serf->go_out_from_inventory(inventory->get_index(), dest->get_index(),
                                   mode);
+      // consume Tool[s]
       if (res1 != Resource::TypeNone) inventory->pop_resource(res1);
       if (res2 != Resource::TypeNone) inventory->pop_resource(res2);
     }
