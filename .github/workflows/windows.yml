@@ -53,6 +53,7 @@ jobs:
       #  run: |
       #    cd build
       #    nmake package
+      
       - name: Package Forkserf
         shell: bash
         run: |
@@ -62,14 +63,6 @@ jobs:
           rm -f profiler* cmake* *manifest* version*
           pwd
           ls -l
-          
-      - name: WTF
-        run: |
-          pwd
-          #dir
-          #dir d:\
-          dir D:\a\forkserf\forkserf
-          dir D:\a\forkserf\forkserf\package
           
       - name: Upload artifact
         uses: actions/upload-artifact@v3
