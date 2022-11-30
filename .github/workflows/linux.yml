@@ -40,6 +40,7 @@ jobs:
           mv CMakeFiles /tmp/
           rm -f *.cmake
           rm -f ./Makefile
+          rm -f ./profiler
           chmod 755 ./Forkserf
           tar -cvf ./Forkserf-0.4.0-Linux-glibc3.4.tar *
           ls -l
