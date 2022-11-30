@@ -33,6 +33,7 @@ jobs:
         run: |
           cd build
           make
+      # NOTE there is known bug with gitlab Package where it ignores permissions when creating zip file so binary is not executable, instead need to create a tarball and upload that  https://github.com/actions/upload-artifact/issues/38
       - name: Package Forkserf
         run: |
           cd build/src/
@@ -40,10 +41,10 @@ jobs:
           rm -f *.cmake
           rm -f ./Makefile
           chmod 755 ./Forkserf
-          ls -l
+          tar -cvzf ./Forkserf-0.4.0-Linux-glibc3.4.tar.gz *
       # it seems the default cmake make package version is 0.1.1, see https://stackoverflow.com/questions/40445763/how-to-idiomatically-set-the-version-number-in-a-cmake-cpack-project
       - name: Upload artifact
         uses: actions/upload-artifact@v2
         with:
-          name: Forkserf-${{ matrix.buildtype }}
-          path: /home/runner/work/forkserf/forkserf/build/src/*
+          name: Forkserf-0.4.0-Linux-glibc3.4.tar.gz
+          path: Forkserf-0.4.0-Linux-glibc3.4.tar.gz 
