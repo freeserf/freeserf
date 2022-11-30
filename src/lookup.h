@@ -241,7 +241,7 @@ const std::string NameTool[]{
 };
 
 const std::string NameResource[] = {
-  //  "Resource::TypeNone = -1",
+  //  "Resource::TypeNone" = -1   // NOTE because this is an array of strings, and not a real enum, you cannot have negative values!  
       "Resource::TypeFish",
       "Resource::TypePig",
       "Resource::TypeMeat",
@@ -268,6 +268,7 @@ const std::string NameResource[] = {
       "Resource::TypePincer",
       "Resource::TypeSword",
       "Resource::TypeShield",
+      "Resource::GroupFood",
       "Resource::TypeSerf"
 };
 
@@ -305,6 +306,8 @@ const std::string NameResource[] = {
 
 
 const std::string NameDirection[]{
+  // NOTE THAT THIS WILL RESULT IN ARRAY INDEX OUT OF BOUNDS EXCEPTION
+  //  IF DirectionNone  -1 is given as it cannot be defined as an array element!
   "East / Right",            // 0
   "SouthEast / DownRight",   // 1
   "SouthWest / Down",        // 2
@@ -336,7 +339,7 @@ const std::string NameRoadOption[] = {
   "Direct",
   "SplitRoads",
   "PenalizeNewLength",
-  "AvoidCastleArea",
+  "AvoidCastleArea",    // this currently does nothing! needs coding
   "PenalizeCastleFlag",
   "Improve",
   "ReducedNewLengthPenalty",
@@ -344,6 +347,7 @@ const std::string NameRoadOption[] = {
   "HoldBuildingPos",
   "MostlyStraight",
   "PlotOnlyNoBuild",
+  "ReconnectNetwork",
 };
 
 const std::string NameMinerals[] = {
@@ -559,24 +563,26 @@ const unsigned int specialists_max[] = {
 */
 
 // when building roads, try to connect a road to each type
+//  if none or one type not-None, will build one road
+//  if both types non-None, will try to build road to each
 const Building::Type BuildingAffinity[25][2] = {
     { Building::TypeNone, Building::TypeNone},      //              "Building::TypeNone",
     { Building::TypeNone, Building::TypeNone},      //              "Building::TypeFisher",
     { Building::TypeSawmill, Building::TypeNone},   //              "Building::TypeLumberjack",
     { Building::TypeNone, Building::TypeNone},      //              "Building::TypeBoatbuilder",
     { Building::TypeNone, Building::TypeNone},      //              "Building::TypeStonecutter",
-    { Building::TypeNone, Building::TypeNone},      //              "Building::TypeStoneMine",
-    { Building::TypeBaker, Building::TypeNone},     //              "Building::TypeCoalMine",
-    { Building::TypeBaker, Building::TypeNone},     //              "Building::TypeIronMine",
-    { Building::TypeBaker, Building::TypeNone},     //              "Building::TypeGoldMine",
+    { Building::TypeBaker, Building::TypeNone},     //              "Building::TypeStoneMine",
+    { Building::TypeWeaponSmith, Building::TypeSteelSmelter}, //    "Building::TypeCoalMine",
+    { Building::TypeBaker, Building::TypeSteelSmelter},     //      "Building::TypeIronMine",
+    { Building::TypeBaker, Building::TypeGoldSmelter},      //      "Building::TypeGoldMine",
     { Building::TypeNone, Building::TypeNone},      //              "Building::TypeForester",
     { Building::TypeNone, Building::TypeNone},      //              "Building::TypeStock",
     { Building::TypeNone, Building::TypeNone},      //              "Building::TypeHut",
-    { Building::TypeNone, Building::TypeNone},      //              "Building::TypeFarm",
-    { Building::TypeNone, Building::TypeNone},      //              "Building::TypeButcher",
-    { Building::TypeNone, Building::TypeNone},      //              "Building::TypePigFarm",
+    { Building::TypeMill, Building::TypeNone},      //              "Building::TypeFarm",
+    { Building::TypeGoldMine, Building::TypeIronMine},      //      "Building::TypeButcher",
+    { Building::TypeButcher, Building::TypeCoalMine},       //      "Building::TypePigFarm",
     { Building::TypeFarm, Building::TypeNone},      //              "Building::TypeMill",
-    { Building::TypeMill, Building::TypeNone},      //              "Building::TypeBaker",
+    { Building::TypeMill, Building::TypeCoalMine},          //      "Building::TypeBaker",
     { Building::TypeNone, Building::TypeNone},      //              "Building::TypeSawmill",
     { Building::TypeIronMine, Building::TypeCoalMine},      //      "Building::TypeSteelSmelter",
     { Building::TypeNone, Building::TypeNone},      //              "Building::TypeToolMaker",
@@ -591,31 +597,34 @@ const Building::Type BuildingAffinity[25][2] = {
   road_options.set(RoadOption::SplitRoads);
   road_options.set(RoadOption::PenalizeNewLength);
   road_options.set(RoadOption::PenalizeCastleFlag);
-  road_options.reset(RoadOption::AvoidCastleArea);
+  road_options.reset(RoadOption::AvoidCastleArea);    // this currently does nothing! needs coding
   road_options.reset(RoadOption::Improve);
   road_options.reset(RoadOption::ReducedNewLengthPenalty);
-  road_options.set(RoadOption::AllowWaterRoad);
+  road_options.reset(RoadOption::AllowWaterRoad);
   road_options.reset(RoadOption::HoldBuildingPos);
   road_options.reset(RoadOption::MostlyStraight);
   road_options.reset(RoadOption::PlotOnlyNoBuild);
+  road_options.reset(RoadOption::ReconnectNetwork);
   */
 
 typedef enum RoadOption {
   Direct = 0,         // connect directly to target building's flag, [not?] any potential routes via other flags, no splitting roads, ignores Improve flag (will build regardless)
   SplitRoads,         // allow creating new flags (splitting roads) when optimal
   PenalizeNewLength,  // disfavor creating new road length, prefer connecting to existing paths when optimal
-  AvoidCastleArea,    // disfavor any pos surrounding the castle, to avoid congesting that area
+  AvoidCastleArea,      // this currently does nothing! needs coding      // disfavor any pos surrounding the castle, to avoid congesting that area
   PenalizeCastleFlag, // disfavor any flag-path that includes the castle flag, for resources that route directly to consumers
   Improve,            // allow creating new roads even if start_pos already has any existing path (otherwise disallow it)
   ReducedNewLengthPenalty, // reduced penalty, experimental, probably should just change overall new_length_penalty to penalize longer roads less
-  AllowWaterRoad,     // allow creating water roads, this is on by default but if a water road is about to be built the build_best_road function will
+  AllowWaterRoad,     // allow creating water roads, this is on (OFF NOW) by default but if a water road is about to be built the build_best_road function will
                       //   make a recursive call to itself with AllowWater disabled to ensure that a land route is also available, to avoid issue where
                       //   serfs cannot reach the construction site/building because serfs cannot travel in boats (which is dumb)
+                      //  UPDATE jan02 2022, turning off AllowWater roads, they don't get good use by AI and are buggy right now
   HoldBuildingPos,    // when plotting a road, do not allow the road to pass through the pos UpLeft from the dest, so it does not prevent a building there
   MostlyStraight,     // reduce the amount of tolerated road convulation before rejecting a solution.  Effect is to reduce the max_convolution ratio
-  PlotOnlyNoBuild    // do not actually build the road, but return a Road object of the best solution found
+  PlotOnlyNoBuild,    // do not actually build the road, but return a Road object of the best solution found
+  ReconnectNetwork    // for trying to reconnect a broken road network, exclude and flags connected to same-network from valid end_flags for pathfinding.  Must connect to ANOTHER network that has a path
 } RoadOption;
-typedef std::bitset<11> RoadOptions;
+typedef std::bitset<12> RoadOptions;
 typedef std::vector<Road> Roads;
 
 
@@ -665,7 +674,6 @@ typedef enum CustomMapGeneratorOption {
   MountainCoal,
   MountainStone,
   DesertFrequency,
-  LakesMaxSize,
   LakesWaterLevel,
   JunkGrassDeadTrees,
   JunkGrassSandStone,
@@ -724,6 +732,22 @@ const std::string NameDataSourceType[] = {
   "Custom",
 };
 
+const std::string NameSeason[] = {
+  "SeasonSpring",
+  "SeasonSummer",
+  "SeasonFall",
+  "SeasonWinter",
+};
+
+/* moving this to game_options.h because of multiple declaration issues and I don't understand globals
+// the Custom data map_objects offset for tree sprites
+int season_offset[4] = {
+    0, // Summer
+  400, // Fall
+  300, // Winter
+  200, // Spring
+};
+*/
 
 
 #endif  // SRC_LOOKUP_H_

@@ -76,10 +76,14 @@ Road
 AI::plot_road(PMap map, unsigned int player_index, MapPos start_pos, MapPos end_pos, Roads * const &potential_roads, bool hold_building_pos) {
   AILogDebug["plot_road"] << "inside plot_road for Player" << player_index << " with start " << start_pos << ", end " << end_pos;
   
+  //ai_mark_pos.clear();
+  //ai_mark_road->start(end_pos);  //this doesn't actually work here
+
   std::vector<PSearchNode> open;
   std::list<PSearchNode> closed;
   PSearchNode node(new SearchNode);
 
+  // prevent path in the potential building spot be inserting into the closed list!
   if (hold_building_pos == true){
     //AILogDebug["plot_road"] << "debug - hold_building_pos is TRUE!";
     PSearchNode hold_building_pos_node(new SearchNode);
@@ -139,7 +143,7 @@ AI::plot_road(PMap map, unsigned int player_index, MapPos start_pos, MapPos end_
         breadcrumb_solution.extend(reverse_direction(dir));
         //ai_mark_road->extend(reverse_direction(dir));
         //ai_mark_pos.insert(ColorDot(node->pos, "black"));
-        //std::this_thread::sleep_for(std::chrono::milliseconds(0));
+        //sleep_speed_adjusted(100);
         node = node->parent;
       }
       unsigned int new_length = static_cast<unsigned int>(breadcrumb_solution.get_length());
@@ -165,23 +169,31 @@ AI::plot_road(PMap map, unsigned int player_index, MapPos start_pos, MapPos end_
       unsigned int cost = actual_cost(map.get(), node->pos, d);
       //ai_mark_road->extend(d);
       //ai_mark_pos.insert(ColorDot(new_pos, "blue"));
-      //std::this_thread::sleep_for(std::chrono::milliseconds(10));
+      //sleep_speed_adjusted(100);
       // Check if neighbour is valid
-      if (!map->is_road_segment_valid(node->pos, d) ||
-        (map->get_obj(new_pos) == Map::ObjectFlag && new_pos != end_pos)) {
+      if (new_pos == end_pos && !map->is_road_segment_valid(node->pos, d) && game->can_build_flag(new_pos, player)){
+        // solution found but the end_pos does not have a flag because this is a specifically-requested
+        //  split-road solution.  Do nothing here, but this if block avoids the 'continue' so a new node
+        //  can be created and the normal completion logic handled
+        AILogDebug["plot_road"] << "reached end_pos " << end_pos << " of requested road to non-existent new splitting flag";
+      }
+      else if (!map->is_road_segment_valid(node->pos, d) ||   // if cannot build a road here because path is blocked...
+        (map->get_obj(new_pos) == Map::ObjectFlag && new_pos != end_pos)) {   // OR a flag is here but not the destination flag...
         //(avoid_castle && AI::is_near_castle(game, new_pos))) {
         //
         // if the pathfinder hits an existing road point where a flag could be built,
         //   create a "fake flag" solution and include it as a potential road
         //
-        if (fake_flags_count > max_fake_flags) {
-          AILogDebug["plot_road"] << "reached max_fake_flags count " << max_fake_flags << ", not considering any more fake flag solutions";
+        if (fake_flags_count > max_fake_flags) {  // this should be changed to 'found_flags_count' instead of 'fake_flags_count'
+                                                  //  now that it can include real flags found along the way
+          AILogDebug["plot_road"] << "reached max_fake_flags count " << max_fake_flags << ", not considering any more found or fake flag solutions";
           continue;
         }
         // split road found if can build a flag, and that flag is already part of a road (meaning it has at least one path)
-        if (game->can_build_flag(new_pos, player) && map->has_any_path(new_pos)){
+        if ( (game->can_build_flag(new_pos, player) && map->has_any_path(new_pos) )  // if can build a new flag on existing path...
+          || (map->get_obj(new_pos) == Map::ObjectFlag && new_pos != end_pos && new_pos != start_pos)){ // or there is already a real flag here
           fake_flags_count++;
-          AILogDebug["plot_road"] << "plot_road: alternate/split_road solution found while pathfinding to " << end_pos << ", a new flag could be built at pos " << new_pos;
+          AILogDebug["plot_road"] << "plot_road: alternate found or split_road solution found while pathfinding to " << end_pos << ", a non-target flag exists or a new flag could be built at pos " << new_pos;
           // retrace the "bread crumb trail" tile by tile from end to start
           //   this creates a Road with 'source' of end_pos and 'last' of start_pos
           //     which is backwards from the direction the pathfinding ran
@@ -212,7 +224,7 @@ AI::plot_road(PMap map, unsigned int player_index, MapPos start_pos, MapPos end_
             split_flag_breadcrumb_solution.extend(reverse_direction(dir));
             //ai_mark_road->extend(reverse_direction(dir));
             //ai_mark_pos.insert(ColorDot(node->pos, "black"));
-            //std::this_thread::sleep_for(std::chrono::milliseconds(0));
+            //sleep_speed_adjusted(100);
             split_flag_node = split_flag_node->parent;
           }
           // restore original node so search can resume
@@ -246,13 +258,13 @@ AI::plot_road(PMap map, unsigned int player_index, MapPos start_pos, MapPos end_
           in_closed = true;
           //ai_mark_pos.erase(new_pos);
           //ai_mark_pos.insert(ColorDot(new_pos, "magenta"));
-          //std::this_thread::sleep_for(std::chrono::milliseconds(0));
+          //sleep_speed_adjusted(100);
           break;
         }
       }
       //ai_mark_pos.erase(new_pos);
       //ai_mark_pos.insert(ColorDot(new_pos, "green"));
-      //std::this_thread::sleep_for(std::chrono::milliseconds(0));
+      //sleep_speed_adjusted(100);
 
       if (in_closed) continue;
 
@@ -265,6 +277,7 @@ AI::plot_road(PMap map, unsigned int player_index, MapPos start_pos, MapPos end_
           in_open = true;
           //ai_mark_pos.erase(new_pos);
           //ai_mark_pos.insert(ColorDot(new_pos, "seafoam"));
+          //sleep_speed_adjusted(100);
           if (n->g_score >= node->g_score + cost) {
             n->g_score = node->g_score + cost;
             n->f_score = n->g_score + heuristic_cost(map.get(), new_pos, end_pos);
@@ -309,7 +322,7 @@ AI::plot_road(PMap map, unsigned int player_index, MapPos start_pos, MapPos end_
 // count how many tiles apart two MapPos are
 int
 AI::get_straightline_tile_dist(PMap map, MapPos start_pos, MapPos end_pos) {
-  AILogDebug["get_straightline_tile_dist"] << "inside Pathfinder::tile_dist with start_pos " << start_pos << ", end_pos " << end_pos;
+  //AILogDebug["get_straightline_tile_dist"] << "inside Pathfinder::tile_dist with start_pos " << start_pos << ", end_pos " << end_pos;
   // function copied from heuristic_cost but ignores height diff and walking_cost
   int dist_col = map->dist_x(start_pos, end_pos);
   int dist_row = map->dist_y(start_pos, end_pos);
@@ -320,7 +333,7 @@ AI::get_straightline_tile_dist(PMap map, MapPos start_pos, MapPos end_pos) {
   else {
     tile_dist = abs(dist_col) + abs(dist_row);
   }
-  AILogDebug["get_straightline_tile_dist"] << "returning tile_dist: " << tile_dist;
+  //AILogDebug["get_straightline_tile_dist"] << "returning tile_dist: " << tile_dist;
   return tile_dist;
 }
 
@@ -382,6 +395,7 @@ AI::score_flag(PMap map, unsigned int player_index, RoadBuilder *rb, RoadOptions
               break;
             }
           }
+          AILogDebug["score_flag"] << "score_flag, splitting_flag's adjacent_flag_pos " << adjacent_flag_pos << " has flag_dist " << flag_dist << ", tile_dist " << tile_dist << ".  setting this score in rb";
           rb->set_score(adjacent_flag_pos, flag_dist, tile_dist, contains_castle_flag);
         }
         else{
@@ -434,6 +448,7 @@ AI::score_flag(PMap map, unsigned int player_index, RoadBuilder *rb, RoadOptions
     //ai_mark_pos->insert(ColorDot(flag_pos, "coral"));
     //std::this_thread::sleep_for(std::chrono::milliseconds(0));
     // note that this blindly ignores if castle flag / area part of solution, FIX!
+    AILogDebug["score_flag"] << "inserting perfect score 0,0 for target_pos flag at " << flag_pos << " into rb";
     rb->set_score(flag_pos, 0, 0, false);
     AILogDebug["score_flag"] << "score_flag, flag_pos *IS* target_pos, returning true";
     return true;
@@ -459,6 +474,7 @@ AI::score_flag(PMap map, unsigned int player_index, RoadBuilder *rb, RoadOptions
         break;
       }
     }
+    AILogDebug["score_flag"] << "score_flag, setting score for flag_pos " << flag_pos << " to flag_dist " << flag_dist << ", tile_dist " << tile_dist;
     rb->set_score(flag_pos, flag_dist, tile_dist, contains_castle_flag);
   }else{
     AILogDebug["score_flag"] << "score_flag, find_flag_path_and_tile_dist_between_flags() returned false, cannot find flag-path solution from flag_pos " << flag_pos << " to target_pos " << target_pos << ".  Returning false";
@@ -554,7 +570,7 @@ MapPosVector
 AI::find_nearest_inventories_to_military_building(MapPos pos) {
 	// hardcoding this here for now, put it in some tuning vars later?
 	unsigned int overlap_threshold = 8;  // 8 tiles
-	AILogDebug["find_nearest_inventories_to_military_building"] << "inside find_nearest_inventory_to_military_building to pos " << pos << ", overlap_threshold " << overlap_threshold << ", currently selected inventory_pos is " << inventory_pos;
+	AILogDebug["find_nearest_inventories_to_military_building"] << "inside find_nearest_inventories_to_military_building to pos " << pos << ", overlap_threshold " << overlap_threshold << ", currently selected inventory_pos is " << inventory_pos;
 	MapPosVector closest_inventories = {};
 	// get inventory distances by straight-line map distance only, ignoring roads, flags, obstacles, etc.
 	unsigned int best_dist = bad_score;
@@ -627,6 +643,10 @@ AI::find_nearest_inventories_to_military_building(MapPos pos) {
 MapPos
 AI::find_nearest_inventory(PMap map, unsigned int player_index, MapPos pos, DistType dist_type, ColorDotMap *ai_mark_pos) {
   AILogDebug["util_find_nearest_inventory"] << "inside find_nearest_inventory to pos " << pos << " with dist_type " << NameDistType[dist_type];
+  if (pos == bad_map_pos){
+    AILogWarn["util_find_nearest_inventory"] << "the called pos is a bad_map_pos!  returning bad_map_pos";
+    return bad_map_pos;
+  }
   if (!map->has_flag(pos) && !map->has_building(pos)) {
 		AILogWarn["util_find_nearest_inventory"] << "no flag or building found at pos " << pos << " as expected!  Cannot run search, returning bad_map_pos";
 		return bad_map_pos;
@@ -701,13 +721,13 @@ AI::find_nearest_inventory_by_straightline(PMap map, unsigned int player_index, 
   AILogDebug["find_nearest_inventory_by_straightline"] << "inside find_nearest_inventory_by_straightline for flag_pos " << flag_pos;
   unsigned int shortest_dist = bad_score;
   MapPos closest_inv = bad_map_pos;
-  AILogVerbose["find_nearest_inventory_by_straightline"] << "thread #" << std::this_thread::get_id() << " AI is locking mutex before calling game->get_player_buildings";
-  game->get_mutex()->lock();
-  AILogVerbose["find_nearest_inventory_by_straightline"] << "thread #" << std::this_thread::get_id() << " AI has locked mutex before calling game->get_player_buildings";
+  //AILogVerbose["find_nearest_inventory_by_straightline"] << "thread #" << std::this_thread::get_id() << " AI is locking mutex before calling game->get_player_buildings";
+  //game->get_mutex()->lock();
+  //AILogVerbose["find_nearest_inventory_by_straightline"] << "thread #" << std::this_thread::get_id() << " AI has locked mutex before calling game->get_player_buildings";
   Game::ListBuildings buildings = game->get_player_buildings(player);
-  AILogVerbose["find_nearest_inventory_by_straightline"] << "thread #" << std::this_thread::get_id() << " AI is unlocking mutex after calling game->get_player_buildings";
-  game->get_mutex()->unlock();
-  AILogVerbose["find_nearest_inventory_by_straightline"] << "thread #" << std::this_thread::get_id() << " AI has unlocked mutex after calling game->get_player_buildings";
+  //AILogVerbose["find_nearest_inventory_by_straightline"] << "thread #" << std::this_thread::get_id() << " AI is unlocking mutex after calling game->get_player_buildings";
+  //game->get_mutex()->unlock();
+  //AILogVerbose["find_nearest_inventory_by_straightline"] << "thread #" << std::this_thread::get_id() << " AI has unlocked mutex after calling game->get_player_buildings";
   for (Building *building : buildings) {
     if (building == nullptr)
       continue;
@@ -758,10 +778,15 @@ AI::find_nearest_inventory_by_flag(PMap map, unsigned int player_index, MapPos f
 		open.pop_back();
     //AILogDebug["find_nearest_inventory_by_flag"] << "fsearchnode - inside fnode search for flag_pos " << flag_pos << ", inside while-open-list-not-empty loop";
 
-		if (game->get_flag_at_pos(fnode->pos)->accepts_resources()) {
+    if (game->get_flag_at_pos(fnode->pos) == nullptr){
+      AILogWarn["find_nearest_inventory_by_flag"] << "fnode's flag at fnode->pos is nullptr!  skipping";
+      continue;
+    }
+    // got a segfault here for the first time jan04 2022, adding nullptr check (above)
+    if (game->get_flag_at_pos(fnode->pos)->accepts_resources()) {
       // to avoid crashes, handle discovering a newly built warehouse that just now became active
       //  after the most recent update_stocks run, and doesn't exist in stocks_pos yet
-      if (stock_buildings.count(fnode->pos) == 0){
+      if (stock_building_counts.count(fnode->pos) == 0){
         //update_stocks_pos();
         // hmm this seems like a bad place to put this.. for now just skip this Inventory
         //  and let the next AI loop find it
@@ -957,7 +982,7 @@ AI::identify_arterial_roads(PMap map){
       if (game->get_flag_at_pos(fnode->pos)->accepts_resources()) {
         // to avoid crashes, handle discovering a newly built warehouse that just now became active
         //  after the most recent update_stocks run, and doesn't exist in stocks_pos yet
-        if (stock_buildings.count(fnode->pos) == 0){
+        if (stock_building_counts.count(fnode->pos) == 0){
           //update_stocks_pos();
           // hmm this seems like a bad place to put this.. for now just skip this Inventory
           //  and let the next AI loop find it
@@ -1271,29 +1296,34 @@ AI::arterial_road_depth_first_recursive_flagsearch(MapPos flag_pos, std::pair<Ma
 //  goal does not matter, only flag dist.  The distance from start pas is effectively handled in
 //  correct priority order because it does breadth-first and if(closed) checking should prevent looping
 //
+//
+// OPTIMIZATION - because this call is repeated many times in quick succession for a single
+//  build_best_road call, especially for ReconnectNetworks, it makes sense to cache
+//  the results for the some duration?
+//
 bool
 AI::find_flag_path_and_tile_dist_between_flags(PMap map, MapPos start_pos, MapPos target_pos, 
               MapPosVector *solution_flags, unsigned int *tile_dist, ColorDotMap *ai_mark_pos){
 
-  AILogDebug["find_flag_path_between_flags"] << "start_pos " << start_pos << ", target_pos " << target_pos;
+  AILogDebug["find_flag_path_and_tile_dist_between_flags"] << "start_pos " << start_pos << ", target_pos " << target_pos;
 
   // sanity check - this excludes fake flag solution starts (could change that later though)
   if (!map->has_flag(start_pos)){
     /*
-    AILogError["find_flag_path_between_flags"] << "expecting that start_pos " << start_pos << " provided to this function is a flag pos, marking start_pos blue and throwing exception";
+    AILogError["find_flag_path_and_tile_dist_between_flags"] << "expecting that start_pos " << start_pos << " provided to this function is a flag pos, marking start_pos blue and throwing exception";
     ai_mark_pos->erase(start_pos);
     ai_mark_pos->insert(ColorDot(start_pos, "blue"));
     std::this_thread::sleep_for(std::chrono::milliseconds(10000));
     throw ExceptionFreeserf("expecting that start_pos provided to this function is a flag pos");
     */
     // I think this could simply be a result of lost territory, not an exception.  Only started seeing it with multiple players
-    AILogWarn["find_flag_path_between_flags"] << "expecting that start_pos " << start_pos << " provided to this function is a flag pos, maybe it was removed?  returng bad_score";
-    return bad_score;
+    AILogWarn["find_flag_path_and_tile_dist_between_flags"] << "expecting that start_pos " << start_pos << " provided to this function is a flag pos, maybe it was removed?  returng bad_score";
+    return false;
   }
 
   // handle start=end
   if (start_pos == target_pos){
-    AILogWarn["find_flag_path_between_flags"] << "start_pos " << start_pos << " IS target_pos " << target_pos << ", why even make this call?";
+    AILogWarn["find_flag_path_and_tile_dist_between_flags"] << "start_pos " << start_pos << " IS target_pos " << target_pos << ", why even make this call?";
     return true;
   }
 
@@ -1314,8 +1344,9 @@ AI::find_flag_path_and_tile_dist_between_flags(PMap map, MapPos start_pos, MapPo
     // get this Flag
     Flag *flag = game->get_flag_at_pos(fnode->pos);
     if (flag == nullptr){
-      AILogWarn["find_flag_path_between_flags"] << "got nullptr for game->get_flag_at_pos " << fnode->pos << " skipping this dir";
-      throw ExceptionFreeserf("got nullptr for game->get_flag_at_pos");
+      AILogWarn["find_flag_path_and_tile_dist_between_flags"] << "got nullptr for game->get_flag_at_pos " << fnode->pos << " skipping this Flag (what happens next?)";
+      // saw this trigger once, jan02 2022.  Single AI player
+      //throw ExceptionFreeserf("got nullptr for game->get_flag_at_pos");
       continue;
     }
     
@@ -1334,14 +1365,14 @@ AI::find_flag_path_and_tile_dist_between_flags(PMap map, MapPos start_pos, MapPo
       // get the other Flag in this dir
       Flag *other_end_flag = flag->get_other_end_flag(dir);
       if (other_end_flag == nullptr){
-        AILogError["find_flag_path_between_flags"] << "got nullptr for game->get_other_end_flag(" << NameDirection[dir] << ") from flag at pos " << fnode->pos << ", marking in coral and throwing exception";
+        AILogError["find_flag_path_and_tile_dist_between_flags"] << "got nullptr for game->get_other_end_flag(" << NameDirection[dir] << ") from flag at pos " << fnode->pos << ", marking in coral and throwing exception";
         ai_mark_pos->erase(map->move(fnode->pos, dir));
         ai_mark_pos->insert(ColorDot(map->move(fnode->pos, dir), "coral"));
         std::this_thread::sleep_for(std::chrono::milliseconds(30000));
         throw ExceptionFreeserf("got nullptr for game->get_other_end_flag");
       }
       MapPos other_end_flag_pos = other_end_flag->get_position();
-      AILogDebug["find_flag_path_between_flags"] << "other_end_flag_pos is " << other_end_flag_pos;
+      //AILogDebug["find_flag_path_and_tile_dist_between_flags"] << "other_end_flag_pos is " << other_end_flag_pos;
 
       // skip dir if adjacent flag pos is already in the closed list
       if (std::find(closed.begin(), closed.end(), other_end_flag_pos) != closed.end())
@@ -1373,8 +1404,10 @@ AI::find_flag_path_and_tile_dist_between_flags(PMap map, MapPos start_pos, MapPo
       // stop here to check if the new pos is the target_pos
       //  and if so retrace it and record the solution
       if (new_fnode->pos == target_pos){
+        AILogDebug["find_flag_path_and_tile_dist_between_flags"] << "found solution, reached " << target_pos;
         PFlagSearchNode solution_node = new_fnode;
         while(solution_node->parent){
+          AILogDebug["find_flag_path_and_tile_dist_between_flags"] << "solution contains " << solution_node->pos;
           solution_flags->push_back(solution_node->pos);
 
           // also trace the road to determine length in tiles of the solution
@@ -1385,6 +1418,7 @@ AI::find_flag_path_and_tile_dist_between_flags(PMap map, MapPos start_pos, MapPo
           
         }
         // push the last node too, and return
+        AILogDebug["find_flag_path_and_tile_dist_between_flags"] << "solution last node " << solution_node->pos;
         solution_flags->push_back(solution_node->pos);
         return true;
       }
@@ -1399,4 +1433,7 @@ AI::find_flag_path_and_tile_dist_between_flags(PMap map, MapPos start_pos, MapPo
     closed.push_back(fnode->pos);
 
   } //end while(!open.empty)
+
+  AILogDebug["find_flag_path_and_tile_dist_between_flags"] << "search completed with no solution found, returning false";
+  return false;
 } //end function

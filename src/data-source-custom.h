@@ -50,7 +50,9 @@ class DataSourceCustom : public DataSourceBase {
   virtual unsigned int get_bpp() const { return 32; }
 
   virtual bool check();
-  virtual bool load();
+  virtual bool load();  // note this seems to only refer to if 'animations' are loaded!  
+                        // if no custom animations it should be okay if this fails
+                        // assuming another datasouce exists to fall back to
 
   virtual Data::MaskImage get_sprite_parts(Data::Resource res, size_t index);
 

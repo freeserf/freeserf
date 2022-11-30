@@ -171,7 +171,7 @@ class Serf : public GameObject {
   // tlongstretch, added to support lost serf clearing to non-Inventory buildings
   // this could be done inside the states union, but that would require passing it along the various
   //  relevant states, which is annoying
-  bool was_lost;
+  bool was_lost = false;
   //
   // DEBUG stuck serf WaitIdleOnPath issues
   //

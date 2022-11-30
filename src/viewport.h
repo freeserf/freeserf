@@ -34,7 +34,7 @@ class DataSource;
 
 class Viewport : public GuiObject, public Map::Handler {
  public:
-  typedef enum Layer {
+  typedef enum Layer {  // 'layers' is an unsigned int which is 4-bytes (32bits) so can have up to 32 layers
     LayerLandscape = 1<<0,
     LayerPaths = 1<<1,
     LayerObjects = 1<<2,
@@ -44,6 +44,7 @@ class Viewport : public GuiObject, public Map::Handler {
     LayerBuilds = 1<<6,
     LayerAI = 1<<7,
     LayerHiddenResources = 1<<8,
+    LayerDebug = 1<<9,
     LayerAll = (LayerLandscape |
                 LayerPaths |
                 LayerObjects |
@@ -98,8 +99,11 @@ class Viewport : public GuiObject, public Map::Handler {
   void draw_paths_and_borders();
   void draw_game_sprite(int x, int y, int index);
   void draw_serf(int x, int y, const Color &color, int head, int body);
+  // this says shadow and building but it seems to include ANY map object sprite such as trees, stones
   void draw_shadow_and_building_sprite(int x, int y, int index,
                                        const Color &color = Color::transparent);
+  // new function to try messing with weather/seasons/palette
+  void draw_map_sprite_special(int x, int y, int index, unsigned int pos, unsigned int obj, const Color &color = Color::transparent);
   void draw_shadow_and_building_unfinished(int x, int y, int index,
                                            int progress);
   void draw_building_unfinished(Building *building, Building::Type bld_type,
@@ -111,7 +115,10 @@ class Viewport : public GuiObject, public Map::Handler {
   void draw_water_waves(MapPos pos, int x, int y);
   void draw_water_waves_row(MapPos pos, int y_base, int cols, int x_base);
   void draw_flag_and_res(MapPos pos, int x, int y);
-  void draw_map_objects_row(MapPos pos, int y_base, int cols, int x_base);
+  //void draw_map_objects_row(MapPos pos, int y_base, int cols, int x_base);
+  // add passing ly to this function to allow determination of y/row location
+  //  inside the viewport so that a focus area can be selected for ambient sounds
+  void draw_map_objects_row(MapPos pos, int y_base, int cols, int x_base, int ly);
   void draw_row_serf(int x, int y, bool shadow, const Color &color, int body);
   int serf_get_body(Serf *serf);
   void draw_active_serf(Serf *serf, MapPos pos, int x_base, int y_base);
@@ -123,7 +130,8 @@ class Viewport : public GuiObject, public Map::Handler {
   void draw_map_cursor();
   void draw_base_grid_overlay(const Color &color);
   void draw_height_grid_overlay(const Color &color);
-  void draw_ai_grid_overlay();
+  void draw_ai_overlay();
+  void draw_debug_overlay();
   void draw_hidden_res_overlay();
   MapPos get_offset(int *x_off, int *y_off,
                     int *col = nullptr, int *row = nullptr);

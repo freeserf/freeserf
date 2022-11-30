@@ -136,7 +136,7 @@ endif()
 add_library(data STATIC ${DATA_SOURCES} ${DATA_HEADERS})
 target_check_style(data)
 
-# FreeSerf executable
+# Forkserf executable
 
 set(OTHER_SOURCES ai_pathfinder.cc
                   pathfinder.cc
@@ -172,25 +172,25 @@ set(OTHER_HEADERS pathfinder.h
                   convertor.h
                   command_line.h)
 
-set(FREESERF_SOURCES freeserf.cc ${OTHER_SOURCES})
-set(FREESERF_HEADERS freeserf.h ${OTHER_HEADERS})
-add_executable(FreeSerf MACOSX_BUNDLE WIN32 ${FREESERF_SOURCES} ${FREESERF_HEADERS})
-target_check_style(FreeSerf)
+set(FORKSERF_SOURCES freeserf.cc ${OTHER_SOURCES})
+set(FORKSERF_HEADERS freeserf.h ${OTHER_HEADERS})
+add_executable(Forkserf MACOSX_BUNDLE WIN32 ${FORKSERF_SOURCES} ${FORKSERF_HEADERS})
+target_check_style(Forkserf)
 
-target_link_libraries(FreeSerf game platform data tools)
+target_link_libraries(Forkserf game platform data tools)
 if(SDL2_FOUND)
-  target_link_libraries(FreeSerf optimized ${SDL2_LIBRARY} debug ${SDL2_LIBRARY_DEBUG})
+  target_link_libraries(Forkserf optimized ${SDL2_LIBRARY} debug ${SDL2_LIBRARY_DEBUG})
   if(WIN32)
-    target_link_libraries(FreeSerf optimized ${SDL2_MAIN_LIBRARY} debug ${SDL2_MAIN_LIBRARY_DEBUG})
+    target_link_libraries(Forkserf optimized ${SDL2_MAIN_LIBRARY} debug ${SDL2_MAIN_LIBRARY_DEBUG})
   endif()
   if(SDL2_MIXER_FOUND)
-    target_link_libraries(FreeSerf optimized ${SDL2_MIXER_LIBRARY} debug ${SDL2_MIXER_LIBRARY_DEBUG})
+    target_link_libraries(Forkserf optimized ${SDL2_MIXER_LIBRARY} debug ${SDL2_MIXER_LIBRARY_DEBUG})
   endif()
   if(SDL2_IMAGE_FOUND)
-    target_link_libraries(FreeSerf optimized ${SDL2_IMAGE_LIBRARY} debug ${SDL2_IMAGE_LIBRARY_DEBUG})
+    target_link_libraries(Forkserf optimized ${SDL2_IMAGE_LIBRARY} debug ${SDL2_IMAGE_LIBRARY_DEBUG})
   endif()
 endif()
-install(TARGETS FreeSerf DESTINATION ".")
+install(TARGETS Forkserf DESTINATION ".")
 
 if(WIN32)
   if(DEFINED _VCPKG_INSTALLED_DIR)
@@ -209,10 +209,10 @@ if(WIN32)
   endif()
 
   install(CODE "include(BundleUtilities)
-                fixup_bundle(\"\${CMAKE_INSTALL_PREFIX}/FreeSerf.exe\" \"\" \"${BIN_DIRS}\")")
+                fixup_bundle(\"\${CMAKE_INSTALL_PREFIX}/Forkserf.exe\" \"\" \"${BIN_DIRS}\")")
 elseif(APPLE)
   install(CODE "include(BundleUtilities)
-                fixup_bundle(\"\${CMAKE_INSTALL_PREFIX}/FreeSerf.app\" \"\" \"\")")
+                fixup_bundle(\"\${CMAKE_INSTALL_PREFIX}/Forkserf.app\" \"\" \"\")")
 endif()
 
 set(CPACK_RESOURCE_FILE_LICENSE ${PROJECT_SOURCE_DIR}/COPYING)
@@ -229,7 +229,7 @@ if(WIN32)
   set(CPACK_PACKAGE_FILE_NAME "${PROJECT_NAME}-${WIN_ARCH_STRING}-${CMAKE_BUILD_TYPE}")
   set(CPACK_PACKAGE_INSTALL_DIRECTORY ${PROJECT_NAME})
   set(CPACK_NSIS_EXECUTABLES_DIRECTORY ".")
-  set(CPACK_PACKAGE_EXECUTABLES "FreeSerf;FreeSerf")
+  set(CPACK_PACKAGE_EXECUTABLES "Forkserf;Forkserf")
   # install VC redistributables
   if (CMAKE_BUILD_TYPE STREQUAL "Debug")
     set(CMAKE_INSTALL_DEBUG_LIBRARIES TRUE)
@@ -245,6 +245,21 @@ else()
   set(CPACK_SOURCE_PACKAGE_FILE_NAME "${CMAKE_PROJECT_NAME}")
 endif()
 include(CPack)
+
+#     tlongstretch, copy custom graphics into build dir on successful build
+# top level metadata file, remember to uncomment each dir/section as new types added
+add_custom_command(TARGET Forkserf POST_BUILD
+                   COMMAND ${CMAKE_COMMAND} -E copy
+                       ${CMAKE_SOURCE_DIR}/custom_graphics/meta.ini $<TARGET_FILE_DIR:Forkserf>)
+# custom tree graphics for spring, fall, winter
+add_custom_command(TARGET Forkserf POST_BUILD
+                   COMMAND ${CMAKE_COMMAND} -E copy_directory
+                       ${CMAKE_SOURCE_DIR}/custom_graphics/map_object $<TARGET_FILE_DIR:Forkserf>/map_object)
+# custom panel bar / frame_bottom graphics for season dial display
+add_custom_command(TARGET Forkserf POST_BUILD
+                   COMMAND ${CMAKE_COMMAND} -E copy_directory
+                       ${CMAKE_SOURCE_DIR}/custom_graphics/frame_bottom $<TARGET_FILE_DIR:Forkserf>/frame_bottom)
+
 
 # Profiler executable
 

@@ -73,6 +73,8 @@ Inventory::get_resource_from_queue(Resource::Type *res, int *dest) {
   out_queue[1].dest = 0;
 }
 
+// note that the out queue for resources only has two slots!
+//  it is almost always full
 void
 Inventory::add_to_queue(Resource::Type type, unsigned int dest) {
   if (type == Resource::GroupFood) {
@@ -333,19 +335,29 @@ Resource::Type res_needed[] = {
 bool
 Inventory::specialize_serf(Serf *serf, Serf::Type type) {
   if (serf->get_type() != Serf::TypeGeneric) {
+    Log::Debug["inventory"] << "inside specialize_serf to type " << NameSerf[type] << ", failure0";
     return false;
   }
 
-  if (serfs[type] != 0) {
+  // BUG!  this looks to be responsible for why new knights are
+  //  often not being spawned despite having sword+shield and appropriate
+  //  setting.  If any Knight0 already exists in the Inventory, it won't
+  //  create a new one!
+  // must exclude Knights from this check!
+  //if (serfs[type] != 0) {
+  if (serfs[type] != 0 && !(type >= Serf::TypeKnight0 && type <= Serf::TypeKnight4)) {
+    Log::Debug["inventory"] << "inside specialize_serf to type " << NameSerf[type] << ", failure because serf of this type already exists in Inventory, and this is not a Knight";
     return false;
   }
 
   if ((res_needed[type*2] != Resource::TypeNone)
       && (resources[res_needed[type*2]] == 0)) {
+    Log::Debug["inventory"] << "inside specialize_serf to type " << NameSerf[type] << ", failure because no tool of first type available";
     return false;
   }
   if ((res_needed[type*2+1] != Resource::TypeNone)
       && (resources[res_needed[type*2+1]] == 0)) {
+    Log::Debug["inventory"] << "inside specialize_serf to type " << NameSerf[type] << ", failure because no tool of second type available";
     return false;
   }
 

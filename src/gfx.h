@@ -25,10 +25,12 @@
 #include <map>
 #include <string>
 #include <memory>
+#include <set>  // for clear_cache_items
 
 #include "src/data.h"
 #include "src/debug.h"
 #include "src/video.h"
+#include "src/game-options.h"
 
 class ExceptionGFX : public ExceptionFreeserf {
  public:
@@ -118,6 +120,7 @@ class Image {
   static void cache_image(uint64_t id, Image *image);
   static Image *get_cached_image(uint64_t id);
   static void clear_cache();
+  static void clear_cache_items(std::set<uint64_t> image_ids_to_purge);  // added to support messing with weather/seasons/palette
 
   Video::Image *get_video_image() const { return video_image; }
 };
@@ -137,13 +140,17 @@ class Frame {
   virtual ~Frame();
 
   /* Sprite functions */
-  void draw_sprite(int x, int y, Data::Resource res, unsigned int index);
-  void draw_sprite(int x, int y, Data::Resource res, unsigned int index,
-                   bool use_off);
-  void draw_sprite(int x, int y, Data::Resource res, unsigned int index,
-                   bool use_off, float progress);
-  void draw_sprite(int x, int y, Data::Resource res, unsigned int index,
-                   bool use_off, const Color &color);
+  void draw_sprite(int x, int y, Data::Resource res, unsigned int index); //#1
+  void draw_sprite_special0(int x, int y, Data::Resource res, unsigned int index); // for panel_bottom custom graphics for season_dial, copy of #1
+  ///////////////////////////////////////////////////////////////////////// the #2 draw_sprite is down under 'protected' section
+  /////////////////////////////////////////////////////////////////////////  #draw_sprite_special0x is down under 'protected' section (its a copy of #2)
+  void draw_sprite(int x, int y, Data::Resource res, unsigned int index, bool use_off);  //#3
+  // added to support messing with weather/seasons/palette tiles, copy of #3
+  void draw_sprite_special1(int x, int y, Data::Resource res, unsigned int index, bool use_off, unsigned int pos, unsigned int obj);
+  void draw_sprite(int x, int y, Data::Resource res, unsigned int index, bool use_off, float progress);  //#4
+  void draw_sprite(int x, int y, Data::Resource res, unsigned int index, bool use_off, const Color &color);  //#5
+  // added to support messing with weather/seasons/palette tiles, copy of #5
+  void draw_sprite_special2(int x, int y, Data::Resource res, unsigned int index, bool use_off, const Color &color, unsigned int pos, unsigned int obj);
   void draw_sprite_relatively(int x, int y, Data::Resource res,
                               unsigned int index,
                               Data::Resource relative_to_res,
@@ -173,8 +180,10 @@ class Frame {
  protected:
   void draw_char_sprite(int x, int y, unsigned char c, const Color &color,
                         const Color &shadow);
-  void draw_sprite(int x, int y, Data::Resource res, unsigned int index,
-                   bool use_off, const Color &color, float progress);
+  void draw_sprite(int x, int y, Data::Resource res, unsigned int index, bool use_off, const Color &color, float progress);  //#2
+  void draw_sprite_special0x(int x, int y, Data::Resource res, unsigned int index, bool use_off, const Color &color, float progress);  // for season_dial custom graphics, copy of #2
+  // added to support messing with weather/seasons/palette tiles, copy of #2
+  void draw_sprite_special3(int x, int y, Data::Resource res, unsigned int index, bool use_off, const Color &color, float progress, unsigned int pos, unsigned int obj);
 };
 
 class Graphics {

@@ -106,7 +106,7 @@ class SaveWriterTextSection : public SaveWriterText {
  protected:
   bool save(ConfigFile *file) {
     std::stringstream str;
-    str << " " << number;
+    str << name << " " << number;
 
     for (auto value : values) {
       file->set_value(str.str(), value.first, value.second.get_value());
@@ -495,7 +495,8 @@ GameStore::GameStore() {
   folder_path += '/';
 #endif
 
-  folder_path += "freeserf";
+  //folder_path += "freeserf";
+  folder_path += "forkserf";
   if (!is_folder_exists(folder_path)) {
     if (!create_folder(folder_path)) {
       throw ExceptionFreeserf("Failed to create folder");

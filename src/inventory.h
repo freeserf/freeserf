@@ -92,7 +92,7 @@ class Inventory : public GameObject {
   bool have_serf(Serf::Type type) { return (serfs[type] != 0); }
 
   unsigned int get_count_of(Resource::Type resource) {
-    return resources[resource]; }
+    return resources[resource]; }  // keep getting exception where when AI castle is destroyed and AI makes this call DESPITE *inventory STILL BEING VALID!
   ResourceMap get_all_resources() { return resources; }
   void pop_resource(Resource::Type resource) { resources[resource]--; }
   void push_resource(Resource::Type resource);

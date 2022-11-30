@@ -677,6 +677,8 @@ Player::building_demolished(Building *building_) {
     if (building_->get_type() != Building::TypeCastle) {
       completed_building_count[building_->get_type()] -= 1;
     } else {
+      Log::Warn["player.cc"] << "Player" << index << "'s castle has just been destroyed!";
+      //game->pause();
       build &= ~BIT(3);
       castle_score -= 1;
     }
@@ -711,11 +713,14 @@ Player::spawn_serf_generic() {
 bool
 Player::spawn_serf(Serf **serf, Inventory **inventory, bool want_knight) {
   if (!can_spawn()) {
+    Log::Warn["player"] << "inside spawn_serf for player " << index << ", can_spawn is false!";
     return false;
   }
+  //Log::Debug["player"] << "inside spawn_serf for player " << index << ", can_spawn is true";
 
   Game::ListInventories inventories = game->get_player_inventories(this);
   if (inventories.size() < 1) {
+    Log::Warn["game.cc"] << "inside Player::spawn_serf, inventories.size is <1, it is currently " << inventories.size() << ", does this mean max inventories reached?  Game just returns false";
     return false;
   }
 
@@ -745,7 +750,7 @@ Player::spawn_serf(Serf **serf, Inventory **inventory, bool want_knight) {
 
   Serf *s = inv->spawn_serf_generic();
   if (s == nullptr) {
-    Log::Warn["player"] << "inside spawn_serf, inv->create_serf_generic s was null!";
+    Log::Warn["player"] << "inside spawn_serf for player " << index << ", inv->create_serf_generic s was null!";
     return false;
   }
 
@@ -927,7 +932,12 @@ Player::update() {
           if (inventory->get_count_of(Resource::TypeSword) != 0 &&
               inventory->get_count_of(Resource::TypeShield) != 0) {
             knights_to_spawn -= 1;
-            inventory->specialize_serf(serf, Serf::TypeKnight0);
+            //inventory->specialize_serf(serf, Serf::TypeKnight0);
+            if (inventory->specialize_serf(serf, Serf::TypeKnight0)){
+              //Log::Debug["player"] << "inside player->update for player " << index << ", creating knight, successful return from specialize_serf";
+            }else{
+              Log::Warn["player"] << "inside player->update for player " << index << ", creating knight, FAILURE from specialize_serf";
+            }
           }
         }
       }

@@ -295,13 +295,16 @@ typedef enum Action {
   ACTION_GAME_OPTIONS_PREV_PAGE,
   ACTION_GAME_OPTIONS_RETURN_TO_OPTIONS,
   ACTION_GAME_OPTIONS_ENABLE_AUTOSAVE,
-  ACTION_GAME_OPTIONS_IMPROVED_PIG_FARMS,
+//  ACTION_GAME_OPTIONS_IMPROVED_PIG_FARMS, // removing this as it turns out the default behavior for pig farms is to require almost no grain
   ACTION_GAME_OPTIONS_CAN_TRANSPORT_SERFS_IN_BOATS,
   ACTION_GAME_OPTIONS_QUICK_DEMO_EMPTY_BUILD_SITES,
   ACTION_GAME_OPTIONS_TREES_REPRODUCE,
   ACTION_GAME_OPTIONS_BABY_TREES_MATURE_SLOWLY,
   ACTION_GAME_OPTIONS_ResourceRequestsTimeOut,
+  ACTION_GAME_OPTIONS_PrioritizeUsableResources,
   ACTION_GAME_OPTIONS_LostTransportersClearFaster,
+  ACTION_GAME_OPTIONS_FourSeasons,
+  ACTION_GAME_OPTIONS_FishSpawnSlowly,
   ACTION_MAPGEN_ADJUST_TREES,
   ACTION_MAPGEN_ADJUST_STONEPILES,
   ACTION_MAPGEN_ADJUST_FISH,
@@ -2034,8 +2037,10 @@ PopupBox::draw_game_options_box() {
   draw_green_string(3, 10, "Auto Save Game");
   draw_popup_icon(1, 7, option_EnableAutoSave ? 288 : 220);
 
-  draw_green_string(3, 29, "Pigs Require No Wheat");
-  draw_popup_icon(1, 26, option_ImprovedPigFarms ? 288 : 220);
+  //draw_green_string(3, 29, "Pigs Require No Wheat");
+  //draw_popup_icon(1, 26, option_ImprovedPigFarms ? 288 : 220);  // removing this as it turns out the default behavior for pig farms is to require almost no grain
+  draw_green_string(3, 29, "Prioritize Usable Resources");
+  draw_popup_icon(1, 26, option_PrioritizeUsableResources ? 288 : 220);  // this is forced on until code to make it optional added and tested
 
   draw_green_string(3, 48, "Can Transport Serfs In Boats");
   draw_popup_icon(1, 45, option_CanTransportSerfsInBoats ? 288 : 220);
@@ -2057,16 +2062,16 @@ void
 PopupBox::draw_game_options2_box() {
   draw_large_box_background(PatternDiagonalGreen);
   draw_green_string(3, 10, "Resource Requests Time Out");
-  draw_popup_icon(1, 7, option_ResourceRequestsTimeOut ? 288 : 220);
+  draw_popup_icon(1, 7, option_ResourceRequestsTimeOut ? 288 : 220);  // this is forced on until code to make it optional added and tested
 
   draw_green_string(3, 29, "Lost Transporters Clear Faster");
   draw_popup_icon(1, 26, option_LostTransportersClearFaster ? 288 : 220);
 
-  //draw_green_string(3, 48, "PlaceHolder1");
-  //draw_popup_icon(1, 45, option_PlaceHolder1 ? 288 : 220);
+  draw_green_string(3, 48, "Four Seasons of Weather");
+  draw_popup_icon(1, 45, option_FourSeasons ? 288 : 220);
 
-  //draw_green_string(3, 67, "PlaceHolder2");
-  //draw_popup_icon(1, 64, option_PlaceHolder2 ? 288 : 220);
+  draw_green_string(3, 67, "Fish Spawn Very Slowly");
+  draw_popup_icon(1, 64, option_FishSpawnSlowly ? 288 : 220);
 
   //draw_green_string(3, 86, "PlaceHolder3");
   //draw_popup_icon(1, 83, option_PlaceHolder3 ? 288 : 220);
@@ -2115,7 +2120,8 @@ PopupBox::draw_edit_map_generator_box() {
 
   draw_green_string(2, 43, "Resources in mountains");
   draw_green_string(27, 2, "Fish");
-  draw_colored_slide_bar(25, 11, slider_double_to_uint16(generator_options.opt[CustomMapGeneratorOption::Fish]), Color::green);
+  // reasonable values for fish are 0.00-4.00, so divide max slider 65500 by 4 to get 16375 and let 1.00 == 16375
+  draw_colored_slide_bar(25, 11, generator_options.opt[CustomMapGeneratorOption::Fish] * 16375, Color::green);
 
   //draw_green_string(26, 24, "Ratio");
   /* here is the original game ratio for mined resources (copied from ClassicMapGenerator)
@@ -2144,17 +2150,20 @@ PopupBox::draw_edit_map_generator_box() {
   draw_green_string(10, 65, "Deserts");
 
   // Lakes
-  //draw_green_string(10, 79, "Lakes");
-  // describe how this currently works rather than how I wanted it to work
-  // the water level part is disabled for now as it doesn't work right
-  draw_green_string(10, 79, "Lake Cohesion");
-  double lakes_mean = (generator_options.opt[CustomMapGeneratorOption::LakesMaxSize] 
-                     + generator_options.opt[CustomMapGeneratorOption::LakesWaterLevel]) / 2;
-  draw_colored_slide_bar(1, 79, slider_double_to_uint16(lakes_mean), Color::blue);
+  draw_green_string(10, 79, "Lakes");
+  // reasonable values for are 0.00-8.00, so divide max slider 65500 by 4 to get 8187.5 (round to 8188) and let 1.00 == 8188
+  draw_colored_slide_bar(1, 79, generator_options.opt[CustomMapGeneratorOption::LakesWaterLevel] * 8188, Color::blue);
+
 
   // Junk Objects
+  //
   //  should these be auto-scaled to water/desert frequency/size?
+  //
   // the water junk object adjustment doesn't seem to work at all, others do
+  // I think there is a original Settlers/Serf City bug in the water objects generation
+  // it seems that if any submerged tree exists it is always top-left on the lake and only one
+  // and I don't think I've ever seen a submerged boulder appear?
+
   draw_green_string(4, 100, "Terrain Junk Objects");
   int junk_y = 92;
   //  "grass junk"
@@ -3677,18 +3686,19 @@ PopupBox::handle_action(int action, int x_, int /*y_*/) {
     interface->open_popup(TypeOptions);
     break;
   case ACTION_RESET_MAPGEN_DEFAULTS:
-    //uint16_t slider_double_to_uint16(double val){ return uint16_t(val * 32750); }
     // reasonable values for trees are 0.00-4.00, so divide max slider 65500 by 4 to get 16375 and let 1.00 == 16375
     interface->set_custom_map_generator_trees(uint16_t(16375 * 1.00));
     interface->set_custom_map_generator_stonepile_dense(slider_double_to_uint16(1.00)); 
     interface->set_custom_map_generator_stonepile_sparse(slider_double_to_uint16(1.00)); 
-    interface->set_custom_map_generator_fish(slider_double_to_uint16(1.00)); 
+    //interface->set_custom_map_generator_fish(slider_double_to_uint16(1.00)); 
+    // reasonable values for fish are 0.00-4.00, so divide max slider 65500 by 4 to get 16375 and let 1.00 == 16375
+    interface->set_custom_map_generator_fish(uint16_t(16375 * 1.00));
     interface->set_custom_map_generator_mountain_gold(slider_mineral_double_to_uint16(2.00));   // 2
     interface->set_custom_map_generator_mountain_iron(slider_mineral_double_to_uint16(4.00));   // 4
     interface->set_custom_map_generator_mountain_coal(slider_mineral_double_to_uint16(9.00));   // 9
     interface->set_custom_map_generator_mountain_stone(slider_mineral_double_to_uint16(2.00));  // 2
     interface->set_custom_map_generator_desert_frequency(slider_double_to_uint16(1.00)); 
-    interface->set_custom_map_generator_lakes_size(slider_double_to_uint16(1.00)); 
+    //interface->set_custom_map_generator_lakes_size(slider_double_to_uint16(1.00)); 
     interface->set_custom_map_generator_lakes_water_level(slider_double_to_uint16(1.00)); 
     interface->set_custom_map_generator_junk_grass_sandstone(slider_double_to_uint16(1.00)); 
     interface->set_custom_map_generator_junk_grass_small_boulders(slider_double_to_uint16(1.00)); 
@@ -3725,13 +3735,15 @@ PopupBox::handle_action(int action, int x_, int /*y_*/) {
       option_EnableAutoSave = true;
     }
     break;
-  case ACTION_GAME_OPTIONS_IMPROVED_PIG_FARMS:
+  // removing this as it turns out the default behavior for pig farms is to require almost no grain
+  /*case ACTION_GAME_OPTIONS_IMPROVED_PIG_FARMS:
     if (option_ImprovedPigFarms){
       option_ImprovedPigFarms = false;
     } else{
       option_ImprovedPigFarms = true;
     }
     break;
+    */
   case ACTION_GAME_OPTIONS_CAN_TRANSPORT_SERFS_IN_BOATS:
     if (option_CanTransportSerfsInBoats){
       option_CanTransportSerfsInBoats = false;
@@ -3767,13 +3779,36 @@ PopupBox::handle_action(int action, int x_, int /*y_*/) {
     //} else{
     //  option_ResourceRequestsTimeOut = true;
     //}
+    play_sound(Audio::TypeSfxNotAccepted);  // play sound to indicate this can't be disabled
     break;
   // forced true to indicate that the code to make optional isn't added yet
+  case ACTION_GAME_OPTIONS_PrioritizeUsableResources:
+    //if (option_PrioritizeUsableResources){
+    //  option_PrioritizeUsableResources = false;
+    //} else{
+    //  option_PrioritizeUsableResources = true;
+    //}
+    play_sound(Audio::TypeSfxNotAccepted);  // play sound to indicate this can't be disabled
+    break;
   case ACTION_GAME_OPTIONS_LostTransportersClearFaster:
     if (option_LostTransportersClearFaster){
       option_LostTransportersClearFaster = false;
     } else{
       option_LostTransportersClearFaster = true;
+    }
+    break;
+  case ACTION_GAME_OPTIONS_FourSeasons:
+    if (option_FourSeasons){
+      option_FourSeasons = false;
+    }else{
+      option_FourSeasons = true;
+    }
+    break;
+  case ACTION_GAME_OPTIONS_FishSpawnSlowly:
+    if (option_FishSpawnSlowly){
+      option_FishSpawnSlowly = false;
+    }else{
+      option_FishSpawnSlowly = true;
     }
     break;
   case ACTION_MAPGEN_ADJUST_TREES:
@@ -3811,7 +3846,7 @@ PopupBox::handle_action(int action, int x_, int /*y_*/) {
     break;
   case ACTION_MAPGEN_ADJUST_LAKES:
     Log::Info["popup"] << "ACTION_MAPGEN_ADJUST_LAKES x_ = " << x_ << ", gui_get_slider_click_value(x_) = " << gui_get_slider_click_value(x_) << ", unint16_t(gui_get_slider_click_value(x_)) = " << uint16_t(gui_get_slider_click_value(x_));
-    interface->set_custom_map_generator_lakes_size(gui_get_slider_click_value(x_));
+    //interface->set_custom_map_generator_lakes_size(gui_get_slider_click_value(x_));
     interface->set_custom_map_generator_lakes_water_level(gui_get_slider_click_value(x_));
     break;
   case ACTION_MAPGEN_ADJUST_JUNK_OBJ_GRASS:
@@ -4136,7 +4171,8 @@ PopupBox::handle_box_game_options_clk(int cx, int cy) {
   //all options need to be defined here for the checkboxes to work,
   const int clkmap[] = {
     ACTION_GAME_OPTIONS_ENABLE_AUTOSAVE, 7, 7, 150, 16,
-    ACTION_GAME_OPTIONS_IMPROVED_PIG_FARMS, 7, 26, 150, 16,
+    //ACTION_GAME_OPTIONS_IMPROVED_PIG_FARMS, 7, 26, 150, 16,   // removing this as it turns out the default behavior for pig farms is to require almost no grain
+    ACTION_GAME_OPTIONS_PrioritizeUsableResources, 7, 26, 150, 16,
     ACTION_GAME_OPTIONS_CAN_TRANSPORT_SERFS_IN_BOATS, 7, 45, 150, 16,
     ACTION_GAME_OPTIONS_QUICK_DEMO_EMPTY_BUILD_SITES, 7, 64, 150, 16,
     ACTION_GAME_OPTIONS_TREES_REPRODUCE, 7, 83, 150, 16,
@@ -4154,8 +4190,8 @@ PopupBox::handle_box_game_options2_clk(int cx, int cy) {
   const int clkmap[] = {
     ACTION_GAME_OPTIONS_ResourceRequestsTimeOut, 7, 7, 150, 16,
     ACTION_GAME_OPTIONS_LostTransportersClearFaster, 7, 26, 150, 16,
-    //ACTION_GAME_OPTIONS_Placeholder1, 7, 45, 150, 16,
-    //ACTION_GAME_OPTIONS_Placeholder2, 7, 64, 150, 16,
+    ACTION_GAME_OPTIONS_FourSeasons, 7, 45, 150, 16,
+    ACTION_GAME_OPTIONS_FishSpawnSlowly, 7, 64, 150, 16,
     //ACTION_GAME_OPTIONS_Placeholder3, 7, 83, 150, 16,
     //ACTION_GAME_OPTIONS_Placeholder4, 7, 102, 150, 16,
     ACTION_GAME_OPTIONS_PREV_PAGE, 239, 126, 16, 16,  // flip button

@@ -123,8 +123,20 @@ class Flag : public GameObject {
   // this CANNOT BE TRUSTED because of the UpLeft/Dir4 building issue
   bool has_path(Direction dir) const {
     return ((path_con & (1 << (dir))) != 0); }
+  // added function that accounts for UpLeft building issue
+  bool has_path_IMPROVED(Direction dir) const {
+    if (dir == DirectionUpLeft && has_building()){
+      return false;
+    }else if(has_path(dir)){
+      return true;
+    }
+    return false;
+  }
 
   void prioritize_pickup(Direction dir, Player *player);
+  // used for new feature of increasing flag-priority of immediately-usable resources
+  // returns adjusted priority (base 0-26, additional +26 if adjusted)
+  static int get_immediate_use_adjusted_prio(int res_type, int orig_prio, unsigned int dest_flag_index, Game *game, Player *player, int dir, int slot);
 
   /* Owner of this flag. */
   unsigned int get_owner() const { return owner; }

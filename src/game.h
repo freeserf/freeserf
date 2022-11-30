@@ -83,8 +83,8 @@ class Game {
   unsigned int tick;
   unsigned int last_tick;
   // what is the diff between const_tick and last_tick??
-  //  maybe const_tick is the same tick used for each update cycle?
-  //  and plain tick is incrementing constantly within the cylcle?
+  //  it looks like const_tick is not game-speed adjusted,
+  //  while tick is game-speed adjusted
   unsigned int const_tick;
   unsigned int game_stats_counter;
   unsigned int history_counter;
@@ -116,6 +116,7 @@ class Game {
   bool ai_locked;
   bool signal_ai_exit;
   unsigned int ai_threads_remaining;
+  ColorDotMap debug_mark_pos;  // list of positions for LayerDebug to mark
 
  public:
   Game();
@@ -144,6 +145,12 @@ class Game {
   std::mutex * get_mutex() { return &mutex; }
   // used by AI to check if game is paused
   unsigned int get_game_speed() const { return game_speed; }
+  // used for Debug overlay LayerDebug to mark MapPos on screen
+  ColorDotMap * get_debug_mark_pos() { return &debug_mark_pos; }
+  void set_debug_mark_pos(MapPos pos, std::string color){ 
+    debug_mark_pos.erase(pos);
+    debug_mark_pos.insert(ColorDot(pos, color));
+  }
 
   unsigned int get_tick() const { return tick; }
   unsigned int get_const_tick() const { return const_tick; }
@@ -181,6 +188,7 @@ class Game {
   bool can_build_castle(MapPos pos, const Player *player) const;
   bool can_build_flag(MapPos pos, const Player *player) const;
   bool can_player_build(MapPos pos, const Player *player) const;
+  bool can_build_field(MapPos pos) const;  // added to shorten FourSeasons/AdvancedFarming code
 
   int can_build_road(const Road &road, const Player *player,
                      MapPos *dest, bool *water) const;
@@ -231,6 +239,7 @@ class Game {
 
   Serf *get_serf(unsigned int index) { return serfs[index]; }
   Flag *get_flag(unsigned int index) { return flags[index]; }
+  // got a segfault during flags_copy = game->get_flags... need to mutex wrap all AI game->get_flags calls?
   Flags *get_flags() { return &flags; }
   Inventory *get_inventory(unsigned int index) { return inventories[index]; }
   Building *get_building(unsigned int index) { return buildings[index]; }

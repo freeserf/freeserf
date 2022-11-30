@@ -95,7 +95,8 @@ main(int argc, char *argv[]) {
     return EXIT_FAILURE;
   }
 
-  Log::Info["main"] << "freeserf " << FREESERF_VERSION;
+  //Log::Info["main"] << "freeserf " << FREESERF_VERSION;
+  Log::Info["freeserf.cc"] << "forksrf " << FORKSERF_VERSION;
 
   Data &data = Data::get_instance();
   if (!data.load(data_dir)) {
@@ -112,11 +113,31 @@ main(int argc, char *argv[]) {
   Graphics &gfx = Graphics::get_instance();
 
   /* TODO move to right place */
-  Audio &audio = Audio::get_instance();
-  Audio::PPlayer player = audio.get_music_player();
+  Audio &audio = Audio::get_instance();  // 
+  Audio::PPlayer player = audio.get_music_player();  // TEMP DISABLING AUDIO WHILE RUNNING DEBUGGER BECAUSE OF ANNOYING RANDOM CRASH!
+  // NOTE - it seems Amiga has a single long track, 
+  //  while DOS has three or four similar tracks that play one after another
   if (player) {
+    Log::Debug["freeserf.cc"] << "inside freeserf main(), starting audio midi music, about to call player->play_track";
     //Audio::PTrack t = player->play_track(Audio::TypeMidiTrack0);
-    Audio::PTrack t = player->play_track(Audio::TypeMidiTrack0, DataSourceType::Amiga);  // 0=Amiga, 1=DOS, 2=Custom
+    Data &data = Data::get_instance();
+    if (data.get_data_source_Amiga() != nullptr){
+      Log::Info["freeserf.cc"] << "inside freeserf main(), starting audio midi music, found Amiga music, using it";
+      Audio::PTrack t = player->play_track(Audio::TypeMidiTrack0, DataSourceType::Amiga);  // 0=Amiga, 1=DOS, 2=Custom
+    }else if(data.get_data_source_DOS() != nullptr){
+      // fall back to DOS music if Amiga not available.  DOS music works in Windows last I checked
+      Log::Info["freeserf.cc"] << "inside freeserf main(), starting audio midi music, Amiga music not found, falling back to DOS music";
+      Audio::PTrack t = player->play_track(Audio::TypeMidiTrack0, DataSourceType::DOS);  // 0=Amiga, 1=DOS, 2=Custom
+    }else{
+      // music not available
+      Log::Error["freeserf.cc"] << "inside freeserf main(), neither Amiga nor DOS music found, this should not happen as game shuold not even start without either"; 
+    }
+
+    // testing the audio tracks. I understand DOS has four short tracks, Amiga has one very long one
+    // it doesn't seem to matter what track# is played for Amiga, it always plays the only track
+    //Audio::PTrack t = player->play_track(Audio::TypeMidiTrack3, DataSourceType::Amiga);  // 0=Amiga, 1=DOS, 2=Custom
+    // DOS MUSIC DOES NOT WORK IN LINUX AT ALL - at least not for me, but Amiga works fine in linux
+    //Audio::PTrack t = player->play_track(Audio::TypeMidiTrack0, DataSourceType::DOS);  // 0=Amiga, 1=DOS, 2=Custom
   }
 
   GameManager &game_manager = GameManager::get_instance();

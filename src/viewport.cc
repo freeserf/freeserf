@@ -49,7 +49,7 @@
 #define MAP_TILE_COLS  16
 #define MAP_TILE_ROWS  16
 
-MapPos ai_overlay_clicked_pos = bad_map_pos;
+MapPos debug_overlay_clicked_pos = bad_map_pos;
 
 static const uint8_t tri_spr[] = {
   32, 32, 32, 32, 32, 32, 32, 32,
@@ -98,6 +98,34 @@ Viewport::draw_triangle_up(int lx, int ly, int m, int left, int right,
   }
 
   Map::Terrain type = map->type_up(map->move_up(pos));
+
+  // messing with weather/seasons/palette
+  //  by changing the *appearance* of Tundra0/1/2 to Snow, but it still functions as normal Tundra in game
+  //*******************************************************************************************
+  // WHEN CHANGING THESE, DON'T FORGET TO ALSO CHANGE THE OTHER TRIANGLE UP/DOWN FUNCTION!!!!
+  //*******************************************************************************************
+
+  //  *** MAKE THIS GRADUAL, by checking if MapPos is even/odd?  and only doing half at once
+
+  if (option_FourSeasons){
+    // MID-WINTER
+    // make snow cover a bit more of mountains than usual
+    if (season == 3 && subseason >= 3 && subseason <= 14){
+      if (type >= Map::TerrainTundra2){  // a bit more snow on mountains
+        type = Map::TerrainSnow0;
+      }
+    }
+    // MID-SUMMER - a bit less snow on mountains than usual
+    if (season == 1 && subseason >= 3 && subseason <= 14){
+      if (type == Map::TerrainSnow0){    // a bit less snow on mountains
+        type = Map::TerrainTundra2;
+      }
+    }
+    //
+    // other times, normal amount
+    //
+  }
+
   int index = (type << 3) | tri_mask[mask];
   if (index >= 128) {
     throw ExceptionFreeserf("Failed to draw triangle up (4).");
@@ -137,6 +165,31 @@ Viewport::draw_triangle_down(int lx, int ly, int m, int left, int right,
   }
 
   int type = map->type_down(map->move_up_left(pos));
+
+  // messing with weather/seasons/palette
+  //  by changing the *appearance* of Tundra0/1/2 to Snow, but it still functions as normal Tundra in game
+  //*******************************************************************************************
+  // WHEN CHANGING THESE, DON'T FORGET TO ALSO CHANGE THE OTHER TRIANGLE UP/DOWN FUNCTION!!!!
+  //*******************************************************************************************
+  if (option_FourSeasons){
+    // MID-WINTER
+    // make snow cover a bit more of mountains than usual
+    if (season == 3 && subseason >= 3 && subseason <= 14){
+      if (type >= Map::TerrainTundra2){  // a bit more snow on mountains
+        type = Map::TerrainSnow0;
+      }
+    }
+    // MID-SUMMER - a bit less snow on mountains than usual
+    if (season == 1 && subseason >= 3 && subseason <= 14){
+      if (type == Map::TerrainSnow0){    // a bit less snow on mountains
+        type = Map::TerrainTundra2;
+      }
+    }
+    //
+    // other times, normal amount
+    //
+  }
+
   int index = (type << 3) | tri_mask[mask];
   if (index >= 128) {
     throw ExceptionFreeserf("Failed to draw triangle down (4).");
@@ -150,6 +203,14 @@ Viewport::draw_triangle_down(int lx, int ly, int m, int left, int right,
 }
 
 /* Draw a column (vertical) of tiles, starting at an up pointing tile. */
+// NOTE - the visual lighting effect where tiles on the left/west side of
+//  a terrain peak are lighter while tiles on right/east side are darker
+//  appears to be based on the height difference between tiles... I think
+//  that if the tile to the left has higher height than tile to the right
+//  the right tile will be drawn darker (by using a darker sprite)
+//  the data files contain different sprites for each lighting level
+//  that are identically except for the brightness (for DOS, Amiga is dif)
+// 
 void
 Viewport::draw_up_tile_col(MapPos pos, int x_base, int y_base, int max_y,
                            Frame *tile) {
@@ -660,13 +721,48 @@ Viewport::draw_serf(int lx, int ly, const Color &color, int head, int body) {
 void
 Viewport::draw_shadow_and_building_sprite(int lx, int ly, int index,
                                           const Color &color) {
-  frame->draw_sprite(lx, ly, Data::AssetMapShadow, index, true);
-  frame->draw_sprite(lx, ly, Data::AssetMapObject, index, true, color);
+  // this says shadow and building but it seems to include ANY map object sprite such as trees, stones
+  //Log::Info["viewport"] << "inside Viewport::draw_shadow_and_building_sprite for sprite index " << index;
+  frame->draw_sprite(lx, ly, Data::AssetMapShadow, index, true);  // call Frame::draw_sprite#3
+  frame->draw_sprite(lx, ly, Data::AssetMapObject, index, true, color);  // call Frame::draw_sprite#5
 }
+
+// new function to try messing with weather/seasons/palette
+void
+Viewport::draw_map_sprite_special(int lx, int ly, int index, unsigned int pos, unsigned int obj, const Color &color) {
+  // this is only used by draw_map_objects_row, added passing of pos and object type to support sprite replacement
+  //Log::Info["viewport"] << "inside Viewport::draw_map_sprite_special for sprite index " << index;
+  // I am thinking that the transparency effect on shadows doens't work right for Custom datasource,
+  //  maybe because PNG settings aren't right?  try testing without all these custom graphics using a vanilla
+  //  copy of Freeserf and export from FSStudio
+  //frame->draw_sprite_special1(lx, ly, Data::AssetMapShadow, index, true, pos, obj);  // call Frame::draw_sprite#3
+
+  // instead, try this hack to use the right shadow
+  // NOTE - if FourSeasons is on but the custom tree sprites are missing, this will result in the wrong shadow type for these trees
+  //   however it should at least avoid crashing because I put a fallback in the tree-sprite function to draw the original tree
+  //   if the custom one is mising, but I am not sure how to fall back to the original shadow here, would need to figure out how to
+  //   test for the existence of the custom data source here.  It might be easy, but this seems like an edge case.  Better to 
+  //   simply force disable FourSeasons if the custom tree sprites are missing, OR allow a version that changes the terrain only
+  //   to still allow AdvancedFarming?
+  if (index >= 220 && index <= 223){
+    // use "full" deciduous tree shadow for SPRING Tree2 (the white flowered tree)
+    frame->draw_sprite(lx, ly, Data::AssetMapShadow, 0, true);  // call Frame::draw_sprite#3  
+  }else if (index >= 400 && index <= 499){
+    // FALL trees all have full shadows
+    frame->draw_sprite(lx, ly, Data::AssetMapShadow, 0, true);  // call Frame::draw_sprite#3  
+  }else{
+    // use "bare" tree shadow from dead tree index 084 for WINTER and most of FALL
+    frame->draw_sprite(lx, ly, Data::AssetMapShadow, 84, true);  // call Frame::draw_sprite#3  
+  }
+
+  frame->draw_sprite_special2(lx, ly, Data::AssetMapObject, index, true, color, pos, obj);  // call Frame::draw_sprite#5
+}
+
 
 void
 Viewport::draw_shadow_and_building_unfinished(int lx, int ly, int index,
                                               int progress) {
+  //Log::Info["viewport"] << "inside Viewport::draw_shadow_and_building_unfinished for sprite index " << index;
   float p = static_cast<float>(progress) / static_cast<float>(0xFFFF);
   frame->draw_sprite(lx, ly, Data::AssetMapShadow, index, true, p);
   frame->draw_sprite(lx, ly, Data::AssetMapObject, index, true, p);
@@ -805,7 +901,7 @@ Viewport::draw_unharmed_building(Building *building, int lx, int ly) {
 
         //
         // THE PROBLEM is that there is no state that allows keeping track of how many times
-        //  this building has been "visited" this "random tick" beacuse the random value only
+        //  this building has been "visited" this "random tick" because the random value only
         //   updates every so many loops (5-12 or so at normal game speed) and so there is no
         //   way to keep track of how many oinks have been played this cycle
         //  need to add some kind of "last updated" or "last tick" or "oinks played" value for
@@ -823,12 +919,12 @@ Viewport::draw_unharmed_building(Building *building, int lx, int ly) {
             play_sound(Audio::TypeSfxPigOink);
           }
           // allow up to a few oinks if >1 pig in stock
-          if (pigs_count == 1 || limit_tick % 6 == 0){
+          if (pigs_count == 1 || limit_tick % 4 == 0){
             building->stop_playing_sfx();
           }
         }else{
           // begin a period of oinking, chance of oinking period increases with pigs in stock
-          if (tick_rand > 0 && tick_rand < (pigs_count / 2 + 2) * 1){
+          if (tick_rand > 0 && tick_rand < (pigs_count / 2 + 2) * 2){
             building->start_playing_sfx();
           }
         }
@@ -1232,6 +1328,9 @@ void
 Viewport::draw_flag_and_res(MapPos pos, int lx, int ly) {
   Flag *flag = interface->get_game()->get_flag_at_pos(pos);
 
+  // debug - highlight all flags on Debug overlay
+  //interface->get_game()->set_debug_mark_pos(pos, "red");
+
   int res_pos[] = {  6, -4,
                     10, -2,
                     -4, -4,
@@ -1263,12 +1362,36 @@ Viewport::draw_flag_and_res(MapPos pos, int lx, int ly) {
 }
 
 void
-Viewport::draw_map_objects_row(MapPos pos, int y_base, int cols, int x_base) {
+//Viewport::draw_map_objects_row(MapPos pos, int y_base, int cols, int x_base) {
+Viewport::draw_map_objects_row(MapPos pos, int y_base, int cols, int x_base, int ly) {
+  // for determining "in view" objects for ambient sound generation,
+  //  only consider a roughly 640x480px area in the center of the 
+  //  viewport, otherwise there are too many ambient sounds and for
+  //  things such as deserts, water, that are near edges of viewport
+  // note that X is in cols, and Y is in pixels, because it is easier to code this way
+  int focus_cols = 18;
+  int center_col = cols / 2;
+  int leftmost_focus_col = center_col - (focus_cols / 2);
+  int rightmost_focus_col = center_col + (focus_cols / 2);
+  int focus_y_pixels = 480;
+  int center_y = height / 2;
+  int topmost_focus_y = center_y - (focus_y_pixels / 2);
+  int lowest_focus_y = center_y + (focus_y_pixels / 2);
+  //Log::Debug["viewport.cc"] << "inside draw_map_objects, pos " << pos << ", cols: " << cols << ", focus_cols: " << focus_cols << ", center_col: " << center_col << ", left: " << leftmost_focus_col << ", right: " << rightmost_focus_col;
+  //Log::Debug["viewport.cc"] << "inside draw_map_objects, pos " << pos << ", map height: " << height << ", ly: " << ly << ", center_y: " << center_y << ", top: " << topmost_focus_y << ", bottom: " << lowest_focus_y;
   for (int i = 0; i < cols;
        i++, x_base += MAP_TILE_WIDTH, pos = map->move_right(pos)) {
-    if (map->get_obj(pos) == Map::ObjectNone) continue;
-
+    if (map->get_obj(pos) == Map::ObjectNone) continue;  // comment this out if trying to draw red dot overlay to show focus area
     int ly = y_base - 4 * map->get_height(pos);
+    bool in_ambient_focus = false;
+    if (i >= leftmost_focus_col && i <= rightmost_focus_col && ly >= topmost_focus_y && ly <= lowest_focus_y){
+      // debug - show area in focus for ambient sounds with red dots
+      //   note for this to show a full rectangle the "continue if ObjectNone" must be moved to BELOW this if statement
+      //frame->fill_rect(x_base - 7, ly + 0, 6, 6, colors.at("red"));
+      //frame->fill_rect(x_base - 9, ly + 1, 12, 12, colors.at("red"));
+      in_ambient_focus = true;
+    }
+    //if (map->get_obj(pos) == Map::ObjectNone) continue;  // uncomment this if trying to draw red dot overlay to show focus area
     if (map->get_obj(pos) < Map::ObjectTree0) {
       if (map->get_obj(pos) == Map::ObjectFlag) {
         draw_flag_and_res(pos, x_base, ly);
@@ -1277,44 +1400,214 @@ Viewport::draw_map_objects_row(MapPos pos, int y_base, int cols, int x_base) {
       }
     } else {
       int sprite = map->get_obj(pos) - Map::ObjectTree0;
+      bool use_custom_set = false;  // messing with weather/seasons/palette tiles
       if (sprite < 24) {
-        /* Trees */
-        // only allow bird chirps from Tree and Pine (not palm or submerged, cactus, etc.)
-        if (map->get_obj(pos) >= Map::ObjectTree0 && map->get_obj(pos) <= Map::ObjectPine7) {
-          interface->trees_in_view += 1;
-          //Log::Info["viewport.cc"] << "trees in view: " << interface->trees_in_view;
-        }
-        // use junk objects that only appear in deserts to trigger desert wind sounds
-        //  cannot use desert terrain in view because landscape is not constantly redrawn
-        if (map->get_obj(pos) == Map::ObjectCactus0   || map->get_obj(pos) == Map::ObjectCactus1
-         || map->get_obj(pos) == Map::ObjectCadaver0  || map->get_obj(pos) == Map::ObjectCadaver1
-         || (map->get_obj(pos) >= Map::ObjectPalm0 && map->get_obj(pos) <= Map::ObjectPalm3)) {
-          interface->desert_in_view += 1;
-          //Log::Info["viewport.cc"] << "desert junk objects in view: " << interface->desert_in_view;
-        }
-        // there's a bug with water tile map generation, seems only one water tree is rendered
-        //  and always top row, top left??  include all anyway in case I eventually fix that
-        if ((map->get_obj(pos) >= Map::ObjectWaterTree0 && map->get_obj(pos) <= Map::ObjectWaterTree3)
-          || map->get_obj(pos) >= Map::ObjectWaterStone0 || map->get_obj(pos) >= Map::ObjectWaterStone1) {
-          interface->water_in_view += 1;
-          //Log::Info["viewport.cc"] << "water junk objects in view: " << interface->water_in_view;
+
+        // ambient sound triggers, only consider objects that are in the focus area
+        if (in_ambient_focus){
+          /* Trees */
+          // only allow bird chirps from Tree and Pine (not palm or submerged, cactus, etc.)
+          if (map->get_obj(pos) >= Map::ObjectTree0 && map->get_obj(pos) <= Map::ObjectPine7) {
+            interface->trees_in_view += 1;
+            //Log::Info["viewport.cc"] << "trees in view: " << interface->trees_in_view;
+          }
+          // use junk objects that only appear in deserts to trigger desert wind sounds
+          //  cannot use desert terrain in view because landscape is not constantly redrawn
+          if (map->get_obj(pos) == Map::ObjectCactus0   || map->get_obj(pos) == Map::ObjectCactus1
+          || map->get_obj(pos) == Map::ObjectCadaver0  || map->get_obj(pos) == Map::ObjectCadaver1
+          || (map->get_obj(pos) >= Map::ObjectPalm0 && map->get_obj(pos) <= Map::ObjectPalm3)) {
+            interface->desert_in_view += 1;
+            //Log::Info["viewport.cc"] << "desert junk objects in view: " << interface->desert_in_view;
+          }
+          // there's a bug with water tile map generation, seems only one water tree is rendered
+          //  and always top row, top left??  include all anyway in case I eventually fix that
+          if ((map->get_obj(pos) >= Map::ObjectWaterTree0 && map->get_obj(pos) <= Map::ObjectWaterTree3)
+            || map->get_obj(pos) >= Map::ObjectWaterStone0 || map->get_obj(pos) >= Map::ObjectWaterStone1) {
+            interface->water_in_view += 1;
+            //Log::Info["viewport.cc"] << "water junk objects in view: " << interface->water_in_view;
+          }
         }
 
-        /* Adding sprite number to animation ensures
-           that the tree animation won't be synchronized
-           for all trees on the map. */
+        // Adding sprite number to animation ensures
+        //   that the tree animation won't be synchronized
+        //   for all trees on the map.  
+        //  WAIT A MINUTE - IT SURE SEEMS LIKE ALL TREES *ARE* SYNCED ON THE MAP, IS THIS A MISTAKE?
+        //  COMPARE TO ORIGINAL GAME.   Serflings is synched too.  I think the Freeserf comment is wrong.  
+        //
+        // NOTE  -  this is where the wind-waving Tree animation effect happens for ObjectTree0 through ObjectPine7
+        //
+        // tree_anim is basically just a slower version of game tick, the bit shift right effectively reduces the rate of increment
+        // This is done because if the animation moved as fast as the tick rate it would be way too fast.  
+        // This means that something like >>5 should result in a slower rate, which is just what I need for winter trees!
         int tree_anim = (interface->get_game()->get_tick() + sprite) >> 4;
-        if (sprite < 16) {
-          sprite = (sprite & ~7) + (tree_anim & 7);
-        } else {
+        //Log::Info["viewport"] << "bitmath debug, sprite " << sprite << ", tick " << interface->get_game()->get_tick() << ", tree_anim " << tree_anim;
+        int slow_tree_anim = (interface->get_game()->get_tick() + sprite) >> 5;  // YES this works perfectly!  it advances at about 40% of the >>4 rate
+        //Log::Info["viewport"] << "bitmath debug, sprite " << sprite << ", tick " << interface->get_game()->get_tick() << ", tree_anim " << tree_anim << ", slow_tree_anim " << slow_tree_anim;
+        // IDEA - could vary the wind speed by changing the shift rate!
+
+        // to support custom sprites and "crammed" animation, a numbering system is used
+        // where each season has a set of trees, each with their own animation set
+        //
+        // NORMALLY, the game has Tree (and Pine, and Palm and SubmergedTree) numbers as map objects
+        //  and to animate them the spite drawn is an offset of the base '0' object for that set
+        //  and only that one set of animation exists for each tree type (it cycles through the sprites as frames)
+        //
+        // for FourSeasons, the number of unique trees of each type (Tree/Pine/etc)is limited to the
+        //  number of the original type/frames (8xTree,8xPine,4xPalm,4xSubmergedTree), however the 
+        //  animation frames for each is unlimited.  For now I have used a numbering system that limits 
+        //  frame count to <=9 but the numbering system could be changed to allow any number of frames per tree type.  
+        //
+        // #.. is season_offset (NOT same as 'season' because they are out of order, offset are
+        //    Spring = 200, Summer = 000 (none), Fall = 400, Winter = 300
+        // .#. is Tree#, 0-3 for some, 0-7 for others
+        // ..# is Frame#, 0-3 for some, 0-7 for others
+        // so for example, Fall Tree#5 with 8 frames of animation is index 450 through 457
+
+        int tree = 10*sprite;
+        int frame = 0;
+        // spring 2nd transition (to summer/full foliage) order
+              // 1whiteflower
+              // 2pinkflower
+              // 0tree
+              // 3tree
+              // 4tree
+              // .. and so on
+        // THIS WILL NOT WORK THIS WAY!! NEED TO REORDER ACTUAL SPRITES
+        // NEED TO RENAME both spring AND winter TREES SO THAT
+        //  1whiteflower and 2pinkflower are tree5+ 
+        // and then somehow get them to become full-summer-leaves in reverse order??
+        //  maybe inverse the subseason >7 so 8 affects tree7, 9 affects tree6, and so on
+        //int spring_2nd_order[8] = { 10, 20, 0, 30, 40, 50, 60, 70};
+        // fall tree# colors:
+              // Tree 0 greenyellow
+              // Tree10 yellow
+              // Tree20 orangeyellow
+              // Tree30 orangered
+              // Tree40 redbright
+              // Tree50 reddull
+              // Tree60 magenta
+              // Tree70 brown
+        // fall transition pattern:
+              ///summer -> fall 1st -> fall 2nd
+              // green->0greenyellow->2orangeyellow
+              // green->1yellow->3orangered
+              // green->2orangeyellow->5reddull
+              // green->6magenta->2orangeyellow
+              // green->1yellow->7brown
+              // green->0greenyellow->3orangered
+              // green->5reddull->7brown
+              // green->4redbright->5reddull
+        int fall_1st_colors[8] = {  0, 10, 20, 60, 10,  0, 50, 40};              
+        int fall_2nd_colors[8] = { 20, 30, 50, 20, 70, 30, 70, 50};              
+        if (sprite < 8){
+          // these are deciduous trees, apply special FourSeasons rules
+          if (option_FourSeasons){
+            switch (season) {
+            case 0:  // SPRING
+              if (subseason*10 > tree + 80){
+                // use summer/normal coloration for this Tree#
+                sprite = (sprite & ~7) + (tree_anim & 7);  // 8 frames of animation
+              }else if (subseason*10 > tree){
+                // use early-spring coloration for this Tree#
+                frame = (sprite & ~7) + (slow_tree_anim & 3);  // spring trees have 8 types, two sets per type, each with 4 frames of animation
+                sprite = season_offset[season] + tree + frame;
+                use_custom_set = true;
+              }else{
+                // use previous (winter) coloration for this Tree#.  It is important that the Tree#s are synced between winter & spring because the trunks need to match!!
+                frame = (sprite & ~7) + (slow_tree_anim & 3);  // winter trees have 8 types, each with 4 frames of animation
+                sprite = season_offset[3] + tree + frame;
+                use_custom_set = true;
+              }
+              break;
+            case 1:  // SUMMER
+              // continue using normal/summer green shifting method, no custom_set
+              sprite = (sprite & ~7) + (tree_anim & 7);  // 8 frames of animation
+              break;
+            case 2:  // FALL
+              frame = (sprite & ~7) + (tree_anim & 7);  // 8 frames of animation
+              
+              if (subseason*10 > tree + 80){
+                // use second fall color
+                tree = fall_2nd_colors[tree/10];
+                sprite = season_offset[season] + tree + frame;
+                use_custom_set = true;
+              }else if (subseason*10 > tree){  // if subseason is 0, no tree changes yet
+                // use first fall color
+                tree = fall_1st_colors[tree/10];
+                sprite = season_offset[season] + tree + frame;
+                use_custom_set = true;
+              }else{
+                // continue using normal/summer green for this Tree#, no custom_set
+                sprite = (sprite & ~7) + (tree_anim & 7);  // 8 frames of animation
+              }
+              break;
+            case 3:  // WINTER
+              // FIGURE OUT HOW TO SLOW DOWN THE WINTER TREE ANIMATIONS 2-3x
+              if (subseason*10 > tree){  // if subseason is 0, no tree changes yet.  trees all lose leaves in first half of 16 subseasons
+                // use winter coloration for this Tree#
+                frame = (sprite & ~7) + (slow_tree_anim & 3);  // winter trees have 8 types, each with 4 frames of animation
+                sprite = season_offset[season] + tree + frame;
+              }else{
+                // use previous (fall 2nd set) coloration for this Tree#.  Because the fall trunks are not visible, it doesn't matter if the tree#s are swapped here
+                tree = fall_2nd_colors[tree/10];
+                frame = (sprite & ~7) + (tree_anim & 7);  // fall trees have 8 types, each with 8 frames of animation
+                sprite = season_offset[2] + tree + frame;
+              }
+              use_custom_set = true;  // winter always uses custom_set, for winter and fall trees shown
+              break;
+            default:
+              NOT_REACHED();
+              break;
+            } // end case-switch (season)
+          }else{  // if option_FourSeasons
+            // if option_FourSeasons is NOT on, apply normal shift rules
+            sprite = (sprite & ~7) + (tree_anim & 7);
+          }
+        }else if (sprite >= 8 && sprite < 16) {
+          // these are pine trees, shift.  8 frames of animation
+          sprite = (sprite & ~7) + (tree_anim & 7); 
+        }else if (sprite >=16){
+          // these are ... palm and submerged trees.  4 frames of animation per type
           sprite = (sprite & ~3) + (tree_anim & 3);
         }
-      }
-      draw_shadow_and_building_sprite(x_base, ly, sprite);
-    }
-  }
 
-}
+      } // if sprite < 24 (trees and junk objects)
+
+      /* disabling this, instead modifying the rgb palette color of the original sprites
+
+      // FourSeasons - in WINTER make Seed# objects (immature fields) appear as spent fields
+      //   though they are just dormant and will revert to their original graphics in spring
+      //   THIS IS SOLELY BECAUSE THE Seeds0/1/2 are too GREEN and it clashes
+      //  a much better approach is to set a custom graphic that is less green but looks like Seed0
+      //   otherwise and use that for all new fields
+      // ObjectSeeds0, // #105  - 8
+      // ObjectSeeds1,
+      // ObjectSeeds2,
+      // ObjectSeeds3,  <-- these are mature enough to not be "seeds" anymore, leave these
+      // ObjectSeeds4,
+      // ObjectSeeds5, // #110  - 8
+      // ObjectFieldExpired, // #111   - 8
+      if (option_FourSeasons && season == 3){
+        // REMEMBER THAT
+        //  'sprite' is reduced by 8 / Map::ObjectTree0 earlier in this function because 0-7 are some placeholders?
+        if ((sprite >= Map::ObjectSeeds0 - Map::ObjectTree0) && (sprite <= Map::ObjectSeeds2 - Map::ObjectTree0)){  // a bit more snow on mountains in winter
+          Log::Debug["viewport.cc"] << "using alternate sprite 111 ObjectFieldExpired for ObjectSeeds sprite " << sprite;
+          sprite = Map::ObjectFieldExpired - Map::ObjectTree0;
+        }else{
+          Log::Debug["viewport.cc"] << "using original " << sprite << " for non-ObjectSeeds object type #" << sprite;
+        }
+      }
+      */
+
+      if (use_custom_set){
+        draw_map_sprite_special(x_base, ly, sprite, pos, map->get_obj(pos));
+      }else{
+        draw_shadow_and_building_sprite(x_base, ly, sprite);
+      }
+
+    } // if not a Tree or junk object
+  } // foreach column in this row
+} // end Viewport::draw_map_objects_row
 
 /* Draw one individual serf in the row. */
 void
@@ -1514,7 +1807,24 @@ Viewport::serf_get_body(Serf *serf) {
       // try this way, now that extra zeroes added for fake resource types 26+
       // nope this doesn't work... hmm figure it out later
       //t += sailor_type[serf->get_delivery()];
+    } else if (option_CanTransportSerfsInBoats && serf->get_state() == Serf::StateWalking && map->is_in_water(serf->get_pos())) {
+      // if this is a Sailor that is traversing an existing water path that may be worked by another sailor, on way to reach
+      //  this new sailor's water path destination!  Show this sailor as padding animation otherwise he will walk on water
+      // Do NOT want sailors to become passengers in other sailors' boats at this time
+      // copying this animation/sound stuff from the Transporting section, could instead move this logic into there to avoid duplication
+      if (t < 0x80) {
+        if (((t & 7) == 4 && !serf->playing_sfx()) ||
+            (t & 7) == 3) {
+          serf->start_playing_sfx();
+          //play_sound(Audio::TypeSfxRowing);
+          play_sound(Audio::TypeSfxRowing, DataSourceType::DOS);  // DOS sound is a little better
+        } else {
+          serf->stop_playing_sfx();
+        }
+      }
+      t += 0x200;
     } else {
+      // normal walking?
       t += 0x100;
     }
     break;
@@ -2164,9 +2474,9 @@ Viewport::draw_active_serf(Serf *serf, MapPos pos, int x_base, int y_base) {
         //
         // help debug lost serf clearing issues, auto-mark Lost serfs
         //   Nov 2021
-        if (serf->get_state() == Serf::StateLost){
-          auto_mark_this_serf = true;
-        }
+        //if (serf->get_state() == Serf::StateLost){
+        //  auto_mark_this_serf = true;
+        //}
 
         /*
         if (serf->get_state() != Serf::StateIdleInStock) {
@@ -2215,7 +2525,7 @@ Viewport::draw_active_serf(Serf *serf, MapPos pos, int x_base, int y_base) {
           // make text increasingly red as wait increases
           int red = 150 + (25 * wait_counter);
           if (red > 255) {
-              red = 255;
+              red = 255'y';
           }
           int green_blue = 150 - (25 * wait_counter);
           if (green_blue < 0) {
@@ -2396,7 +2706,11 @@ Viewport::draw_serf_row_behind(MapPos pos, int y_base, int cols, int x_base) {
     /* Active serf */
     if (map->has_serf(pos)) {
       Serf *serf = interface->get_game()->get_serf_at_pos(pos);
-
+      // got a nullptr here once, adding check
+      if (serf == nullptr){
+        Log::Warn["viewport.cc"] << "inside draw_serf_row_behind, got nullptr for serf!  not drawing this one";
+        continue;
+      }
       if (serf->get_state() == Serf::StateMining &&
           (serf->get_mining_substate() == 3 ||
            serf->get_mining_substate() == 4 ||
@@ -2441,7 +2755,8 @@ Viewport::draw_game_objects(int layers_) {
       draw_serf_row_behind(pos, ly, short_row_len, lx);
     }
     if (draw_objects) {
-      draw_map_objects_row(pos, ly, short_row_len, lx);
+      //draw_map_objects_row(pos, ly, short_row_len, lx);
+      draw_map_objects_row(pos, ly, short_row_len, lx, ly);
     }
     if (draw_serfs) {
       draw_serf_row(pos, ly, short_row_len, lx);
@@ -2460,7 +2775,8 @@ Viewport::draw_game_objects(int layers_) {
       draw_serf_row_behind(pos, ly, long_row_len, lx - 16);
     }
     if (draw_objects) {
-      draw_map_objects_row(pos, ly, long_row_len, lx - 16);
+      //draw_map_objects_row(pos, ly, long_row_len, lx - 16);
+      draw_map_objects_row(pos, ly, long_row_len, lx - 16, ly);
     }
     if (draw_serfs) {
       draw_serf_row(pos, ly, long_row_len, lx - 16);
@@ -2471,13 +2787,15 @@ Viewport::draw_game_objects(int layers_) {
 
     pos = map->move_down_right(pos);
   }
+
   //
   // ambient sounds - birds near trees, waves near water (palms)
   //  wind near deserts 
   // the timing of these isn't well planned, just fiddled around with the numbers until it
   //  gave acceptable results.  could be improved
   // ALSO... would the wind sounds be better for mountains rather than deserts??
-  //
+  // NOTE ambient sounds are triggered by trees & junk objects in view, so if junk objects off
+  //   and on lakes with no submerged tree (because its bugged) these sounds will not trigger
   // play bird sounds if enough trees in view
   //Log::Info["viewport.cc"] << "trees in view: " << interface->trees_in_view;
   if (interface->trees_in_view > 0){
@@ -2649,7 +2967,7 @@ Viewport::draw_map_cursor_possible_build() {
 }
 
 void
-Viewport::draw_ai_grid_overlay() {
+Viewport::draw_ai_overlay() {
   int x_off = 0;
   int y_off = 0;
   MapPos base_pos = get_offset(&x_off, &y_off);
@@ -2660,6 +2978,7 @@ Viewport::draw_ai_grid_overlay() {
     return;
   }
   //Log::Debug["viewport"] << "Player" << current_player_index << " is an AI, enabling AI overlay";
+  // got exception here for first time jan04 2022
   ColorDotMap ai_mark_pos = *(ai->get_ai_mark_pos());
   Road *ai_mark_road = ai->get_ai_mark_road();
 
@@ -2714,10 +3033,8 @@ Viewport::draw_ai_grid_overlay() {
   
   /*
   // draw road pathfinding
-  //Road *p_mark_road = game->get_ai_mark_road();
-  MapPos prevpos = p_mark_road->get_source();
-  //for (Direction dir : p_mark_road->get_dirs()) {
-  for (const auto &dir : p_mark_road->get_dirs()) {
+  MapPos prevpos = ai->get_ai_mark_road()->get_source();
+  for (const auto &dir : ai->get_ai_mark_road()->get_dirs()) {
           MapPos thispos = map->move(prevpos, dir);
           int prev_sx = 0;
           int prev_sy = 0;
@@ -2731,7 +3048,7 @@ Viewport::draw_ai_grid_overlay() {
           screen_pix_from_map_coord(thispos, &this_sx, &this_sy);
           //Log::Info["viewport"] << "called screen_pix_from_map_coord with TO MapPos " << thispos << ", got x,y " << this_sx << "," << this_sy;
 
-          frame->draw_line(prev_sx, prev_sy, this_sx, this_sy, game->get_mark_color("white"));
+          frame->draw_line(prev_sx, prev_sy, this_sx, this_sy, ai->get_mark_color("white"));
           prevpos = thispos;
   }
   */
@@ -2901,34 +3218,90 @@ Viewport::draw_ai_grid_overlay() {
     }
   }
 
+  // draw AI status text box
+  std::string status = ai->get_ai_status();
+  //    got a segfault drawing this string once, I think the status string changed while iterating over its chars?
+  //  got it again same day, trying questionable work-around
+  //  still getting it, work-around not fixing, check Visual Studio on windows debugger
+  frame->draw_string(65, 1, status, Color::white);
 
+/*  this is causing exceptions frequently, not sure why, disabling for now
+  // draw AI expansion goals text box
+  int row = 1;   // text rows are 10 pixels apart, start at row 1 (2nd row, after ai_status row)
+  frame->draw_string(1, row * 10, "expansion_goals:", Color::white);
+  for (std::string goal : ai->get_ai_expansion_goals()) {
+    row++;
+    frame->draw_string(1, row * 10, "   " + goal, Color::white);
+  }
+  */
+
+  // draw Inventory pos
+  frame->draw_string(450, 1, "Inv " + std::to_string(ai->get_ai_inventory_pos()), Color::white);
+
+  // draw current loop count
+  frame->draw_string(800, 10, "AI loop: " + std::to_string(ai->get_loop_count()), Color::white);
+
+}
+
+
+void
+Viewport::draw_debug_overlay() {
+  int x_off = 0;
+  int y_off = 0;
+  MapPos base_pos = get_offset(&x_off, &y_off);
+  PGame game = interface->get_game();
+  unsigned int current_player_index = interface->get_player()->get_index();
+  ColorDotMap debug_mark_pos = *(game->get_debug_mark_pos());
+  // iterate over every MapPos in view
+  for (int x_base = x_off; x_base < width + MAP_TILE_WIDTH;
+    x_base += MAP_TILE_WIDTH) {
+    MapPos pos = base_pos;
+    int y_base = y_off;
+    int row = 0;
+    while (1) {
+      int lx;
+      if (row % 2 == 0) {
+        lx = x_base;
+      }
+      else {
+        lx = x_base - MAP_TILE_WIDTH / 2;
+      }
+      int ly = y_base - 4 * map->get_height(pos);
+      if (ly >= height) break;
+      if (debug_mark_pos.count(pos) > 0) {
+        if (pos != map->pos(0, 0)) {
+          // first two args are x/y offset, if made bigger start more negatively
+          // second two args are x/y coord of corners, increase to make bigger
+          // small-medium dots
+          //frame->fill_rect(lx - 2, ly + 0, 5, 5, colors.at(debug_mark_pos.at(pos)));
+          //frame->fill_rect(lx - 3, ly + 1, 7, 3, colors.at(debug_mark_pos.at(pos)));
+          // large dots
+          frame->fill_rect(lx - 7, ly + 0, 16, 16, colors.at(debug_mark_pos.at(pos)));
+          frame->fill_rect(lx - 9, ly + 1, 20, 14, colors.at(debug_mark_pos.at(pos)));
+        }
+      }
+      if (row % 2 == 0) {
+        pos = map->move_down(pos);
+      }
+      else {
+        pos = map->move_down_right(pos);
+      }
+      y_base += MAP_TILE_HEIGHT;
+      row += 1;
+    }
+    base_pos = map->move_right(base_pos);
+  }
+  
   // draw player number/color text box
   frame->draw_string(1, 1, "Player" + std::to_string(current_player_index), interface->get_player_color(current_player_index));
 
-  // draw AI status text box
-  std::string status = ai->get_ai_status();
-  frame->draw_string(65, 1, status, ai->get_mark_color("white"));
-
-  // draw AI expansion goals text box
-  int row = 1;   // text rows are 10 pixels apart, start at row 1 (2nd row, after ai_status row)
-  frame->draw_string(1, row * 10, "expansion_goals:", ai->get_mark_color("white"));
-  for (std::string goal : ai->get_ai_expansion_goals()) {
-    row++;
-    frame->draw_string(1, row * 10, "   " + goal, ai->get_mark_color("white"));
-  }
-
-  // draw Inventory pos
-  frame->draw_string(450, 1, "Inv " + std::to_string(ai->get_ai_inventory_pos()), ai->get_mark_color("white"));
-
   // draw cursor map click position
-  if (ai_overlay_clicked_pos != bad_map_pos) {
-    frame->draw_string(600, 1, "clicked on " + std::to_string(ai_overlay_clicked_pos), colors.at("white"));
+  if (debug_overlay_clicked_pos != bad_map_pos) {
+    frame->draw_string(600, 1, "clicked on " + std::to_string(debug_overlay_clicked_pos), Color::white);
   }
 
   // draw current game speed
-  frame->draw_string(800, 1, "game speed: " + std::to_string(ai->get_game_speed()), colors.at("white"));
-  // draw current loop count
-  frame->draw_string(800, 10, "AI loop: " + std::to_string(ai->get_loop_count()), colors.at("white"));
+  frame->draw_string(800, 1, "game speed: " + std::to_string(game->get_game_speed()), Color::white);
 
 }
 
@@ -2987,6 +3360,24 @@ Viewport::draw_hidden_res_overlay() {
           case Map::Minerals::MineralsStone:
             res_color = Color::lt_gray;
             break;
+            /*
+          case Map::ObjectSeeds0:
+          case Map::ObjectSeeds1:
+          case Map::ObjectSeeds2:
+          case Map::ObjectSeeds3:
+          case Map::ObjectSeeds4:
+          case Map::ObjectSeeds5:
+          case Map::ObjectField0:
+          case Map::ObjectField1:
+          case Map::ObjectField2:
+          case Map::ObjectField3:
+          case Map::ObjectField4:
+          case Map::ObjectField5:
+          case Map::ObjectFieldExpired:
+            // farming debugging, highlight fields
+            res_color = Color::white;
+            break;
+            */
         }
         //frame->fill_rect(lx - 2, ly + 0, 5, 5, res_color);
         frame->fill_rect(lx - 2, ly + 0, size, size, res_color);
@@ -3099,20 +3490,23 @@ Viewport::internal_draw() {
   if (map == NULL) {
     return;
   }
-
   if (layers & LayerLandscape) {
     draw_landscape();
   }
   if (layers & LayerGrid) {
     draw_base_grid_overlay(Color(0xcf, 0x63, 0x63));
     draw_height_grid_overlay(Color(0xef, 0xef, 0x8f));
+    // note that this also shows serf states, which is drawn elsewhere in Viewport (I think)
   }
   if (layers & LayerPaths) {
     draw_paths_and_borders();
   }
   draw_game_objects(layers);
+  if (layers & LayerDebug){
+    draw_debug_overlay();
+  }
   if (layers & LayerAI) {
-    draw_ai_grid_overlay();
+    draw_ai_overlay();
   }
   if (layers & LayerHiddenResources) {
     draw_hidden_res_overlay();
@@ -3127,7 +3521,7 @@ Viewport::handle_click_left(int lx, int ly, int modifier) {
   set_redraw();
   MapPos clk_pos = map_pos_from_screen_pix(lx, ly);
 
-  ai_overlay_clicked_pos = clk_pos;
+  debug_overlay_clicked_pos = clk_pos;
   // CTRL-click:  KMOD_CTRL = (KMOD_LCTRL|KMOD_RCTRL) which is 64|128
   if (modifier == 64 || modifier == 128){
     Log::Debug["viewport"] << "CTRL-clicked on pos " << clk_pos << " with x,y " << map->pos_col(clk_pos) << "," << map->pos_row(clk_pos);

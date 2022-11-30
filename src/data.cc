@@ -138,18 +138,31 @@ Data::load(const std::string &path) {
     if (source_type == 2)
       source_name = "Custom";
     for (const std::string &path : search_paths) {
+      Log::Info["data"] << "checking for game data in search_path '" << path << "'";
       Data::PSource source = factory(path);
       if (source->check()) {
         Log::Info["data"] << "Game data of type " << source_name << " found in '" << source->get_path()
                           << "'...";
+        if (source_type == 2){
+          Log::Info["data"] << "found a Custom data source.  REMEMBER TO INCLUDE SDL2 LIBRARIES IN YOUR Forkserf BUILD OR CUSTOM DATA WILL FAIL TO LOAD/WORK!";
+        }
         if (source->load()) {
-          if (source_type == 0)
+          if (source_type == 0){
             data_source_Amiga = source;
-          if (source_type == 1)
+            Log::Info["data"] << "loaded Amiga data source";
+            data_source = std::move(source);
+          }
+          if (source_type == 1){
             data_source_DOS = source;
-          if (source_type == 2)
+            Log::Info["data"] << "loaded DOS data source";
+            data_source = std::move(source);
+
+          }
+          if (source_type == 2){
             data_source_Custom = source;
-          data_source = std::move(source);
+            Log::Info["data"] << "loaded Custom data source.  Note that this could be a partial or incomplete datasource, only the existence of the top-level meta.ini is confirmed";
+            //data_source = std::move(source);  // don't use this as the main data source, only for explicit custom datasource calls
+          }
           break;
         }
       }
@@ -193,9 +206,12 @@ Data::get_standard_search_paths() const {
   paths.push_back(".");
 
   // Look in data directories under the home directory
-  add_env_path(std::getenv("XDG_DATA_HOME"), "freeserf");
-  add_env_path(std::getenv("HOME"), ".local/share/freeserf");
-  add_env_path(std::getenv("HOME"), ".local/share/freeserf/custom");
+  //add_env_path(std::getenv("XDG_DATA_HOME"), "freeserf");
+  //add_env_path(std::getenv("HOME"), ".local/share/freeserf");
+  //add_env_path(std::getenv("HOME"), ".local/share/freeserf/custom");
+  add_env_path(std::getenv("XDG_DATA_HOME"), "forkserf");
+  add_env_path(std::getenv("HOME"), ".local/share/forkserf");
+  add_env_path(std::getenv("HOME"), ".local/share/forkserf/custom");
 
 #ifdef _WIN32
   // Look in the same directory as the freeserf.exe app.
@@ -204,8 +220,10 @@ Data::get_standard_search_paths() const {
   add_env_path(app_path, "../");
 
   // Look in windows XDG_DATA_HOME equivalents.
-  add_env_path(std::getenv("userprofile"), ".local/share/freeserf");
-  add_env_path(std::getenv("LOCALAPPDATA"), "freeserf");
+  //add_env_path(std::getenv("userprofile"), ".local/share/freeserf");
+  //add_env_path(std::getenv("LOCALAPPDATA"), "freeserf");
+  add_env_path(std::getenv("userprofile"), ".local/share/forkserf");
+  add_env_path(std::getenv("LOCALAPPDATA"), "forkserf");
 #endif
 
   // Search in global directories.
@@ -223,13 +241,20 @@ Data::get_standard_search_paths() const {
     size_t pos = dirs.find(PATH_SEPERATING_CHAR, next_path);
     std::string dir = dirs.substr(next_path, pos);
     next_path = (pos != std::string::npos) ? pos + 1 : pos;
-    add_env_path(dir.c_str(), "freeserf");
+    //add_env_path(dir.c_str(), "freeserf");
+    add_env_path(dir.c_str(), "forkserf");
   }
 
+//#ifndef _WIN32
+//  paths.push_back("/usr/local/share/freeserf");
+//  paths.push_back("/usr/share/freeserf");
+//#endif
+
 #ifndef _WIN32
-  paths.push_back("/usr/local/share/freeserf");
-  paths.push_back("/usr/share/freeserf");
+  paths.push_back("/usr/local/share/forkserf");
+  paths.push_back("/usr/share/forkserf");
 #endif
+
 
   return paths;
 }

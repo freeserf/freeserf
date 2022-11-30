@@ -238,10 +238,21 @@ GameInitBox::internal_draw() {
     }
   }
 
-  /* Display program name and version in caption */
-  draw_box_string(0, 212, FREESERF_VERSION);
+  // Display program name and version in caption
+  //draw_box_string(0, 212, FREESERF_VERSION);
+  draw_box_string(0, 222, "FORKSERF");
+  draw_box_string(9, 222, FORKSERF_VERSION);
 
-  if (game_type == GameCustom) {
+   if (game_type == GameCustom) {
+     /*   figure this out later, it looks ugly
+    // AI start location options
+    draw_box_string(0, 210, "AI START AWAY FROM");
+    draw_box_string(14, 207, "ME");
+    draw_box_string(14, 226, "AI");
+    draw_box_icon(16, 203, 0x3d); // flipbox icon
+    draw_box_icon(16, 222, 0x3d); // flipbox icon
+    */
+
     // Link to open Map Generator editor popup
     draw_box_string(22, 207, "Edit Map");
     draw_box_string(22, 217, "Generator");

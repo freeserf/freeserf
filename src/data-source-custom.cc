@@ -56,18 +56,31 @@ DataSourceCustom::load() {
   scale = meta_main->value("general", "scale", 1);
   name = meta_main->value("general", "name", "Unnamed");
 
+  // it seems like this literally only loads animations, and not
+  // any of the other custom data objects.  Perhaps the others are
+  // loaded on the fly as needed during draw_sprite calls?
+  // if so, it means it may be possible to skip this if no custom
+  // animations are actually needed.  Trying this out...
+  //  YES, that is the case.  disabling enforcement of this check allows partial custom data sources!
   loaded = load_animation_table();
+  // throw a warning message at least
+  if (!loaded){
+    Log::Warn["data-source-custom.cc"] << "failed to load 'animation' data from custom datasource, however this only a problem if you are attempting to load custom animation.  Currently Forkserf does *not* use any custom animations.  Ignoring and continuing";
+    loaded = true;  // and just fake success if we go this far.  If there is absolutely no custom data the top check for meta.ini will fail and 'loaded' bool will remain false
+  }
 
   return loaded;
 }
 
+// using DataSourceCustom graphics requires SDL2_Image included in build or it will fail!
 Data::MaskImage
 DataSourceCustom::get_sprite_parts(Data::Resource res, size_t index) {
+  //Log::Info["data-source-custom"] << "inside DataSourceCustom::get_sprite_parts with res " << res << ", index " << index;
   ResInfo *info = get_info(res);
   if (info == nullptr) {
+    Log::Warn["data-source-custom"] << "inside DataSourceCustom::get_sprite_parts with res " << res << ", index " << index << " get_info returned nullptr";
     return std::make_tuple(nullptr, nullptr);
   }
-
   std::stringstream stream;
   stream << std::setfill('0') << std::setw(3) << index;
   std::string section = stream.str();

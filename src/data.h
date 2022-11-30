@@ -160,7 +160,7 @@ class Data {
   PSource data_source;
 
   // added tlongstretch, early attempt to use multiple data sources
-  PSource data_source_Custom;
+  PSource data_source_Custom;  // NOTE: Custom datasource requires SDL2 libs to be included when building or data will fail to load!
   PSource data_source_DOS;
   PSource data_source_Amiga;
 
@@ -178,7 +178,7 @@ class Data {
 
   PSource get_data_source() const { return data_source; }
 
-  PSource get_data_source_Custom() const { return data_source_Custom; }
+  PSource get_data_source_Custom() const { return data_source_Custom; } // NOTE: Custom datasource requires SDL2 libs to be included when building or data will fail to load!
   PSource get_data_source_DOS() const { return data_source_DOS; }
   PSource get_data_source_Amiga() const { return data_source_Amiga; }
 

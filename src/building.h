@@ -33,28 +33,19 @@
 //  this number represents the number of seconds to allow for a requested
 //   resource to travel one game tile at default game speed (2)
 //   It needs to account for steepness and reasonable traffic
-//  A quick test shows that it takes about nine seconds for a serf
-//   to travel one tile up a road of the steepest category
-// originally tested this at 15, kept increasing as I saw timeouts triggering
-//  even setting it at 600 I still see a few timeouts.  Find a happy balance.
-//  it is probably safe to keep it relatively low as re-requesting resources
-//   should not be a big deal, but waiting forever for resources is.
-//   at 600, that is TEN MINUTES PER TILE if the TICKS_PER_SEC def is accurate
-//    that seems far too long to tolerate
-// NOT ONLY THIS.... it still seems like it isn't working!!!
-// I still see a 4x AI long running game where the castle has hundreds of bread
-//  and there's a baker right near a gold mine, and the gold mine has highest food
-//   priority, but the gold mine is still not getting and food!  it all gets stored
-// ACTUALLY I think it does work.  the warehouse where the food was being stored
-//  instead of going to the mines, after some time suddenly sent out a ton of food
-//  to the mines.  I think the timeout did work on game load anyway, not sure
-//   why it wasn't working up to that point??
-#define TIMEOUT_SECS_PER_TILE  18
+//  A quick test shows that it takes about nine seconds and about 1000 ticks
+//   for a serf to travel one tile up a road of the steepest (red) category
+// timeouts from 100-1000 might be reasonable, the higher end mainly to account
+//  for serf and resource traffic on roads, terrain probably matters less
+#define TIMEOUT_SECS_PER_TILE  350
 // also copying these here from freeserf.h as it is not included but is needed for
 //  the request resource timeouts
 /* The length between game updates in miliseconds. */
 #define TICK_LENGTH  20
+// 1000/20 is 50, but it seems the actual timing is about 100 per second at game speed 2
+//  maybe it is intended for game speed 1?
 #define TICKS_PER_SEC  (1000/TICK_LENGTH)
+
 
 class Inventory;
 class Serf;
@@ -104,7 +95,6 @@ class Building : public GameObject {
     int requested;
     int maximum;
     // adding support for resource request timeouts
-    int requested_tick[8];
     int req_timeout_tick[8];
   } Stock;
 
@@ -117,7 +107,7 @@ class Building : public GameObject {
   /* Building under construction */
   bool constructing;
   /* Flags */
-  size_t threat_level;
+  size_t threat_level;  // 0 is safest/white flag, 3 is highest threat, thick cross
   bool playing_sfx;
   bool serf_request_failed;
   bool serf_requested;
@@ -177,7 +167,7 @@ class Building : public GameObject {
 
   /* The threat level of the building. Higher values mean that
    the building is closer to the enemy. */
-  size_t get_threat_level() const { return threat_level; }
+  size_t get_threat_level() const { return threat_level; }  // 0 is safest/white flag, 3 is highest threat, thick cross
   /* Building is currently playing back a sound effect. */
   //
   // THESE FUNCTION NAMES ARE MISLEADING:
@@ -219,7 +209,7 @@ class Building : public GameObject {
   unsigned int get_tick() const { return u.tick; }
   void set_tick(unsigned int tick) { u.tick = tick; }
 
-  unsigned int get_knight_count() const { return waiting_planks(); }
+  unsigned int get_knight_count() const { return waiting_planks(); }  // wtf is this???
 
   unsigned int waiting_stone() const {
     return stock[1].available; }  // Stone allways in stock #1
@@ -254,7 +244,8 @@ class Building : public GameObject {
     stock[stock_num].prio = priority; }
   void set_initial_res_in_stock(int stock_num, int count) {
     stock[stock_num].available = count; }
-  void requested_resource_delivered(Resource::Type resource);
+  //void requested_resource_delivered(Resource::Type resource);
+  bool requested_resource_delivered(Resource::Type resource);  // adding bool return to indicate if res should be sent back, for resource req timeouts
   void plank_used_for_build() {
     stock[0].available -= 1; stock[0].maximum -= 1; }
   void stone_used_for_build() {

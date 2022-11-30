@@ -155,9 +155,9 @@ class ClassicMissionMapGenerator : public ClassicMapGenerator {
 class CustomMapGenerator : public ClassicMapGenerator {
  public:
 
-  static const int default_max_lake_area = 14;
-  static const int default_water_level = 20;
-  static const int default_terrain_spikyness = 0x9999;
+  //static const int default_max_lake_area = 14;
+  //static const int default_water_level = 20;
+  //static const int default_terrain_spikyness = 0x9999;
 
   CustomMapGeneratorOptions custom_map_generator_options;
 
@@ -175,12 +175,15 @@ class CustomMapGenerator : public ClassicMapGenerator {
       //Log::Info["map-generator.h"] << "inside CustomMapGenerator::init, copying values x " << x << "_.opt[x] = " << _custom_map_generator_options.opt[x] << " as string " << std::to_string(_custom_map_generator_options.opt[x]);
       custom_map_generator_options.opt[x] = _custom_map_generator_options.opt[x];
     }
+    //
+    // WHY DOES water_level APPEAR TO WORK IN REVERSE??? HIGHER water_level VALUES MEANS LESS WATER?????
+    //
     // keep water_level same for now until I figure out safe levels
     // water_level 12 or lower seems to result in crash, 13+ is okay, highest multiplier is 1.53x
     // water_level 21 or higher results in no water at all, default is 20, lowest multipliyer is 0.98 (no change, effectively)
     // so it seems safe water levels are 13-20, with 13 giving some more water but not a huge amount
     // ALSO, if water_level is set to lower than default (i.e. >1.xx multipler) the max_lake_area seems to have no effect!
-    custom_map_generator_options.opt[CustomMapGeneratorOption::LakesWaterLevel] = 1.00;
+    ///////custom_map_generator_options.opt[CustomMapGeneratorOption::LakesWaterLevel] = 1.00;
     //Log::Info["map-generator.h"] << "inside CustomMapGenerator::init, water_level " << water_level << " / " << custom_map_generator_options.opt[CustomMapGeneratorOption::LakesWaterLevel] << " = " << water_level / custom_map_generator_options.opt[CustomMapGeneratorOption::LakesWaterLevel];
 /*
     for (int x = 0; x < 23; x++){
@@ -211,6 +214,9 @@ class CustomMapGenerator : public ClassicMapGenerator {
   void create_deserts();  // modified to allow changing of desert frequency
   void create_objects();  // modified to allow changing of all object frequency / quantity
   void create_mineral_deposits();  // modified to allow changing of all mineral deposit frequency / quantity
+  void heights_rebase();  // modified to support changing of water_level
+  void init_types(); // modified to call modified calc_map_type to fix water_level - mountain relationship
+  Map::Terrain calc_map_type(int h_sum);  // when water level increased beyond default, adjust effective tile height for Terrain type calculation to avoid losing mountains!
 
   // THESE FUNCTIONS BELOW ARE ALSO DEFINED IN popup.h and interface.h !!!!
   // 65500 (not 65535) / 2 = 32750

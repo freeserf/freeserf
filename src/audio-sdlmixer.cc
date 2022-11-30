@@ -201,12 +201,20 @@ AudioSDL::PlayerSFX::enable(bool enable) {
   enabled = enable;
   if (!enabled) {
     stop();
+  }else{
+    start();
   }
 }
 
 void
 AudioSDL::PlayerSFX::stop() {
-  Mix_HaltChannel(-1);
+  //Mix_HaltChannel(-1);
+  Mix_Pause(-1);
+}
+
+void
+AudioSDL::PlayerSFX::start() {
+  Mix_Resume(-1);
 }
 
 float
@@ -307,13 +315,14 @@ AudioSDL::PlayerMIDI::create_track(int track_id, int source_type) {
 
   if (data_source->get_music_format() == Data::MusicFormatMod) {
     if (MIX_INIT_MOD != Mix_Init(MIX_INIT_MOD)) {
-      Log::Error["audio:SDL_mixer"] << "Failed to initialize MOD music decoder";
+      Log::Error["audio-sdlmixer.cc"] << "inside AudioSDL::PlayerMIDI::create_track, Failed to initialize MOD music decoder, SDL_GetError is " << SDL_GetError();
       return nullptr;
     }
   }
 
   PBuffer midi = data_source->get_music(track_id);
   if (!midi) {
+    Log::Error["audio-sdlmixer.cc"] << "inside AudioSDL::PlayerMIDI::create_track, midi is nullptr, SDL_GetError is " << SDL_GetError();
     return nullptr;
   }
 
@@ -321,9 +330,10 @@ AudioSDL::PlayerMIDI::create_track(int track_id, int source_type) {
                                 static_cast<int>(midi->get_size()));
   Mix_Music *music = Mix_LoadMUS_RW(rw, 0);
   if (music == nullptr) {
+    Log::Error["audio-sdlmixer.cc"] << "inside AudioSDL::PlayerMIDI::create_track, music is nullptr!, SDL_GetError is " << SDL_GetError();
+    Log::Error["audio-sdlmixer.cc"] << "note, if you are running linux and geting error about timidity/freepats.cfg, you might need 'timidity' and/or 'freepats' package, see https://github.com/freeserf/freeserf/issues/508";
     return nullptr;
   }
-
   return std::make_shared<AudioSDL::TrackMIDI>(midi, music);
 }
 
@@ -357,12 +367,20 @@ AudioSDL::PlayerMIDI::enable(bool enable) {
   enabled = enable;
   if (!enabled) {
     stop();
+  }else{
+    start();
   }
 }
 
 void
 AudioSDL::PlayerMIDI::stop() {
-  Mix_HaltMusic();
+  //Mix_HaltMusic();
+  Mix_PauseMusic();
+}
+
+void
+AudioSDL::PlayerMIDI::start() {
+  Mix_ResumeMusic();
 }
 
 float

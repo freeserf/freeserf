@@ -27,8 +27,21 @@ Dependencies
 * [SDL2_image](https://www.libsdl.org/projects/SDL_image/) (Optional; for custom resources) (Development Libraries)
 * [libxmp](http://xmp.sourceforge.net/) (Optional; for Amiga music playback) (Building needed)
 
+
+Building from Source on Windows
+------------
+
+****tlongstretch:  I wrote this guide years ago when I was first figuring out how to modify and build freeserf,
+   it is still somewhat accurate but I have since switched to using VSCode on linux, and occasionally compiling on
+   windows (win7 64bit) to make sure it still works there.  This guide is disjointed, but may still be helpful:
+
+https://github.com/forkserf/forkserf/wiki/building-from-source-on-Windows-using-Visual-Studio
+
+
 Coding style
 ------------
+
+****tlongstretch:  the original Freeserf code used 'Google C++ Style' but I have abandoned it because it is annoying  
 
 For the C++ code we are following the [Google C++ Style Guide](http://google.github.io/styleguide/cppguide.html).
 
@@ -41,6 +54,8 @@ $ make check_style
 
 Creating a pull request
 -----------------------
+
+****tlongstretch:  don't bother with pull requests, instead open an Issue or email me
 
 1. Create a topic branch for your specific changes. You can base this off the
    master branch or a specific version tag if you prefer (`git co -b topic master`).

@@ -22,10 +22,11 @@
 #include "src/mission.h"
 #include "src/game.h"
 
+// AI hasn't implemented personalities yet, listing ideas to do it for later here
 Character characters[] = {
   { 0, "ERROR", "ERROR"},
   { 1, "Lady Amalie",
-    "An inoffensive lady, reserved, who goes about her work peacefully."},    // doesn't attack, otherwise normal.  Maybe nerfed somehow?  No pigs
+    "An inoffensive lady, reserved, who goes about her work peacefully."},    // doesn't attack, doesn't build warehouses, doesn't expansion-score enemy-territory-near.  Maybe nerfed somehow?  No pigs
   { 2, "Kumpy Onefinger",
     "A very hostile character, who loves gold above all else."},  // aggressive, attack-scores gold highly.  No pigs
   { 3, "Balduin, a former monk",
@@ -38,19 +39,19 @@ Character characters[] = {
     "She is a fighter who attempts to block the enemy’s food supply by using "  // aggressive, attack-scores non-gold economy buildings highly.  Pigs and bakers
     "strategic tactics."},
   { 6, "Rasparuk the druid",
-    "His tactics consist in amassing large stocks of raw materials. "  // normal, doubled max_XXXX values?  No Pigs
+    "His tactics consist in amassing large stocks of raw materials. "  // normal, doubled max_XXXX values?  builds towers, citadels. slow to build warehouses and slow to expand?  No Pigs
     "But he attacks slyly."},
   { 7, "Count Aldaba",
-    "Protect your warehouses well, because he is aggressive and knows exactly " // aggressive, attack-scores Stocks highly. Pigs
+    "Protect your warehouses well, because he is aggressive and knows exactly " // aggressive, attack-scores Stocks highly.  No pigs
     "where he must attack."},
   { 8, "The King Rolph VII",
-    "He is a prudent ruler, without any particular weakness. He will try to " // normal "best AI", ignore the construction materials thing that is useless.  No pigs
+    "He is a prudent ruler, without any particular weakness. He will try to " // normal "best AI", attack-scores stone and wood buildings highly.  No pigs
     "check the supply of construction materials of his adversaries."},
   { 9, "Homen Doublehorn",
     "He is the most aggressive enemy. Watch your buildings carefully, "   // aggressive, otherwise normal.  No pigs
     "otherwise he might take you by surprise."},
   {10, "Sollok the Joker",
-    "A sly and repugnant adversary, he will try to stop the supply of raw "   // randomly choose one of other personalities, ignore the other thing it is too unpredictable
+    "A sly and repugnant adversary, he will try to stop the supply of raw "   // aggressive until warehouses built, then normal?  Pigs
     "materials of his enemies right from the beginning of the game."},
   {11, "Enemy",
     "Last enemy."},   // normal "best AI", but with some extra enhancements??  No pigs

@@ -79,15 +79,23 @@ AI::has_terrain_type(PGame game, MapPos pos, Map::Terrain res_start_index, Map::
 // score specified area in terms of castle placement
 //   initially this is just ensuring enough wood, stones, and building sites
 //   long term it should also care about resources in the surrounding areas!  including mountains, fishable waters, etc.
+//  desperation is a multiplier
 bool
-AI::place_castle(PGame game, MapPos center_pos, unsigned int distance) {
-  AILogDebug["util_place_castle"] << "inside AI::place_castle, center_pos " << center_pos << ", distance " << distance;
+AI::place_castle(PGame game, MapPos center_pos, unsigned int distance, unsigned int desperation) {
+  AILogDebug["util_place_castle"] << "inside AI::place_castle, center_pos " << center_pos << ", distance " << distance << ", desperation " << desperation;
   PMap map = game->get_map();
   unsigned int trees = 0;
   unsigned int stones = 0;
   unsigned int building_sites = 0;
   for (unsigned int i = 0; i < distance; i++) {
     MapPos pos = map->pos_add_extended_spirally(center_pos, i);
+
+    // don't count resouces that are inside enemy territory
+    if (map->get_owner(pos) != player_index && map->get_owner(pos) != -1) {
+      AILogDebug["util_place_castle"] << "enemy territory at pos " << pos << ", not counting these resouces towards requirements";
+      continue;
+    }
+
     Map::Object obj = map->get_obj(pos);
     if (obj >= Map::ObjectTree0 && obj <= Map::ObjectPine7) {
       trees += 1;
@@ -99,50 +107,54 @@ AI::place_castle(PGame game, MapPos center_pos, unsigned int distance) {
       //AILogDebug["util_place_castle"] << "adding stones count " << stonepile_value;
     }
     if (game->can_build_large(pos)) {
-      building_sites += 3;
+      building_sites += 3;  // large building sites worth 50% more than small ones, but can't use 1.5 and 1.0 because integer
       //AILogDebug["util_place_castle"] << "adding large building value 3";
     }
     else if (game->can_build_small(pos)) {
-      building_sites += 1;
+      building_sites += 2;
       //AILogDebug["util_place_castle"] << "adding small building value 1";
     }
   }
 
-  AILogDebug["util_place_castle"] << "found trees: " << trees << ", stones: " << stones << ", building_sites: " << building_sites << " in area " << center_pos;
-  if (trees < (near_trees_min * 4)) {
-    AILogDebug["util_place_castle"] << "not enough trees, min is " << near_trees_min * 4 << ", returning false";
+  AILogDebug["util_place_castle"] << "found trees: " << trees << ", stones: " << stones << ", building_sites: " << building_sites << " in area " << center_pos << ". Desperation is " << desperation;
+
+  // if good place for castle cannot be found, lower standards by faking an increased amount of resources
+  if (trees + desperation*4 < near_trees_min * 4) {
+    AILogDebug["util_place_castle"] << "not enough trees, min is " << near_trees_min * 4 << ", returning false.  Desperation is " << desperation;
     return false;
   }
-  if (stones < near_stones_min) {
-    AILogDebug["util_place_castle"] << "not enough stones, min is " << near_stones_min << ", returning false";
+  if (stones + desperation < near_stones_min) {
+    AILogDebug["util_place_castle"] << "not enough stones, min is " << near_stones_min << ", returning false.  Desperation is " << desperation;
     return false;
   }
-  if (building_sites < near_building_sites_min) {
-    AILogDebug["util_place_castle"] << "not enough building_sites, min is " << near_building_sites_min << ", returning false";
+  if (building_sites + desperation*90 < near_building_sites_min) {
+    AILogDebug["util_place_castle"] << "not enough building_sites, min is " << near_building_sites_min << ", returning false.  Desperation is " << desperation;
     return false;
   }
-  AILogDebug["util_place_castle"] << "center_pos: " << center_pos << " is an acceptable building site for a castle";
+  AILogDebug["util_place_castle"] << "center_pos: " << center_pos << " is an acceptable building site for a castle.  Desperation is " << desperation;
   AILogDebug["util_place_castle"] << "done AI::place_castle";
   return true;
 }
 
 
 // update current AI player's inventory of buildings of all types for lookup by various functions
+//  does this need to be mutex-wrapped?  sometimes getting exceptions with seemingly invalid building
+//  variable/pointer
 void
-AI::update_building_counts() {
+AI::update_buildings() {
   // time this function for debugging
   std::clock_t start;
   double duration;
   start = std::clock();
 
-  AILogDebug["util_update_building_counts"] << "inside AI::update_building_counts";
-  //AILogVerbose["util_update_building_counts"] << "thread #" << std::this_thread::get_id() << " AI is locking mutex inside AI::update_building_counts";
+  AILogDebug["util_update_buildings"] << "start";
+  //AILogVerbose["util_update_buildings"] << "thread #" << std::this_thread::get_id() << " AI is locking mutex inside AI::update_buildings";
   //game->get_mutex()->lock();
-  //AILogVerbose["util_update_building_counts"] << "thread #" << std::this_thread::get_id() << " AI has locked mutex inside AI::update_building_counts";
+  //AILogVerbose["util_update_buildings"] << "thread #" << std::this_thread::get_id() << " AI has locked mutex inside AI::update_buildings";
   Game::ListBuildings buildings = game->get_player_buildings(player);
-  //AILogVerbose["util_update_building_counts"] << "thread #" << std::this_thread::get_id() << " AI is unlocking mutex inside AI::update_building_counts";
+  //AILogVerbose["util_update_buildings"] << "thread #" << std::this_thread::get_id() << " AI is unlocking mutex inside AI::update_buildings";
   //game->get_mutex()->unlock();
-  //AILogVerbose["util_update_building_counts"] << "thread #" << std::this_thread::get_id() << " AI has unlocked mutex inside AI::update_building_counts";
+  //AILogVerbose["util_update_buildings"] << "thread #" << std::this_thread::get_id() << " AI has unlocked mutex inside AI::update_buildings";
   // reset all to zero
   memset(realm_building_count, 0, sizeof(realm_building_count));
   memset(realm_completed_building_count, 0, sizeof(realm_completed_building_count));
@@ -153,23 +165,21 @@ AI::update_building_counts() {
   realm_res_sitting_at_flags.clear();
   //realm_inv.clear();  // don't clear this here as it is not additive but explicitly set in each loop to player->inv 
   for (MapPos inventory_pos : stocks_pos) {
-    AILogVerbose["util_update_building_counts"] << "inside AI::update_building_counts, clearing counts for inventory_pos " << inventory_pos;
-    memset(stock_buildings.at(inventory_pos).count, 0, sizeof(stock_buildings.at(inventory_pos).count));
-    memset(stock_buildings.at(inventory_pos).completed_count, 0, sizeof(stock_buildings.at(inventory_pos).completed_count));
-    memset(stock_buildings.at(inventory_pos).occupied_count, 0, sizeof(stock_buildings.at(inventory_pos).occupied_count));
-    memset(stock_buildings.at(inventory_pos).connected_count, 0, sizeof(stock_buildings.at(inventory_pos).connected_count));
-    stock_buildings.at(inventory_pos).occupied_military_pos.clear();
-    stock_buildings.at(inventory_pos).unfinished_count = 0;
-    stock_buildings.at(inventory_pos).unfinished_hut_count = 0;
-    AILogVerbose["util_update_building_counts"] << "RESET unfinished_hut_count for inventory_pos " << inventory_pos << ", is now: " << stock_buildings.at(inventory_pos).unfinished_hut_count;
-    AILogVerbose["util_update_building_counts"] << "RESET unfinished_building_count, for inventory_pos " << inventory_pos << ", is now: " << stock_buildings.at(inventory_pos).unfinished_count;
+    AILogVerbose["util_update_buildings"] << "inside AI::update_buildings, clearing counts for inventory_pos " << inventory_pos;
+    memset(stock_building_counts.at(inventory_pos).count, 0, sizeof(stock_building_counts.at(inventory_pos).count));
+    memset(stock_building_counts.at(inventory_pos).completed_count, 0, sizeof(stock_building_counts.at(inventory_pos).completed_count));
+    memset(stock_building_counts.at(inventory_pos).occupied_count, 0, sizeof(stock_building_counts.at(inventory_pos).occupied_count));
+    memset(stock_building_counts.at(inventory_pos).connected_count, 0, sizeof(stock_building_counts.at(inventory_pos).connected_count));
+    stock_building_counts.at(inventory_pos).occupied_military_pos.clear();
+    stock_building_counts.at(inventory_pos).unfinished_count = 0;
+    stock_building_counts.at(inventory_pos).unfinished_hut_count = 0;
+    stock_attached_buildings.at(inventory_pos).clear();
   }
 
   // now that a flagsearch is being used to find the nearest Inventory rather than straight-line
   //  distance, it might be possible to optimize this process by searching outward from each
   //  inventory once?  or caching results or something like that?  
   //  only bother if this function is taking a significant amount of time
-  //  it does get called a lot, though
   for (Building *building : buildings) {
 
     if (building == nullptr)
@@ -179,7 +189,7 @@ AI::update_building_counts() {
     
     Building::Type type = building->get_type();
 	  if (type == Building::TypeNone) {
-		  //AILogWarn["util_update_building_counts"] << "has a building of TypeNone at pos " << building->get_position() << "!  why does this happen??";
+		  //AILogWarn["util_update_buildings"] << "has a building of TypeNone at pos " << building->get_position() << "!  why does this happen??";
 		  continue;
 	  }
 
@@ -198,44 +208,57 @@ AI::update_building_counts() {
     // 5th, knight hut stub road, had a spiderweb road built to it
     // 6th, can't tell.  
     // bypassing this error for now
-    AILogDebug["util_update_building_counts"] << "debug has a building of type " << type << " at pos " << pos << ", with flag_pos " << flag_pos;
+    AILogDebug["util_update_buildings"] << "debug has a building of type " << type << " at pos " << pos << ", with flag_pos " << flag_pos;
     if (type > Building::TypeCastle){
-      AILogError["util_update_building_counts"] << "RECURRING BUG! has a building of invalid type " << type << " at pos " << pos << ", with flag_pos " << flag_pos << "! bypassing error";
+      AILogError["util_update_buildings"] << "RECURRING BUG! has a building of invalid type " << type << " at pos " << pos << ", with flag_pos " << flag_pos << "! bypassing error";
       continue;
     }
 
-	  //AILogVerbose["util_update_building_counts"] << "has a building of type " << NameBuilding[type] << " at pos " << pos << ", with flag_pos " << flag_pos;
+	  //AILogVerbose["util_update_buildings"] << "has a building of type " << NameBuilding[type] << " at pos " << pos << ", with flag_pos " << flag_pos;
 
     if (type == Building::TypeCastle) {
       if (!building->is_done()) {
-        AILogDebug["util_update_building_counts"] << "'s castle isn't finished building yet";
+        AILogDebug["util_update_buildings"] << "player's castle isn't finished building yet";
         while (!building->is_done()) {
-          AILogDebug["util_update_building_counts"] << "'s castle isn't finished building yet.  Sleeping a bit";
+          AILogDebug["util_update_buildings"] << "player's castle isn't finished building yet.  Sleeping a bit";
           sleep_speed_adjusted(1000);
         }
-        AILogDebug["util_update_building_counts"] << "'s castle is now built, updating stocks";
+        AILogDebug["util_update_buildings"] << "player's castle is now built, updating stocks";
         // does the stocks_pos logic rely on the Castle always being the first building?  does it matter?
         update_stocks_pos();
       }
       realm_occupied_military_pos.push_back(flag_pos);
-      stock_buildings.at(flag_pos).occupied_military_pos.push_back(flag_pos);
+      stock_building_counts.at(flag_pos).occupied_military_pos.push_back(flag_pos);
       continue;
     }
   
-    // skip completed Stocks, they are tracked elsewhere
-    if (type == Building::TypeStock && building->is_done())
+    // make completed stocks the first item in that stock's occupied_military pos, even
+    //  though it isn't really military it is a good first place to build buildings that
+    //  have no affinity
+    if (type == Building::TypeStock && stock_building_counts.count(flag_pos)){
+      AILogVerbose["util_update_buildings"] << "adding occupied Stock building at " << pos << " to stock's occupied_military_pos list, even though it isn't really military";
+      stock_building_counts.at(flag_pos).occupied_military_pos.push_back(flag_pos);
       continue;
+    }
 
 	  // for military buildings, track the nearest Inventory by straight-line distance
 	  //  as these are used for general selection of nearby huts when looking for things
 	  //  in a certain area around an Inventory and its borders, duplicates are allowed.
 	  if (building->is_military() && building->is_done() && building->is_active()) {
-		  AILogVerbose["util_update_building_counts"] << "adding occupied military building at " << pos << " to realm_occupied_military_pos list";
+      // require that the building have at least one path to avoid causing AI to try to build
+      //  new buildings near newly-conquered enemy buildings that are not connected to our road network
+      //  Could also check if they are actually "connected to network" even if they have a path
+      //  but this is probably good enough...
+      if (game->get_flag(building->get_flag_index()) != nullptr && !game->get_flag(building->get_flag_index())->is_connected()){
+        AILogInfo["util_update_buildings"] << "occupied military building at pos " << pos << " has no paths, not including it in occupied_military_pos lists";
+        continue;
+      }
+		  AILogVerbose["util_update_buildings"] << "adding occupied military building at " << pos << " to realm_occupied_military_pos list";
 		  realm_occupied_military_pos.push_back(flag_pos);
-		  AILogVerbose["util_update_building_counts"] << "about to call find_nearest_inventories_to_military_building for connected building of type " << NameBuilding[type] << " at pos " << pos << ", with flag_pos " << flag_pos;
+		  AILogVerbose["util_update_buildings"] << "about to call find_nearest_inventories_to_military_building for connected building of type " << NameBuilding[type] << " at pos " << pos << ", with flag_pos " << flag_pos;
 		  for (MapPos inv_flag_pos : find_nearest_inventories_to_military_building(flag_pos)) {
-			  AILogVerbose["util_update_building_counts"] << "adding occupied military building at " << pos << " to stock_buildings.at(" << inv_flag_pos << ")";
-			  stock_buildings.at(inv_flag_pos).occupied_military_pos.push_back(flag_pos);
+			  AILogVerbose["util_update_buildings"] << "adding occupied military building at " << pos << " to stock_building_counts.at(" << inv_flag_pos << ")";
+			  stock_building_counts.at(inv_flag_pos).occupied_military_pos.push_back(flag_pos);
 		  }
 		  // don't quit here, we still want to try to do a FlagSearch for military buildings so
 		  //  if they are incomplete, we can associate the unfinished building to an Inventory
@@ -246,44 +269,47 @@ AI::update_building_counts() {
 
 	  // skip disconnected buildings, they cannot complete a FlagSearch to find nearest Inventory
     if (game->get_flag_at_pos(flag_pos) == nullptr){
-      AILogVerbose["util_update_building_counts"] << "building of type " << NameBuilding[type] << " at pos " << pos << ", got nullptr on get_flag_at_pos, skipping";
+      AILogVerbose["util_update_buildings"] << "building of type " << NameBuilding[type] << " at pos " << pos << ", got nullptr on get_flag_at_pos, skipping";
       continue;
     }
 	  if (!game->get_flag_at_pos(flag_pos)->is_connected()) {
-		  AILogVerbose["util_update_building_counts"] << "building of type " << NameBuilding[type] << " at pos " << pos << ", with flag_pos " << flag_pos << " has no paths, cannot do FlagSearch, skipping";
+		  AILogVerbose["util_update_buildings"] << "building of type " << NameBuilding[type] << " at pos " << pos << ", with flag_pos " << flag_pos << " has no paths, cannot do FlagSearch, skipping";
 		  continue;
 	  }
 
 	  // do the FlagSearch
-	  AILogVerbose["util_update_building_counts"] << "about to call find_nearest_inventory for connected building of type " << NameBuilding[type] << " at pos " << pos << ", with flag_pos " << flag_pos;
+	  AILogVerbose["util_update_buildings"] << "about to call find_nearest_inventory for connected building of type " << NameBuilding[type] << " at pos " << pos << ", with flag_pos " << flag_pos;
 	  MapPos nearest_inventory_pos = find_nearest_inventory(map, player_index, building->get_position(), DistType::FlagOnly, &ai_mark_pos);
 	  if (nearest_inventory_pos == bad_map_pos) {
-		  AILogVerbose["util_update_building_counts"] << "find_nearest_inventory call for building at pos " << pos << ", with flag_pos " << flag_pos << " returned bad_map_pos, skipping this building";
+		  AILogVerbose["util_update_buildings"] << "find_nearest_inventory call for building at pos " << pos << ", with flag_pos " << flag_pos << " returned bad_map_pos, skipping this building";
 		  continue;
 	  }
 	  /* i think this is wrong
-    AILogVerbose["util_update_building_counts"] << "nearest Inventory (by flagsearch) to this connected building is " << nearest_inventory_pos;
+    AILogVerbose["util_update_buildings"] << "nearest Inventory (by flagsearch) to this connected building is " << nearest_inventory_pos;
     if (nearest_inventory_pos != inventory_pos) {
-		  AILogVerbose["util_update_building_counts"] << "this building's nearest_inventory_pos " << nearest_inventory_pos << " is not the currently selected inventory_pos " << inventory_pos << ", skipping it";
+		  AILogVerbose["util_update_buildings"] << "this building's nearest_inventory_pos " << nearest_inventory_pos << " is not the currently selected inventory_pos " << inventory_pos << ", skipping it";
 		  continue;
 	  }
     */
 
+    // track the Building
+    stock_attached_buildings.at(nearest_inventory_pos).push_back(building);
+
 	  // count incomplete buildings (so AI can limit the number of outstanding unfinished buildings)
     if (!building->is_done()) {
       if (type == Building::TypeHut) {
-        stock_buildings.at(nearest_inventory_pos).unfinished_hut_count++;
-        AILogVerbose["util_update_building_counts"] << "incrementing unfinished_hut_count for nearest_inventory_pos " << nearest_inventory_pos << ", is now: " << stock_buildings.at(nearest_inventory_pos).unfinished_hut_count;
+        stock_building_counts.at(nearest_inventory_pos).unfinished_hut_count++;
+        AILogVerbose["util_update_buildings"] << "incrementing unfinished_hut_count for nearest_inventory_pos " << nearest_inventory_pos << ", is now: " << stock_building_counts.at(nearest_inventory_pos).unfinished_hut_count;
       }
       else if (building->get_type() == Building::TypeCoalMine
         || building->get_type() == Building::TypeIronMine
         || building->get_type() == Building::TypeGoldMine
         || building->get_type() == Building::TypeStoneMine) {
-        AILogVerbose["util_update_building_counts"] << "unfinished building is a Mine, not incrementing unfinished_building_count";
+        AILogVerbose["util_update_buildings"] << "unfinished building is a Mine, not incrementing unfinished_building_count";
       }
       else {
-        stock_buildings.at(nearest_inventory_pos).unfinished_count++;
-        AILogDebug["util_update_building_counts"] << "found unfinished building of type " << NameBuilding[type] << " at pos " << building->get_position() << ", incrementing unfinished_building_count for nearest_inventory_pos " << nearest_inventory_pos << ", is now: " << stock_buildings.at(nearest_inventory_pos).unfinished_count;
+        stock_building_counts.at(nearest_inventory_pos).unfinished_count++;
+        AILogDebug["util_update_buildings"] << "found unfinished building of type " << NameBuilding[type] << " at pos " << building->get_position() << ", incrementing unfinished_building_count for nearest_inventory_pos " << nearest_inventory_pos << ", is now: " << stock_building_counts.at(nearest_inventory_pos).unfinished_count;
       }
     }
     
@@ -292,15 +318,15 @@ AI::update_building_counts() {
     //  is based on FlagSearch dist, NOT straight-line dist as
     //  is used for OCCUPIED_military_buildings counts
 	  realm_building_count[type]++;   // move this to before the FlagSearch so it has a chance to include buildings that are not connected?  nah, leave as-is for now
-    stock_buildings.at(nearest_inventory_pos).count[type]++;
+    stock_building_counts.at(nearest_inventory_pos).count[type]++;
     // the difference between 'buildings' and 'connected_buildings' is now moot because the nearest inventory pos
     //  is now determined by FlagSearch which requires that they be connected already to do the search
     //  Should probably remove the 'building_count' entirely.  See if any of this is even used anymore, I don't think it is
 	  //realm_connected_building_count[type]++;
-    stock_buildings.at(nearest_inventory_pos).connected_count[type]++;
+    stock_building_counts.at(nearest_inventory_pos).connected_count[type]++;
     if (building->is_done()){
 	    realm_completed_building_count[type]++;
-      stock_buildings.at(nearest_inventory_pos).completed_count[type]++;
+      stock_building_counts.at(nearest_inventory_pos).completed_count[type]++;
       // has_serf is not a good enough test alone to see if occupied, as it seems to be true when a builder is constructing the building!
       //  so moved this check to inside building->is_done because if building is done the only serf there should be the professional (I think)
       if (building->has_serf()) {
@@ -308,7 +334,7 @@ AI::update_building_counts() {
         //  however, again the counts may not match the occupied_military_building counts
         //  which are determined by straight-line distance only
 	      realm_occupied_building_count[type]++;
-        stock_buildings.at(nearest_inventory_pos).occupied_count[type]++;
+        stock_building_counts.at(nearest_inventory_pos).occupied_count[type]++;
       }
     }
   } // foreach Building : get_player_buildings
@@ -316,19 +342,19 @@ AI::update_building_counts() {
   // debug, dump all inventory-to-building counts
   for (MapPos an_inventory_pos : stocks_pos) {
     // this skips 'connected', which is moot anyway
-    AILogVerbose["util_update_building_counts"] << "Inventory at pos " << an_inventory_pos << " has all/completed/occupied buildings: ";
+    AILogVerbose["util_update_buildings"] << "Inventory at pos " << an_inventory_pos << " has all/completed/occupied buildings: ";
     int type = 0;
     // why is this using realm_building_count instead of ... Types 0-25?
     for (int count : realm_building_count) {
-      AILogVerbose["util_update_building_counts"] << "type " << type << " / " << NameBuilding[type] << ": " << stock_buildings.at(an_inventory_pos).count[type]
-        << "/" << stock_buildings.at(an_inventory_pos).completed_count[type] << "/" << stock_buildings.at(an_inventory_pos).occupied_count[type];
+      AILogVerbose["util_update_buildings"] << "type " << type << " / " << NameBuilding[type] << ": " << stock_building_counts.at(an_inventory_pos).count[type]
+        << "/" << stock_building_counts.at(an_inventory_pos).completed_count[type] << "/" << stock_building_counts.at(an_inventory_pos).occupied_count[type];
       type++;
     }
   }
 
-  //AILogDebug["util_update_building_counts"] << "done AI::update_building_counts";
+  //AILogDebug["util_update_buildings"] << "done AI::update_buildings";
   duration = (std::clock() - start) / static_cast<double>(CLOCKS_PER_SEC);
-  AILogDebug["util_update_building_counts"] << "done AI::update_building_counts call took " << duration;
+  AILogDebug["util_update_buildings"] << "done AI::update_buildings call took " << duration;
 }
 
 
@@ -390,7 +416,7 @@ AI::update_stocks_pos() {
       AILogDebug["util_update_stocks_pos"] << "a completed, connected, serf-occupied warehouse/stock was found at pos " << building->get_position() << ", with its flag at pos " << stock_flag_pos;
     }
     stocks_pos.push_back(stock_flag_pos);
-    //stock_buildings[stock_flag_pos];
+    //stock_building_counts[stock_flag_pos];
     /*
     struct StockBuildings {
       int count[25] = { 0 };
@@ -401,232 +427,13 @@ AI::update_stocks_pos() {
       int unfinished_hut_count;
       MapPosVector occupied_military_pos;
     };*/
-    stock_buildings[stock_flag_pos] = { {0},{0},{0},{0},0,0,{} };
+    stock_building_counts[stock_flag_pos] = { {0},{0},{0},{0},0,0,{} };
+    stock_attached_buildings[stock_flag_pos] = {};
   }
   AILogDebug["util_update_stocks_pos"] << "done AI::update_stocks_pos";
   duration = (std::clock() - start) / static_cast<double>(CLOCKS_PER_SEC);
   AILogDebug["util_update_stocks_pos"] << "done AI::update_stocks_pos call took " << duration;
 }
-
-/*
-// destroy all roads in realm, and all disconnected flags, then reconnect them in priority order
-//   attempt to optimize roads once economy is complete.  not working correctly yet
-//     this is a test/hack and NOT used normally (or ever right now)
-void
-AI::rebuild_all_roads() {
-  AILogDebug["util_rebuild_all_roads"] << "inside AI::rebuild_all_roads";
-  MapPosVector flag_positions;
-  AILogDebug["util_rebuild_all_roads"] << "destroying all paths";
-  AILogVerbose["util_rebuild_all_roads"] << "thread #" << std::this_thread::get_id() << " AI is locking mutex for entire rebuild_all_roads function before destroying all roads";
-  game->get_mutex()->lock();
-  AILogVerbose["util_rebuild_all_roads"] << "thread #" << std::this_thread::get_id() << " AI has locked mutex for entire rebuild_all_roads function before destroying all roads";
-  Flags flags_copy = *(game->get_flags());  // create a copy so we don't conflict with the game thread, and don't want to mutex lock for a long function
-  for (Flag *flag : flags_copy) {
-    //// exclude flags connected to knight huts, keep these because they tend to be at the ends of resource chains?
-    //if (!flag->has_building() || flag->get_building()->get_type() != Building::TypeHut) {
-    //}
-    //
-    // only include roads with some distance from the castle??
-    //
-    if (flag == nullptr || flag->get_owner() != player_index)
-      continue;
-    for (Direction dir : cycle_directions_cw()) {
-      if (map->has_path_IMPROVED(flag->get_position(), dir))
-        game->demolish_road(map->move(flag->get_position(), dir), player);
-    }
-    flag_positions.push_back(flag->get_position());
-  }
-  AILogDebug["util_rebuild_all_roads"] << "destroying all unattached flags";
-  for (MapPos flag_pos : flag_positions) {
-    if (map->has_flag(flag_pos))
-      game->demolish_flag(flag_pos, player);
-  }
-
-  AILogVerbose["util_rebuild_all_roads"] << "thread #" << std::this_thread::get_id() << " AI is unlocking mutex for entire rebuild_all_roads function after destroying all roads";
-  game->get_mutex()->unlock();
-  AILogVerbose["util_rebuild_all_roads"] << "thread #" << std::this_thread::get_id() << " AI has unlocked mutex for entire rebuild_all_roads function after destroying all roads";
-
-  AILogDebug["util_rebuild_all_roads"] << "sleeping to see roads destroyed before starting rebuild";
-  sleep_speed_adjusted(2000);
-
-  //road_options.reset(RoadOption::PenalizeNewLength);
-  road_options.set(RoadOption::ReducedNewLengthPenalty);
-
-  std::vector<Building::Type> rebuild_order = {
-      Building::TypeSawmill,
-      Building::TypeLumberjack,
-      Building::TypeWeaponSmith,
-      Building::TypeSteelSmelter,
-      Building::TypeGoldSmelter,
-      Building::TypeFarm,
-      Building::TypeMill,
-      //Building::TypeBaker,
-      //Building::TypeCoalMine,
-      //Building::TypeIronMine,
-      //Building::TypeGoldMine
-  };
-
-  // IDEAS...
-  //  connect bakers to ALL mines
-  //  connect warehouse/stocks to ALL very-nearby flags (until all paths full)
-
-  AILogDebug["util_rebuild_all_roads"] << "trying to connect high priority buildings first";
-  //AILogVerbose["util_rebuild_all_roads"] << "thread #" << std::this_thread::get_id() << " AI is locking mutex for entire rebuild_all_roads function before rebuilding high-priority building roads";
-  //game->get_mutex()->lock();
-  //AILogVerbose["util_rebuild_all_roads"] << "thread #" << std::this_thread::get_id() << " AI has locked mutex for entire rebuild_all_roads function before rebuilding high-priority building roads";
-  for (Building::Type type : rebuild_order) {
-    AILogDebug["util_rebuild_all_roads"] << "trying to connect buildings of type " << NameBuilding[type];
-    for (Building *building : game->get_player_buildings(player)) {
-      if (building->get_type() != type) {
-        continue;
-      }
-      if (building->is_burning()) {
-        AILogDebug["util_rebuild_all_roads"] << "this building is on fire!  skipping";
-        continue;
-      }
-      // skip mines that aren't yet built
-      if (!building->is_done() && building->get_type() >= Building::TypeStoneMine && building->get_type() <= Building::TypeGoldMine)
-        continue;
-      ai_mark_pos.insert(ColorDot(building->get_position(), "blue"));
-      Road built_road; // not used here
-      if (!AI::build_best_road(map->move_down_right(building->get_position()), road_options, &built_road)) {
-        AILogDebug["util_rebuild_all_roads"] << "failed to connect high priority building at pos " << building->get_position() << " to affinity building / road network!";
-      }
-      sleep_speed_adjusted(1000);
-      //ai_mark_pos.clear();
-      ai_mark_pos.erase(building->get_position());
-
-    }
-  }
-
-  //game->get_mutex()->unlock();
-  //sleep_speed_adjusted(5000);
-  //game->get_mutex()->lock();
-  AILogVerbose["util_rebuild_all_roads"] << "trying to connect bakers to mines";
-  for (Building *building : game->get_player_buildings(player)) {
-    if (building->get_type() != Building::TypeBaker) {
-      continue;
-    }
-    if (building->is_burning()) {
-      AILogDebug["util_rebuild_all_roads"] << "this building is on fire!  skipping";
-      continue;
-    }
-    AILogDebug["util_rebuild_all_roads"] << "found a baker at pos " << map->move_down_right(building->get_position());
-    ai_mark_pos.insert(ColorDot(building->get_position(), "orange"));
-    if (!AI::build_best_road(map->move_down_right(building->get_position()), road_options, Building::TypeCoalMine)) {
-      AILogDebug["util_rebuild_all_roads"] << "failed to connect baker at pos " << building->get_position() << " to coal mine / road network!";
-    }
-    sleep_speed_adjusted(500);
-    ai_mark_pos.clear();
-    if (!AI::build_best_road(map->move_down_right(building->get_position()), road_options, Building::TypeIronMine)) {
-      AILogDebug["util_rebuild_all_roads"] << "failed to connect baker at pos " << building->get_position() << " to iron mine / road network!";
-    }
-    sleep_speed_adjusted(500);
-    ai_mark_pos.clear();
-    if (!AI::build_best_road(map->move_down_right(building->get_position()), road_options, Building::TypeGoldMine)) {
-      AILogDebug["util_rebuild_all_roads"] << "failed to connect baker at pos " << building->get_position() << " to gold mine / road network!";
-    }
-    sleep_speed_adjusted(500);
-    ai_mark_pos.clear();
-  }
-
-  //
-  // second run, try mines again
-  //
-  //road_options.reset(RoadOption::PenalizeNewLength);
-  road_options.set(RoadOption::ReducedNewLengthPenalty);
-
-  std::vector<Building::Type> rebuild_order2 = {
-      Building::TypeCoalMine,
-      Building::TypeIronMine,
-      Building::TypeGoldMine
-  };
-
-  AILogDebug["util_rebuild_all_roads"] << "trying to connect 2nd run high priority buildings";
-  //AILogVerbose["util_rebuild_all_roads"] << "thread #" << std::this_thread::get_id() << " AI is locking mutex for entire rebuild_all_roads function before rebuilding high-priority building roads";
-  //game->get_mutex()->lock();
-  //AILogVerbose["util_rebuild_all_roads"] << "thread #" << std::this_thread::get_id() << " AI has locked mutex for entire rebuild_all_roads function before rebuilding high-priority building roads";
-  for (Building::Type type : rebuild_order2) {
-    AILogDebug["util_rebuild_all_roads"] << "trying to connect buildings of type " << NameBuilding[type];
-    for (Building *building : game->get_player_buildings(player)) {
-      if (building->get_type() != type) {
-        continue;
-      }
-      if (building->is_burning()) {
-        AILogDebug["util_rebuild_all_roads"] << "this building is on fire!  skipping";
-        continue;
-      }
-      // skip mines that aren't yet built
-      if (!building->is_done() && building->get_type() >= Building::TypeStoneMine && building->get_type() <= Building::TypeGoldMine)
-        continue;
-      ai_mark_pos.insert(ColorDot(building->get_position(), "purple"));
-      if (!AI::build_best_road(map->move_down_right(building->get_position()), road_options)) {
-        AILogDebug["util_rebuild_all_roads"] << "failed to connect high priority building at pos " << building->get_position() << " to affinity building / road network!";
-      }
-      sleep_speed_adjusted(500);
-      //ai_mark_pos.clear();
-      ai_mark_pos.erase(building->get_position());
-
-    }
-  }
-
-
-  //game->get_mutex()->unlock();
-  //sleep_speed_adjusted(1000);
-  //game->get_mutex()->lock();
-  //AILogVerbose["util_rebuild_all_roads"] << "breaking early to debug";
-  //return;
-
-  road_options.set(RoadOption::PenalizeNewLength);
-  road_options.reset(RoadOption::ReducedNewLengthPenalty);
-
-  AILogDebug["util_rebuild_all_roads"] << "trying to connect remaining civilian buildings (except rangers and incomplete mines)";
-  for (Building *building : game->get_player_buildings(player)) {
-    if (building->is_military())
-      continue;
-    if (building->get_type() == Building::TypeForester && building->is_done())
-      continue;
-    if (building->is_burning()) {
-      AILogDebug["util_rebuild_all_roads"] << "this civilian building is on fire!  skipping";
-      continue;
-    }
-    // skip mines that aren't yet built
-    if (!building->is_done() && building->get_type() >= Building::TypeStoneMine && building->get_type() <= Building::TypeGoldMine)
-      continue;
-    // skip buildings that already have paths (from earlier high priority buildings connections)
-    if (game->get_flag(building->get_flag_index())->is_connected())
-      continue;
-    //ai_mark_pos.insert(ColorDot(building->get_position(), "green"));
-    if (!AI::build_best_road(map->move_down_right(building->get_position()), road_options)) {
-      AILogDebug["util_rebuild_all_roads"] << "failed to connect civilian building at pos " << building->get_position() << " to road network!";
-    }
-    sleep_speed_adjusted(50);
-    //ai_mark_pos.clear();
-    //ai_mark_pos.erase(building->get_position());
-  }
-  //game->get_mutex()->unlock();
-  //sleep_speed_adjusted(5000);
-  //game->get_mutex()->lock();
-  AILogVerbose["util_rebuild_all_roads"] << "trying to connect military buildings";
-  for (Building *building : game->get_player_buildings(player)) {
-    if (building->is_military()) {
-      if (building->is_burning()) {
-        AILogDebug["util_rebuild_all_roads"] << "this military building is on fire!  skipping";
-        continue;
-      }
-      ai_mark_pos.insert(ColorDot(building->get_position(), "coral"));
-      if (!AI::build_best_road(map->move_down_right(building->get_position()), road_options)) {
-        AILogDebug["util_rebuild_all_roads"] << "failed to connect military building at pos " << building->get_position() << " to road network!";
-      }
-      sleep_speed_adjusted(50);
-      //ai_mark_pos.clear();
-    }
-  }
-  //AILogVerbose["util_rebuild_all_roads"] << "thread #" << std::this_thread::get_id() << " AI is unlocking mutex for entire rebuild_all_roads function";
-  //game->get_mutex()->unlock();
-  //AILogVerbose["util_rebuild_all_roads"] << "thread #" << std::this_thread::get_id() << " AI has unlocked mutex for entire rebuild_all_roads function";
-}
-*/
 
 //
 // try to build a road from the specified flag pos to the "best" end flag (determined by various logic), return success/failure
@@ -681,7 +488,7 @@ AI::build_best_road(MapPos start_pos, RoadOptions road_options, Road *built_road
       // skip if no more paths can be built from starting flag
       bool can_build_another_path = false;
       for (Direction dir : cycle_directions_ccw()) {
-        if (game->get_flag_at_pos(start_pos) != nullptr && !game->get_flag_at_pos(start_pos)->has_path(dir) && map->is_road_segment_valid(start_pos, dir)) {
+        if (game->get_flag_at_pos(start_pos) != nullptr && !game->get_flag_at_pos(start_pos)->has_path_IMPROVED(dir) && map->is_road_segment_valid(start_pos, dir)) {
           can_build_another_path = true;
           break;
         }
@@ -712,6 +519,10 @@ AI::build_best_road(MapPos start_pos, RoadOptions road_options, Road *built_road
   }
 
   MapPosVector targets = {};  // these are flag positions
+
+  //double sofarduration = (std::clock() - start) / static_cast<double>(CLOCKS_PER_SEC);
+  //AILogDebug["util_build_best_road"] << "A. " << calling_function << " SO FAR call took " << sofarduration;
+
 
   // handle the optional_target arg if set
   if (optional_target != bad_map_pos) {
@@ -754,7 +565,7 @@ AI::build_best_road(MapPos start_pos, RoadOptions road_options, Road *built_road
         //MapPos nearest_inv_pos = find_nearest_inventory(map, player_index, start_pos, DistType::FlagAndStraightLine, &ai_mark_pos);
         MapPos nearest_inv_pos = find_nearest_inventory(map, player_index, start_pos, DistType::StraightLineOnly, &ai_mark_pos);
         if (nearest_inv_pos != bad_map_pos){
-          AILogDebug["util_build_best_road"] << "" << calling_function << " no valid target found, setting target to nearest_inv_pos (by straight line) " << nearest_inv_pos;
+          AILogDebug["util_build_best_road"] << "" << calling_function << " no affinity target found, setting target to nearest_inv_pos (by straight line) " << nearest_inv_pos;
           fallback_inv_pos = nearest_inv_pos;
         }else{
           AILogDebug["util_build_best_road"] << "" << calling_function << " find_nearest_inventory by StraightLineOnly found nearest_inv_pos " << nearest_inv_pos;
@@ -762,14 +573,19 @@ AI::build_best_road(MapPos start_pos, RoadOptions road_options, Road *built_road
       //}
       if (fallback_inv_pos == bad_map_pos){
         fallback_inv_pos = inventory_pos;
-        //AILogDebug["util_build_best_road"] << "" << calling_function << " no valid target found and could not find nearest_inv_pos, setting target to current inventory_pos " << inventory_pos;
-        AILogWarn["util_build_best_road"] << "" << calling_function << " no valid target found and could not find nearest_inv_pos BY STRAIGHTLINE DIST - WHY???, setting target to current inventory_pos " << inventory_pos;
+        //AILogDebug["util_build_best_road"] << "" << calling_function << " no affinity target found and could not find nearest_inv_pos, setting target to current inventory_pos " << inventory_pos;
+        AILogWarn["util_build_best_road"] << "" << calling_function << " no affinity target found and could not find nearest_inv_pos " << inventory_pos << ", returning false.  NOTE this seems to only happen when player loses their castle/last stock!";
         // could change the fallback to simply be nearest flag, but I don't think this should never happen if using StraightLineOnly
-        throw ExceptionFreeserf("failed to find inventory by StraightLine, this should always work");
+        //  this seems to trigger when AI player loses their castle/last stock, don't throw exception instead return false and let AI handle it
+        //throw ExceptionFreeserf("failed to find inventory by StraightLine, this should always work");
+        return false;
       }
       targets.push_back(fallback_inv_pos);
     }
   }
+
+  //sofarduration = (std::clock() - start) / static_cast<double>(CLOCKS_PER_SEC);
+  //AILogDebug["util_build_best_road"] << "B. " << calling_function << " SO FAR call took " << sofarduration;
 
   unsigned int roads_built = 0;
   unsigned int target_count = static_cast<unsigned int>(targets.size());
@@ -782,9 +598,15 @@ AI::build_best_road(MapPos start_pos, RoadOptions road_options, Road *built_road
   //
 
   int target_num = 0;  // TEMP UNTIL REVAMP
+  //unsigned int first_target_road_score = bad_score;  // for comparing 2nd to 1st if multiple targets found
+  MapPos first_target_road_end = bad_map_pos;  // for comparing 2nd to 1st if multiple targets found
   for (MapPos target_pos : targets) {
+    //sofarduration = (std::clock() - start) / static_cast<double>(CLOCKS_PER_SEC);
+    //AILogDebug["util_build_best_road"] << "C. " << calling_function << " SO FAR call took " << sofarduration;
     //
     // TEMP UNTIL REVAMP
+    //
+    // Nov 2022 - it seems this logic has been here for a long time, maybe just leave it?
     //
     target_num++;
     if (target_num > 2){
@@ -797,7 +619,7 @@ AI::build_best_road(MapPos start_pos, RoadOptions road_options, Road *built_road
     }
     AILogDebug["util_build_best_road"] << "" << calling_function << " considering target_pos " << target_pos;
     AILogDebug["util_build_best_road"] << "" << calling_function << " plotting road to connect flag at pos " << start_pos << " to target_pos " << target_pos << " via road network";
-    Roads split_roads;
+    // Roads split_roads; moving this to INSIDE loop so it isn't accumulating ALL split_roads from ALL real flags
     //
     // ##   Direct   ## roads are simple A->B connection from start_pos to target_pos of FIRST affinity building, no second roads
     //
@@ -818,9 +640,8 @@ AI::build_best_road(MapPos start_pos, RoadOptions road_options, Road *built_road
 
       // add support for RoadOption::PlotOnlyNoBuild
       if (road_options.test(RoadOption::PlotOnlyNoBuild)){
-        AILogDebug["util_build_best_road"] << "" << calling_function << " RoadOption::PlotOnlyNoBuild is set, not actually building a flag for Direct road.  returning Road object containing it";
+        AILogDebug["util_build_best_road"] << "" << calling_function << " RoadOption::PlotOnlyNoBuild is set, not actually building a flag for Direct road.";
       }else{
-        
         if (!map->has_flag(target_pos)){
           AILogDebug["util_build_best_road"] << "" << calling_function << " zzz direct road requested, no flag at target_pos, trying to build one";
           if (game->can_build_flag(target_pos, player)){
@@ -841,10 +662,17 @@ AI::build_best_road(MapPos start_pos, RoadOptions road_options, Road *built_road
         }
       }
 
+      Roads split_roads;  // moving this here inside loop so it isn't accumulating ALL split_roads from ALL real flags
       Road proposed_direct_road = plot_road(map, player_index, start_pos, target_pos, &split_roads);
       bool plotted_succesfully = false;
       if (proposed_direct_road.get_length() > 0){
         plotted_succesfully = true;
+      }
+
+      // avoid creation extremely long roads
+      if (proposed_direct_road.get_length() > 30){
+        AILogDebug["util_build_best_road"] << "" << calling_function << " proposed_direct_road is over 30 tiles long!  not building this road";
+        continue;
       }
 
       // support covolution enforcement, but *only* if MostlyStraight setting is on
@@ -873,7 +701,7 @@ AI::build_best_road(MapPos start_pos, RoadOptions road_options, Road *built_road
       }
 
       // add support for RoadOption::PlotOnlyNoBuild
-      if (road_options.test(RoadOption::PlotOnlyNoBuild)){
+      if (plotted_succesfully && road_options.test(RoadOption::PlotOnlyNoBuild)){
         AILogDebug["util_build_best_road"] << "" << calling_function << " RoadOption::PlotOnlyNoBuild is set, not actually building the Direct road.  returning Road object containing it";
         *built_road = *(&proposed_direct_road);
         return true;
@@ -913,6 +741,8 @@ AI::build_best_road(MapPos start_pos, RoadOptions road_options, Road *built_road
       }
     }
 
+    //sofarduration = (std::clock() - start) / static_cast<double>(CLOCKS_PER_SEC);
+    //AILogDebug["util_build_best_road"] << "D. " << calling_function << " SO FAR call took " << sofarduration;
     //
     // ## non-Direct ## roads terminate at best scoring acceptable end_pos flag, which could be a direct route to the target flag or join an existing road
     //
@@ -994,12 +824,25 @@ AI::build_best_road(MapPos start_pos, RoadOptions road_options, Road *built_road
         continue;
       }
 
-      AILogDebug["util_build_best_road"] << "" << calling_function << " non-direct road requested, nearby flags to halfway_pos - found valid nearby_flag at pos " << pos;
+      // skip if already in nearby_flags list, which should only happen if it is part of existing road and RoadOption::Improve roads set;
       if (std::find(nearby_flags.begin(), nearby_flags.end(), pos) != nearby_flags.end()) {
-        // skip if already in nearby_flags list, which should only happen if it is part of existing road and RoadOption::Improve roads set;
         //AILogDebug["util_build_best_road"] << "" << calling_function << " non-direct road requested, nearby flags to halfway_pos - pos " << pos << " is already in nearby_flag list, skipping";
         continue;
       }
+
+      // adding support for RoadOption::ReconnectNetwork
+      //  CONSIDER REMOVING THIS CHECK AND ONLY CHECKING INSIDE THE for (end_pos : nearby_flags) loop!
+      //   but then it will use up the "nearby flags" check with invalid options!
+      if (road_options.test(RoadOption::ReconnectNetwork)){   
+        MapPosVector notused;
+        unsigned int notused2;
+        if (find_flag_path_and_tile_dist_between_flags(map, start_pos, pos, &notused, &notused2, &ai_mark_pos)){
+          AILogDebug["util_build_best_road"] << "" << calling_function << " non-direct road requested, nearby flags to halfway_pos - RoadOption::ReconnectNetwork is true, flag at pos " << pos << " is on the same network, not including it";
+          continue;
+        }
+      }
+
+      AILogDebug["util_build_best_road"] << "" << calling_function << " non-direct road requested, nearby flags to halfway_pos - found valid nearby_flag at pos " << pos;
       nearby_flags.push_back(pos);
       //ai_mark_pos.erase(pos);
       //ai_mark_pos.insert(std::make_pair(pos, "orange"));
@@ -1020,6 +863,8 @@ AI::build_best_road(MapPos start_pos, RoadOptions road_options, Road *built_road
     } // foreach pos around halfway_pos
     AILogDebug["util_build_best_road"] << "" << calling_function << " non-direct road requested, done finding flags near halfway_pos, nearby_flags currently has " << nearby_flags.size() << " elements";
 
+    //sofarduration = (std::clock() - start) / static_cast<double>(CLOCKS_PER_SEC);
+    //AILogDebug["util_build_best_road"] << "E. " << calling_function << " SO FAR call took " << sofarduration;
     //
     // to avoid long snakey roads, also include flags around the start_pos (often a new building)
     //
@@ -1043,21 +888,34 @@ AI::build_best_road(MapPos start_pos, RoadOptions road_options, Road *built_road
         AILogDebug["util_build_best_road"] << "" << calling_function << " non-direct road requested, nearby flags to start_pos - flag at pos " << pos << " is itself disconnected and is neither the castle_flag_pos nor the target_pos, skipping";
         continue;
       }*/
+
+      // skip if already in nearby_flags list, which should only happen if it is part of existing road and RoadOption::Improve roads set;
+      if (std::find(nearby_flags.begin(), nearby_flags.end(), pos) != nearby_flags.end()) {
+        //AILogDebug["util_build_best_road"] << "" << calling_function << " non-direct road requested, nearby flags to start_pos - this pos is already in nearby_flag list, skipping";
+        continue;
+      }
+
+      // adding support for RoadOption::ReconnectNetwork
+      //  CONSIDER REMOVING THIS CHECK AND ONLY CHECKING INSIDE THE for (end_pos : nearby_flags) loop!
+      if (road_options.test(RoadOption::ReconnectNetwork)){   
+        MapPosVector notused;
+        unsigned int notused2;
+        if (find_flag_path_and_tile_dist_between_flags(map, start_pos, pos, &notused, &notused2, &ai_mark_pos)){
+          AILogDebug["util_build_best_road"] << "" << calling_function << " non-direct road requested, nearby flags to start_pos - RoadOption::ReconnectNetwork is true, flag at pos " << pos << " is on the same network, not including it";
+          continue;
+        }
+      }
+
       // removing "allow target_pos" exception, it causes problems and is only used for rebuild_all_roads which doesn't work well
       if (game->get_flag_at_pos(pos) != nullptr && !game->get_flag_at_pos(pos)->is_connected() && pos != castle_flag_pos) {
         AILogDebug["util_build_best_road"] << "" << calling_function << " non-direct road requested, nearby flags to start_pos - flag at pos " << pos << " is itself disconnected and is not the castle_flag_pos, skipping";
         continue;
       }
 
-      AILogDebug["util_build_best_road"] << "" << calling_function << " non-direct road requested, nearby flags to start_pos - found valid nearby_flag at pos " << pos;
-      if (std::find(nearby_flags.begin(), nearby_flags.end(), pos) != nearby_flags.end()) {
-        // skip if already in nearby_flags list, which should only happen if it is part of existing road and RoadOption::Improve roads set;
-        AILogDebug["util_build_best_road"] << "" << calling_function << " non-direct road requested, nearby flags to start_pos - this pos is already in nearby_flag list, skipping";
-        continue;
-      }
       //ai_mark_pos.erase(pos);
       //ai_mark_pos.insert(std::make_pair(pos, "cyan"));
       //sleep_speed_adjusted(10);
+      AILogDebug["util_build_best_road"] << "" << calling_function << " non-direct road requested, nearby flags to start_pos - found valid nearby_flag at pos " << pos;
       nearby_flags.push_back(pos);
     } // foreach pos around start_pos
     //ai_mark_pos.clear();
@@ -1072,6 +930,8 @@ AI::build_best_road(MapPos start_pos, RoadOptions road_options, Road *built_road
       return false;
     }
 
+    //sofarduration = (std::clock() - start) / static_cast<double>(CLOCKS_PER_SEC);
+    //AILogDebug["util_build_best_road"] << "F. " << calling_function << " SO FAR call took " << sofarduration;
     //
     // plot Roads to the found nearby flags ends and score them in terms of NEW LENGTH
     //    store any that are "good enough" (under the max_convolution limit)
@@ -1083,6 +943,8 @@ AI::build_best_road(MapPos start_pos, RoadOptions road_options, Road *built_road
     AILogDebug["util_build_best_road"] << "" << calling_function << " non-direct road requested, about to plot roads to nearby_flags, checking tile_dist from start_pos " << start_pos << " to end_pos " << target_pos << " for an ideal road";
     int ideal_length = AI::get_straightline_tile_dist(map, start_pos, target_pos);
     AILogDebug["util_build_best_road"] << "" << calling_function << " non-direct road requested, about to plot roads to nearby_flags, flag target_pos at " << target_pos << " has straight-line tile distance " << ideal_length << " from start_pos " << start_pos;
+    //sofarduration = (std::clock() - start) / static_cast<double>(CLOCKS_PER_SEC);
+    //AILogDebug["util_build_best_road"] << "F1. " << calling_function << " SO FAR call took " << sofarduration;
     // for each nearby_flag:
     //   - if this is "tracked economy building", ensure the flag is closest to the currently selected Inventory (castle/warehouse) 
     //      in terms of Flag distance so that any resources produced will be stored there and not some other Inventory where it might 
@@ -1109,6 +971,7 @@ AI::build_best_road(MapPos start_pos, RoadOptions road_options, Road *built_road
       // 
       // NOTE - the split_roads vector will be filled by this plot_road call with all potential splitting Road solutions! 
       //
+      Roads split_roads;  // moving this here inside loop so it isn't accumulating ALL split_roads from ALL real flags
       Road potential_road = plot_road(map, player_index, start_pos, end_pos, &split_roads, road_options.test(RoadOption::HoldBuildingPos));
       // this while(true) loop looks goofy to me but it was the only clean way to do it without a GOTO statement
       while (true){
@@ -1127,6 +990,19 @@ AI::build_best_road(MapPos start_pos, RoadOptions road_options, Road *built_road
           AILogDebug["util_build_best_road"] << "" << calling_function << " non-direct road requested, plotting direct roads to nearby_flags, RoadOption::MostlyStraight is set and this potential DIRECT road solution is already too convoluted from new length alone, reduced max is " << max_convolution * 0.50;
           break;
         }
+
+        // adding support for RoadOption::ReconnectNetwork
+        //  WOULD IT MAKE MORE SENSE TO HAVE THIS BE THE ONLY ReconnectNetwork CHECK AND DITCH ALL THE EARLIER ONES?
+        //
+        if (road_options.test(RoadOption::ReconnectNetwork)){   
+          MapPosVector notused;
+          unsigned int notused2;
+          if (find_flag_path_and_tile_dist_between_flags(map, start_pos, end_pos, &notused, &notused2, &ai_mark_pos)){
+            AILogDebug["util_build_best_road"] << "" << calling_function << " non-direct road requested, plotting direct roads to nearby_flags, - RoadOption::ReconnectNetwork is true, flag at pos " << end_pos << " is on the same network, not including it";
+            break;
+          }
+        }
+
         // if this is "tracked economy building", ensure the end_pos flag is closest to the currently selected Inventory (castle/warehouse)
         if (verify_stock == true){
           // this should use FLAG ONLY  (wait no, FlagAndStraightLine is more restrictive and good for placing new buildings
@@ -1143,6 +1019,9 @@ AI::build_best_road(MapPos start_pos, RoadOptions road_options, Road *built_road
         break;
       } // while true - find direct road
 
+      //sofarduration = (std::clock() - start) / static_cast<double>(CLOCKS_PER_SEC);
+     //AILogDebug["util_build_best_road"] << "F2. " << calling_function << " SO FAR call took " << sofarduration;
+
       //
       // now check the list of splitting flag solutions that were likely found by the plot_road call directly
       //  preceeding this, disqualify any that are already unacceptable, and include the rest as potential solutions
@@ -1154,12 +1033,14 @@ AI::build_best_road(MapPos start_pos, RoadOptions road_options, Road *built_road
       //  Only consider the splits if the real road ends +2 tiles and +1 flag would be acceptable
       //
       //
-      if (road_options.test(RoadOption::SplitRoads == false)) {
+      if (road_options.test(RoadOption::SplitRoads) == false) {
         continue;
       }
       AILogDebug["util_build_best_road"] << "" << calling_function << " non-direct road requested, split_roads, RoadOption SplitRoads is true, preparing to iterate over potential split roads found in previous plot_road call";
       AILogDebug["util_build_best_road"] << "" << calling_function << " non-direct road requested, split_roads, there are " << split_roads.size() << " Road entries in the split_roads list (that was provide by the last plot_roads call to nearby map pos " << end_pos;
       for (Road split_road : split_roads) {
+        //sofarduration = (std::clock() - start) / static_cast<double>(CLOCKS_PER_SEC);
+        //AILogDebug["util_build_best_road"] << "F3. " << calling_function << " SO FAR call took " << sofarduration;
         RoadEnds split_road_ends = get_roadends(map, split_road);
         MapPos split_end_pos = split_road.get_end(map.get());
 
@@ -1186,11 +1067,38 @@ AI::build_best_road(MapPos start_pos, RoadOptions road_options, Road *built_road
           //AILogDebug["util_build_best_road"] << "" << calling_function << " non-direct road requested, split_roads, RoadOption::MostlyStraight is set and this split_road solution is already too convoluted from new length alone, reduced max is " << max_convolution * 0.50;
           continue;
         }
+
+        // various reasons below to disqualify a flag
+        int disqualified = 0;
+
+        // adding support for RoadOption::ReconnectNetwork
+        //  this could code likely be combined with if verify_stock code below for performance
+        //  but for now keeping them separate for simplicity
+        //  CONSIDER REMOVING THIS CHECK AND ONLY CHECKING INSIDE THE for (end_pos : nearby_flags) loop!
+        //  CONSIDER REMOVING THIS CHECK AND ONLY CHECKING INSIDE THE for (end_pos : nearby_flags) loop!
+        if (road_options.test(RoadOption::ReconnectNetwork)){   
+          AILogDebug["util_build_best_road"] << "" << calling_function << " non-direct road requested, split_roads, RoadOption::ReconnectNetwork is true, no flag here, checking to see if adjacent flags are part of same road network";
+          // because new-splitting/fake-flag solutions may be allowed when doing ReconnectNetwork, we must check for this and use either adjacent flag to do to search
+          //  as the find_flag_path_and_tile_dist_between_flags function won't work for fake flags.
+          for (Direction dir : cycle_directions_cw()) {
+            if (map->has_path_IMPROVED(split_end_pos, dir)) {
+              Road split_road = trace_existing_road(map, split_end_pos, dir);
+              MapPos adjacent_flag_pos = split_road.get_end(map.get());
+              MapPosVector notused;
+              unsigned int notused2;
+              if (find_flag_path_and_tile_dist_between_flags(map, start_pos, adjacent_flag_pos, &notused, &notused2, &ai_mark_pos)){
+                AILogDebug["util_build_best_road"] << "" << calling_function << " non-direct road requested, split_roads, RoadOption::ReconnectNetwork is true, splitting-flag at pos " << split_end_pos << " is on the same network, not including it";
+                disqualified++;
+                break;
+              }
+            }
+          }          
+        }
+
         // if this is "tracked economy building", ensure the end_pos flag is closest to the currently selected Inventory (castle/warehouse)
         // because this is a split_flag solution, the flag doesn't exist yet.  Instead, check to ensure that BOTH of its adjacent flags
         // are closest to the current Inventory.  I am not sure what happens if two Inventories are equal flag distance apart, but I suspect
         // whichever is first in terms of path-Direction (0-5) wins
-        int disqualified = 0;
         if (verify_stock == true){
           for (Direction dir : cycle_directions_cw()) {
             AILogVerbose["util_build_best_road"] << "" << calling_function << " non-direct road requested, split_roads, verify_stock - looking for a path for splitting flag at split_end_pos " << split_end_pos << " in dir " << NameDirection[dir];
@@ -1204,6 +1112,7 @@ AI::build_best_road(MapPos start_pos, RoadOptions road_options, Road *built_road
               //if (find_nearest_inventory(map, player_index, adjacent_flag_pos, DistType::FlagOnly, &ai_mark_pos) != inventory_pos){
                 //AILogDebug["util_build_best_road"] << "" << calling_function << " non-direct road requested, split_roads, verify_stock - potential split_road flag at split_end_pos " << split_end_pos << " is not closest to current inventory_pos " << inventory_pos << ", skipping";
                 disqualified++;
+                break;
               }
             }
           }
@@ -1220,6 +1129,9 @@ AI::build_best_road(MapPos start_pos, RoadOptions road_options, Road *built_road
 
       } // foreach split road
 
+      //sofarduration = (std::clock() - start) / static_cast<double>(CLOCKS_PER_SEC);
+      //AILogDebug["util_build_best_road"] << "F4. " << calling_function << " SO FAR call took " << sofarduration;
+
       //AILogDebug["util_build_best_road"] << "" << calling_function << " non-direct road requested, split_roads, done checking split_roads for this potential direct road, there are currently " << rb.get_proads().size() << " potential_roads in the list";
 
     } // foreach end_pos nearby flags
@@ -1227,7 +1139,8 @@ AI::build_best_road(MapPos start_pos, RoadOptions road_options, Road *built_road
     AILogDebug["util_build_best_road"] << "" << calling_function << " non-direct road requested, done checking all direct and split_roads for start_pos " << start_pos << " to target_pos " << target_pos << ", there are currently " << rb.get_proads().size() << " potential_roads in the list";
 
     // END OF FINDING POTENTIAL END FLAG TO CONNECT TO
-
+    //sofarduration = (std::clock() - start) / static_cast<double>(CLOCKS_PER_SEC);
+    //AILogDebug["util_build_best_road"] << "G  .  " << calling_function << " SO FAR call took " << sofarduration;
 
     //=====================================================================================
     // score the potential new roads to nearby_flags in terms of:
@@ -1290,11 +1203,6 @@ AI::build_best_road(MapPos start_pos, RoadOptions road_options, Road *built_road
         // no new length for an existing road, this means it will be preferred over a similiar
         //   potential new road after new_length penalty applied.  A new road must be significantly better to be built
         unsigned int new_length = 0;
-        //
-        // MAJOR BUG?? I noticed when looking at logs (with PenalizeNewLength turned off but not sure if that is related)
-        //   where the "tile_dist" showed up as the score of the potential new flag's tile-dist to the target flag
-        //  and did NOT include the new length that all, which I assume it shuold?
-        //
         AILogDebug["util_build_best_road"] << "" << calling_function << " scoring_eroads, BEFORE applying any penalties, potential road from start_pos " << start_pos << " in dir " << NameDirection[start_dir] << " to nearby_eroad_flag_pos " << nearby_eroad_flag_pos <<
           " has tile_dist " << tile_dist << ", flag_dist " << flag_dist << ", new_length " << new_length << " to target_pos " << target_pos;
         //----------------------------------------------------------------------------------------------
@@ -1324,6 +1232,8 @@ AI::build_best_road(MapPos start_pos, RoadOptions road_options, Road *built_road
       AILogDebug["util_build_best_road"] << "" << calling_function << " scoring_eroads, start_pos " << start_pos << " has no flag, no paths, or RoadOption::Improve not set, not checking for eroads";
     } // if start_pos has any paths/eroads already
 
+    //sofarduration = (std::clock() - start) / static_cast<double>(CLOCKS_PER_SEC);
+    //AILogDebug["util_build_best_road"] << "H. " << calling_function << " SO FAR call took " << sofarduration;
     // foreach potential new road (proad) to be built to a nearby flag
     //  score the existing road (eroad) that begins at the flag/pos where the proad ends
     AILogDebug["util_build_best_road"] << "" << calling_function << " scoring_proads, preparing to score potential new roads from start_pos to nearby_flag positions";
@@ -1359,20 +1269,35 @@ AI::build_best_road(MapPos start_pos, RoadOptions road_options, Road *built_road
       // RoadOption penalties applied here!   * 1 means no penalty, only in place for easy adjustment
       //----------------------------------------------------------------------------------------------
       // apr13 2020 increased new_length penalty from 2.0 to 2.5
+      // jan02 2022 increased new_length penalty from 2.50 to 2.75, then to 3.00
+      // jan02 2022 found solution to what I thought was caused by new length penalty, but was in fact caused by real flags
+      //             not being considered in "fake flag" solutions when discovered a long the way but not the original target
+      //             so connections were being made to new splitting flags instead of appropriate existing flags because the
+      //             existing flag was not the target of the plot_road call (because it only considers halfway point first, then others)
+      //             and so existing flag was ignored in favor of nearby fake-flag.  changing this back to 2.0 to re-evaluate!
+      // jan03 2022 ANOTHER UPDATE - setting this very high for stock/warehouse, attempt to reduce road clutter around them
       double new_length_penalty;
       if (road_options.test(RoadOption::PenalizeNewLength)) {
-        new_length_penalty = 2.50;
+        if (inventory_pos != castle_flag_pos){
+          // stock/warehouse area
+          //new_length_penalty = 5.00;  // this might be too high
+          new_length_penalty = 3.50;  // this might be too high
+        }else{
+          // castle area
+          new_length_penalty = 2.00;
+        }
       }
       else {
         new_length_penalty = 1.00; // no penalty
       }
       if (road_options.test(RoadOption::ReducedNewLengthPenalty)) {
-        new_length_penalty = 1.75;
+        new_length_penalty = 1.50;
       }
+      AILogDebug["util_build_best_road"] << "" << calling_function << " using new_length_penalty of " << new_length_penalty << "x for this scoring, based on RoadOptions";
       unsigned int adjusted_score = static_cast<unsigned int>(static_cast<double>(tile_dist * 1) + static_cast<double>(new_length) * new_length_penalty + static_cast<double>(flag_dist * 1));
       if (road_options.test(RoadOption::PenalizeCastleFlag) && contains_castle_flag == true) {
         if (target_pos == castle_flag_pos){
-          AILogDebug["util_build_best_road"] << "not applying contains_castle_flag penalty because the target *is* the castle flag pos!";
+          AILogDebug["util_build_best_road"] << "" << calling_function << " not applying contains_castle_flag penalty because the target *is* the castle flag pos!";
         }else{
           adjusted_score += contains_castle_flag_penalty;
           AILogDebug["util_build_best_road"] << "" << calling_function << " scoring_proads, applying contains_castle_flag penalty of " << contains_castle_flag_penalty;
@@ -1389,6 +1314,8 @@ AI::build_best_road(MapPos start_pos, RoadOptions road_options, Road *built_road
     AILogDebug["util_build_best_road"] << "" << calling_function << " scoring_proads, preparing to sort scored_proads into a MapPosVector";
     MapPosVector sorted_scored_proads = sort_by_val_asc(scored_proads);
 
+    //sofarduration = (std::clock() - start) / static_cast<double>(CLOCKS_PER_SEC);
+    //AILogDebug["util_build_best_road"] << "I. " << calling_function << " SO FAR call took " << sofarduration;
     // try to build a road, starting with the best scoring potential_road end flag, until successful
     AILogDebug["util_build_best_road"] << "" << calling_function << " sorted_scored_proads, preparing to iterate over sorted_scored_proads to try to build roads to best nearby_flag";
     for (MapPos end_pos : sorted_scored_proads) {
@@ -1399,38 +1326,42 @@ AI::build_best_road(MapPos start_pos, RoadOptions road_options, Road *built_road
       }
       RoadBuilderRoad *proad = rb.get_proad(end_pos);
 
-      // check and see if this solution is actually better than the existing best complete
-      //   solution from start_pos to target_pos (eroad score)
-      // if not, skip this target and move on to next target
-      if (game->get_flag_at_pos(start_pos) != nullptr && game->get_flag_at_pos(start_pos)->is_connected() && road_options.test(RoadOption::Improve)) {
-        bool skip_target = false;
-        for (std::pair<MapPos, unsigned int> ppair : scored_proads) {
-          if (ppair.first != end_pos) {
-            continue;
+      if (road_options.test(RoadOption::ReconnectNetwork)){
+        AILogDebug["util_build_best_road"] << "" << calling_function << " RoadOption::ReconnectNetwork set, NOT checking vs existing (ineffective) solutions";
+      }else{
+        // check and see if this solution is actually better than the existing best complete
+        //   solution from start_pos to target_pos (eroad score)
+        // if not, skip this target and move on to next target
+        if (game->get_flag_at_pos(start_pos) != nullptr && game->get_flag_at_pos(start_pos)->is_connected() && road_options.test(RoadOption::Improve)) {
+          bool skip_target = false;
+          for (std::pair<MapPos, unsigned int> ppair : scored_proads) {
+            if (ppair.first != end_pos) {
+              continue;
+            }
+            AILogDebug["util_build_best_road"] << "" << calling_function << " checking vs existing solution, found adjusted_score of " << ppair.second << " for this proad ending at end_pos " << end_pos;
+            // it must be SIGNIFICANTLY better, say 50% + 2?
+            // reducing from 50% to 20% + 2 on dec04 2021
+            double modified_prod_score = static_cast<double>(ppair.second) * static_cast<double>(1.20) + 2;
+            //if (best_eroad_score <= ppair.second) {
+            if (best_eroad_score <= modified_prod_score) {
+              AILogDebug["util_build_best_road"] << "" << calling_function << " checking vs existing solution, proad from start_pos " << start_pos << " to end_pos " << end_pos << " has +20%+2 score " << modified_prod_score << " which is not significantly better than best_eroad_score " << best_eroad_score << ", skipping this target";
+              skip_target = true;
+              break;
+            }
+            else {
+              AILogDebug["util_build_best_road"] << "" << calling_function << " checking vs existing solution, proad from start_pos " << start_pos << " to end_pos " << end_pos << " has +20%+2 score " << modified_prod_score << " which is significantly better than best_eroad_score " << best_eroad_score << ", will build new road";
+              break;
+            }
           }
-          AILogDebug["util_build_best_road"] << "" << calling_function << " checking vs existing solution, found adjusted_score of " << ppair.second << " for this proad ending at end_pos " << end_pos;
-          // it must be SIGNIFICANTLY better, say 50% + 2?
-          // reducing from 50% to 20% + 2 on dec04 2021
-          double modified_prod_score = static_cast<double>(ppair.second) * static_cast<double>(1.20) + 2;
-          //if (best_eroad_score <= ppair.second) {
-          if (best_eroad_score <= modified_prod_score) {
-            AILogDebug["util_build_best_road"] << "" << calling_function << " checking vs existing solution, proad from start_pos " << start_pos << " to end_pos " << end_pos << " has +20%+2 score " << modified_prod_score << " which is not significantly better than best_eroad_score " << best_eroad_score << ", skipping this target";
-            skip_target = true;
-            break;
-          }
-          else {
-            AILogDebug["util_build_best_road"] << "" << calling_function << " checking vs existing solution, proad from start_pos " << start_pos << " to end_pos " << end_pos << " has +20%+2 score " << modified_prod_score << " which is significantly better than best_eroad_score " << best_eroad_score << ", will build new road";
+          if (skip_target == true) {
+            AILogDebug["util_build_best_road"] << "" << calling_function << " checking vs existing solution, skip_target is true, breaking from foreach sorted_scored_proads - not building road to this target";
             break;
           }
         }
-        if (skip_target == true) {
-          AILogDebug["util_build_best_road"] << "" << calling_function << " checking vs existing solution, skip_target is true, breaking from foreach sorted_scored_proads - not building road to this target";
-          break;
-        }
-      }
-      else {
-        AILogDebug["util_build_best_road"] << "" << calling_function << " sorted_scored_proads, start_pos " << start_pos << " has no paths, or RoadOption::Improve not set, not comparing this solution to any best_eroad_score";
-      } // is potential new solution better than existing solution?
+        else {
+          AILogDebug["util_build_best_road"] << "" << calling_function << " sorted_scored_proads, start_pos " << start_pos << " has no paths, or RoadOption::Improve not set, not comparing this solution to any best_eroad_score";
+        } // is potential new solution better than existing solution?
+      } // if RoadOption::ReconnectNetworks
 
 
 
@@ -1468,10 +1399,71 @@ AI::build_best_road(MapPos start_pos, RoadOptions road_options, Road *built_road
         }
       }
 
-      //
-      // TODO insert code here to check if the second road is actually better than the first road built (if one was built) !!
-      //   otherwise, don't build. 
-      //
+      /* figured out how to get actual adjusted score
+      // if there are two targets to connect to check if the second road is actually better 
+      //  than the first road built (if one was built)  otherwise, don't build. 
+      // for now only checking flag score, I am not sure how to get the adjusted score at this point
+      if (targets.size() > 1){
+        if (roads_built){
+          if (rb.get_score(end_pos).get_flag_dist() < first_target_road_score){
+            AILogDebug["util_build_best_road"] << "" << calling_function << " this is the second of " << targets.size() << " targets, and this flag-score of " << rb.get_score(end_pos).get_flag_dist() << " is better than the other road's score of " << first_target_road_score << " will try to create the road";
+          }else{
+            AILogDebug["util_build_best_road"] << "" << calling_function << " this is the second of " << targets.size() << " targets, and this flag-score of " << rb.get_score(end_pos).get_flag_dist() << " is NOT better than the other road's score of " << first_target_road_score << ", not building this road";
+            continue;
+          }
+        }else{
+          // seeing bad_score here sometimes, try excluding it
+          //  possibly because it is a fake flag?  maybe need to do the adjacent-flag check??
+          if (rb.get_score(end_pos).get_flag_dist() != bad_score){
+            // store the score of this road so it can be compared for the next one
+            first_target_road_score = rb.get_score(end_pos).get_flag_dist();
+            AILogDebug["util_build_best_road"] << "" << calling_function << " this is the first of " << targets.size() << " targets, saving flag-score of " << first_target_road_score << " for next target road to compare to";
+          }
+        }
+      }*/
+      // if there are two targets to connect to check if the second road is actually better 
+      //  than the first road built (if one was built) even though the target is different
+      // If it is not better, do not build.  Often the targets are in the same general
+      //  direction and there is no benefit to a second road
+      // NOTE - this should be comparing the adjusted proad score of the first road
+      //  to the first target, TO the score of the first road to the SECOND target
+      if (targets.size() > 1){
+        if (roads_built == 0){
+          // this is the first road
+          // store the end_pos of this road so it can be compared for the next one
+          first_target_road_end = end_pos;
+          AILogDebug["util_build_best_road"] << "" << calling_function << " this is the first of " << targets.size() << " targets, saving first_target_road_end of " << first_target_road_end << " for next target road to compare to";
+        }else{
+          // this is the 2nd+ road
+          // find the adjusted score of the first road to the first target
+          // to the adjusted score of the *first road* to the *second target*
+          // by using the scored_proads from the *second target* (does it share one scored_proad set?)
+          unsigned int this_target_score = bad_score;
+          unsigned int first_target_score = bad_score;
+          for (std::pair<MapPos, unsigned int> pair : scored_proads){
+            if (pair.first == end_pos){ this_target_score = pair.second; }
+            if (pair.first == first_target_road_end){ first_target_score = pair.second; }
+          }
+          if (this_target_score == bad_score || first_target_score == bad_score){
+            AILogWarn["util_build_best_road"] << "" << calling_function << " this is the second of " << targets.size() << " targets, one of the two scores is bad_score!  not comparing! continueing... is that okay?  this_target_score " << this_target_score << ", first_target_score " << first_target_score;
+            continue;
+          }
+          if (this_target_score + 10 < first_target_score){  // it must be significantly better
+            AILogDebug["util_build_best_road"] << "" << calling_function << " this is the second of " << targets.size() << " targets, and this adjusted proad score of " << this_target_score << " is significantly better than the other road's score of " << first_target_score << " will try to create the road";
+          }else{
+            // don't try additional positions because they all have worse scores than the first, because they are sorted by score
+            AILogDebug["util_build_best_road"] << "" << calling_function << " this is the second of " << targets.size() << " targets, and this adjusted proad score of " << this_target_score << " is NOT significantly better than the other road's score of " << first_target_score << ", not building a second road for this building";
+            // return true because the first road was successful
+            return true;
+          }
+        }
+      }
+
+      // avoid creation extremely long roads
+      if (road.get_length() > 30){
+        AILogDebug["util_build_best_road"] << "" << calling_function << " road is over 30 tiles long!  not building this road";
+        continue;
+      }
 
       // add support for RoadOption::PlotOnlyNoBuild
       if (road_options.test(RoadOption::PlotOnlyNoBuild)){
@@ -1494,6 +1486,14 @@ AI::build_best_road(MapPos start_pos, RoadOptions road_options, Road *built_road
         if (was_built) {
           AILogDebug["util_build_best_road"] << "" << calling_function << " successfully built new flag at end_pos " << end_pos << ", splitting the road";
           created_new_flag = true;
+          // IMPROVEMENT/hack 
+          //  because split-road solutions do not "heapify, the last segment of the road is not sorted by "score", and often dog-legs for no good reason when a straight
+          //  segment is possible.  It isn't obvious to me how to re-heapify the splitting path when it is being made, so instead, re-plot the road as a direct road so it
+          //  gets the actual best path.  This means the road actually built should be at least as good as the originally scored splitting road, but could be 1 tile better!
+          //  the HoldBuildingPos feature must be passed also to be sure replotted road can't interfere
+          AILogDebug["util_build_best_road"] << "" << calling_function << " because this is a splitting flag solution, REPLOT THE ROAD so the last segment can't dogleg";
+          Roads notused;  // this already a splitting road, no additional split roads considered
+          Road road = plot_road(map, player_index, start_pos, end_pos, &notused, road_options.test(RoadOption::HoldBuildingPos));
         }
         else {
           AILogDebug["util_build_best_road"] << "" << calling_function << " failed to build flag at end_pos " << end_pos << ", FIND OUT WHY!  not trying to build this road.  marking pos in blue";
@@ -1513,8 +1513,8 @@ AI::build_best_road(MapPos start_pos, RoadOptions road_options, Road *built_road
       game->get_mutex()->unlock();
       AILogVerbose["util_build_best_road"] << "" << calling_function << " thread #" << std::this_thread::get_id() << " AI has unlocked mutex after calling game->build_road (non-direct road)";
       if (was_built) {
-        AILogDebug["util_build_best_road"] << "" << calling_function << " successfully built road from " << start_pos << " to " << end_pos << " as specified in PotentialRoad";
         roads_built++;
+        AILogDebug["util_build_best_road"] << "" << calling_function << " successfully built road from " << start_pos << " to " << end_pos << " as specified in PotentialRoad, roads_built: " << roads_built;
         // set this so the calling function can tell the exact Road built if it needs it
         *built_road = *(&road);
         continue;
@@ -1819,46 +1819,23 @@ AI::building_exists_near_pos(MapPos center_pos, unsigned int distance, Building:
   return false;
 }
 
-
-/*
+/* I still don't think this is useful
 // find the "best" of two building types, in preference order: occupied->completed->any
 //   and find the halfway point between those two and return it
 // for trying to build between two buildings, such as building a SteelSmelter halfway between CoalMine and IronMine
 //   currently this is ONLY used for placing a steelsmelter between coal and iron mines
-
-// CHANGING THIS SIGNIFICANTLY jan19 2021
-// actaully... I am going to eliminate this for now.  Since moving to flagsearch checks
-//  it isn't likely to accomplish much
 MapPos
-AI::find_halfway_pos_between_buildings(Building::Type first, Building::Type second) {
-  AILogDebug["util_find_halfway_pos_between_buildings"] << "inside get_halfway_pos_between_buildings, type1 " << NameBuilding[first] << " type2 " << NameBuilding[second] << " for inventory_pos " << inventory_pos;
-  update_building_counts();
+AI::find_halfway_pos_between_buildings(MapPos inventory_pos, Building::Type first, Building::Type second) {
+  AILogDebug["util_find_halfway_pos_between_buildings"] << "inside get_halfway_pos_between_buildings, inventory_pos " << inventory_pos << ", type1 " << NameBuilding[first] << " type2 " << NameBuilding[second] << " for inventory_pos " << inventory_pos;
+  //update_buildings();
   Building::Type type[2] = { first, second };
   MapPos found_pos[2] = { bad_map_pos, bad_map_pos };
   for (int x = 0; x < 2; x++) {
     AILogDebug["util_find_halfway_pos_between_buildings"] << "searching this stock area for a building of type" << x << " " << NameBuilding[type[x]];
-    // change to connected_count?  should be same since flagsearch added
-    if (stock_buildings.at(inventory_pos).count[type[x]] >= 1) {
-      AILogDebug["util_find_halfway_pos_between_buildings"] << "stock has at least one connected building of type" << x << " " << NameBuilding[type[x]];
-      find_nearest_building()
-
-
-//  since enabling multiple economies, this function only considers buildings attached to the current inventory_pos
-
-// ***** THIS NEEDS TO BE CHANGED TO FIND NEAREST STOCK WITH A FLAG SEARCH!!  ******
-
-MapPos
-AI::find_halfway_pos_between_buildings(Building::Type first, Building::Type second) {
-  AILogDebug["util_find_halfway_pos_between_buildings"] << "inside get_halfway_pos_between_buildings, type1 " << NameBuilding[first] << " type2 " << NameBuilding[second] << " for inventory_pos " << inventory_pos;
-  update_building_counts();
-  Building::Type type[2] = { first, second };
-  MapPos found_pos[2] = { bad_map_pos, bad_map_pos };
-  for (int x = 0; x < 2; x++) {
-    AILogDebug["util_find_halfway_pos_between_buildings"] << "searching this stock area for a building of type" << x << " " << NameBuilding[type[x]];
-    if (stock_buildings.at(inventory_pos).occupied_count[type[x]] >= 1) {
+    if (stock_building_counts.at(inventory_pos).occupied_count[type[x]] >= 1) {
       AILogDebug["util_find_halfway_pos_between_buildings"] << "searching for an OCCUPIED building of type" << x << " " << NameBuilding[type[x]];
-      for (MapPos center_pos : stock_buildings.at(inventory_pos).occupied_military_pos) {
-        for (unsigned int i = 0; i < spiral_dist(0); i++) {
+      for (MapPos center_pos : stock_building_counts.at(inventory_pos).occupied_military_pos) {
+        for (unsigned int i = 0; i < spiral_dist(23); i++) {
           MapPos pos = map->pos_add_extended_spirally(center_pos, i);
           if (!map->has_building(pos))
             continue;
@@ -1872,18 +1849,22 @@ AI::find_halfway_pos_between_buildings(Building::Type first, Building::Type seco
             continue;
           }
           AILogDebug["util_find_halfway_pos_between_buildings"] << "building at pos " << pos << " of type " << NameBuilding[building->get_type()] << " is the right type, checking its status";
-          if (building->is_done() && building->has_serf()) {
-            found_pos[x] = building->get_position();
-            AILogDebug["util_find_halfway_pos_between_buildings"] << "found an acceptable OCCUPIED building of type" << x << " " << NameBuilding[type[x]] << " at pos " << found_pos[x];
-            break;
-          }
+          if (!building->is_done())
+            continue;
+          if (!building->has_serf())
+            continue;
+          if (find_nearest_inventory(map, player_index, building->get_position(), DistType::FlagOnly, &ai_mark_pos) != inventory_pos)
+            continue;
+          found_pos[x] = building->get_position();
+          AILogDebug["util_find_halfway_pos_between_buildings"] << "found an acceptable OCCUPIED building of type" << x << " " << NameBuilding[type[x]] << " at pos " << found_pos[x];
+          break;
         }
 
       }
     }
     else if (realm_completed_building_count[type[x]] >= 1) {
       AILogDebug["util_find_halfway_pos_between_buildings"] << "searching for a COMPLETED building of type" << x << " " << NameBuilding[type[x]];
-      for (MapPos center_pos : stock_buildings.at(inventory_pos).occupied_military_pos) {
+      for (MapPos center_pos : stock_building_counts.at(inventory_pos).occupied_military_pos) {
         for (unsigned int i = 0; i < spiral_dist(0); i++) {
           MapPos pos = map->pos_add_extended_spirally(center_pos, i);
           if (!map->has_building(pos))
@@ -1898,18 +1879,19 @@ AI::find_halfway_pos_between_buildings(Building::Type first, Building::Type seco
             continue;
           }
           AILogDebug["util_find_halfway_pos_between_buildings"] << "building at pos " << pos << " of type " << NameBuilding[building->get_type()] << " is the right type, checking its status";
-          if (building->is_done()) {
-            found_pos[x] = building->get_position();
-            AILogDebug["util_find_halfway_pos_between_buildings"] << "found an acceptable COMPLETED building of type" << x << " " << NameBuilding[type[x]] << " at pos " << found_pos[x];
-            break;
-          }
+          if (!building->is_done())
+            continue;
+          if (find_nearest_inventory(map, player_index, building->get_position(), DistType::FlagOnly, &ai_mark_pos) != inventory_pos)
+            continue;
+          found_pos[x] = building->get_position();
+          AILogDebug["util_find_halfway_pos_between_buildings"] << "found an acceptable COMPLETED building of type" << x << " " << NameBuilding[type[x]] << " at pos " << found_pos[x];
+          break;
         }
-
       }
     }
     else if (realm_building_count[type[x]] >= 1) {
       AILogDebug["util_find_halfway_pos_between_buildings"] << "searching for ANY building of type" << x << " " << NameBuilding[type[x]];
-      for (MapPos center_pos : stock_buildings.at(inventory_pos).occupied_military_pos) {
+      for (MapPos center_pos : stock_building_counts.at(inventory_pos).occupied_military_pos) {
         AILogDebug["util_find_halfway_pos_between_buildings"] << "searching around center_pos " << center_pos;
         for (unsigned int i = 0; i < spiral_dist(0); i++) {
           MapPos pos = map->pos_add_extended_spirally(center_pos, i);
@@ -1925,11 +1907,13 @@ AI::find_halfway_pos_between_buildings(Building::Type first, Building::Type seco
             continue;
           }
           AILogDebug["util_find_halfway_pos_between_buildings"] << "building at pos " << pos << " of type " << NameBuilding[building->get_type()] << " is the right type, checking its status";
-          if (building->has_serf()) {
-            found_pos[x] = building->get_position();
-            AILogDebug["util_find_halfway_pos_between_buildings"] << "found an acceptable ANY building of type" << x << " " << NameBuilding[type[x]] << " at pos " << found_pos[x];
-            break;
-          }
+          //if (!building->has_serf())  // why was this check here before?
+          //  continue;
+          if (find_nearest_inventory(map, player_index, building->get_position(), DistType::FlagOnly, &ai_mark_pos) != inventory_pos)
+            continue;
+          found_pos[x] = building->get_position();
+          AILogDebug["util_find_halfway_pos_between_buildings"] << "found an acceptable ANY building of type" << x << " " << NameBuilding[type[x]] << " at pos " << found_pos[x];
+          break;
         }
 
       }
@@ -1938,7 +1922,7 @@ AI::find_halfway_pos_between_buildings(Building::Type first, Building::Type seco
       AILogDebug["util_find_halfway_pos_between_buildings"] << "no buildings of type" << x << " " << NameBuilding[type[x]] << " known in realm, returning bad_map_pos";
       return bad_map_pos;
     }
-    // this shouldn't happen if update_building_counts() is accurate unless building was destroyed while searching
+    // this shouldn't happen if update_buildings() is accurate unless building was destroyed while searching
     if (found_pos[x] == bad_map_pos) {
       AILogDebug["util_find_halfway_pos_between_buildings"] << "could not find expected building of type" << x << " " << NameBuilding[type[x]] << " in realm despite being known! returning bad_map_pos";
       return bad_map_pos;
@@ -1963,7 +1947,7 @@ AI::trace_existing_road(PMap map, MapPos start_pos, Direction dir) {
   Road road;
   if (!map->has_path_IMPROVED(start_pos, dir)) {
     AILogWarn["util_trace_existing_road"] << "no path found at " << start_pos << " in direction " << NameDirection[dir] << "!  FIND OUT WHY";
-    ai_mark_pos.insert(ColorDot(start_pos, "white"));
+    //ai_mark_pos.insert(ColorDot(start_pos, "white"));
     //sleep_speed_adjusted(100000);
     return road;
   }
@@ -2168,7 +2152,7 @@ AI::count_farmable_land(MapPos center_pos, unsigned int distance, std::string co
         continue;
       }
       // exclude tiles with paths
-      if (map->paths(pos)) {
+      if (map->has_any_path(pos)) {
         continue;
       }
 
@@ -2177,6 +2161,51 @@ AI::count_farmable_land(MapPos center_pos, unsigned int distance, std::string co
   }
   //AILogDebug["util_count_farmable_land"] << "AI: found count " << count << " matching terrain of types " << NameTerrain[res_start_index] << " - " << NameTerrain[res_end_index];
   AILogDebug["util_count_farmable_land"] << "done count_farmable_land, returning count " << count;
+  return count;
+}
+
+// count the number of grass tiles, with no paths, and no obstacles
+// this is identical to count_farmable_lands but it doesn't include existing fields
+//  intended for placing buildings that are not location specific such as blacksmiths
+// NOTE - updating this to specifically avoid Farms because they will quickly
+//  consume space even if they have not yet.  Seeing too many blacksmiths placed near farms
+unsigned int
+AI::count_open_space(PGame game, MapPos center_pos, unsigned int distance, std::string color) {
+  AILogDebug["count_open_space"] << "inside AI::count_open_space";
+  unsigned int count = 0;
+  bool farm_penalty = false;
+  for (unsigned int i = 0; i < distance; i++) {
+    MapPos pos = map->pos_add_extended_spirally(center_pos, i);
+    //AILogDebug["count_open_space"] << "AI: terrain at pos " << pos << " has type " << terrain;
+    if (map->has_building(pos) && game->get_building_at_pos(pos)->get_type() == Building::TypeFarm){
+      farm_penalty = true;
+    }
+    if (AI::has_terrain_type(game, pos, Map::TerrainWater0, Map::TerrainWater3)
+            || AI::has_terrain_type(game, pos, Map::TerrainDesert0, Map::TerrainSnow1)) {
+      // this tile touches non-Grass, exclude it
+      continue;
+    }else{
+      // this tile touches ONLY GRASS
+      Map::Object obj_type = map->get_obj(pos);
+      // allow tiles that have felled trees
+      if (obj_type == Map::ObjectNone
+        || (obj_type >= Map::ObjectFelledPine0 && obj_type <= Map::ObjectFelledTree4) ) {
+      }
+      else {
+        // exclude tiles with blocking objects (anything not on this list)
+        continue;
+      }
+      // exclude tiles with paths
+      if (map->has_any_path(pos))
+        continue;
+      ++count;
+    }
+  }
+  if (farm_penalty){
+    AILogDebug["count_open_space"] << "inside count_open_space, applying farm penalty for this area";
+    if (count < 25){ count = 0; }else{ count -= 25; }
+  }
+  AILogDebug["count_open_space"] << "done count_open_space, returning count " << count;
   return count;
 }
 
@@ -2252,7 +2281,7 @@ AI::build_near_pos(MapPos center_pos, unsigned int distance, Building::Type buil
   // this function is being changed from using the *nearest* Inventory to using the *current*
   //  inventory, does that introduce any problems?
   if (building_type == Building::TypeHut) {
-    if (stock_buildings.at(inventory_pos).unfinished_hut_count >= max_unfinished_huts) {
+    if (stock_building_counts.at(inventory_pos).unfinished_hut_count >= max_unfinished_huts) {
       AILogDebug["util_build_near_pos"] << "max unfinished huts limit " << max_unfinished_huts << " reached, not building";
       // should be returning not_built_pos or bad_map pos?? stopbuilding is less appropriate with separate counts set up for huts vs other buildings
       return stopbuilding_pos;
@@ -2261,7 +2290,7 @@ AI::build_near_pos(MapPos center_pos, unsigned int distance, Building::Type buil
 
   // always be willing to build wood/stone buildings and knight huts or everything can grind to a halt
   //   also Mines, but don't connect these to the road network yet
-  if (stock_buildings.at(inventory_pos).unfinished_count >= max_unfinished_buildings && building_type != Building::TypeSawmill
+  if (stock_building_counts.at(inventory_pos).unfinished_count >= max_unfinished_buildings && building_type != Building::TypeSawmill
   //if (unfinished_building_count >= max_unfinished_buildings && building_type != Building::TypeSawmill
     && building_type != Building::TypeLumberjack && building_type != Building::TypeStonecutter
     && building_type != Building::TypeHut && building_type != Building::TypeCoalMine
@@ -2280,6 +2309,7 @@ AI::build_near_pos(MapPos center_pos, unsigned int distance, Building::Type buil
     if (map->get_owner(pos) != player_index && map->get_owner(pos) != -1) {
       AILogDebug["util_build_near_pos"] << "enemy territory found near this center_pos";
       enemy_near = true;
+      break;
     }
   }
 
@@ -2310,8 +2340,22 @@ AI::build_near_pos(MapPos center_pos, unsigned int distance, Building::Type buil
     || building_type == Building::TypeIronMine
     || building_type == Building::TypeGoldMine
     || building_type == Building::TypeStoneMine) {
-    AILogDebug["util_build_near_pos"] << "this is a Mine, setting is_mine to true";
+    AILogDebug["util_build_near_pos"] << "this is a Mine of type " << NameBuilding[building_type] << ", setting is_mine to true";
     is_mine = true;
+  }
+
+  // if this is a tracked-economy building, but not a mine (because we have less control
+  //  over placement of mines), and the current Inventory is a stock (not castle)
+  //  then also ensure the straight-line distance is fairly close to the stock
+  //  Otherwise, buildings tend to be built far away from it even if they are still closest
+  //  by verify_stock checks
+  // NOTE - this goes by center_pos not actual pos so it is a bit more sensitive than it seems
+  if (!is_mine && verify_stock && inventory_pos != castle_flag_pos){
+    AILogDebug["util_build_near_pos"] << "this is a non-mine tracked economy building of type " << NameBuilding[building_type] << " and this is not the castle area, doing straightline-dist-to-Stock check";
+    if (get_straightline_tile_dist(map, center_pos, inventory_pos) > 25){
+      AILogDebug["util_build_near_pos"] << "this is a non-mine tracked economy building of type " << NameBuilding[building_type] << " and this is not the castle area, rejecting center_pos because too far from Stock";
+      return bad_map_pos;
+    }
   }
 
   MapPos built_pos = bad_map_pos;
@@ -2374,6 +2418,15 @@ AI::build_near_pos(MapPos center_pos, unsigned int distance, Building::Type buil
       continue;
     }
 
+    // don't build two of various buildings too close to each other, they become redundant
+    if (building_type == Building::TypeMill || building_type == Building::TypeBaker ||
+        building_type == Building::TypeSawmill || building_type == Building::TypeButcher){
+      if (AI::building_exists_near_pos(pos, AI::spiral_dist(10), building_type)) {
+        AILogDebug["util_build_near_pos"] << "there is already another building of same type " << NameBuilding[building_type] << " within 10 tiles, not building here";
+        continue;
+      }
+    }
+
 
     //
     // FIRST, try to place a FLAG that results in a good road connection
@@ -2403,7 +2456,7 @@ AI::build_near_pos(MapPos center_pos, unsigned int distance, Building::Type buil
       //  encroaching, but also to help ensure that knight huts are already established around it so 
       //  that when the "rebuild nearby roads" happens
       // note if enemy borders are near
-      for (unsigned int i = 0; i < AI::spiral_dist(12); i++) {
+      for (unsigned int i = 0; i < AI::spiral_dist(10); i++) {
         MapPos pos = map->pos_add_extended_spirally(center_pos, i);
         if (map->get_owner(pos) == -1) {
           AILogDebug["util_build_near_pos"] << "unclaimed territory found near this center_pos, not building warehouse in this corner";
@@ -2444,7 +2497,7 @@ AI::build_near_pos(MapPos center_pos, unsigned int distance, Building::Type buil
         //  the closest Inventory building by flagsearch is not the current one
         //
         Road notused; // not used here
-        road_built = AI::build_best_road(flag_pos, road_options, &notused, "build_near_pos", building_type, Building::TypeNone, bad_map_pos, verify_stock);
+        road_built = AI::build_best_road(flag_pos, road_options, &notused, "build_near_pos:"+NameBuilding[building_type]+"@"+std::to_string(flag_pos), building_type, Building::TypeNone, bad_map_pos, verify_stock);
       }else{
         AILogDebug["util_build_near_pos"] << "the flag already at flag_pos " << flag_pos << " is already connected to road system.  For potential new building of type " << NameBuilding[building_type] << " at pos " << pos;
         // must do the verify_stock check here on this flag, because normally it is done when placing the road but this
@@ -2493,11 +2546,11 @@ AI::build_near_pos(MapPos center_pos, unsigned int distance, Building::Type buil
       }else{
         AILogDebug["util_build_near_pos"] << "successfully connected flag at flag_pos " << flag_pos << " to road network.  For potential new building of type " << NameBuilding[building_type];
         //if (building_type == Building::TypeHut) {
-        //  stock_buildings.at(inventory_pos).unfinished_hut_count++;
+        //  stock_building_counts.at(inventory_pos).unfinished_hut_count++;
         //  AILogDebug["util_build_near_pos"] << "incrementing unfinished_hut_count, is now: " << unfinished_hut_count;
         //}
         //else {
-        //  stock_buildings.at(inventory_pos).unfinished_count++;
+        //  stock_building_counts.at(inventory_pos).unfinished_count++;
         //  AILogDebug["util_build_near_pos"] << "found unfinished " << NameBuilding[building_type] << ", incrementing unfinished_building_count, is now: " << unfinished_building_count;
         //}
         //duration = (std::clock() - start) / static_cast<double>(CLOCKS_PER_SEC);
@@ -2516,8 +2569,7 @@ AI::build_near_pos(MapPos center_pos, unsigned int distance, Building::Type buil
     AILogVerbose["util_build_near_pos"] << "thread #" << std::this_thread::get_id() << " AI has unlocked mutex after calling game->build_building (build_near_pos) of type " << NameBuilding[building_type];
     if (!was_built) {
       AILogDebug["util_build_near_pos"] << "failed to build building of type " << NameBuilding[building_type] << " despite can_build being true!  WAITING 10sec - look at the pos in coral!";
-      ai_mark_pos.erase(pos);
-      ai_mark_pos.insert(std::make_pair(pos, "coral"));
+      ai_mark_pos.insert(ColorDot(pos, "coral"));
       //sleep_speed_adjusted(10000);
       continue;
     }
@@ -2577,10 +2629,10 @@ AI::count_stones_near_pos(MapPos center_pos, unsigned int distance) {
 unsigned int
 AI::count_knights_affected_by_occupation_level_change(unsigned int current_level, unsigned int new_level) {
   AILogDebug["util_count_knights_affected_by_occupation_level_change"] << "inside count_knights_affected_by_occupation_level_change, level " << current_level << " -> " << new_level;
-  // calling update_building_counts here is too slow because of mutex locking and causes do_manage_knight_occupation_levels to leave things at zero
+  // calling update_buildings here is too slow because of mutex locking and causes do_manage_knight_occupation_levels to leave things at zero
   //   for long enough that the game update actually starts moving knights around.  Having a super accurate count is not critical here, it should
   //   be able to use whatever values were found during the most recent update, which I believe is happening at the start of each AI loop anyway
-  //update_building_counts();
+  //update_buildings();
   // note this includes incomplete buildings? I think.  I doubt it matters much, though
   unsigned int hut_count = realm_building_count[Building::TypeHut];
   unsigned int tower_count = realm_building_count[Building::TypeTower];
@@ -2637,7 +2689,7 @@ AI::expand_borders() {
 
   // search outward from each military building until border pos reached
   //  then score that area
-  for (MapPos center_pos : stock_buildings.at(inventory_pos).occupied_military_pos) {
+  for (MapPos center_pos : stock_building_counts.at(inventory_pos).occupied_military_pos) {
     duration = (std::clock() - start) / static_cast<double>(CLOCKS_PER_SEC);
     AILogDebug["util_expand_borders"] << "about to check around pos " << center_pos << ", SO FAR util_expand_borders call took " << duration;
     // find territory edge in each direction
@@ -2667,7 +2719,7 @@ AI::expand_borders() {
   duration = (std::clock() - start) / static_cast<double>(CLOCKS_PER_SEC);
   for (MapPos corner_pos : search_positions) {
     // ensure Inventory unfinished_knight_huts below limit
-    if (stock_buildings.at(inventory_pos).unfinished_hut_count >= max_unfinished_huts) {
+    if (stock_building_counts.at(inventory_pos).unfinished_hut_count >= max_unfinished_huts) {
       AILogDebug["util_expand_borders"] << inventory_pos << " Inventory unfinished_huts_count limit " << max_unfinished_huts << " reached, cannot build knight huts for this Inventory";
       break;
     }
@@ -2679,7 +2731,7 @@ AI::expand_borders() {
     built_pos = AI::build_near_pos(corner_pos, AI::spiral_dist(4), Building::TypeHut);
     if (built_pos != bad_map_pos && built_pos != notplaced_pos){
       AILogDebug["util_expand_borders"] << "built a knight hut at pos " << built_pos;
-      stock_buildings.at(inventory_pos).unfinished_hut_count++;
+      stock_building_counts.at(inventory_pos).unfinished_hut_count++;
     }
   }
 
@@ -2691,15 +2743,15 @@ AI::expand_borders() {
 }
 
 
-
-
+// score area for placement of new military buildings
+//  to expand borders
 unsigned int
 AI::score_area(MapPos center_pos, unsigned int distance) {
   // time this function for debugging
   std::clock_t start;
   double duration;
   start = std::clock();
-  AILogDebug["util_score_area"] << "inside AI::score_area, center_pos " << center_pos << ", distance " << distance;
+  //AILogDebug["util_score_area"] << "inside AI::score_area, center_pos " << center_pos << ", distance " << distance;
   unsigned int total_value = 0;
   //ai_mark_pos.erase(center_pos);
   //ai_mark_pos.insert(ColorDot(center_pos, "white"));
@@ -2713,6 +2765,7 @@ AI::score_area(MapPos center_pos, unsigned int distance) {
       
     //AILogDebug["util_score_area"] << "at pos " << pos << " with object type " << NameObject[obj];
     size_t pos_value = 0;  // easier to make this size_t than static_cast all the .size values
+
     //
     // terrain and resources
     //
@@ -2720,145 +2773,229 @@ AI::score_area(MapPos center_pos, unsigned int distance) {
     unsigned int iron_signs = 0;
     unsigned int coal_signs = 0;
     unsigned int stone_signs = 0;
-    // if grass or water with obstacles, or already having a field...
-    if (obj == Map::ObjectNone &&
+    if (obj == Map::ObjectNone &&  // if has a field, or can build a field here
       (AI::has_terrain_type(game, pos, Map::TerrainGrass0, Map::TerrainGrass3) ||
         AI::has_terrain_type(game, pos, Map::TerrainWater0, Map::TerrainWater3)) ||
       obj >= Map::ObjectSeeds0 && obj <= Map::ObjectFieldExpired ||
       obj >= Map::ObjectField0 && obj <= Map::ObjectField5) {
       pos_value += expand_towards.count("foods") * foods_weight;
-      AILogDebug["util_score_area"] << "adding foods count 1 with value " << expand_towards.count("foods") * foods_weight;
+      //AILogDebug["util_score_area"] << "adding potential & existing fields count 1 with value " << expand_towards.count("foods") * foods_weight;
     }
     if (obj >= Map::ObjectTree0 && obj <= Map::ObjectPine7) {
       pos_value += expand_towards.count("trees") * trees_weight;
-      AILogDebug["util_score_area"] << "adding trees count 1 with value " << expand_towards.count("trees") * trees_weight;
+      //AILogDebug["util_score_area"] << "adding trees count 1 with value " << expand_towards.count("trees") * trees_weight;
     }
     if (obj >= Map::ObjectStone0 && obj <= Map::ObjectStone7) {
       int stonepile_value = 1 + (-1 * (obj - Map::ObjectStone7));
       pos_value += expand_towards.count("stones") * stones_weight * stonepile_value;
-      AILogDebug["util_score_area"] << "adding stones count " << stonepile_value << " with value " << expand_towards.count("stones") * stones_weight;
+      //AILogDebug["util_score_area"] << "adding stones count " << stonepile_value << " with value " << expand_towards.count("stones") * stones_weight;
     }
     if (AI::has_terrain_type(game, pos, Map::TerrainTundra0, Map::TerrainSnow0)) {
       if (obj >= Map::ObjectSignEmpty && obj <= Map::ObjectSignSmallStone) {
-        AILogDebug["util_score_area"] << "found a sign (of type " << NameObject[obj] << "), not counting this hill";
+        //AILogDebug["util_score_area"] << "found a sign (of type " << NameObject[obj] << "), not counting this hill";
       }
       else {
         pos_value += expand_towards.count("hills") * hills_weight;
-        AILogDebug["util_score_area"] << "adding hills count 1 with value " << expand_towards.count("hills") * hills_weight;
+        //AILogDebug["util_score_area"] << "adding hills count 1 with value " << expand_towards.count("hills") * hills_weight;
       }
     }
-    if (obj == Map::ObjectSignLargeGold) { gold_signs += 3; }
+    if (obj == Map::ObjectSignLargeGold) { gold_signs += 2; }
     if (obj == Map::ObjectSignSmallGold) { gold_signs += 1; }
     if (obj == Map::ObjectSignSmallGold || obj == Map::ObjectSignLargeGold) {
       pos_value += expand_towards.count("gold_ore") * gold_ore_weight * gold_signs;
-      AILogDebug["util_score_area"] << "adding gold_ore count " << gold_signs << " with value " << expand_towards.count("gold_ore") * gold_ore_weight * gold_signs;
+      //AILogDebug["util_score_area"] << "adding gold_ore count " << gold_signs << " with value " << expand_towards.count("gold_ore") * gold_ore_weight * gold_signs;
     }
-    if (obj == Map::ObjectSignLargeIron) { iron_signs += 3; }
+    if (obj == Map::ObjectSignLargeIron) { iron_signs += 2; }
     if (obj == Map::ObjectSignSmallIron) { iron_signs += 1; }
     if (obj == Map::ObjectSignSmallIron || obj == Map::ObjectSignLargeIron) {
       pos_value += expand_towards.count("iron_ore") * iron_ore_weight * iron_signs;
-      AILogDebug["util_score_area"] << "adding iron_ore count " << iron_signs << " with value " << expand_towards.count("iron_ore") * iron_ore_weight * iron_signs;
+      //AILogDebug["util_score_area"] << "adding iron_ore count " << iron_signs << " with value " << expand_towards.count("iron_ore") * iron_ore_weight * iron_signs;
     }
-    if (obj == Map::ObjectSignLargeCoal) { coal_signs += 3; }
+    if (obj == Map::ObjectSignLargeCoal) { coal_signs += 2; }
     if (obj == Map::ObjectSignSmallCoal) { coal_signs += 1; }
     if (obj == Map::ObjectSignSmallCoal || obj == Map::ObjectSignLargeCoal) {
       pos_value += expand_towards.count("coal")      * coal_weight * coal_signs;
-      AILogDebug["util_score_area"] << "adding coal count " << coal_signs << " with value " << expand_towards.count("coal_ore") * coal_weight * coal_signs;
+      //AILogDebug["util_score_area"] << "adding coal count " << coal_signs << " with value " << expand_towards.count("coal_ore") * coal_weight * coal_signs;
     }
-    if (obj == Map::ObjectSignLargeStone) { stone_signs += 3; }
+    if (obj == Map::ObjectSignLargeStone) { stone_signs += 2; }
     if (obj == Map::ObjectSignSmallStone) { stone_signs += 1; }
     if (obj == Map::ObjectSignSmallStone || obj == Map::ObjectSignLargeStone) {
       pos_value += expand_towards.count("stones") * stone_signs_weight * stone_signs;
-      AILogDebug["util_score_area"] << "adding stones count " << stone_signs << " with value " << expand_towards.count("stones") * stone_signs_weight * stone_signs;
+      //AILogDebug["util_score_area"] << "adding stones count " << stone_signs << " with value " << expand_towards.count("stones") * stone_signs_weight * stone_signs;
     }
-    // I think scoring_warehouse is deprecated for now, could bring it back if it really helps
-    if (!scoring_warehouse) {
 
-      // oppose_enemy - any place that enemy territory found
-      //    this has the effect of tending to encircle the enemy, which is a good thing
-      if (map->get_owner(pos) != player_index && map->get_owner(pos) != -1) {
-        if (expand_towards.count("oppose_enemy") == 0){
-          expand_towards.insert("oppose_enemy");
-          AILogDebug["util_score_area"] << "found enemy territory near our borders, adding oppose_enemy expansion goal for informative purpose";
-        }
-        pos_value += expand_towards.count("oppose_enemy") * 1;
-        AILogDebug["util_score_area"] << "adding oppose_enemy value for enemy territory";
+    // oppose_enemy - any place that enemy territory found
+    //    this has the effect of tending to encircle the enemy, which is a good thing
+    if (map->get_owner(pos) != player_index && map->get_owner(pos) != -1) {
+      if (expand_towards.count("oppose_enemy") == 0){
+        expand_towards.insert("oppose_enemy");
+        //AILogDebug["util_score_area"] << "found enemy territory near our borders, adding oppose_enemy expansion goal for informative purpose";
       }
-
-      // protect_economy - value areas where own civilian buildings are near our borders
-      //    to ensure they are protected
-      //  TODO: are mines Large or Small?  Should they get extra protection? 
-      //    or even moreso... check to see if they are the only mine of that type
-      //    we have and if so score highly?
-      if (map->get_owner(pos) == player_index) {
-        // "auto-add" this expansion goal for AI Overlay visualization
-        if (expand_towards.count("protect_economy") == 0){
-          expand_towards.insert("protect_economy");
-          AILogDebug["util_score_area"] << "found one of our civilian buildings near our borders, adding protect_economy expansion goal for informative purpose";
-        }
-        if (obj == Map::ObjectLargeBuilding && !game->get_building_at_pos(pos)->is_military()) {
-          pos_value += expand_towards.count("protect_economy") * 3;
-          AILogDebug["util_score_area"] << "adding protect_economy building value x3 for large civilian building of type " << NameBuilding[game->get_building_at_pos(pos)->get_type()] << " at pos " << pos;
-        }
-        if (obj == Map::ObjectSmallBuilding && !game->get_building_at_pos(pos)->is_military()) {
-          pos_value += expand_towards.count("protect_economy") * 1;
-          AILogDebug["util_score_area"] << "adding protect_economy building value x1 for small civilian building of type " << NameBuilding[game->get_building_at_pos(pos)->get_type()] << " at pos " << pos;
-        }
-      }
-
-      // castle_buffer
-      //  tiles owned by nobody, outside our borders, where the center_pos
-      //   is near the castle, are valued to encourage building huts the castle
-      if (get_straightline_tile_dist(map, center_pos, castle_flag_pos) < 12){
-        if (map->get_owner(pos) == -1) {
-          pos_value += expand_towards.count("castle_buffer") * 1;
-          //AILogDebug["util_score_area"] << "adding castle_buffer value for unclaimed territory near our castle";
-          //ai_mark_pos.erase(pos);
-          //ai_mark_pos.insert(ColorDot(pos, "black"));
-          //sleep_speed_adjusted(100);
-        }
-      }
+      pos_value += expand_towards.count("oppose_enemy") * 2;
+      //AILogDebug["util_score_area"] << "adding oppose_enemy value for enemy territory";
     }
+
     //
-    // offense
+    // protect_economy - value areas where own civilian buildings are near our borders
+    //    to ensure they are protected
     //
-    if (scoring_attack
-      && map->get_owner(pos) != player_index
-      && map->get_owner(pos) != -1
-      && map->has_building(pos)
-      ) {
-      //AILogDebug["util_score_area"] << "potential attack object is " << NameObject[obj] << " with building type " << NameBuilding[game->get_building_at_pos(pos)->get_type()];
+    //  TODO: are mines Large or Small?  Should they get extra protection? 
+    //    or even moreso... check to see if they are the only mine of that type
+    //    we have and if so score highly?
+    if (map->get_owner(pos) == player_index) {
+      // "auto-add" this expansion goal for AI Overlay visualization
+      if (expand_towards.count("protect_economy") == 0){
+        expand_towards.insert("protect_economy");
+        //AILogDebug["util_score_area"] << "found one of our civilian buildings near our borders, adding protect_economy expansion goal for informative purpose";
+      }
       if (obj == Map::ObjectLargeBuilding && !game->get_building_at_pos(pos)->is_military()) {
-        pos_value += 3;
-        AILogDebug["util_score_area"] << "adding attack value x3 for large civilian building of type " << NameBuilding[game->get_building_at_pos(pos)->get_type()] << " at pos " << pos;
-      }
-      if (obj == Map::ObjectSmallBuilding && game->get_building_at_pos(pos)->get_type() == Building::TypeCoalMine){
-        pos_value += 2;
-        AILogDebug["util_score_area"] << "adding additional attack value x2 for building of type " << NameBuilding[game->get_building_at_pos(pos)->get_type()] << " at pos " << pos;
-      }
-      if (obj == Map::ObjectSmallBuilding && game->get_building_at_pos(pos)->get_type() == Building::TypeIronMine) {
-        pos_value += 4;
-        AILogDebug["util_score_area"] << "adding additional attack value x4 for building of type " << NameBuilding[game->get_building_at_pos(pos)->get_type()] << " at pos " << pos;
-      }
-      if (obj == Map::ObjectSmallBuilding && game->get_building_at_pos(pos)->get_type() == Building::TypeGoldMine) {
-        pos_value += 6;
-        AILogDebug["util_score_area"] << "adding additional attack value x6 for building of type " << NameBuilding[game->get_building_at_pos(pos)->get_type()] << " at pos " << pos;
+        pos_value += expand_towards.count("protect_economy") * 3;
+        //AILogDebug["util_score_area"] << "adding protect_economy building value x3 for large civilian building of type " << NameBuilding[game->get_building_at_pos(pos)->get_type()] << " at pos " << pos;
       }
       if (obj == Map::ObjectSmallBuilding && !game->get_building_at_pos(pos)->is_military()) {
-        pos_value += 1;
-        AILogDebug["util_score_area"] << "adding attack value x1 for small civilian building of type " << NameBuilding[game->get_building_at_pos(pos)->get_type()] << " at pos " << pos;
+        pos_value += expand_towards.count("protect_economy") * 1;
+        //AILogDebug["util_score_area"] << "adding protect_economy building value x1 for small civilian building of type " << NameBuilding[game->get_building_at_pos(pos)->get_type()] << " at pos " << pos;
       }
     }
+
+    //
+    // castle_buffer
+    //
+    //  tiles owned by nobody, outside our borders, where the center_pos
+    //   is near the castle, are valued to encourage building huts the castle
+    if (get_straightline_tile_dist(map, center_pos, castle_flag_pos) < 18){
+      if (map->get_owner(pos) == -1) {
+        pos_value += expand_towards.count("castle_buffer") * 1;
+        //AILogDebug["util_score_area"] << "adding castle_buffer value for unclaimed territory near our castle with value of " << expand_towards.count("castle_buffer") * 2;
+        //ai_mark_pos.erase(pos);
+        //ai_mark_pos.insert(ColorDot(pos, "black"));
+        //sleep_speed_adjusted(100);
+      }
+    }
+
     //
     // total it up
     //
     total_value += static_cast<unsigned int>(pos_value);
-    AILogDebug["util_score_area"] << "score total so far: " << total_value;
+    //AILogDebug["util_score_area"] << "score total so far: " << total_value;
 
   }
   AILogDebug["util_score_area"] << "found total score_area value " << total_value << " of terrain & objects in area " << center_pos;
   duration = (std::clock() - start) / static_cast<double>(CLOCKS_PER_SEC);
   AILogDebug["util_score_area"] << "done util_score_area call took " << duration;
+  return total_value;
+}
+
+
+// score enemy area for attack
+unsigned int
+AI::score_enemy_area(MapPos center_pos, unsigned int distance) {
+  // time this function for debugging
+  std::clock_t start;
+  double duration;
+  start = std::clock();
+  //AILogDebug["util_score_enemy_area"] << "inside AI::score_enemy_area, center_pos " << center_pos << ", distance " << distance;
+  unsigned int total_value = 0;
+  //ai_mark_pos.erase(center_pos);
+  //ai_mark_pos.insert(ColorDot(center_pos, "white"));
+  //sleep_speed_adjusted(100);
+  for (unsigned int i = 0; i < distance; i++) {
+    MapPos pos = map->pos_add_extended_spirally(center_pos, i);
+    Map::Object obj = map->get_obj(pos);
+    ////ai_mark_pos.erase(pos);
+    //ai_mark_pos.insert(ColorDot(pos, "gray"));
+    //sleep_speed_adjusted(100);
+      
+    //AILogDebug["util_score_enemy_area"] << "at pos " << pos << " with object type " << NameObject[obj];
+    size_t pos_value = 0;  // easier to make this size_t than static_cast all the .size values
+
+    //
+    // prioritize any enemy building that is close to OUR castle
+    //
+    if (obj == Map::ObjectCastle && map->get_owner(pos) == player_index){
+      AILogDebug["util_score_enemy_area"] << "found our own castle in attack area!  scoring this area highly to reduce risk of our castle flag paths becoming blocked";
+      if (obj == Map::ObjectCastle){
+        pos_value += 50;
+        //AILogDebug["util_score_enemy_area"] << "adding attack value 20 for enemy castle at pos " << pos;
+        continue;
+      }
+    }
+
+    //
+    // mined resources
+    //
+    unsigned int gold_signs = 0;
+    unsigned int iron_signs = 0;
+    unsigned int coal_signs = 0;
+    if (obj == Map::ObjectSignLargeGold) { gold_signs += 2; }
+    if (obj == Map::ObjectSignSmallGold) { gold_signs += 1; }
+    if (obj == Map::ObjectSignSmallGold || obj == Map::ObjectSignLargeGold) {
+      pos_value += expand_towards.count("gold_ore") * gold_ore_weight * gold_signs;
+      //AILogDebug["util_score_enemy_area"] << "adding gold_ore count " << gold_signs << " with value " << expand_towards.count("gold_ore") * gold_ore_weight * gold_signs;
+    }
+    if (obj == Map::ObjectSignLargeIron) { iron_signs += 2; }
+    if (obj == Map::ObjectSignSmallIron) { iron_signs += 1; }
+    if (obj == Map::ObjectSignSmallIron || obj == Map::ObjectSignLargeIron) {
+      pos_value += expand_towards.count("iron_ore") * iron_ore_weight * iron_signs;
+      //AILogDebug["util_score_enemy_area"] << "adding iron_ore count " << iron_signs << " with value " << expand_towards.count("iron_ore") * iron_ore_weight * iron_signs;
+    }
+    if (obj == Map::ObjectSignLargeCoal) { coal_signs += 2; }
+    if (obj == Map::ObjectSignSmallCoal) { coal_signs += 1; }
+    if (obj == Map::ObjectSignSmallCoal || obj == Map::ObjectSignLargeCoal) {
+      pos_value += expand_towards.count("coal")      * coal_weight * coal_signs;
+      //AILogDebug["util_score_enemy_area"] << "adding coal count " << coal_signs << " with value " << expand_towards.count("coal_ore") * coal_weight * coal_signs;
+    }
+
+    //  NEED TO ADD LOGIC TO "BEELINE" TO ENEMY CASTLE
+    //   perhaps by checking the straight-line dist from this enemy building
+    //   to enemy castle, and scoring based on that only
+    //
+
+    //
+    // enemy buildings
+    //
+    if (map->get_owner(pos) != player_index && map->get_owner(pos) != -1 && map->has_building(pos)){
+      AILogDebug["util_score_enemy_area"] << "potential attack object is " << NameObject[obj] << " with building type " << NameBuilding[game->get_building_at_pos(pos)->get_type()];
+      if (obj == Map::ObjectCastle){
+        pos_value += 20;
+        //AILogDebug["util_score_enemy_area"] << "adding attack value 20 for enemy castle at pos " << pos;
+      }
+      if (obj == Map::ObjectLargeBuilding && game->get_building_at_pos(pos)->get_type() == Building::TypeStock){
+        pos_value += 12;
+        //AILogDebug["util_score_enemy_area"] << "adding additional attack value 12 for enemy stock/warehouse at pos " << pos;
+      }
+      if (obj == Map::ObjectLargeBuilding && !game->get_building_at_pos(pos)->is_military()) {
+        pos_value += 9;
+        //AILogDebug["util_score_enemy_area"] << "adding attack value 9 for large civilian building of type " << NameBuilding[game->get_building_at_pos(pos)->get_type()] << " at pos " << pos;
+      }
+      if (obj == Map::ObjectSmallBuilding && game->get_building_at_pos(pos)->get_type() == Building::TypeCoalMine){
+        pos_value += 6;
+        //AILogDebug["util_score_enemy_area"] << "adding additional attack value 6 for building of type " << NameBuilding[game->get_building_at_pos(pos)->get_type()] << " at pos " << pos;
+      }
+      if (obj == Map::ObjectSmallBuilding && game->get_building_at_pos(pos)->get_type() == Building::TypeIronMine) {
+        pos_value += 12;
+        //AILogDebug["util_score_enemy_area"] << "adding additional attack value 12 for building of type " << NameBuilding[game->get_building_at_pos(pos)->get_type()] << " at pos " << pos;
+      }
+      if (obj == Map::ObjectSmallBuilding && game->get_building_at_pos(pos)->get_type() == Building::TypeGoldMine) {
+        pos_value += 18;
+        //AILogDebug["util_score_enemy_area"] << "adding additional attack value 18 for building of type " << NameBuilding[game->get_building_at_pos(pos)->get_type()] << " at pos " << pos;
+      }
+      if (obj == Map::ObjectSmallBuilding && !game->get_building_at_pos(pos)->is_military()) {
+        pos_value += 3;
+        //AILogDebug["util_score_enemy_area"] << "adding attack value 3 for small civilian building of type " << NameBuilding[game->get_building_at_pos(pos)->get_type()] << " at pos " << pos;
+      }
+    }
+
+    //
+    // total it up
+    //
+    total_value += static_cast<unsigned int>(pos_value);
+    //AILogDebug["util_score_enemy_area"] << "score total so far: " << total_value;
+
+  }
+  AILogDebug["util_score_enemy_area"] << "found total score_enemy_area value " << total_value << " of terrain & objects in area " << center_pos;
+  duration = (std::clock() - start) / static_cast<double>(CLOCKS_PER_SEC);
+  AILogDebug["util_score_enemy_area"] << "done util_score_enemy_area call took " << duration;
   return total_value;
 }
 
@@ -2898,105 +3035,6 @@ AI::get_halfway_pos(MapPos start_pos, MapPos end_pos) {
   return halfway_pos;
 }
 
-
-/* deprecating this and replacing it with an "internal game style" FlagSearch of the new
-//   type find_nearest_inventory_for_res_producer()
-//
-// return the MapPos of the stock nearest to the specified MapPos, including castle
-//   if not found, default to castle_pos?
-MapPos
-AI::find_nearest_inventory(MapPos pos) {
-  AILogDebug["util_find_nearest_inventory"] << "inside find_nearest_inventory to pos " << pos;
-  // try searching by straightline pos instead of spirally
-  unsigned int best_dist = bad_score;
-  MapPos closest_stock = bad_map_pos;
-  for (MapPos inventory_pos : stocks_pos) {
-    AILogDebug["util_find_nearest_inventory"] << "considering inventory_pos " << inventory_pos;
-    unsigned int dist = AI::get_straightline_tile_dist(map, pos, inventory_pos);
-    AILogDebug["util_find_nearest_inventory"] << "straightline tile dist from pos " << pos << " to inventory_pos " << inventory_pos << " is " << dist;
-    if (dist < best_dist) {
-      AILogDebug["util_find_nearest_inventory"] << "stock at inventory_pos " << inventory_pos << " is the closest so far to pos " << pos << ", with dist " << dist;
-      best_dist = dist;
-      closest_stock = inventory_pos;
-    }
-  }
-  if (closest_stock == bad_map_pos || best_dist == bad_score) {
-    AILogDebug["util_find_nearest_inventory"] << "not found??  closest_stock: " << closest_stock << ", best_dist: " << best_dist;
-  }
-  AILogDebug["util_find_nearest_inventory"] << "done find_nearest_inventory to pos " << pos << ", closest stock is " << closest_stock << " with straightline dist " << best_dist;
-  return closest_stock;
-}
-*/
-
-/* moving this to ai_pathfinder.cc
-// nevermind, for now replacing this with a function that has the same input/output of MapPos
-//  instead of having to change all the calling code to use Flag* type or having all of the ugly
-//  conversion code being done in the calling code
-//
-// return the MapPos of the Flag* of the Inventory (castle, stock/warehouse) that is the shortest
-//  number of Flags away from the MapPos of the requested Flag or Building
-//
-//  this function accepts EITHER a Flag pos, OR a Building pos (for which it will check the flag)
-//
-//  - the Inventory must be accepting Resources
-//  - no consideration for if the Inventory is accepting Serfs
-//  - no consideration of tile/straightline distance, only Flag distance matters
-//  - no check to see if transporters/sailors are already in place along the path
-//
-// the intention of this function is to help "pair" most buildings in the AI player's realm to a
-// given Inventory so that each Inventory can have accurate counts and limits of the buildings
-// "paired" with that Inventory. The reason that straightline distance cannot be used (as it 
-//  originally was) is that only Flag distance determines which Inventory a resource-producing
-//  -building will send non-directly-routable resources to (i.e. ones piling up in storage)
-//  If straightline-dist is used when determining nearest Inventory, but flag distance is used when
-//   serfs transport resources to Inventories, the Inventory that receives the resouce may not be 
-//   the Inventory "paired" with the building, and so the "stop XXX when resource limit reached"
-//   checks would never be triggered because the check is running against one Inventory while
-//   some other Inventory is actually piling up resources and may have already passed its limit.
-//
-//  the AI does not currently change these stock accept/reject/purge resource/serf settings so
-//   I do not think these should introduce any issues, unless a human player modifies the settings
-//    of an AI player's game?  Not sure if it matters much
-//
-//
-// this will return bad_map_pos if there is no Flag at the requested pos
-//  AND no Building at the requested pos
-MapPos
-AI::find_nearest_inventory(MapPos pos) {
-  AILogDebug["util_find_nearest_inventory"] << "inside find_nearest_inventory to pos " << pos;
-  if (!map->has_flag(pos) && !map->has_building(pos)){
-    AILogWarn["util_find_nearest_inventory"] << "no flag or building found at pos " << pos << " as expected!  Cannot run search, returning bad_map_pos";
-    return bad_map_pos;
-  }
-  MapPos flag_pos = bad_map_pos;
-  if (map->has_building(pos)){
-	flag_pos = map->move_down_right(pos);
-    AILogDebug["util_find_nearest_inventory"] << "request pos " << pos << " is a building pos, using its flag pos " << flag_pos << " instead";
-  }else{
-    flag_pos = pos;
-  }
-  Flag *flag = game->get_flag_at_pos(flag_pos);
-  if (flag == nullptr){
-    AILogWarn["util_find_nearest_inventory"] << "got nullptr for Flag at flag_pos " << flag_pos << "!  Cannot run search, returning bad_map_pos";
-    return bad_map_pos;
-  }
-  int inv_flag_index = flag->find_nearest_inventory_for_res_producer();
-  if (inv_flag_index < 0){
-    AILogDebug["util_find_nearest_inventory"] << "find_nearest_inventory_for_res_producer returned invalid result (flag index " << inv_flag_index << ") for flag_pos " << flag_pos << "!  maybe this flag isn't part of the road system??";
-    return bad_map_pos;
-  }
-  Flag *inv_flag = game->get_flag(inv_flag_index);
-  if (inv_flag == nullptr){
-    AILogWarn["util_find_nearest_inventory"] << "got nullptr for Inventory Flag with index " << inv_flag_index << " found by flagsearch starting at flag_pos " << flag_pos << "!  returning bad_map_pos";
-    return bad_map_pos;
-  }
-  MapPos inv_flag_pos = inv_flag->get_position();
-  AILogDebug["util_find_nearest_inventory"] << "successful find_nearest_inventory_for_res_producer search for flag_pos " << flag_pos << ", returning Inventory flag pos " << inv_flag_pos;
-  return inv_flag_pos;
-}
-*/
-
-
 void
 AI::score_enemy_targets(MapPosSet *scored_targets) {
   // time this function for debugging
@@ -3007,13 +3045,11 @@ AI::score_enemy_targets(MapPosSet *scored_targets) {
   //
   // MAJOR BUG - this is running before expansion goals are set (later in the AI loop), so it is not looking at resources that could
   //      be taken, ONLY at enemy buildings.  Does it make sense to persist expansion goals between AI loops?  Or move attacks to the end of the loop?
+
   //  temp fix -  stupid hack to work-around it
   expand_towards = last_expand_towards;
-  update_building_counts();
-  // foreach my hut in range of attacking enemy
-  //    foreach enemy hut within range of attack
-  //      score
-  // on game load, castle_pos is unknown even though castle exists, need to find it
+
+  update_buildings();
   //AILogVerbose["util_score_enemy_targets"] << "thread #" << std::this_thread::get_id() << " AI is locking mutex before calling game->get_player_buildings(player) (for score_enemy_targets)";
   //game->get_mutex()->lock();
   //AILogVerbose["util_score_enemy_targets"] << "thread #" << std::this_thread::get_id() << " AI has locked mutex before calling game->get_player_buildings(player) (for score_enemy_targets)";
@@ -3021,7 +3057,10 @@ AI::score_enemy_targets(MapPosSet *scored_targets) {
   //AILogVerbose["util_score_enemy_targets"] << "thread #" << std::this_thread::get_id() << " AI is unlocking mutex before calling game->get_player_buildings(player) (for score_enemy_targets)";
   //game->get_mutex()->unlock();
   //AILogVerbose["util_score_enemy_targets"] << "thread #" << std::this_thread::get_id() << " AI has unlocked mutex before calling game->get_player_buildings(player) (for score_enemy_targets)";
-  std::set<MapPos> unique_enemy_targets;
+  std::set<MapPos> unique_enemy_targets = {};
+  // foreach my hut in range of attacking enemy
+  //    foreach enemy hut within range of attack
+  //      score
   for (Building *building : buildings) {
     if (building == nullptr)
       continue;
@@ -3031,12 +3070,13 @@ AI::score_enemy_targets(MapPosSet *scored_targets) {
       !(building->get_threat_level() == 3)) {
       continue;
     }
-    ai_mark_pos.clear();
-    AILogDebug["util_score_enemy_targets"] << "looking for enemy buildings to attack near to my building of " << NameBuilding[building->get_type()] << " at pos " << building->get_position();
+    //ai_mark_pos.clear();
+    AILogDebug["util_score_enemy_targets"] << "looking for enemy buildings to attack near to my building of type " << NameBuilding[building->get_type()] << " at pos " << building->get_position();
     MapPos attacker_pos = building->get_position();
-    // score each enemy building in attackable radius (which is?? NEED TO FIND OUT)
+    // compile a list for scoring of each enemy building in attackable radius (which is?? NEED TO FIND OUT)
     //  at 14, seeing some unattackable targets, lowering to 13
-    //  13 seems right so far
+    //  trying 12, was seeing unreachable buildings at 13
+    //  12 looks good NO I see REACHable buildings that aren't showing as within 12, going back to 13
     for (unsigned int i = 0; i < AI::spiral_dist(13); i++) {
       MapPos pos = map->pos_add_extended_spirally(attacker_pos, i);
       if (!map->has_building(pos) ||
@@ -3054,12 +3094,12 @@ AI::score_enemy_targets(MapPosSet *scored_targets) {
       MapPos target_pos = pos;
       Building::Type target_building_type = building->get_type();
       size_t target_player_index = map->get_owner(pos);
-      const std::string target_player_face = NamePlayerFace[game->get_player(map->get_owner(pos))->get_face()];
-      AILogDebug["util_score_enemy_targets"] << "found attackable building of type " << NameBuilding[target_building_type] << " at pos " << target_pos << " belonging to player " << target_player_index << " / " << target_player_face;
-      // does this belong here?
+      // getting segfault here on loaded game after changing AI to human
+      //  to debug something, for now simply don't use this
+      //  const std::string target_player_face = NamePlayerFace[game->get_player(map->get_owner(pos))->get_face()];
+      //AILogDebug["util_score_enemy_targets"] << "found attackable building of type " << NameBuilding[target_building_type] << " at pos " << target_pos << " belonging to player " << target_player_index << " / " << target_player_face;
+      AILogDebug["util_score_enemy_targets"] << "found attackable building of type " << NameBuilding[target_building_type] << " at pos " << target_pos << " belonging to player " << target_player_index;
       int max_knights = 0;
-      // limit attacking knights count based on building type?  What purpose?  is this attacking or defending knights?
-      //   is this copy & paste from original freeserf code?  Is this actually used by AI???
       switch (target_building_type) {
       case Building::TypeHut: max_knights = 3; break;
       case Building::TypeTower: max_knights = 6; break;
@@ -3069,35 +3109,53 @@ AI::score_enemy_targets(MapPosSet *scored_targets) {
       }
       int attacking_knights = player->knights_available_for_attack(target_pos);
       attacking_knights = std::min(attacking_knights, max_knights);
+      //AILogDebug["util_score_enemy_targets"] << "send up to " << attacking_knights << " knights to attack enemy building of type " << NameBuilding[target_building_type]
+      //  << " at pos " << target_pos << " belonging to player " << target_player_index << " / " << target_player_face;
       AILogDebug["util_score_enemy_targets"] << "send up to " << attacking_knights << " knights to attack enemy building of type " << NameBuilding[target_building_type]
-        << " at pos " << target_pos << " belonging to player " << target_player_index << " / " << target_player_face;
-      if (attacking_knights == 0) {
+        << " at pos " << target_pos << " belonging to player " << target_player_index;
+      if (attacking_knights <= 0) {
         AILogDebug["util_score_enemy_targets"] << "cannot send any knights, not marking target for scoring";
         continue;
       }
-      AILogDebug["util_score_enemy_targets"] << "adding target_pos " << target_pos << " to unique_enemy_targets set to score";
-      unique_enemy_targets.insert(target_pos);
-
+      if (target_building_type == Building::TypeCastle){
+        //
+        // DO SOMETHING HERE IF TARGET IS ENEMY CASTLE - EITHER NEVER ATTACK IT OR ALWAYS ATTACK IT
+        //  IF IT IS REACHABLE, BASED ON OWN MORALE AND KNIGHT COUNT?
+        //
+        // for now, simply including it in scorable targets
+        AILogDebug["util_score_enemy_targets"] << "enemy castle is attackable!  At target_pos " << target_pos << ".  Including it in unique_targets list for scoring";
+        //ai_mark_pos.insert(ColorDot(target_pos, "lt_blue"));
+        unique_enemy_targets.insert(target_pos);
+      }else{
+        AILogDebug["util_score_enemy_targets"] << "adding target_pos " << target_pos << " to unique_enemy_targets set to score";
+        //ai_mark_pos.insert(ColorDot(target_pos, "black"));
+        unique_enemy_targets.insert(target_pos);
+      }
     }
   }
-  scoring_attack = true;
+
+  // score the targets found
   for (MapPos target_pos : unique_enemy_targets){
     AILogDebug["util_score_enemy_targets"] << "scoring attackable building at pos " << target_pos;
-    // debug
-    AILogDebug["util_score_enemy_targets"] << "dumping attackable debug expand_towards";
-    for (std::string goal : last_expand_towards) {
-      AILogDebug["util_score_enemy_targets"] << "attackable ATTACKING (last_) last_expand_towards goal list includes item: " << goal;
-    }
-    for (std::string goal : expand_towards) {
-      AILogDebug["util_score_enemy_targets"] << "attackable ATTACKING (last_) expand_towards goal list includes item: " << goal;
-    }
-    unsigned int score = AI::score_area(target_pos, AI::spiral_dist(8));
+    //unsigned int score = AI::score_enemy_area(target_pos, AI::spiral_dist(8));
+    unsigned int score = AI::score_enemy_area(target_pos, AI::spiral_dist(10)); // try scoring a bit wider
     AILogDebug["util_score_enemy_targets"] << "attackable enemy target at pos " << target_pos << " has score " << score;
     scored_targets->insert(std::make_pair(target_pos, score));
+    /*
+    // debug - mark score of each target on AI overlay
+    if (score >  12){ ai_mark_pos.erase(target_pos); ai_mark_pos.insert(ColorDot(target_pos, "dk_gray"));}
+    if (score >  25){ ai_mark_pos.erase(target_pos); ai_mark_pos.insert(ColorDot(target_pos, "gray"));}
+    if (score >  37){ ai_mark_pos.erase(target_pos); ai_mark_pos.insert(ColorDot(target_pos, "yellow"));}
+    if (score >  50){ ai_mark_pos.erase(target_pos); ai_mark_pos.insert(ColorDot(target_pos, "orange"));}
+    if (score >  75){ ai_mark_pos.erase(target_pos); ai_mark_pos.insert(ColorDot(target_pos, "red"));}
+    if (score > 100){ ai_mark_pos.erase(target_pos); ai_mark_pos.insert(ColorDot(target_pos, "magenta"));}
+    if (score > 125){ ai_mark_pos.erase(target_pos); ai_mark_pos.insert(ColorDot(target_pos, "cyan"));}
+    */
   }
-  scoring_attack = false;
+
   // second part of stupid hack to work-around it
   expand_towards.clear();
+
   AILogDebug["util_score_enemy_targets"] << "done score_enemy_targets";
   duration = (std::clock() - start) / static_cast<double>(CLOCKS_PER_SEC);
   AILogDebug["util_score_enemy_targets"] << "done score_enemy_targets call took " << duration;
@@ -3106,35 +3164,35 @@ AI::score_enemy_targets(MapPosSet *scored_targets) {
 
 
 void
-AI::attack_nearest_target(MapPosSet *scored_targets) {
-  AILogDebug["util_attack_nearest_target"] << "inside AI::attack_nearest_target";
+//AI::attack_nearest_target(MapPosSet *scored_targets) {
+AI::attack_nearest_target(MapPosSet *scored_targets, unsigned int min_score, double min_ratio) {
+  AILogDebug["util_attack_nearest_target"] << "inside AI::attack_nearest_target with min_score " << min_score << " and min attack ratio " << min_ratio;
   for (std::pair<MapPos, unsigned int> target : *(scored_targets)) {
     MapPos target_pos = target.first;
     unsigned int target_score = target.second;
-    AILogDebug["util_attack_nearest_target"] << "inside AI::attack_nearest_target, found target with target_pos " << target_pos << " and score " << target_score;
+    AILogDebug["util_attack_nearest_target"] << "found target with target_pos " << target_pos << " and score " << target_score;
+    if (target_score < min_score){
+      AILogDebug["util_attack_nearest_target"] << "target with target_pos " << target_pos << " has a score too low for attack, min is " << min_score << ", skipping";
+      continue;
+    }
     int attacking_knights = player->knights_available_for_attack(target_pos);
-    //AILogDebug["util_attack_nearest_target"] << "debug send up to " << attacking_knights << " knights to attack before max_knights";
-    //int max_knights = 0;  // what is this?
-    //attacking_knights = std::min(attacking_knights, max_knights);
-    AILogDebug["util_attack_nearest_target"] << "send up to " << attacking_knights << " knights to attack enemy building at pos " << target_pos;
-    AILogDebug["util_attack_nearest_target"] << "my military_score = " << player->get_military_score() << ", knight_morale = " << player->get_knight_morale();
+    AILogDebug["util_attack_nearest_target"] << "can send up to " << attacking_knights << " knights to attack enemy building at pos " << target_pos;
     //AILogDebug["util_attack_nearest_target"] << "ENEMY military_score = " << game->get_player(target_player_index)->get_military_score() << ",  ENEMY knight_morale = " << game->get_player(target_player_index)->get_knight_morale();
-    AILogDebug["util_attack_nearest_target"] << "my morale is " << player->get_knight_morale() << ", min_knight_morale_attack is " << min_knight_morale_attack;
-   //// TEMPORARILY DISABLING THIS to debug fighting bugs
-   //if (true){
-   if (player->get_knight_morale() > min_knight_morale_attack) {
-      AILogDebug["util_attack_nearest_target"] << "my morale " << player->get_knight_morale() << " is at least min_knight_morale_attack of " << min_knight_morale_attack;
-      int defending_knights = 2;  // TEMP hardcoded
-      double attack_ratio = static_cast<double>(attacking_knights) / static_cast<double>(defending_knights);
-      AILogDebug["util_attack_nearest_target"] << "attacking_knights=" << attacking_knights << ", defending_knights=" << defending_knights << ", attack_ratio=" << attack_ratio;
-      if (attack_ratio >= min_knight_ratio_attack) {
-        AILogDebug["util_attack_nearest_target"] << "attack_ratio " << attack_ratio << " is >= to min_knight_ratio_attack " << min_knight_ratio_attack << ", PROCEEDING WITH THE ATTACK!";
-        player->building_attacked = game->get_building_at_pos(target_pos)->get_index();
-        player->attacking_building_count = attacking_knights;
-        AILogDebug["util_attack_nearest_target"] << "calling player->start_attack()";
-        player->start_attack();
-        AILogDebug["util_attack_nearest_target"] << "DONE calling player->start_attack()";
-      }
+    // enemy knight morale does NOT MATTER when attacking because it is always 100% for defenders (even if their attack morale is higher!)
+    Building *target_building = game->get_building_at_pos(target_pos);
+    if (target_building == nullptr){
+      continue;
+    }
+    unsigned int defending_knights = target_building->get_knight_count();  // this function says it returns waiting_planks but it might just be stock[0] is knights for a military building?? need to check
+    double attack_ratio = static_cast<double>(attacking_knights) / static_cast<double>(defending_knights);
+    AILogDebug["util_attack_nearest_target"] << "attacking_knights=" << attacking_knights << ", defending_knights=" << defending_knights << ", attack_ratio=" << attack_ratio;
+    if (attack_ratio >= min_ratio) {
+      AILogDebug["util_attack_nearest_target"] << "attack_ratio " << attack_ratio << " is >= to min_ratio " << min_ratio << ", PROCEEDING WITH THE ATTACK!";
+      player->building_attacked = game->get_building_at_pos(target_pos)->get_index();
+      player->attacking_building_count = attacking_knights;
+      AILogDebug["util_attack_nearest_target"] << "calling player->start_attack()";
+      player->start_attack();
+      AILogDebug["util_attack_nearest_target"] << "DONE calling player->start_attack()";
     }
   }
   AILogDebug["util_attack_nearest_target"] << "done AI::attack_nearest_target";
@@ -3170,4 +3228,78 @@ AI::set_serf_lost() {
     Log::Info["set_serf_lost"] << "debug - done setting lost state for ai_mark_serf with index " << serf_index << " at pos " << serf->get_pos();
   }
   Log::Info["set_serf_lost"] << "debug - done setting lost state for ai_mark_serf list";
+}
+
+
+// check a given flag return true if:
+// - the flag has no resources sitting
+// - the flag has only one road
+// - the road has no transporters that are carrying resources
+// ALSO, populate the Direction of the road in the provided reference
+//
+// this is intended for use by remove_road_stubs function
+//  with various extra checks
+//
+bool
+AI::flag_and_road_suitable_for_removal(PGame game, PMap map, MapPos flag_pos, Direction *road_dir){
+  AILogDebug["util_flag_and_road_suitable_for_removal"] << "inside AI::flag_and_road_suitable_for_removal for flag at pos " << flag_pos;
+
+  // check for paths in each Direction
+  unsigned int paths = 0;
+  for (Direction dir : cycle_directions_cw()) {
+    if (!map->has_path_IMPROVED(flag_pos, dir)) { continue; }
+    paths++;
+    // reject if multiple paths
+    if (paths > 1) {
+      //AILogDebug["util_flag_and_road_suitable_for_removal"] << "flag at pos " << flag_pos << " has more than one path, not eligible for removal";
+      return false;
+    }
+    // this variable is provided to the calling function by reference
+    *(road_dir) = dir;
+  }
+
+  // reject if no path found
+  if (paths == 0 || *(road_dir) == DirectionNone){
+    //AILogDebug["util_flag_and_road_suitable_for_removal"] << "flag at pos " << flag_pos << " has no paths!  this might be eligible for *flag* removal but returning false because path cannot be found to destroy a road";
+    return false;
+  }
+
+  // reject if flag has resources sitting
+  Flag *flag = game->get_flag_at_pos(flag_pos);
+  if (flag != nullptr && flag->has_resources()){
+    AILogDebug["util_flag_and_road_suitable_for_removal"] << "flag at pos " << flag_pos << " has resources waiting, not eligible for removal (yet)";
+    return false;
+  }
+
+  // reject if the road has any transporters carrying resources
+  Direction tmp_dir = *(road_dir);
+  MapPos pos = flag_pos;
+  while (true) {
+    // trace the road until it ends, looking for active
+    //  transporters at each pos, and see if they have a resource
+    Serf *serf_on_path = game->get_serf_at_pos(pos);
+    if (serf_on_path != nullptr) {
+      if (serf_on_path->get_type() == Serf::TypeTransporter) {
+        if (serf_on_path->get_delivery() > Resource::TypeNone){
+          AILogDebug["util_flag_and_road_suitable_for_removal"] << "flag at pos " << flag_pos << " has a transporting serf at pos " << pos << " carrying a resource, not eligible for removal (yet)";
+          return false;
+        }
+      }
+    }
+    // if end of the road reached, break
+    if (map->has_flag(pos) && pos != flag->get_position())
+      break;  
+    // otherwise continue to next pos along the road
+    pos = map->move(pos, tmp_dir);
+    for (Direction new_dir : cycle_directions_cw()) {
+      if (map->has_path_IMPROVED(pos, new_dir) && new_dir != reverse_direction(tmp_dir)) {
+        tmp_dir = new_dir;
+        break;
+      }
+    }
+  }
+
+  // flag must be eligible if this point reached
+  AILogDebug["util_flag_and_road_suitable_for_removal"] << "flag at pos " << flag_pos << " is eligible for removal, road dir is " << *(road_dir) << " / " << NameDirection[*(road_dir)] << ", returning true";
+  return true;
 }

@@ -65,7 +65,7 @@ VideoSDL::VideoSDL() {
                      << " (driver: " << SDL_GetCurrentVideoDriver() << ")";
 
   /* Create window and renderer */
-  window = SDL_CreateWindow("freeserf",
+  window = SDL_CreateWindow("forkserf",
                             SDL_WINDOWPOS_UNDEFINED,
                             SDL_WINDOWPOS_UNDEFINED,
                             800, 600,

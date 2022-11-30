@@ -28,6 +28,8 @@
 
 const int ClassicMapGenerator::default_max_lake_area = 14;
 const int ClassicMapGenerator::default_water_level = 20;
+//const int ClassicMapGenerator::default_max_lake_area = 120;
+//const int ClassicMapGenerator::default_water_level = 140;
 const int ClassicMapGenerator::default_terrain_spikyness = 0x9999;
 
 ClassicMapGenerator::ClassicMapGenerator(const Map& map, const Random& random)
@@ -1074,19 +1076,27 @@ void CustomMapGenerator::generate() {
       NOT_REACHED();
   }
 
+
+/* NOTES ONLY
+const int ClassicMapGenerator::default_max_lake_area = 30;  // increasing this above 14 results in more water, but beyond 30, 50 seems no additional effect and slows down map generator
+const int ClassicMapGenerator::default_water_level = 50;  // increasing this above 20 results in more water, but at the expense of mountains!  above 30 or so no mountains at all
+// TO INCREASE WATER WITHOUT LOSING MOUNTAINS - hack the init_tiles function to add "total height" h_sum to all non-water tiles
+const int ClassicMapGenerator::default_terrain_spikyness = 0x9999;
+*/
+
   clamp_heights();
   CustomMapGenerator::create_water_bodies();  // allows adjustment of water_level (turn off), lake max_size, and Fish
-  heights_rebase();
-  init_types();
+  CustomMapGenerator::heights_rebase();  // updated to support water_level adjustment
+  CustomMapGenerator::init_types();  // to prevent loss of mountains when increasing water_level, adjust effective tile heights for terrain type calculation
   remove_islands();
-  heights_rescale();
+  heights_rescale();  // crash on startup if this disabled
 
   // Adjust terrain types on shores
   change_shore_water_type();
   change_shore_grass_type();
 
   // Create deserts
-  CustomMapGenerator::create_deserts();  // allows adjustment of desert count
+  CustomMapGenerator::create_deserts();  // allows adjustment of desert count  I DONT THINK THIS IS WORKING
 
   // Create map objects (trees, boulders, etc.)
   CustomMapGenerator::create_objects();  // allows adjustment of object counts of each type
@@ -1105,6 +1115,12 @@ void CustomMapGenerator::generate() {
 //   For values > 1 there is a proportional chance of creating a second
 //   desert in each region
 //
+// NOTE - the deserts in the original game (which are the same here)
+//  are kind of lame because they are always about the same size and round/
+//  they definitely need more variation, an idea I have is to create multiple
+//  overlapping desert areas of different sizes to create blobs that are not
+//  very round.  I think this may already happening a bit by default
+//  when two map-regions are adjacent?  but not enough
 //
 void
 CustomMapGenerator::create_deserts() {
@@ -1115,26 +1131,35 @@ CustomMapGenerator::create_deserts() {
     //Log::Info["map-generator"] << "inside CustomMapGenerator::create_deserts, opt" << x << " = " << custom_map_generator_options.opt[x];
   //}
   if (custom_map_generator_options.opt[CustomMapGeneratorOption::DesertFrequency] == 0.00){
-    //Log::Info["map-generator"] << "inside CustomMapGenerator::create_deserts, desert frequency is zero, quitting now";
+    Log::Info["map-generator"] << "inside CustomMapGenerator::create_deserts, desert frequency is zero, not building any deserts, returning now";
     return;
   }
   // Initialize random areas of desert based on spiral pattern.
   // Only TerrainGrass1 triangles will be converted to desert.
+  Log::Info["map-generator"] << "inside CustomMapGenerator::create_deserts, map regions: " << map.get_region_count();
   bool created_extra_desert_this_region = false;
   for (unsigned int i = 0; i < map.get_region_count(); i++) {
     // chance of not creating a desert in this region
-    //   I don't think this is working, I don't see any difference between >0 < 1.00 and 1.00 values
     if (custom_map_generator_options.opt[CustomMapGeneratorOption::DesertFrequency] < 1.00){
-      if (double(rand()) / double(RAND_MAX) < custom_map_generator_options.opt[CustomMapGeneratorOption::DesertFrequency]){
+      double foo_rand = double(rand()) / double(RAND_MAX);
+      //Log::Info["map-generator"] << "inside CustomMapGenerator::create_deserts, region #" << i << " foo_rand " << foo_rand << ", desert_freq " << custom_map_generator_options.opt[CustomMapGeneratorOption::DesertFrequency];
+      if (foo_rand < custom_map_generator_options.opt[CustomMapGeneratorOption::DesertFrequency]){
+        Log::Info["map-generator"] << "inside CustomMapGenerator::create_deserts, because CustomMapGeneratorOption::DesertFrequency] < 1.00 and rand passed, not creating desert in region #" << i;
         continue;
+      }else{
+        //Log::Info["map-generator"] << "inside CustomMapGenerator::create_deserts, will create desert in region #" << i;
       }
     }
     // chance of creating one extra desert in this region
-    //  this seems to work... or at least the 2x does
     int deserts = 1;
     if (custom_map_generator_options.opt[CustomMapGeneratorOption::DesertFrequency] > 1.00){
-      if (double(rand()) / double(RAND_MAX) < custom_map_generator_options.opt[CustomMapGeneratorOption::DesertFrequency] - 1){
+      double foo2_rand = double(rand()) / double(RAND_MAX);
+      Log::Info["map-generator"] << "inside CustomMapGenerator::create_deserts, region #" << i << " foo2_rand " << foo2_rand << ", desert_freq " << custom_map_generator_options.opt[CustomMapGeneratorOption::DesertFrequency];
+      if (foo2_rand < custom_map_generator_options.opt[CustomMapGeneratorOption::DesertFrequency] - 1){
         deserts++;
+        Log::Info["map-generator"] << "inside CustomMapGenerator::create_deserts, because CustomMapGeneratorOption::DesertFrequency] > 1.00 and rand passed, will create extra desert in region #" << i;
+      }else{
+        //Log::Info["map-generator"] << "inside CustomMapGenerator::create_deserts, not creating extra desert in region #" << i;
       }
     }
     while (deserts > 0){
@@ -1309,7 +1334,7 @@ CustomMapGenerator::expand_water_position(MapPos pos_) {
     MapPos new_pos = map.move(pos_, d);
     unsigned int height = tiles[new_pos].height;
     //if (water_level < height && height < 254) {
-    if (water_level / custom_map_generator_options.opt[CustomMapGeneratorOption::LakesWaterLevel] < height && height < 254) {
+    if (water_level * custom_map_generator_options.opt[CustomMapGeneratorOption::LakesWaterLevel] < height && height < 254) {
       return false;
     } else if (height == 255) {
       expanding = true;
@@ -1340,7 +1365,7 @@ CustomMapGenerator::expand_water_body(MapPos pos) {
   for (Direction d : cycle_directions_cw()) {
     MapPos new_pos = map.move(pos, d);
     //if (tiles[new_pos].height > water_level) {
-    if (tiles[new_pos].height > water_level / custom_map_generator_options.opt[CustomMapGeneratorOption::LakesWaterLevel]) {
+    if (tiles[new_pos].height > water_level * custom_map_generator_options.opt[CustomMapGeneratorOption::LakesWaterLevel]) {
       // Expanding water from this position was not possible. Just raise the
       // height to one above sea level.
       tiles[pos].height = 0;
@@ -1357,8 +1382,27 @@ CustomMapGenerator::expand_water_body(MapPos pos) {
 
   // Expand water until we are unable to expand any more or until the max
   // lake area limit has been reached.
+
+  // basically just un-cap the max_lake_area by setting it to a very high value if the water slider is above default
+  // note that max_lake_area is just a cap, and the lake area is otherwise determined only by water_level & map height
+  // so un-capping this doesn't do much beyond 50, and slows down map generation because it doesn't stop trying until
+  // the max is reached even if no success lately!
+  // might be worth doing some debug logging to at what point increasing this makes no difference
+  // and tune the max_lake_area to that value so it stops wasting time trying, map generation could be faster
+  /*
+  if (custom_map_generator_options.opt[CustomMapGeneratorOption::LakesWaterLevel] > 1.00){
+    Log::Info["map-generator.cc"] << "inside CustomMapGenerator::expand_water_bodies, LakesWaterLevel = " << custom_map_generator_options.opt[CustomMapGeneratorOption::LakesWaterLevel] << ", increasing max_lake_area to 50";
+    max_lake_area = 50;
+  }
+  */
+  // scale max_lakes_area with water_level.  1.5x multiplier is a guess, tune it as needed
+  unsigned int tmp_max_lake_area = max_lake_area;
+  if (custom_map_generator_options.opt[CustomMapGeneratorOption::LakesWaterLevel] > 1.00){
+    tmp_max_lake_area = max_lake_area * custom_map_generator_options.opt[CustomMapGeneratorOption::LakesWaterLevel] * 1.5;
+  }
+
   //for (unsigned int i = 0; i < max_lake_area; i++) {
-  for (unsigned int i = 0; i < max_lake_area * custom_map_generator_options.opt[CustomMapGeneratorOption::LakesMaxSize]; i++) {
+  for (unsigned int i = 0; i < tmp_max_lake_area; i++) {
     bool expanded = false;
 
     MapPos new_pos = map.move_right_n(pos, i+1);
@@ -1379,7 +1423,7 @@ CustomMapGenerator::expand_water_body(MapPos pos) {
   tiles[pos].height -= 2;
 
   //for (unsigned int i = 0; i < max_lake_area + 1; i++) {
-  for (unsigned int i = 0; i < max_lake_area * custom_map_generator_options.opt[CustomMapGeneratorOption::LakesMaxSize] + 1; i++) {
+  for (unsigned int i = 0; i < tmp_max_lake_area + 1; i++) {
     MapPos new_pos = map.move_right_n(pos, i+1);
     for (Direction d : cycle_directions_cw(DirectionDown)) {
       for (unsigned int j = 0; j <= i; j++) {
@@ -1390,7 +1434,7 @@ CustomMapGenerator::expand_water_body(MapPos pos) {
   }
 }
 
-// Create water bodies on the map.
+// Create water bodies on the map (and fish)
 //
 // Try to expand every position that is at or below the water level into a
 // body of water. After expanding bodies of water, the height of the positions
@@ -1401,7 +1445,7 @@ void
 CustomMapGenerator::create_water_bodies() {
   //Log::Info["map-generator.cc"] << "inside CustomMapGenerator::create_water_bodies, LakesWaterLevel = " << custom_map_generator_options.opt[CustomMapGeneratorOption::LakesWaterLevel];
   //for (unsigned int h = 0; h <= water_level; h++) {
-  for (unsigned int h = 0; h <= water_level / custom_map_generator_options.opt[CustomMapGeneratorOption::LakesWaterLevel]; h++) {
+  for (unsigned int h = 0; h <= water_level * custom_map_generator_options.opt[CustomMapGeneratorOption::LakesWaterLevel]; h++) {
     for (MapPos pos_ : map.geom()) {
       if (tiles[pos_].height == h) {
         //expand_water_body(pos_);
@@ -1419,21 +1463,87 @@ CustomMapGenerator::create_water_bodies() {
     switch (h) {
       case 0:
         //tiles[pos_].height = water_level + 1;
-        tiles[pos_].height = water_level / custom_map_generator_options.opt[CustomMapGeneratorOption::LakesWaterLevel] + 1;
+        tiles[pos_].height = water_level * custom_map_generator_options.opt[CustomMapGeneratorOption::LakesWaterLevel] + 1;
         break;
       case 252:
         //tiles[pos_].height = water_level;
-        tiles[pos_].height = water_level / custom_map_generator_options.opt[CustomMapGeneratorOption::LakesWaterLevel];
+        tiles[pos_].height = water_level * custom_map_generator_options.opt[CustomMapGeneratorOption::LakesWaterLevel];
         break;
       case 253:
         //tiles[pos_].height = water_level - 1;
-        tiles[pos_].height = water_level / custom_map_generator_options.opt[CustomMapGeneratorOption::LakesWaterLevel] - 1;
+        tiles[pos_].height = water_level * custom_map_generator_options.opt[CustomMapGeneratorOption::LakesWaterLevel] - 1;
         tiles[pos_].mineral = Map::MineralsNone;
-        tiles[pos_].resource_amount = (random_int() & 7) * custom_map_generator_options.opt[CustomMapGeneratorOption::Fish]; /* Fish */
+        // if the Fish slider is maxed out, simply set all to maximum 16.  Otherwise, use the random chance (slider-adjusted)
+        // NOTE - it seems that when a submerged-palm appears (always up-left in lake), it also results in a large circle of
+        //  no fish in the same general area.  Odd
+        if (custom_map_generator_options.opt[CustomMapGeneratorOption::Fish] >= 4.00){
+          tiles[pos_].resource_amount = 16;
+        }else{
+          tiles[pos_].resource_amount = (random_int() & 7) * custom_map_generator_options.opt[CustomMapGeneratorOption::Fish]; /* Fish */
+        }
         break;
     }
   }
 }
+
+
+//"Set type of map fields based on the height value."
+// moving 'calc_map_type' function into here so it can be customized
+// for CustomMapGenerator
+//
+// The issue being fixed here is that terrain height is based on total height beyond the
+//  base water level, but the maximum height is capped!  This results in the loss of
+//  mountains when water level is increased because the cap is hit before
+//  the offset triggering mountain Terrain is reached.  To fix, add to the effective height
+//  of non-water tiles when calculating Terrain type
+//
+
+Map::Terrain
+CustomMapGenerator::calc_map_type(int h_sum) {
+  if (h_sum < 3) return Map::TerrainWater0;
+  if (custom_map_generator_options.opt[CustomMapGeneratorOption::LakesWaterLevel] > 1.00){
+    // increase the effective tile height for non-water tiles so mountains are not lost
+    // this number is a guess I made and should be tuned until it seems correct
+    // originally tested with 4x the delta from default, now 1.75x the water_level seems best
+    //h_sum += 2.25*((default_water_level * custom_map_generator_options.opt[CustomMapGeneratorOption::LakesWaterLevel]) - default_water_level);
+    h_sum += 1.75*(default_water_level * custom_map_generator_options.opt[CustomMapGeneratorOption::LakesWaterLevel]);
+    //Log::Info["map-generator"] << "inside CustomMapGenerator::calc_map_type, adjusted h_sum = " << h_sum;
+  }
+  if (h_sum < 384) return Map::TerrainGrass1;
+  else if (h_sum < 416) return Map::TerrainGrass2;
+  else if (h_sum < 448) return Map::TerrainTundra0;
+  else if (h_sum < 480) return Map::TerrainTundra1;
+  else if (h_sum < 528) return Map::TerrainTundra2;
+  else if (h_sum < 560) return Map::TerrainSnow0;
+  return Map::TerrainSnow1;
+}
+
+
+/* Adjust heights so zero height is sea level. */
+void
+CustomMapGenerator::heights_rebase() {
+  int h = water_level * custom_map_generator_options.opt[CustomMapGeneratorOption::LakesWaterLevel] - 1;
+
+  for (MapPos pos : map.geom()) {
+    tiles[pos].height -= h;
+  }
+}
+
+void
+CustomMapGenerator::init_types() {
+  if (custom_map_generator_options.opt[CustomMapGeneratorOption::LakesWaterLevel] > 1.00){
+    Log::Info["map-generator"] << " inside CustomMapGenerator::init_types, LakesWaterLevel is > 1.00, default_water_level is " << default_water_level << ", delta is " << (default_water_level * custom_map_generator_options.opt[CustomMapGeneratorOption::LakesWaterLevel]) - default_water_level;
+  }
+  for (MapPos pos_ : map.geom()) {
+    int h1 = tiles[pos_].height;
+    int h2 = tiles[map.move_right(pos_)].height;
+    int h3 = tiles[map.move_down_right(pos_)].height;
+    int h4 = tiles[map.move_down(pos_)].height;
+    tiles[pos_].type_up = CustomMapGenerator::calc_map_type(h1 + h3 + h4);
+    tiles[pos_].type_down = CustomMapGenerator::calc_map_type(h1 + h2 + h3);
+  }
+}
+
 
 
 // end CustomMapGenerator

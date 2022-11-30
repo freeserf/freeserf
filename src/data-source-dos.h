@@ -63,14 +63,17 @@ class DataSourceDOS : public DataSourceLegacy {
 
   class SpriteDosSolid : public SpriteBaseDOS {
    public:
-    SpriteDosSolid(PBuffer data, ColorDOS *palette);
+    //SpriteDosSolid(PBuffer data, ColorDOS *palette);
+    SpriteDosSolid(PBuffer data, ColorDOS *palette, Data::Resource res);
     virtual ~SpriteDosSolid() {}
   };
   typedef std::shared_ptr<SpriteDosSolid> PSpriteDosSolid;
 
   class SpriteDosTransparent : public SpriteBaseDOS {
    public:
-    SpriteDosTransparent(PBuffer data, ColorDOS *palette, uint8_t color = 0);
+    //SpriteDosTransparent(PBuffer data, ColorDOS *palette, uint8_t color = 0);
+    //SpriteDosTransparent(PBuffer data, ColorDOS *palette, Data::Resource res, uint8_t color = 0);  // added Data::Resource type
+    SpriteDosTransparent(PBuffer data, ColorDOS *palette, Data::Resource res, size_t index, uint8_t color = 0);  // sprite data index (within resource type)
     virtual ~SpriteDosTransparent() {}
   };
   typedef std::shared_ptr<SpriteDosTransparent> PSpriteDosTransparent;

@@ -74,12 +74,14 @@ class AI {
   SerfWaitTimer serf_wait_idle_on_road_timers;
   MapPosVector realm_occupied_military_pos;
   Building *castle;
-  Inventory *stock_inv;
+  unsigned int this_stock_inv_index = -1; // default to integer max? which will always be invalid... right?
   RoadOptions road_options;
   Serf::SerfMap serfs_idle;
   Serf::SerfMap serfs_potential;
   int *serfs_total;
   bool need_tools;
+  unsigned int last_sent_geologist_tick = 0;  // used to throttle sending geologists
+  bool have_inventory_building = false;  // used to quit loop early if AI is essentially defeated (has no Castle or Stocks)
   std::set<MapPos> new_stocks = {};  // AI STATEFULNESS WARNING - this is used to detect when a stock transitions from completed-but-not-occupied to occupied, and will not trigger if game saved/loaded between
   // Now that multiple economies implemented I think the entire XXX_building_counts are worthless
   //   remove the entire concept and instead just search for nearby buildings
@@ -161,25 +163,18 @@ class AI {
     switch (dir) {
       case DirectionNone:           // undef, should we throw error?
         return "black";
-
       case DirectionRight:          // 0 / East
         return "red";
-
       case DirectionDownRight:      // 1 / SouthEast
         return "yellow";
-
       case DirectionDown:           // 2 / SouthWest
         return "blue";
-
       case DirectionLeft:           // 3 / West
         return "orange";
-
       case DirectionUpLeft:         // 4 / NorthWest
         return "purple";
-
       case DirectionUp:             // 5 / NorthEast
         return "green";
-        
       default:                      // some bad dir, should we throw error?
         return "white";
     }
@@ -188,31 +183,6 @@ class AI {
   // stupid way to pass game speed and AI loop count to viewport for AI overlay
   unsigned int get_game_speed() { return game->get_game_speed(); }
   unsigned int get_loop_count() { return loop_count; }
-  unsigned int ai_loop_freq_adj_for_gamespeed(unsigned int freq) {
-    // because certain AI functions only run every X loops,
-    //  they do occur at the right frequency when the game
-    //  speed is increased.  To handle this, take the "every X loops"
-    //  and reduce it as game speed is increased, return the adjusted number
-    /* visual studio doesn't support this format with ellipses
-    switch (game->get_game_speed()) {
-      case 0 ... 5:
-        return freq;
-      case 6 ... 15:
-        return freq*.5;
-      case 16 ... 40:
-        return freq*.2;
-      default:
-        return freq*.2;
-    }
-    */
-    if (game->get_game_speed() < 6)
-      return freq;
-    if (game->get_game_speed() < 16)
-      return freq;
-    //if (game->get_game_speed() < 40)
-    //  return freq*0.2;
-    return freq * 0.2;
-  }
   void sleep_speed_adjusted(int msec){
     // sleep for specified millisec if speed is normal '2'
     // adjust sleep speed to be less as game speed increases
@@ -221,17 +191,18 @@ class AI {
     if (speed > 2){
       // scale AI speed linearly with game speed
       msec_ = msec_ * 1/(speed - 1);
-
       // less increase in AI speed as game speed increases, capped around 9x
       //msec_ = msec_ * 1/((speed - 1) / 4);  // this works pretty well, at game speed 40 ai pause time is about 9% of game speed 2
     }
-    AILogDebug["sleep_speed_adjusted"] << "msec: " << msec << ", game speed: " << speed << ", adjusted msec: " << int(msec_);
+    //AILogDebug["sleep_speed_adjusted"] << "msec: " << msec << ", game speed: " << speed << ", adjusted msec: " << int(msec_);
     msec = msec_;
-    std::this_thread::sleep_for(std::chrono::milliseconds(msec));
+    std::this_thread::sleep_for(std::chrono::milliseconds(msec + 1));
   }
   std::set<std::string> get_ai_expansion_goals() { return expand_towards; }
   MapPos get_ai_inventory_pos() { return inventory_pos; }
   void set_serf_lost();
+  // return a pointer to the currently selected stock's Inventory
+  Inventory * get_stock_inv() { return game->get_inventory(this_stock_inv_index); }
   
  protected:
   //
@@ -240,7 +211,7 @@ class AI {
   // ai_util.cc
   //
   static bool has_terrain_type(PGame, MapPos, Map::Terrain, Map::Terrain);  // why does this need to be static?
-  bool place_castle(PGame, MapPos, unsigned int);
+  bool place_castle(PGame, MapPos, unsigned int, unsigned int);
   static unsigned int spiral_dist(int);   // why does this need to be static?
   //void rebuild_all_roads();  // no longer need this
   // changing these to support *planning* a road without actually building it, prior to placing a new building
@@ -255,14 +226,7 @@ class AI {
         Building::Type optional_affinity = Building::TypeNone, 
         MapPos optional_target = bad_map_pos, 
         bool verify_stock = false);
-  //MapPosVector get_affinity(MapPos);
   MapPosVector get_affinity(MapPos, Building::Type optional_affinity_building_type = Building::TypeNone);
-  /*
-  // make these wrappers aroud a single function?  or single function with args?
-  Building* find_nearest_building(MapPos, unsigned int, Building::Type);
-  Building* find_nearest_connected_building(MapPos, unsigned int, Building::Type);
-  Building* find_nearest_completed_building(MapPos, unsigned int, Building::Type);
-  */
   Building* find_nearest_building(MapPos, CompletionLevel, Building::Type, unsigned int max_dist = -1);
   Road trace_existing_road(PMap, MapPos, Direction);
   MapPosVector get_corners(MapPos);
@@ -271,6 +235,7 @@ class AI {
   unsigned int count_terrain_near_pos(MapPos, unsigned int, Map::Terrain, Map::Terrain, std::string);
   unsigned int count_empty_terrain_near_pos(MapPos, unsigned int, Map::Terrain, Map::Terrain, std::string);
   unsigned int count_farmable_land(MapPos, unsigned int, std::string);
+  unsigned int count_open_space(PGame, MapPos, unsigned int, std::string);  // same as above but excludes existing fields and avoids farms
   unsigned int count_objects_near_pos(MapPos, unsigned int, Map::Object, Map::Object, std::string);
   double count_geologist_sign_density(MapPos, unsigned int);
   MapPosVector sort_by_val_asc(MapPosSet);
@@ -278,27 +243,22 @@ class AI {
   //MapPos build_near_pos(MapPos, unsigned int, Building::Type);
   MapPos build_near_pos(MapPos, unsigned int, Building::Type, Direction optional_fill_dir = DirectionNone);
   bool building_exists_near_pos(MapPos, unsigned int, Building::Type);
-  //MapPos find_halfway_pos_between_buildings(Building::Type, Building::Type);
+  //MapPos find_halfway_pos_between_buildings(MapPos inventory_pos, Building::Type, Building::Type);  // not using this now
   unsigned int count_stones_near_pos(MapPos, unsigned int);
   unsigned int count_knights_affected_by_occupation_level_change(unsigned int, unsigned int);
   void expand_borders();
-  unsigned int score_area(MapPos, unsigned int);  
+  unsigned int score_area(MapPos, unsigned int);
+  unsigned int score_enemy_area(MapPos, unsigned int);
   bool is_bad_building_pos(MapPos, Building::Type);
-  void update_building_counts();
+  void update_buildings();
   void update_stocks_pos();
   MapPos get_halfway_pos(MapPos, MapPos);
   ResourceMap realm_inv;
   MapPos inventory_pos;
-  // MapPos find_nearest_inventory(MapPos);   // deprecating this and replacing with find_nearest_inventory_for_res_producer()
-  //MapPos find_nearest_inventory(MapPos);  // nevermind, rewriting it but keeping same function name and input/output type
-  // moving this to ai_pathfinder.cc and totally changing it to use the ai_pathfinder pyrdacor style FlagSearch that does not 
-  //  require the use of flag->search_xxx vars that are not threadsafe
-  //MapPos find_nearest_inventory(PMap map, unsigned int player_index, MapPos pos, ColorDotMap *ai_mark_pos);
-  bool scoring_attack;
-  bool scoring_warehouse;
-  //bool cannot_expand_borders_this_loop;
   void score_enemy_targets(MapPosSet*);
-  void attack_nearest_target(MapPosSet*);
+  //void attack_nearest_target(MapPosSet*);
+  void attack_nearest_target(MapPosSet*, unsigned int min_score, double min_ratio);
+  bool flag_and_road_suitable_for_removal(PGame game, PMap map, MapPos flag_pos, Direction *road_dir);
 
   struct StockBuilding {
     int count[25] = { 0 };
@@ -316,14 +276,21 @@ class AI {
     bool needs_gold_ore = false;
     MapPosVector occupied_military_pos;
   };
-  std::map<MapPos, StockBuilding> stock_buildings;
+
+  // the count of buildings inv various completion states attached *by shortest flag dist* to this stock, plus the list of military buildings
+  std::map<MapPos, StockBuilding> stock_building_counts;
+  // the *Buildings attached *by shortest flag dist* to this stock
+  std::map<MapPos, Game::ListBuildings> stock_attached_buildings; 
+  // resources sitting at flags closest to this stock *by shortest flag dist*
   std::map<MapPos, ResourceMap> stock_res_sitting_at_flags;
-  ResourceMap realm_res_sitting_at_flags;
+
+  ResourceMap realm_res_sitting_at_flags;  // is this even used?
 
   //
   // ai.cc
   //
   void do_place_castle();
+  void do_consider_capitulation();
   void do_get_inventory(MapPos);
   void do_update_clear_reset();
   void do_get_serfs();
@@ -408,34 +375,42 @@ static const int serfs_min = 5;  // don't convert serfs to knights below this va
 
 // the anti_flapping_buffer is added to the xxxx_max value when "destroy excess producer buildings" calls are made
 //  so that there is a period where new res producer buildings are not created, but existing ones are not destroyed
-static const unsigned int anti_flapping_buffer = 8;
+static const unsigned int anti_flapping_buffer = 16;  //doubled dec15 2021
+
+static const unsigned int morale_max = 65;  // if morale over this value, attack regardless of target score and defender ratio
+static const unsigned int morale_min = 35;  // if morale over this value, attack if other requirements met.  If below this value, only attack extremely valuable targets
+static constexpr double min_knight_ratio_attack = 2.00;  // only attack if knights sent is at least this many times the defending knights, of other conditions met
+
 static const unsigned int knights_min = 3;
 static const unsigned int knights_med = 18;
 static const unsigned int knights_max = 50;
 static const unsigned int knight_occupation_change_buffer = 4; // to avoid repeatedly cycling knights, increase/lower bar to change levels again by this amount
-static const unsigned int near_building_sites_min = 375;   // don't place castle unless this many sites available.  small += 1, large += 3
+static const unsigned int near_building_sites_min = 450;   // don't place castle unless this many sites available.  small += 2, large += 3 (meant as small=1, large=1.5)
 //static const unsigned int gold_bars_max = 50;  // I don't think this is actually used
-static const unsigned int steel_min = 8;   // don't build blacksmith if under this value, unless sufficient iron or an iron mine
-static const unsigned int steel_max = 60;  // don't build iron foundry if over this value
+static const unsigned int steel_min = 16;   // don't build blacksmith if under this value, unless sufficient iron or an iron mine
+static const unsigned int steel_max = 60;  // don't build steelsmelter if over this value
 static const unsigned int planks_min = 8; // if planks below this value, don't build any other buildings until sawmill and lumberjacks done.  Also, don't build warehouse/stocks if below this
 static const unsigned int planks_max = 40; // build a sawmill & lumberjack if planks count goes below this value, destroy all but one lumberjack (per stock) if over this number
 static const unsigned int near_trees_min = 5; // only place sawmills near at least this many trees; place rangers near sawmills with fewer than this many trees.  Also for castle placement (WEIGHTED 4x)
 static const unsigned int stones_min = 10;
 static const unsigned int stones_max = 25;
 static const unsigned int near_stones_min = 5;  // don't place castle unless sufficient stones, considers pile size
-static const unsigned int food_max = 45;  // demolish all food buildings if stored food over this amount (includes food at flags and unprocessed food up to a certain cap)
-static const unsigned int min_openspace_farm = 45; // min open tiles in area to build farm (existing fields count favorably, though). FYI: there are 60 tiles in spiral_dist(4)
-static const unsigned int near_fields_min = 3; // don't build mill and baker until a farm has this man fields already sown
-static const unsigned int coal_min = 12;   // don't build blacksmith if under this value and no coal mine.  Also, de-prioritize coal miner's food supply if over this value
+static const unsigned int food_max = 70;  // demolish all food buildings if stored food over this amount (includes food at flags and unprocessed food up to a certain cap)
+static const unsigned int lower_min_openspace_farm = 15; // absolute minimum open tiles in area to build farm (existing fields count favorably, though).  The number of available knights is added to allow for taking better territory
+static const unsigned int upper_min_openspace_farm = 45; // upper limit of min open tiles in area to build farm (existing fields count favorably, though). FYI: there are 60 tiles in spiral_dist(4)
+//static const unsigned int near_fields_min = 3; // don't build mill and baker until a farm has this man fields already sown  // this is no longer used because the delay results in bad roads
+static const unsigned int coal_min = 22;   // don't build blacksmith if under this value and no coal mine.  Also, de-prioritize coal miner's food supply if over this value
 static const unsigned int coal_max = 60;   // don't build coal mine if over this value, don't give food to mine over this value
-static const unsigned int iron_ore_min = 8; // don't build blacksmith if under this value and no iron mine, OR sufficient steel.  Also, de-prioritize iron miner's food supply if over this value
+static const unsigned int iron_ore_min = 14; // don't build blacksmith if under this value and no iron mine+, OR sufficient steel.  Also, de-prioritize iron miner's food supply if over this value
 static const unsigned int iron_ore_max = 30; // don't build iron mine if over this value, don't give food to mine over this value
-static const unsigned int gold_ore_min = 8;    // don't build gold smelter if under this value and no gold min.  Also, de-prioritize gold miner's food supply if over this value
+static const unsigned int gold_ore_min = 10;    // don't build gold smelter if under this value and no gold min.  Also, de-prioritize gold miner's food supply if over this value
 static const unsigned int gold_ore_max = 40;  // don't build gold mine over this value (is this implemented?),   don't give food to mine over this value
 static const unsigned int hills_min = 9;   // don't send geologists unless substantial hills
-static const unsigned int waters_min = 24;  // don't build fisherman unless substantial waters
+static const unsigned int waters_min = 16;  // don't build fisherman unless substantial waters
 static const unsigned int hammers_min = 6; // don't create geologists unless this many hammers in reserve
 static const unsigned int geologists_max = 2; // UPDATE this is now not a fixed value at all, it is now: 2+(geologists_max*number of Inventories (castle/stock))
+static const unsigned int builders_max = 6; // if this many builders in realm, don't create new hammers (unless a new blacksmith building needs a blacksmith)
+static const unsigned int blacksmiths_max = 1; // if this many blacksmith serfs in realm, don't create new hammers (unless a new blacksmith building needs a blacksmith)
 
 // deprioritize sending geologists to area where signs density is over this amount (prefer send geologists to unevaluated areas)
 static constexpr double geologist_sign_density_deprio = 0.40;
@@ -444,27 +419,24 @@ static constexpr double geologist_sign_density_max = 0.65;
 
 // don't build mines on Small resource signs until this ratio of potential resource signs are placed.
 //    until this % of signs placed, only build if you find a Large resource sign
-// LARGE SIGNS MATTER MUCH LESS THAN I THOUGHT, because the large signs just help find the center of the deposit
-//  ultimately a small sign or a large sign doesn't matter much as long as the mine is near the deposit
+// LARGE SIGNS MATTER LESS THAN I THOUGHT, because the large signs just help find the center of the deposit
+//  ultimately small vs large sign doesn't matter much as long as the mine is near the deposit
 static constexpr double coal_sign_density_min = 0.30;
 static constexpr double iron_sign_density_min = 0.30;
 static constexpr double gold_sign_density_min = 0.15;  // lower min for gold mines because even a small flag is usually enough gold, and gold is rare
-
-//  because new mines start at zero productivity, but any mine that is active and/or has food stored is not *brand new* and can be tested
-static const unsigned int mine_output_min = 8; // burn if below this % production
 
 // may need to do something to account for the fact that minerals come in clusters
 //    because once a few signs are found to indicate a cluster, the true value doesn't change
 //    but the AI function valuation will increase as more signs are found for the known mineral cluster
 //       maybe only add valuation if no adjacent signs for same mineral?
-static const unsigned int foods_weight = 2;
+static const unsigned int foods_weight = 1;
 static const unsigned int trees_weight = 2;
 static const unsigned int stones_weight = 2;
 static const unsigned int stone_signs_weight = 1;
-static const unsigned int hills_weight = 2;
+static const unsigned int hills_weight = 1;
 static const unsigned int iron_ore_weight = 3;
 static const unsigned int coal_weight = 2;
-static const unsigned int gold_ore_weight = 5;
+static const unsigned int gold_ore_weight = 6;
 
 // don't build anything new if at max.
 //     TODO: need to be 100% sure unfinished buildings don't get stuck and halt AI progress
@@ -480,16 +452,8 @@ static const unsigned int max_goldmines = 1;
 
 // max ratio of actual road length compared to ideal straight-line length to determine if road is acceptably short
 //   example, 3.00 means a road of up to 3x the length of a perfectly straight road is acceptable
-//   this length INCLUDES ANY PENALTIES (for flags encountered, AvoidCastle, PenalizeCastleFlag, etc.),
-//     whereas the ideal_length has no penalties
+// this does NOT factor in any penalties, it only looks at the actual Road.get_length() in tiles for convolution checks
 static constexpr double max_convolution = 3.00;
-
-// attack if own knight_morale is at least this high (starting morale is 1024?)
-static const unsigned int min_knight_morale_attack = 1400;
-// attack if knights sent is at least this many times the defending knights
-//  ex. if enemy hut has 2 defenders, and this is set to 4.00, only attack if 8 knights can be sent
-static constexpr double min_knight_ratio_attack = 2.00;
-// TODO add some kind of factor that reduces the required attack ratio as own morale increases
 
 // fixed penalty for a non-direct road that contains the castle flag (but doesn't start/end there)
 static const unsigned int contains_castle_flag_penalty = 20;  //increased this from 10 to 20 on dec04 2021
