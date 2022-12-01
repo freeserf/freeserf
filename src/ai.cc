@@ -2836,7 +2836,7 @@ AI::do_place_mines(std::string type, Building::Type building_type, Map::Object l
           // note that distance = 1 means ONLY THIS SPOT
           built_pos = AI::build_near_pos(pos, 1, building_type);
           if (built_pos != bad_map_pos && built_pos != notplaced_pos) {
-            AILogInfo["do_place_mines"] << inventory_pos << " built " << type << " mine at pos " << built_pos;
+            AILogDebug["do_place_mines"] << inventory_pos << " placed (but not connected) " << type << " mine at pos " << built_pos;
             stock_building_counts.at(inventory_pos).count[building_type]++;
             //stock_building_counts.at(inventory_pos).unfinished_count++;  // do NOT include placed-but-not-connected mines in unfinished_count!
             break;
@@ -2937,7 +2937,7 @@ AI::do_build_sawmill_lumberjacks() {
         //
         // build two lumberjacks near corner where sawmill was built, or corner with most trees
         //
-        AILogInfo["do_build_sawmill_lumberjacks"] << inventory_pos << " want to build a lumberjack";
+        AILogInfo["do_build_sawmill_lumberjacks"] << inventory_pos << " want to build lumberjack";
         MapPosVector search_positions = AI::sort_by_val_desc(count_by_corner);
         //  push the location of the sawmill (built_pos) to the front of the search path to help keep lumberjacks close
         search_positions.insert(search_positions.begin(), built_pos);
@@ -3061,7 +3061,7 @@ AI::do_build_stonecutter() {
       AILogDebug["do_build_stonecutter"] << inventory_pos << " Already placed stonecutter, not building more";
       return;
     }
-    AILogInfo["do_build_stonecutter"] << inventory_pos << " want to build a stonecutter";
+    AILogInfo["do_build_stonecutter"] << inventory_pos << " want to build stonecutter";
     // count stones near military buildings
     MapPosSet count_by_corner;
     for (MapPos center_pos : stock_building_counts.at(inventory_pos).occupied_military_pos) {
@@ -3540,16 +3540,13 @@ AI::do_connect_coal_mines() {
       if (flag->get_building()->get_type() != Building::TypeCoalMine)
         continue;
       AILogDebug["do_connect_coal_mines"] << inventory_pos << " disconnected coal mine found with flag pos " << flag->get_position();
-      AILogDebug["do_connect_coal_mines"] << inventory_pos << " trying to connect unfinished coal mine flag to road system";
+      AILogInfo["do_connect_coal_mines"] << inventory_pos << " trying to connect unfinished coal mine flag to road system";
       Road notused; // not used here, can I just pass a zero instead of &notused to build_best_road and skip initialization of a wasted object?
       //bool was_built = AI::build_best_road(flag->get_position(), road_options, &notused, "do_connect_coal_mines");
       // updated with verify_stock = true
       bool was_built = AI::build_best_road(flag->get_position(), road_options, &notused, "do_connect_coal_mines:Building::TypeCoalMine@"+std::to_string(flag->get_position()), Building::TypeNone, Building::TypeNone, bad_map_pos, true);
       if (!was_built) {
-        // should the mine be demolished if this happens?
-        AILogDebug["do_connect_coal_mines"] << inventory_pos << " failed to connect coal mine to road network! ";
-        // YES it should
-        AILogDebug["do_connect_coal_mines"] << inventory_pos << " demolishing coal mine that could not be connected to road network";
+        AILogInfo["do_connect_coal_mines"] << inventory_pos << " failed to connect coal mine to road network!  demolishing it and its flag ";
         AILogVerbose["do_connect_coal_mines"] << inventory_pos << " thread #" << std::this_thread::get_id() << " AI is locking mutex before calling demolish flag&building (failed to connect coal mine)";
         game->get_mutex()->lock();
         AILogVerbose["do_connect_coal_mines"] << inventory_pos << " thread #" << std::this_thread::get_id() << " AI has locked mutex before calling demolish flag&building (failed to connect coal mine)";
@@ -3559,7 +3556,7 @@ AI::do_connect_coal_mines() {
         if (flag == nullptr){
           AILogWarn["do_connect_coal_mines"] << inventory_pos << " debug flag is now nullptr, not running demolish_flag";
         }else{
-          AILogWarn["do_connect_coal_mines"] << inventory_pos << " debug about to call demolish_flag";
+          AILogDebug["do_connect_coal_mines"] << inventory_pos << " debug about to call demolish_flag";
           game->demolish_flag(flag->get_position(), player);
         }
         AILogVerbose["do_connect_coal_mines"] << inventory_pos << " thread #" << std::this_thread::get_id() << " AI is unlocking mutex after calling demolish flag&building (failed to connect coal mine)";
@@ -3569,7 +3566,7 @@ AI::do_connect_coal_mines() {
         sleep_speed_adjusted(3000);
       }
       else {
-        AILogDebug["do_connect_coal_mines"] << inventory_pos << " successfully connected unfinished coal mine to road network";
+        AILogInfo["do_connect_coal_mines"] << inventory_pos << " successfully connected unfinished coal mine to road network";
         stock_building_counts.at(inventory_pos).count[Building::TypeCoalMine]++;
         stock_building_counts.at(inventory_pos).unfinished_count++;
         break;
@@ -3605,16 +3602,13 @@ AI::do_connect_iron_mines() {
       if (flag->get_building()->get_type() != Building::TypeIronMine)
         continue;
       AILogDebug["do_connect_iron_mines"] << inventory_pos << " disconnected iron mine found with flag pos " << flag->get_position();
-      AILogDebug["do_connect_iron_mines"] << inventory_pos << " trying to connect unfinished iron mine flag to road system";
+      AILogInfo["do_connect_iron_mines"] << inventory_pos << " trying to connect unfinished iron mine flag to road system";
       Road notused; // not used here, can I just pass a zero instead of &notused to build_best_road and skip initialization of a wasted object?
       //bool was_built = AI::build_best_road(flag->get_position(), road_options, &notused, "do_connect_iron_mines");
       // updated with verify_stock = true
       bool was_built = AI::build_best_road(flag->get_position(), road_options, &notused, "do_connect_iron_mines:Building::TypeIronMine@"+std::to_string(flag->get_position()), Building::TypeNone, Building::TypeNone, bad_map_pos, true);
       if (!was_built) {
-        // should the mine be demolished if this happens?
-        AILogDebug["do_connect_iron_mines"] << inventory_pos << " failed to connect iron mine to road network! ";
-        // YES it should
-        AILogDebug["do_connect_iron_mines"] << inventory_pos << " demolishing iron mine that could not be connected to road network";
+        AILogInfo["do_connect_iron_mines"] << inventory_pos << " failed to connect iron mine to road network!  demolishing it and its flag ";
         AILogVerbose["do_connect_iron_mines"] << inventory_pos << " thread #" << std::this_thread::get_id() << " AI is locking mutex before calling demolish flag&building (failed to connect iron mine)";
         game->get_mutex()->lock();
         AILogVerbose["do_connect_iron_mines"] << inventory_pos << " thread #" << std::this_thread::get_id() << " AI has locked mutex before calling demolish flag&building (failed to connect iron mine)";
@@ -3624,7 +3618,7 @@ AI::do_connect_iron_mines() {
         if (flag == nullptr){
           AILogWarn["do_connect_iron_mines"] << inventory_pos << " debug flag is now nullptr, not running demolish_flag";
         }else{
-          AILogWarn["do_connect_iron_mines"] << inventory_pos << " debug about to call demolish_flag";
+          AILogDebug["do_connect_iron_mines"] << inventory_pos << " debug about to call demolish_flag";
           game->demolish_flag(flag->get_position(), player);
         }
         AILogVerbose["do_connect_iron_mines"] << inventory_pos << " thread #" << std::this_thread::get_id() << " AI is unlocking mutex after calling demolish flag&building (failed to connect iron mine)";
@@ -3634,7 +3628,7 @@ AI::do_connect_iron_mines() {
         sleep_speed_adjusted(3000);
       }
       else {
-        AILogDebug["do_connect_iron_mines"] << inventory_pos << " successfully connected unfinished iron mine to road network";
+        AILogInfo["do_connect_iron_mines"] << inventory_pos << " successfully connected unfinished iron mine to road network";
         stock_building_counts.at(inventory_pos).count[Building::TypeIronMine]++;
         stock_building_counts.at(inventory_pos).unfinished_count++;
         break;
@@ -3868,16 +3862,13 @@ AI::do_build_gold_smelter_and_connect_gold_mines() {
       if (flag->get_building()->get_type() != Building::TypeGoldMine)
         continue;
       AILogDebug["do_build_gold_smelter_and_connect_gold_mines"] << inventory_pos << " disconnected gold mine found with flag pos " << flag->get_position();
-      AILogDebug["do_build_gold_smelter_and_connect_gold_mines"] << inventory_pos << " trying to connect unfinished gold mine flag to road system";
+      AILogInfo["do_build_gold_smelter_and_connect_gold_mines"] << inventory_pos << " trying to connect unfinished gold mine flag to road system";
       Road notused; // not used here, can I just pass a zero instead of &notused to build_best_road and skip initialization of a wasted object?
       //bool was_built = AI::build_best_road(flag->get_position(), road_options, &notused, "do_connect_gold_mines");
       // updated with verify_stock = true
       bool was_built = AI::build_best_road(flag->get_position(), road_options, &notused, "do_connect_gold_mines:Building::TypeGoldMine@"+std::to_string(flag->get_position()), Building::TypeNone, Building::TypeNone, bad_map_pos, true);
       if (!was_built) {
-        // should the mine be demolished if this happens?
-        AILogDebug["do_build_gold_smelter_and_connect_gold_mines"] << inventory_pos << " failed to connect gold mine to road network! ";
-        // YES it should
-        AILogDebug["do_build_gold_smelter_and_connect_gold_mines"] << inventory_pos << " demolishing gold mine that could not be connected to road network";
+        AILogInfo["do_build_gold_smelter_and_connect_gold_mines"] << inventory_pos << " failed to connect gold mine to road network!  demolishing it and its flag ";
         AILogVerbose["do_build_gold_smelter_and_connect_gold_mines"] << inventory_pos << " thread #" << std::this_thread::get_id() << " AI is locking mutex before calling demolish flag&building (failed to connect gold mine)";
         game->get_mutex()->lock();
         AILogVerbose["do_build_gold_smelter_and_connect_gold_mines"] << inventory_pos << " thread #" << std::this_thread::get_id() << " AI has locked mutex before calling demolish flag&building (failed to connect gold mine)";
@@ -3887,7 +3878,7 @@ AI::do_build_gold_smelter_and_connect_gold_mines() {
         if (flag == nullptr){
           AILogWarn["do_build_gold_smelter_and_connect_gold_mines"] << inventory_pos << " debug flag is now nullptr, not running demolish_flag";
         }else{
-          AILogWarn["do_build_gold_smelter_and_connect_gold_mines"] << inventory_pos << " debug about to call demolish_flag";
+          AILogDebug["do_build_gold_smelter_and_connect_gold_mines"] << inventory_pos << " debug about to call demolish_flag";
           game->demolish_flag(flag->get_position(), player);
         }
         AILogVerbose["do_build_gold_smelter_and_connect_gold_mines"] << inventory_pos << " thread #" << std::this_thread::get_id() << " AI is unlocking mutex after calling demolish flag&building (failed to connect gold mine)";
@@ -3897,7 +3888,7 @@ AI::do_build_gold_smelter_and_connect_gold_mines() {
         sleep_speed_adjusted(3000);
       }
       else {
-        AILogDebug["do_build_gold_smelter_and_connect_gold_mines"] << inventory_pos << " successfully connected unfinished gold mine to road network";
+        AILogInfo["do_build_gold_smelter_and_connect_gold_mines"] << inventory_pos << " successfully connected unfinished gold mine to road network";
         stock_building_counts.at(inventory_pos).count[Building::TypeGoldMine]++;
         stock_building_counts.at(inventory_pos).unfinished_count++;
         break;

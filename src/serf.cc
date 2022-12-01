@@ -3253,7 +3253,7 @@ Serf::find_inventory() {
     }
   }
 
-  Log::Warn["serf"] << "inside find_inventory, a serf at pos " << get_pos() << " is being set to StateLost! because an Inventory to return to was not found?";
+  Log::Debug["serf"] << "inside find_inventory, a serf at pos " << get_pos() << " is being set to StateLost, because an Inventory to return to was not found";
 
   //debug
   if (game->get_flag(recent_dest) != nullptr){

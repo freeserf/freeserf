@@ -137,13 +137,16 @@ main(int argc, char *argv[]) {
   //  audio setup, because this seems to fix it for unknown reasons
   // FYI the crash error on linux is:
   //  "Assertion 'm' failed at pulse/mainloop.c:921, function pa_mainloop_iterate().  Aborting."
-  // wait this doens't work here
-  int current_loglevel = Log::get_level();
-  Log::set_level(Log::Level(1));
+  int current_loglevel = Log::get_level();  // start of work-around
+  Log::set_level(Log::Level(1));  // part of work-around
+
   /* TODO move to right place */
+  //  tlongstretch - I'm not sure what the "right place" is, the above was a note in Freeserf
   Audio &audio = Audio::get_instance();  // 
   Audio::PPlayer player = audio.get_music_player();
-  Log::set_level(Log::Level(current_loglevel));
+
+  Log::set_level(Log::Level(current_loglevel));  // end of work-around
+
   // NOTE - it seems Amiga has a single long track, 
   //  while DOS has three or four similar tracks that play one after another
   if (player) {
