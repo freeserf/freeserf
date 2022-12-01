@@ -1131,12 +1131,12 @@ CustomMapGenerator::create_deserts() {
     //Log::Info["map-generator"] << "inside CustomMapGenerator::create_deserts, opt" << x << " = " << custom_map_generator_options.opt[x];
   //}
   if (custom_map_generator_options.opt[CustomMapGeneratorOption::DesertFrequency] == 0.00){
-    Log::Info["map-generator"] << "inside CustomMapGenerator::create_deserts, desert frequency is zero, not building any deserts, returning now";
+    //Log::Info["map-generator"] << "inside CustomMapGenerator::create_deserts, desert frequency is zero, not building any deserts, returning now";
     return;
   }
   // Initialize random areas of desert based on spiral pattern.
   // Only TerrainGrass1 triangles will be converted to desert.
-  Log::Info["map-generator"] << "inside CustomMapGenerator::create_deserts, map regions: " << map.get_region_count();
+  //Log::Info["map-generator"] << "inside CustomMapGenerator::create_deserts, map regions: " << map.get_region_count();
   bool created_extra_desert_this_region = false;
   for (unsigned int i = 0; i < map.get_region_count(); i++) {
     // chance of not creating a desert in this region
@@ -1144,7 +1144,7 @@ CustomMapGenerator::create_deserts() {
       double foo_rand = double(rand()) / double(RAND_MAX);
       //Log::Info["map-generator"] << "inside CustomMapGenerator::create_deserts, region #" << i << " foo_rand " << foo_rand << ", desert_freq " << custom_map_generator_options.opt[CustomMapGeneratorOption::DesertFrequency];
       if (foo_rand < custom_map_generator_options.opt[CustomMapGeneratorOption::DesertFrequency]){
-        Log::Info["map-generator"] << "inside CustomMapGenerator::create_deserts, because CustomMapGeneratorOption::DesertFrequency] < 1.00 and rand passed, not creating desert in region #" << i;
+        //Log::Info["map-generator"] << "inside CustomMapGenerator::create_deserts, because CustomMapGeneratorOption::DesertFrequency] < 1.00 and rand passed, not creating desert in region #" << i;
         continue;
       }else{
         //Log::Info["map-generator"] << "inside CustomMapGenerator::create_deserts, will create desert in region #" << i;
@@ -1154,10 +1154,10 @@ CustomMapGenerator::create_deserts() {
     int deserts = 1;
     if (custom_map_generator_options.opt[CustomMapGeneratorOption::DesertFrequency] > 1.00){
       double foo2_rand = double(rand()) / double(RAND_MAX);
-      Log::Info["map-generator"] << "inside CustomMapGenerator::create_deserts, region #" << i << " foo2_rand " << foo2_rand << ", desert_freq " << custom_map_generator_options.opt[CustomMapGeneratorOption::DesertFrequency];
+      //Log::Info["map-generator"] << "inside CustomMapGenerator::create_deserts, region #" << i << " foo2_rand " << foo2_rand << ", desert_freq " << custom_map_generator_options.opt[CustomMapGeneratorOption::DesertFrequency];
       if (foo2_rand < custom_map_generator_options.opt[CustomMapGeneratorOption::DesertFrequency] - 1){
         deserts++;
-        Log::Info["map-generator"] << "inside CustomMapGenerator::create_deserts, because CustomMapGeneratorOption::DesertFrequency] > 1.00 and rand passed, will create extra desert in region #" << i;
+        //Log::Info["map-generator"] << "inside CustomMapGenerator::create_deserts, because CustomMapGeneratorOption::DesertFrequency] > 1.00 and rand passed, will create extra desert in region #" << i;
       }else{
         //Log::Info["map-generator"] << "inside CustomMapGenerator::create_deserts, not creating extra desert in region #" << i;
       }

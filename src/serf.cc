@@ -807,6 +807,7 @@ void
 Serf::go_out_from_inventory(unsigned int inventory, MapPos dest, int mode) {
   set_state(StateReadyToLeaveInventory);
   // 'mode' seems to be simply the initial Dir that the serf goes as it exists the Inventory Flag, or <1 for special cases maybe?  Such as flagsearch not finding a dest??
+  //  this is rabbit hole, not sure I understand it and don't feel like figuring it out 
   s.ready_to_leave_inventory.mode = mode; 
   // this appears to be the index of the destination Flag, which is what you would expect, but the Declaration of this function 
   //  says it is a MapPos, which I think is wrong. Further confirmation that this is really a Flag index is that the 
@@ -3228,7 +3229,7 @@ Serf::drop_resource(Resource::Type res) {
     Player *player = game->get_player(get_owner());
     player->increase_res_count(res);
   }else{
-    Log::Info["serf.cc"] << "inside drop_resource, a resource of type " << NameResource[res] << " was removed from the game because there was no free slot for flag at pos " << flag->get_position() << ".  This is normal game behavior";
+    Log::Debug["serf.cc"] << "inside drop_resource, a resource of type " << NameResource[res] << " was removed from the game because there was no free slot for flag at pos " << flag->get_position() << ".  This is normal game behavior";
   }
 }
 

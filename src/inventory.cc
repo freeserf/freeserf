@@ -342,8 +342,7 @@ Resource::Type res_needed[] = {
 //   but whatever, it doesn't matter and was simply a source of confusion
 bool
 Inventory::specialize_serf(Serf *serf, Serf::Type type) {
-  Log::Debug["inventory"] << "inside specialize_serf to type " << NameSerf[type];
-
+  //Log::Debug["inventory"] << "inside specialize_serf to type " << NameSerf[type];
   if (serf->get_type() != Serf::TypeGeneric) {
     Log::Warn["inventory"] << "inside specialize_serf to type " << NameSerf[type] << ", the serf selected to *be specialized* is not a Generic serf, he is already specialized! returning false";
     return false;
@@ -369,12 +368,12 @@ Inventory::specialize_serf(Serf *serf, Serf::Type type) {
 
   if ((res_needed[type*2] != Resource::TypeNone)
       && (resources[res_needed[type*2]] == 0)) {
-    Log::Debug["inventory"] << "inside specialize_serf to type " << NameSerf[type] << ", failure because no tool of first type available";
+    //Log::Debug["inventory"] << "inside specialize_serf to type " << NameSerf[type] << ", failure because no tool of first type available";
     return false;
   }
   if ((res_needed[type*2+1] != Resource::TypeNone)
       && (resources[res_needed[type*2+1]] == 0)) {
-    Log::Debug["inventory"] << "inside specialize_serf to type " << NameSerf[type] << ", failure because no tool of second type available";
+    //Log::Debug["inventory"] << "inside specialize_serf to type " << NameSerf[type] << ", failure because no tool of second type available";
     return false;
   }
 
@@ -392,7 +391,7 @@ Inventory::specialize_serf(Serf *serf, Serf::Type type) {
     resources[res_needed[type*2+1]]--;
   }
 
-  Log::Debug["inventory"] << "inside specialize_serf, successfully specialized a generic serf to new type " << NameSerf[type];
+  //Log::Debug["inventory"] << "inside specialize_serf, successfully specialized a generic serf to new type " << NameSerf[type];
   serf->set_type(type);
 
   serfs[type] = serf->get_index();
@@ -400,6 +399,9 @@ Inventory::specialize_serf(Serf *serf, Serf::Type type) {
   return true;
 }
 
+// this is ONLY used for creating knights, not serfs
+//  in castle as part of the civilian<>knight slider
+//  and possibly the "create 1-5-10-20 knights" button
 Serf*
 Inventory::specialize_free_serf(Serf::Type type) {
   if (serfs[Serf::TypeGeneric] == 0) {

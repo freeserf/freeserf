@@ -96,7 +96,7 @@ main(int argc, char *argv[]) {
   }
 
   //Log::Info["main"] << "freeserf " << FREESERF_VERSION;
-  Log::Info["freeserf.cc"] << "forksrf " << FORKSERF_VERSION;
+  Log::Info["freeserf.cc"] << "forkserf " << FORKSERF_VERSION;
 
   Data &data = Data::get_instance();
   if (!data.load(data_dir)) {
@@ -121,16 +121,24 @@ main(int argc, char *argv[]) {
     Log::Debug["freeserf.cc"] << "inside freeserf main(), starting audio midi music, about to call player->play_track";
     //Audio::PTrack t = player->play_track(Audio::TypeMidiTrack0);
     Data &data = Data::get_instance();
-    if (data.get_data_source_Amiga() != nullptr){
-      Log::Info["freeserf.cc"] << "inside freeserf main(), starting audio midi music, found Amiga music, using it";
+    if (data.get_data_source_Amiga() != nullptr && data.get_data_source_DOS() != nullptr){
+      // if BOTH Amiga and DOS music available, pick one at random
+      if (rand() % 2){
+        Log::Info["freeserf.cc"] << "inside freeserf main(), both Amiga and DOS music available, randomly chose Amiga";
+        Audio::PTrack t = player->play_track(Audio::TypeMidiTrack0, DataSourceType::Amiga);  // 0=Amiga, 1=DOS, 2=Custom
+      }else{
+        Log::Info["freeserf.cc"] << "inside freeserf main(), both Amiga and DOS music available, randomly chose DOS";
+        Audio::PTrack t = player->play_track(Audio::TypeMidiTrack0, DataSourceType::DOS);  // 0=Amiga, 1=DOS, 2=Custom
+      }
+    }else if(data.get_data_source_Amiga() != nullptr){
+      Log::Info["freeserf.cc"] << "inside freeserf main(), starting audio midi music, found only Amiga music, using it";
       Audio::PTrack t = player->play_track(Audio::TypeMidiTrack0, DataSourceType::Amiga);  // 0=Amiga, 1=DOS, 2=Custom
     }else if(data.get_data_source_DOS() != nullptr){
-      // fall back to DOS music if Amiga not available.  DOS music works in Windows last I checked
-      Log::Info["freeserf.cc"] << "inside freeserf main(), starting audio midi music, Amiga music not found, falling back to DOS music";
+      Log::Info["freeserf.cc"] << "inside freeserf main(), starting audio midi music, found only DOS music, using it";
       Audio::PTrack t = player->play_track(Audio::TypeMidiTrack0, DataSourceType::DOS);  // 0=Amiga, 1=DOS, 2=Custom
     }else{
       // music not available
-      Log::Error["freeserf.cc"] << "inside freeserf main(), neither Amiga nor DOS music found, this should not happen as game shuold not even start without either"; 
+      Log::Error["freeserf.cc"] << "inside freeserf main(), neither Amiga nor DOS music found, this should not happen as game should not even start without either"; 
     }
 
     // testing the audio tracks. I understand DOS has four short tracks, Amiga has one very long one

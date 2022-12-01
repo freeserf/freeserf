@@ -74,8 +74,7 @@ class PlayerInfo {
     reproduction = _reproduction; }
   void set_castle_pos(Pos _castle_pos);
   void set_character(size_t character);
-  // weird.. I was getting blank colors for players above face1 (Lady Amelie), they would have black color.  Once I added debug statements it stopped happening.  Why??
-  void set_color(const Player::Color &_color) { Log::Debug["mission"] << "inside PlayerInfo->set_color, rgb: " << int(_color.red) << " / " << int(_color.green) << " / " << int(_color.blue);  color = _color; }
+  void set_color(const Player::Color &_color) { color = _color; }
 
   unsigned int get_intelligence() const { return intelligence; }
   unsigned int get_supplies() const { return supplies; }
