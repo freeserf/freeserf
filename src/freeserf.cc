@@ -38,14 +38,6 @@
 # include <SDL.h>
 #endif  // WIN32
 
-// for sleep function at start, ONLY USED TO DEBUG INITIAL AUDIO CRASH-ON-STARTUP ISSUE
-#ifdef _WIN32
-#include <Windows.h>
-#else
-#include <unistd.h>
-#endif
-
-
 
 int
 main(int argc, char *argv[]) {
