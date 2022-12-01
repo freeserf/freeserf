@@ -1323,7 +1323,7 @@ AI::find_flag_path_and_tile_dist_between_flags(PMap map, MapPos start_pos, MapPo
 
   // handle start=end
   if (start_pos == target_pos){
-    AILogWarn["find_flag_path_and_tile_dist_between_flags"] << "start_pos " << start_pos << " IS target_pos " << target_pos << ", why even make this call?";
+    //AILogWarn["find_flag_path_and_tile_dist_between_flags"] << "start_pos " << start_pos << " IS target_pos " << target_pos << ", why even make this call?";
     return true;
   }
 

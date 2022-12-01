@@ -38,6 +38,13 @@
 # include <SDL.h>
 #endif  // WIN32
 
+// for sleep function at start, ONLY USED TO DEBUG INITIAL AUDIO CRASH-ON-STARTUP ISSUE
+#ifdef _WIN32
+#include <Windows.h>
+#else
+#include <unistd.h>
+#endif
+
 
 
 int
@@ -48,6 +55,11 @@ main(int argc, char *argv[]) {
   std::ofstream* filestr = new std::ofstream("console_out.txt");
   Log::set_file(filestr);
 
+  //Log::Verbose["freeserf.cc"] << "Forkserf log level is at least Verbose";
+  //Log::Debug["freeserf.cc"] << "Forkserf log level is at least Debug";
+  //Log::Info["freeserf.cc"] << "Forkserf log level is at least Info";
+  //Log::Warn["freeserf.cc"] << "Forkserf log level is at least Warn";
+  //Log::Error["freeserf.cc"] << "Forkserf log level is at least Error";
 
   std::string data_dir;
   std::string save_file;
@@ -57,6 +69,14 @@ main(int argc, char *argv[]) {
   bool fullscreen = false;
 
   CommandLine command_line;
+  // to fix weird bug with crash when audio loads when Log::Level is Info/Warn or higher
+  //  store the current log level so that it can be briefly set to Debug when calling the
+  //  audio setup, because this seems to fix it for unknown reasons
+  // FYI the crash error on linux is:
+  //  "Assertion 'm' failed at pulse/mainloop.c:921, function pa_mainloop_iterate().  Aborting."
+  // wait this doens't work here
+  //int chosen_loglevel = Log::get_level();
+
   command_line.add_option('d', "Set Debug output level")
                 .add_parameter("NUM", [](std::istream& s) {
                   int d;
@@ -112,9 +132,18 @@ main(int argc, char *argv[]) {
 
   Graphics &gfx = Graphics::get_instance();
 
+  // to fix weird bug with crash when audio loads when Log::Level is Info/Warn or higher
+  //  store the current log level so that it can be briefly set to Debug when calling the
+  //  audio setup, because this seems to fix it for unknown reasons
+  // FYI the crash error on linux is:
+  //  "Assertion 'm' failed at pulse/mainloop.c:921, function pa_mainloop_iterate().  Aborting."
+  // wait this doens't work here
+  int current_loglevel = Log::get_level();
+  Log::set_level(Log::Level(1));
   /* TODO move to right place */
   Audio &audio = Audio::get_instance();  // 
-  Audio::PPlayer player = audio.get_music_player();  // TEMP DISABLING AUDIO WHILE RUNNING DEBUGGER BECAUSE OF ANNOYING RANDOM CRASH!
+  Audio::PPlayer player = audio.get_music_player();
+  Log::set_level(Log::Level(current_loglevel));
   // NOTE - it seems Amiga has a single long track, 
   //  while DOS has three or four similar tracks that play one after another
   if (player) {

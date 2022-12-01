@@ -27,11 +27,16 @@
 #include <windows.h>
 #endif  // WIN32
 
-#ifndef NDEBUG
-Log::Level Log::level = Log::LevelDebug;
-#else
+// default loglevel is set here
+//
+// I'm not sure what the ifndef NDEBUG this is about, I guess its a compile time setting?
+//  just defaulting to Info for everybody
+//
+//#ifndef NDEBUG
+//Log::Level Log::level = Log::LevelDebug;
+//#else
 Log::Level Log::level = Log::LevelInfo;
-#endif
+//#endif
 
 std::ostream *Log::stream = &std::cout;
 
@@ -71,3 +76,5 @@ Log::set_level(Log::Level _level) {
   Warn.apply_level();
   Error.apply_level();
 }
+
+
