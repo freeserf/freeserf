@@ -100,6 +100,8 @@ class Log {
         stream = Log::stream;
       }
     }
+
+
   };
 
   Log();
@@ -107,6 +109,7 @@ class Log {
 
   static void set_file(std::ostream *stream);
   static void set_level(Log::Level level);
+  static int get_level() { return level;}
 
   static Logger Verbose;
   static Logger Debug;

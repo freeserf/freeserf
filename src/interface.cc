@@ -1038,6 +1038,7 @@ Interface::handle_key_pressed(char key, int modifier) {
 
     // what is this?   backspace or escape maybe? to cancel popup?
     case 27: {
+      Log::Debug["interface"] << "BACKSPACE key pressed, closing any open popup / road build";
       if ((notification_box != nullptr) && notification_box->is_displayed()) {
         close_message();
       } else if ((popup != nullptr) && popup->is_displayed()) {
@@ -1068,6 +1069,7 @@ Interface::handle_key_pressed(char key, int modifier) {
 
     // toggle sounds
     case 's': {
+      Log::Info["interface"] << "'s' key pressed, toggling sounds";
       Audio &audio = Audio::get_instance();
       Audio::PPlayer splayer = audio.get_sound_player();
       if (splayer) {
@@ -1077,6 +1079,7 @@ Interface::handle_key_pressed(char key, int modifier) {
     }
     // toggle music
     case 'm': {
+      Log::Info["interface"] << "'m' key pressed, toggling music";
       Audio &audio = Audio::get_instance();
       Audio::PPlayer splayer = audio.get_music_player();
       if (splayer) {
@@ -1088,37 +1091,40 @@ Interface::handle_key_pressed(char key, int modifier) {
 
     // old Freeserf debug overlay, shows map grid and serf states
     case 'g': {
+      Log::Info["interface"] << "'g' key pressed, toggling LayerGrid";
       viewport->switch_layer(Viewport::LayerGrid);
       break;
     }
 
     // show building placement possibilities on map
     case 'b': {
+      Log::Info["interface"] << "'b' key pressed, toggling LayerBuilds";
       viewport->switch_layer(Viewport::LayerBuilds);
       break;
     }
 
     // AI overlay grid - colored dots showing AI searching positions, roads being build, AI status, serf status, etc.
     case 'y': {
-      Log::Info["interface"] << "'y' key pressed, switching to LayerAI";
+      Log::Info["interface"] << "'y' key pressed, toggling LayerAI";
       viewport->switch_layer(Viewport::LayerAI);
       break;
     }
 
     // new Forkserf debug overlay, highlight items on map and provide misc debug info as needed
     case 'd': {
-      Log::Info["interface"] << "'y' key pressed, switching to LayerDebug";
+      Log::Info["interface"] << "'d' key pressed, toggling LayerDebug";
       viewport->switch_layer(Viewport::LayerDebug);
       break;
     }
 
     // Hidden Resources (Minerals/Fish) overlay grid - colored dots showing otherwise invisible map resoureces
     case 'h': {
-      Log::Info["interface"] << "'h' key pressed, switching to LayerHiddenResources";
+      Log::Info["interface"] << "'h' key pressed, toggling LayerHiddenResources";
       viewport->switch_layer(Viewport::LayerHiddenResources);
       break;
     }
 
+    // debugging function to "boot" clicked serf by making them Lost (only works for AI players currently)
     case 'l': {
       if (modifier & 1) {
         Log::Info["interface"] << "CTRL-L pressed, telling AI to make any selected serf StateLost, for debugging";
@@ -1155,6 +1161,7 @@ Interface::handle_key_pressed(char key, int modifier) {
       break;
     }
     case 'w':
+      Log::Info["interface"] << "'w' key pressed, toggling FourSeasons";
       if (option_FourSeasons){
         option_FourSeasons = false;
         Log::Info["interface"] << "Disabling FourSeasons of Weather and clearing image cache";
@@ -1197,16 +1204,20 @@ Interface::handle_key_pressed(char key, int modifier) {
       */
       break;
     case 'z':
+      Log::Info["interface"] << "'z' key pressed, quick-saving game'";
       if (modifier & 1) {
         GameStore::get_instance().quick_save("quicksave", game.get());
       }
       break;
     case 'n':
+      Log::Info["interface"] << "'n' key pressed, opening new-game-init popup'";
       if (modifier & 1) {
         open_game_init();
       }
       break;
     case 'c':
+      Log::Info["interface"] << "'c' key pressed, confirming quit'";
+      // ALLOW ENTER KEY TO DO THIS!
       if (modifier & 1) {
         open_popup(PopupBox::TypeQuitConfirm);
       }

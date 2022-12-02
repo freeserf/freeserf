@@ -610,19 +610,27 @@ typedef struct SendSerfToFlagData {
   Resource::Type res2;
 } SendSerfToFlagData;
 
+
+// Return true if this flag is connected to an Inventory
+//  that can provide a serf of this type, either because an idle
+//  serf of this type is available or by creating a new one, possibly
+//  consuming tools if required
+// The "if have tools" check is done here, and the tool consumption
+//  happens at the calling function send_sert_to_flag
 bool
 Game::send_serf_to_flag_search_cb(Flag *flag, void *d) {
   if (!flag->has_inventory()) {
     return false;
   }
-
   SendSerfToFlagData *data = reinterpret_cast<SendSerfToFlagData*>(d);
   /* Inventory reached */
   Building *building = flag->get_building();
   Inventory *inv = building->get_inventory();
-
   int type = data->serf_type;
   if (type < 0) {
+    //
+    // knights, either idle-in-stock or can be created
+    //
     int knight_type = -1;
     for (int i = 4; i >= -type-1; i--) {
       if (inv->have_serf((Serf::Type)(Serf::TypeKnight0+i))) {
@@ -630,20 +638,14 @@ Game::send_serf_to_flag_search_cb(Flag *flag, void *d) {
         break;
       }
     }
-
     if (knight_type >= 0) {
-      /* Knight of appropriate type was found. */
-      Serf *serf =
-              inv->call_out_serf((Serf::Type)(Serf::TypeKnight0+knight_type));
-
+      // Knight of appropriate type was found
+      Serf *serf = inv->call_out_serf((Serf::Type)(Serf::TypeKnight0+knight_type));
       data->building->knight_request_granted();
-
-      serf->go_out_from_inventory(inv->get_index(),
-                                  data->building->get_flag_index(), -1);
-
+      serf->go_out_from_inventory(inv->get_index(), data->building->get_flag_index(), -1);
       return true;
     } else if (type == -1) {
-      /* See if a knight can be created here. */
+      // See if a knight can be created here
       if (inv->have_serf(Serf::TypeGeneric) &&
           inv->get_count_of(Resource::TypeSword) > 0 &&
           inv->get_count_of(Resource::TypeShield) > 0) {
@@ -652,59 +654,81 @@ Game::send_serf_to_flag_search_cb(Flag *flag, void *d) {
       }
     }
   } else {
+    //
+    // non-knight specialist serfs
+    //
     if (inv->have_serf((Serf::Type)type)) {
+      // ... already in inventory, call out
+      // if an idle serf of this type already exists, or 5+ free serfs
+      //  available to be specialized (I guess the intent is to reserve
+      //  four to be made available as transporters?  or knights?)
       if (type != Serf::TypeGeneric || inv->free_serf_count() > 4) {
         Serf *serf = inv->call_out_serf((Serf::Type)type);
-
         int mode = 0;
-
         if (type == Serf::TypeGeneric) {
+          // don't know what this means
           mode = -2;
         } else if (type == Serf::TypeGeologist) {
+          // don't know what this means
           mode = 6;
         } else {
-          Building *dest_bld =
-                    flag->get_game()->flags[data->dest_index]->get_building();
+          // notify the calling building that its request for
+          //  a new Holder serf was granted
+          Building *dest_bld = flag->get_game()->flags[data->dest_index]->get_building();
           dest_bld->serf_request_granted();
           mode = -1;
         }
         serf->go_out_from_inventory(inv->get_index(), data->dest_index, mode);
-
         return true;
       }
     } else {
+      // ...not idle-in-stock, must be created
+      // check to see if available tool[s] to specialize a generic serf
+      //  into a new professional
+      // NOTE - this check is here, instead of much earlier as might seem logical,
+      //  because the tool needs to come from the same inventory the generic serf
+      //  is specialized from, and to figure out which Inventory that is, the 
+      //  flagsearch must be done!
       if (data->inventory == NULL &&
           inv->have_serf(Serf::TypeGeneric) &&
           (data->res1 == -1 || inv->get_count_of(data->res1) > 0) &&
           (data->res2 == -1 || inv->get_count_of(data->res2) > 0)) {
-
         data->inventory = inv;
+
+        // I have no idea what this stuff is, it was commented out this way
+        //  in the Freeserf code, I have not modified at all
         /* player_t *player = globals->player[SERF_PLAYER(serf)]; */
         /* game.field_340 = player->cont_search_after_non_optimal_find; */
+
         return true;
       }
     }
   }
-  if (data->serf_type == Serf::TypeGeologist){
-    //Log::Info["game"] << "debug: inside Game::send_serf_to_flag_search_cb with GEOLOGIST, F false";
-  }
+  // serf could not be dispatched
   return false;
 }
 
-/* Dispatch serf from (nearest?) inventory to flag. */
-// it seems that this function is NOT used for calling transporters to roads, 
+// Dispatch a non-road-transporter serf from the nearest
+//  *capable* inventory to flags/buildings.  Includes both
+//  knights and specialized/professioal serfs that may require
+//  tools.
+// The "if have tools" check is done here inside the flagsearch call back
+//  send_serf_to_flag_cb, and the tool consumption
+//  happens here
+// NOTE - this function is NOT used for calling transporters to roads, 
 //  if I create a new road I see a transporter sent and arrive but never see this called for it
-// instead, it looks like Inventory->call_transporter is called
+//  instead, it looks like Inventory->call_transporter is called
+// NOTE - specialize_serf and specialize_free_serf functios are NOT USED HERE
+//  it seems those are only used during initial castle creation and when
+//  new knights are spawned inside the castle/stock/warehouse
 bool
 Game::send_serf_to_flag(Flag *dest, Serf::Type type, Resource::Type res1,
                         Resource::Type res2) {
-  //Log::Debug["game"] << "debug: inside Game::send_serf_to_flag, AA, dest flag is at pos " << dest->get_position();
-  //Log::Info["game"] << "debug: inside Game::send_serf_to_flag, serf type " << type << ", res1 " << res1 << ", res2 " << res2;         
+  //Log::Debug["game"] << "inside Game::send_serf_to_flag, serf type " << type << ", res1 " << res1 << ", res2 " << res2;         
   Building *building = NULL;
   if (dest->has_building()) {
     building = dest->get_building();
   }
-  //Log::Info["game"] << "debug: inside Game::send_serf_to_flag, A";
 
   /* If type is negative, building is non-NULL. */
   if ((type < 0) && (building != NULL)) {
@@ -712,60 +736,62 @@ Game::send_serf_to_flag(Flag *dest, Serf::Type type, Resource::Type res1,
     type = player->get_cycling_serf_type(type);
   }
 
-  //Log::Info["game"] << "debug: inside Game::send_serf_to_flag, B";
-  //Log::Debug["game"] << "debug: inside Game::send_serf_to_flag, B, dest flag is at pos " << dest->get_position();
-
   SendSerfToFlagData data;
   data.inventory = NULL;
   data.building = building;
   data.serf_type = type;
   data.dest_index = dest->get_index();
-  data.res1 = res1;
-  data.res2 = res2;
+  data.res1 = res1;  // tool1
+  data.res2 = res2;  // tool2
 
-
-  bool r = FlagSearch::single(dest, send_serf_to_flag_search_cb, true, false,
-                              &data);
+  //Log::Debug["game.cc"] << "inside Game::send_serf_to_flag, before flagsearch, data.inventory = " << data.inventory;
+  bool r = FlagSearch::single(dest, send_serf_to_flag_search_cb, true, false, &data);
+  //Log::Debug["game.cc"] << "inside Game::send_serf_to_flag, after flagsearch, data.inventory = " << data.inventory;
 
   if (!r) {
-    if (type == Serf::TypeGeologist) {Log::Info["game"] << "inside send_serf_to_flag, serf type " << NameSerf[type] << ", FAILED because flagsearch failed!";}
+    // cannot send a serf of this type. previous flagsearch could find no reachable, capable inventory
+    //Log::Info["game"] << "inside send_serf_to_flag, serf type " << NameSerf[type] << ", request no reachable, capable Inventory found to provide this type of serf";
     return false;
   } else if (data.inventory != NULL) {
-    if (type == Serf::TypeGeologist) {Log::Info["game"] << "inside send_serf_to_flag, serf type " << NameSerf[type] << ", data.inventory != null";}
+    // an Inventory was found that can create a new serf of this type (no idle serf of this type available to call)
+    //Log::Debug["game"] << "inside send_serf_to_flag, serf type " << NameSerf[type] << ", an Inventory was found that can create a new serf of this type";}
     Inventory *inventory = data.inventory;
     Serf *serf = inventory->call_out_serf(Serf::TypeGeneric);
     if ((type < 0) && (building != NULL)) {
-      /* Knight */
+      // a knight was requested, with a valid building destination
       building->knight_request_granted();
-
       serf->set_type(Serf::TypeKnight0);
-      serf->go_out_from_inventory(inventory->get_index(),
-                                  building->get_flag_index(), -1);
-
+      serf->go_out_from_inventory(inventory->get_index(), building->get_flag_index(), -1);
       inventory->pop_resource(Resource::TypeSword);
       inventory->pop_resource(Resource::TypeShield);
     } else {
+      // it *seems* like this condition is "non-knight serf requested and/or invalid building destination"
+      //  but what happens if the building has no destination?  is this an edge case that could cause a bug?
+      //  will add a warning to see if this happens
+      // debug
+      if (building == NULL){
+        Log::Warn["game.cc"] << "inside Game::send_serf_to_flag, possible edge case detected, type is " << type << ", but building is NULLptr!  Is this a problem?";
+      }
 
       serf->set_type((Serf::Type)type);
-
+      // 'mode' seems to set s.ready_to_leave_inventory.mode but it
+      //  is not clear at all how it is used
       int mode = 0;
-
       if (type == Serf::TypeGeologist) {
         mode = 6;
       } else {
         if (building == NULL) {
+          Log::Warn["game.cc"] << "inside Game::send_serf_to_flag, a valid destination building was found to dispatch this serf to, but the destination building is now a nullptr!  returning false";
           return false;
         }
         building->serf_request_granted();
         mode = -1;
       }
-
-      serf->go_out_from_inventory(inventory->get_index(), dest->get_index(),
-                                  mode);
+      serf->go_out_from_inventory(inventory->get_index(), dest->get_index(), mode);
+      // consume Tool[s]
       if (res1 != Resource::TypeNone) inventory->pop_resource(res1);
       if (res2 != Resource::TypeNone) inventory->pop_resource(res2);
     }
-
     return true;
   }
   return true;
@@ -1308,8 +1334,8 @@ Game::remove_road_forwards(MapPos pos, Direction dir) {
         int d = serf->get_walking_dir();
         if (d < 0) d += 6;
         if (d == reverse_direction(dir)) {
-          Log::Debug["game"] << "about to call set_lost_state on serf at pos " << pos << " case2, maps says flag here but note says serf is walking in the 'wrong direction'";
-          Log::Error["game"] << "ATTEMPTING TO WORK AROUND BUG BY NOT SETTING THIS SERF TO LOST, instead doing... nothing";
+          Log::Warn["game"] << "about to call set_lost_state on serf at pos " << pos << " case2, maps says flag here but note says serf is walking in the 'wrong direction'";
+          Log::Warn["game"] << "ATTEMPTING TO WORK AROUND BUG BY NOT SETTING THIS SERF TO LOST, instead doing... nothing";
           // dec10 2021 saw this trigger once and it seems to work with no obvious side effects, it triggered for flag adjacent to castle flag
           //serf->set_lost_state();
         }

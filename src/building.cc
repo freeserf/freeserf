@@ -524,7 +524,7 @@ Building::requested_resource_delivered(Resource::Type resource) {
             Log::Info["building"] << "debug         AFTER SHIFT: stock[" << i << "] of res " << NameResource[resource] << " slot[" << s << "] has timeout: " << stock[i].req_timeout_tick[s];
           }*/
         }else{
-          Log::Warn["building"] << "inside Building::requested_resource_delivered, res type " << NameResource[resource] << ", building type " << NameBuilding[type] << " at pos " << get_position() << ", could not find any req_timeout_tick for stock[" << i << "], res type " << NameResource[resource];
+          Log::Debug["building"] << "inside Building::requested_resource_delivered, res type " << NameResource[resource] << ", building type " << NameBuilding[type] << " at pos " << get_position() << ", could not find any req_timeout_tick for stock[" << i << "], res type " << NameResource[resource];
         }
         // decrement the requested count
         stock[i].requested -= 1;
@@ -534,14 +534,14 @@ Building::requested_resource_delivered(Resource::Type resource) {
       // unrequested resources, this isn't unexpected now that res req timeouts/retry in place
       //
       if (constructing){
-        Log::Info["building"] << "inside requested_resource_delivered, building of type " << NameBuilding[type] << " at pos " << get_position() << ", excess resource delivered of type " << NameResource[resource] << " to unfinished building site, rejecting delivery";
+        Log::Debug["building"] << "inside requested_resource_delivered, building of type " << NameBuilding[type] << " at pos " << get_position() << ", excess resource delivered of type " << NameResource[resource] << " to unfinished building site, rejecting delivery";
         return false;
       }
       if (stock[i].available < stock[i].maximum){
-        Log::Info["building"] << "inside requested_resource_delivered, building of type " << NameBuilding[type] << " at pos " << get_position() << ", resource delivered of type " << NameResource[resource] << " to for which no request found, but can be used anyway, accepting delivery";
+        Log::Debug["building"] << "inside requested_resource_delivered, building of type " << NameBuilding[type] << " at pos " << get_position() << ", resource delivered of type " << NameResource[resource] << " to for which no request found, but can be used anyway, accepting delivery";
         return true;
       }else{
-        Log::Info["building"] << "inside requested_resource_delivered, building of type " << NameBuilding[type] << " at pos " << get_position() << ", resource delivered of type " << NameResource[resource] << " to for which no request found, but building is at maximum for this res! rejecting delivery";
+        Log::Debug["building"] << "inside requested_resource_delivered, building of type " << NameBuilding[type] << " at pos " << get_position() << ", resource delivered of type " << NameResource[resource] << " to for which no request found, but building is at maximum for this resource type, rejecting delivery";
         return false;
       }
     }

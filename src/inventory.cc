@@ -332,40 +332,58 @@ Resource::Type res_needed[] = {
   Resource::TypeNone,    Resource::TypeNone,    // TypeDead
 };
 
+// NOTE this function is ONLY used by:
+//  - the knight-spawning function specialize_free_serf
+//  - during castle init at the very start of game to create some professional serfs inside the castle
+//  All other serf specialization happens in Game::send_serf_to_flag.  
+//   Because these initial serfs and spawned knights are not leaving the 
+//   castle yet, it wouldn't make sense that send_serf_to_flag would be used.
+//  However, it seems like it would be cleaner if send_serf_to_flag called specialize_serf
+//   but whatever, it doesn't matter and was simply a source of confusion
 bool
 Inventory::specialize_serf(Serf *serf, Serf::Type type) {
+  //Log::Debug["inventory"] << "inside specialize_serf to type " << NameSerf[type];
   if (serf->get_type() != Serf::TypeGeneric) {
-    Log::Debug["inventory"] << "inside specialize_serf to type " << NameSerf[type] << ", failure0";
+    Log::Warn["inventory"] << "inside specialize_serf to type " << NameSerf[type] << ", the serf selected to *be specialized* is not a Generic serf, he is already specialized! returning false";
     return false;
   }
 
+  /*
+  // UPDATE - upon further inspection, this check should not even be here
+  //  it *seems* like the intention may have been to prevent creating a new
+  //  specialist when an existing one could be dispatched, but this function
+  //  isn't used for calling out serfs anyway, so it isn't relevent.  Removing it
   // BUG!  this looks to be responsible for why new knights are
   //  often not being spawned despite having sword+shield and appropriate
   //  setting.  If any Knight0 already exists in the Inventory, it won't
   //  create a new one!
   // must exclude Knights from this check!
+  //
   //if (serfs[type] != 0) {
   if (serfs[type] != 0 && !(type >= Serf::TypeKnight0 && type <= Serf::TypeKnight4)) {
     Log::Debug["inventory"] << "inside specialize_serf to type " << NameSerf[type] << ", failure because serf of this type already exists in Inventory, and this is not a Knight";
     return false;
   }
+  */
 
   if ((res_needed[type*2] != Resource::TypeNone)
       && (resources[res_needed[type*2]] == 0)) {
-    Log::Debug["inventory"] << "inside specialize_serf to type " << NameSerf[type] << ", failure because no tool of first type available";
+    //Log::Debug["inventory"] << "inside specialize_serf to type " << NameSerf[type] << ", failure because no tool of first type available";
     return false;
   }
   if ((res_needed[type*2+1] != Resource::TypeNone)
       && (resources[res_needed[type*2+1]] == 0)) {
-    Log::Debug["inventory"] << "inside specialize_serf to type " << NameSerf[type] << ", failure because no tool of second type available";
+    //Log::Debug["inventory"] << "inside specialize_serf to type " << NameSerf[type] << ", failure because no tool of second type available";
     return false;
   }
 
+  // what is this?  
   if (serfs[Serf::TypeGeneric] == serf->get_index()) {
     serfs[Serf::TypeGeneric] = 0;
   }
   generic_count--;
 
+  // consume the tool[s]  
   if (res_needed[type*2] != Resource::TypeNone) {
     resources[res_needed[type*2]]--;
   }
@@ -373,7 +391,7 @@ Inventory::specialize_serf(Serf *serf, Serf::Type type) {
     resources[res_needed[type*2+1]]--;
   }
 
-  //Log::Debug["inventory"] << "inside specialize_serf, type " << NameSerf[type];
+  //Log::Debug["inventory"] << "inside specialize_serf, successfully specialized a generic serf to new type " << NameSerf[type];
   serf->set_type(type);
 
   serfs[type] = serf->get_index();
@@ -381,6 +399,9 @@ Inventory::specialize_serf(Serf *serf, Serf::Type type) {
   return true;
 }
 
+// this is ONLY used for creating knights, not serfs
+//  in castle as part of the civilian<>knight slider
+//  and possibly the "create 1-5-10-20 knights" button
 Serf*
 Inventory::specialize_free_serf(Serf::Type type) {
   if (serfs[Serf::TypeGeneric] == 0) {

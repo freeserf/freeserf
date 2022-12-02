@@ -39,7 +39,6 @@
 #endif  // WIN32
 
 
-
 int
 main(int argc, char *argv[]) {
 
@@ -48,6 +47,11 @@ main(int argc, char *argv[]) {
   std::ofstream* filestr = new std::ofstream("console_out.txt");
   Log::set_file(filestr);
 
+  //Log::Verbose["freeserf.cc"] << "Forkserf log level is at least Verbose";
+  //Log::Debug["freeserf.cc"] << "Forkserf log level is at least Debug";
+  //Log::Info["freeserf.cc"] << "Forkserf log level is at least Info";
+  //Log::Warn["freeserf.cc"] << "Forkserf log level is at least Warn";
+  //Log::Error["freeserf.cc"] << "Forkserf log level is at least Error";
 
   std::string data_dir;
   std::string save_file;
@@ -57,6 +61,14 @@ main(int argc, char *argv[]) {
   bool fullscreen = false;
 
   CommandLine command_line;
+  // to fix weird bug with crash when audio loads when Log::Level is Info/Warn or higher
+  //  store the current log level so that it can be briefly set to Debug when calling the
+  //  audio setup, because this seems to fix it for unknown reasons
+  // FYI the crash error on linux is:
+  //  "Assertion 'm' failed at pulse/mainloop.c:921, function pa_mainloop_iterate().  Aborting."
+  // wait this doens't work here
+  //int chosen_loglevel = Log::get_level();
+
   command_line.add_option('d', "Set Debug output level")
                 .add_parameter("NUM", [](std::istream& s) {
                   int d;
@@ -96,7 +108,7 @@ main(int argc, char *argv[]) {
   }
 
   //Log::Info["main"] << "freeserf " << FREESERF_VERSION;
-  Log::Info["freeserf.cc"] << "forksrf " << FORKSERF_VERSION;
+  Log::Info["freeserf.cc"] << "forkserf " << FORKSERF_VERSION;
 
   Data &data = Data::get_instance();
   if (!data.load(data_dir)) {
@@ -112,25 +124,45 @@ main(int argc, char *argv[]) {
 
   Graphics &gfx = Graphics::get_instance();
 
+  // to fix weird bug with crash when audio loads when Log::Level is Info/Warn or higher
+  //  store the current log level so that it can be briefly set to Debug when calling the
+  //  audio setup, because this seems to fix it for unknown reasons
+  // FYI the crash error on linux is:
+  //  "Assertion 'm' failed at pulse/mainloop.c:921, function pa_mainloop_iterate().  Aborting."
+  int current_loglevel = Log::get_level();  // start of work-around
+  Log::set_level(Log::Level(1));  // part of work-around
+
   /* TODO move to right place */
+  //  tlongstretch - I'm not sure what the "right place" is, the above was a note in Freeserf
   Audio &audio = Audio::get_instance();  // 
-  Audio::PPlayer player = audio.get_music_player();  // TEMP DISABLING AUDIO WHILE RUNNING DEBUGGER BECAUSE OF ANNOYING RANDOM CRASH!
+  Audio::PPlayer player = audio.get_music_player();
+
+  Log::set_level(Log::Level(current_loglevel));  // end of work-around
+
   // NOTE - it seems Amiga has a single long track, 
   //  while DOS has three or four similar tracks that play one after another
   if (player) {
     Log::Debug["freeserf.cc"] << "inside freeserf main(), starting audio midi music, about to call player->play_track";
     //Audio::PTrack t = player->play_track(Audio::TypeMidiTrack0);
     Data &data = Data::get_instance();
-    if (data.get_data_source_Amiga() != nullptr){
-      Log::Info["freeserf.cc"] << "inside freeserf main(), starting audio midi music, found Amiga music, using it";
+    if (data.get_data_source_Amiga() != nullptr && data.get_data_source_DOS() != nullptr){
+      // if BOTH Amiga and DOS music available, pick one at random
+      if (rand() % 2){
+        Log::Info["freeserf.cc"] << "inside freeserf main(), both Amiga and DOS music available, randomly chose Amiga";
+        Audio::PTrack t = player->play_track(Audio::TypeMidiTrack0, DataSourceType::Amiga);  // 0=Amiga, 1=DOS, 2=Custom
+      }else{
+        Log::Info["freeserf.cc"] << "inside freeserf main(), both Amiga and DOS music available, randomly chose DOS";
+        Audio::PTrack t = player->play_track(Audio::TypeMidiTrack0, DataSourceType::DOS);  // 0=Amiga, 1=DOS, 2=Custom
+      }
+    }else if(data.get_data_source_Amiga() != nullptr){
+      Log::Info["freeserf.cc"] << "inside freeserf main(), starting audio midi music, found only Amiga music, using it";
       Audio::PTrack t = player->play_track(Audio::TypeMidiTrack0, DataSourceType::Amiga);  // 0=Amiga, 1=DOS, 2=Custom
     }else if(data.get_data_source_DOS() != nullptr){
-      // fall back to DOS music if Amiga not available.  DOS music works in Windows last I checked
-      Log::Info["freeserf.cc"] << "inside freeserf main(), starting audio midi music, Amiga music not found, falling back to DOS music";
+      Log::Info["freeserf.cc"] << "inside freeserf main(), starting audio midi music, found only DOS music, using it";
       Audio::PTrack t = player->play_track(Audio::TypeMidiTrack0, DataSourceType::DOS);  // 0=Amiga, 1=DOS, 2=Custom
     }else{
       // music not available
-      Log::Error["freeserf.cc"] << "inside freeserf main(), neither Amiga nor DOS music found, this should not happen as game shuold not even start without either"; 
+      Log::Error["freeserf.cc"] << "inside freeserf main(), neither Amiga nor DOS music found, this should not happen as game should not even start without either"; 
     }
 
     // testing the audio tracks. I understand DOS has four short tracks, Amiga has one very long one

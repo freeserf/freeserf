@@ -250,7 +250,7 @@ AI::update_buildings() {
       //  Could also check if they are actually "connected to network" even if they have a path
       //  but this is probably good enough...
       if (game->get_flag(building->get_flag_index()) != nullptr && !game->get_flag(building->get_flag_index())->is_connected()){
-        AILogInfo["util_update_buildings"] << "occupied military building at pos " << pos << " has no paths, not including it in occupied_military_pos lists";
+        AILogDebug["util_update_buildings"] << "occupied military building at pos " << pos << " has no paths, not including it in occupied_military_pos lists";
         continue;
       }
 		  AILogVerbose["util_update_buildings"] << "adding occupied military building at " << pos << " to realm_occupied_military_pos list";
@@ -2274,7 +2274,7 @@ AI::build_near_pos(MapPos center_pos, unsigned int distance, Building::Type buil
   double duration;
   start = std::clock();
 
-  AILogInfo["util_build_near_pos"] << "inside AI::build_near_pos with building type index " << NameBuilding[building_type] << ", distance " << distance << ", target pos " << center_pos << ", inventory_pos " << inventory_pos;
+  AILogDebug["util_build_near_pos"] << "inside AI::build_near_pos with building type index " << NameBuilding[building_type] << ", distance " << distance << ", target pos " << center_pos << ", inventory_pos " << inventory_pos;
 
   /* moving this logic outside this function
 
@@ -2574,7 +2574,7 @@ AI::build_near_pos(MapPos center_pos, unsigned int distance, Building::Type buil
       continue;
     }
 
-    AILogInfo["util_build_near_pos"] << "successfully built and connected a building of type " << NameBuilding[building_type] << " at pos " << pos;
+    AILogDebug["util_build_near_pos"] << "successfully built and connected a building of type " << NameBuilding[building_type] << " at pos " << pos;
 
     duration = (std::clock() - start) / static_cast<double>(CLOCKS_PER_SEC);
     AILogDebug["util_build_near_pos"] << "successful util_build_near_pos, built building of type " << NameBuilding[building_type] << " at pos " << pos << ", call took " << duration;
@@ -3215,7 +3215,7 @@ AI::count_geologist_sign_density(MapPos pos, unsigned int distance) {
 //  for debugging
 void
 AI::set_serf_lost() {
-  AILogInfo["set_serf_lost"] << "inside set_serf_lost";
+  Log::Info["set_serf_lost"] << "inside set_serf_lost";
   for (int serf_index : ai_mark_serf){
     Serf *serf = game->get_serf(serf_index);
     if (serf == nullptr){
