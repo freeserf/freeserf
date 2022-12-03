@@ -701,6 +701,16 @@ AI::build_best_road(MapPos start_pos, RoadOptions road_options, Road *built_road
         AILogDebug["util_build_best_road"] << "" << calling_function << " zzz successfully built direct road directly from flag at " << start_pos << " to flag at " << target_pos;
         //roads_built++;
         *built_road = *(&proposed_direct_road);
+
+        // for debugging, keep track of the largest road built to get an idea of what is a reasonable limit to set for performance reasons
+        //  also, consider making the limit an argument to this function, so that high limits can be allowed for certain roads but low limits
+        //  for others in plot_road AI util function
+        if (proposed_direct_road.get_length() > longest_road_so_far.get_length()){
+          AILogDebug["build_best_road"] << "this road is the new longest road built by this AI so far, with length " << proposed_direct_road.get_length() << ", highlighting it as ai_mark_road";
+          longest_road_so_far = proposed_direct_road; 
+          ai_mark_road = &longest_road_so_far;
+        }
+
         //AILogDebug["util_build_best_road"] << "" << calling_function << " spiderweb road debug, stored proposed_direct_road as built_road (which has mem addr " << built_road << "), proposed_direct_road source " << proposed_direct_road.get_source() << " built_road (should be same) source is " << built_road->get_source();
         return true;
       }
@@ -1485,6 +1495,16 @@ AI::build_best_road(MapPos start_pos, RoadOptions road_options, Road *built_road
         AILogDebug["util_build_best_road"] << "" << calling_function << " successfully built road from " << start_pos << " to " << end_pos << " as specified in PotentialRoad, roads_built: " << roads_built;
         // set this so the calling function can tell the exact Road built if it needs it
         *built_road = *(&road);
+        
+        // for debugging, keep track of the largest road built to get an idea of what is a reasonable limit to set for performance reasons
+        //  also, consider making the limit an argument to this function, so that high limits can be allowed for certain roads but low limits
+        //  for others in plot_road AI util function
+        if (road.get_length() > longest_road_so_far.get_length()){
+          AILogDebug["build_best_road"] << "this road is the new longest road built by this AI so far, with length " << road.get_length() << ", highlighting it as ai_mark_road";
+          longest_road_so_far = road; 
+          ai_mark_road = &longest_road_so_far;
+        }
+
         continue;
       }
       else {

@@ -62,6 +62,7 @@ AI::AI(PGame current_game, unsigned int _player_index) {
   have_inventory_building = false; // used to quit loop early if AI is essentially defeated (has no Castle or Stocks)
   std::string mutex_message = "";  // used for logging why mutex being locked/unlocked
   clock_t mutex_timer_start = 0;  // used for logging how much time spent with mutex lock
+  longest_road_so_far = {};
 
   road_options.reset(RoadOption::Direct);
   road_options.set(RoadOption::SplitRoads);
@@ -2695,7 +2696,7 @@ AI::do_place_mines(std::string type, Building::Type building_type, Map::Object l
     } // foreach corner
   } // foreach military building
   duration = (std::clock() - start) / static_cast<double>(CLOCKS_PER_SEC);
-  AILogDebug["do_place_mines"] << inventory_pos << " plot do_place_mines call took " << duration;
+  AILogDebug["do_place_mines"] << inventory_pos << " do_place_mines call took " << duration;
 }
 
 

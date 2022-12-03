@@ -82,6 +82,8 @@ class AI {
   bool need_tools;
   unsigned int last_sent_geologist_tick = 0;  // used to throttle sending geologists
   bool have_inventory_building = false;  // used to quit loop early if AI is essentially defeated (has no Castle or Stocks)
+  Road longest_road_so_far; // for debugging only, to help gauge a reasonable limit for maximum road length consideration while calling plot_road
+
   std::set<MapPos> new_stocks = {};  // AI STATEFULNESS WARNING - this is used to detect when a stock transitions from completed-but-not-occupied to occupied, and will not trigger if game saved/loaded between
   // Now that multiple economies implemented I think the entire XXX_building_counts are worthless
   //   remove the entire concept and instead just search for nearby buildings
@@ -193,9 +195,9 @@ class AI {
     double msec_ = msec;
     if (speed > 2){
       // scale AI speed linearly with game speed
-      msec_ = msec_ * 1/(speed - 1);
+      //msec_ = msec_ * 1/(speed - 1);
       // less increase in AI speed as game speed increases, capped around 9x
-      //msec_ = msec_ * 1/((speed - 1) / 4);  // this works pretty well, at game speed 40 ai pause time is about 9% of game speed 2
+      msec_ = msec_ * 1/((speed - 1) / 4);  // this works pretty well, at game speed 40 ai pause time is about 9% of game speed 2
     }
     //AILogDebug["sleep_speed_adjusted"] << "msec: " << msec << ", game speed: " << speed << ", adjusted msec: " << int(msec_);
     msec = msec_;
@@ -459,6 +461,11 @@ static const unsigned int max_goldmines = 1;
 //   example, 3.00 means a road of up to 3x the length of a perfectly straight road is acceptable
 // this does NOT factor in any penalties, it only looks at the actual Road.get_length() in tiles for convolution checks
 static constexpr double max_convolution = 3.00;
+
+static const unsigned int plot_road_max_pos_considered = 2000;  // the maximum number of "nodes" (MapPos) considered as part of a single plot_road call before giving up
+//  NOTE that this may be a bad way to limit things if it prevents a shorter road from being found simply because of the random dir the plot "fill" happened
+static const unsigned int plot_road_max_length = 500;  // the maximum length of a road solution for plot_road before giving up
+// with this available, checking for MapPos considered is probably not needed, but think about it first
 
 // fixed penalty for a non-direct road that contains the castle flag (but doesn't start/end there)
 static const unsigned int contains_castle_flag_penalty = 20;  //increased this from 10 to 20 on dec04 2021

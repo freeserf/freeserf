@@ -124,12 +124,37 @@ AI::plot_road(PMap map, unsigned int player_index, MapPos start_pos, MapPos end_
   unsigned int max_fake_flags = 10;
   unsigned int fake_flags_count = 0;
   unsigned int split_road_solutions = 0;
+  unsigned int pos_considered = 0;
 
   // this is a TILE search, finding open PATHs to build a single Road between two Flags
   while (!open.empty()) {
     std::pop_heap(open.begin(), open.end(), search_node_less);
     node = open.back();
     open.pop_back();
+    // limit the number of *positions* considered,
+    //  though this is NOT the same as maximum possible length!!
+    //  want to find a way to also check current road length to reject
+    //  based on length without rejecting other, shorter roads as part of 
+    //  same solution!
+    if (pos_considered > plot_road_max_pos_considered){
+      AILogDebug["plot_road"] << "plot_road: maximum MapPos POSITIONS-checked reached (plot_road_max_pos) " << pos_considered << ", ending search";
+      break;
+    }
+    pos_considered++;
+
+    // limit the *length* considered
+    unsigned int current_length = 0;
+    PSearchNode tmp_length_check_node = node;
+    while (tmp_length_check_node->parent) {
+      current_length++;
+      tmp_length_check_node = tmp_length_check_node->parent;
+    }
+    AILogDebug["plot_road"] << "plot_road: current road-length so far for this solution is " << current_length;
+    if (current_length > plot_road_max_length){
+      AILogDebug["plot_road"] << "plot_road: maximum road-length reached (plot_road_max_length) " << current_length << ", ending search";
+      break;
+    }
+    
     // if end_pos is reached, a Road solution is found
     if (node->pos == end_pos) {
       Road breadcrumb_solution;
@@ -313,8 +338,20 @@ AI::plot_road(PMap map, unsigned int player_index, MapPos start_pos, MapPos end_
   if (direct_road.get_source() == bad_map_pos) {
     AILogDebug["plot_road"] << "NO DIRECT SOLUTION FOUND for start_pos " << start_pos << " to end_pos " << end_pos;
   }
+
+  // for debugging, keep track of the largest road built to get an idea of what is a reasonable limit to set for performance reasons
+  //  also, consider making the limit an argument to this function, so that high limits can be allowed for certian roads but low limits
+  //  for others
+  // WAIT - this highlights the longest road *plotted* not the longest actually selected and built
+  //  instead, moving this to the build_best_road call
+  //if (direct_road.get_length() > longest_road_so_far.get_length()){
+  //  AILogDebug["plot_road"] << "this road is the new longest road built by this AI so far, with length " << direct_road.get_length() << ", highlighting it as ai_mark_road";
+  //  longest_road_so_far = direct_road; 
+  //  ai_mark_road = &longest_road_so_far;
+  //}
+
   duration = (std::clock() - start) / static_cast<double>(CLOCKS_PER_SEC);
-  AILogDebug["plot_road"] << "plot road call took " << duration;
+  AILogDebug["plot_road"] << "plot_road call considered " << pos_considered << " MapPos, took " << duration;
   return direct_road;
 }
 

@@ -3026,6 +3026,7 @@ Viewport::draw_ai_overlay() {
   // got exception here for first time jan04 2022
   ColorDotMap ai_mark_pos = *(ai->get_ai_mark_pos());
   Road *ai_mark_road = ai->get_ai_mark_road();
+  Log::Debug["viewport"] << "Player" << current_player_index << " ai_mark_road has length " << ai_mark_road->get_length();
 
   for (int x_base = x_off; x_base < width + MAP_TILE_WIDTH;
     x_base += MAP_TILE_WIDTH) {
@@ -3076,8 +3077,9 @@ Viewport::draw_ai_overlay() {
   // did I forget this somewhere when copying from Freeserf to Freeserf-with-AI-Plus?
   PGame game = interface->get_game();
   
-  /*
-  // draw road pathfinding
+  //
+  // draw ai_mark_road to highlight any road set by AI
+  //
   MapPos prevpos = ai->get_ai_mark_road()->get_source();
   for (const auto &dir : ai->get_ai_mark_road()->get_dirs()) {
           MapPos thispos = map->move(prevpos, dir);
@@ -3096,7 +3098,6 @@ Viewport::draw_ai_overlay() {
           frame->draw_line(prev_sx, prev_sy, this_sx, this_sy, ai->get_mark_color("white"));
           prevpos = thispos;
   }
-  */
 
   /*
   //
@@ -3195,6 +3196,7 @@ Viewport::draw_ai_overlay() {
   }
   */ //end highlight arterial roads
 
+/*
   //
   // draw spider-web roads
   //
@@ -3228,7 +3230,9 @@ Viewport::draw_ai_overlay() {
       }
     }
   }
+  */
 
+/*
   //
   // draw build_better_roads
   //
@@ -3262,6 +3266,7 @@ Viewport::draw_ai_overlay() {
       }
     }
   }
+  */
 
   // draw AI status text box
   std::string status = ai->get_ai_status();
