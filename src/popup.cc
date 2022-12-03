@@ -2259,15 +2259,14 @@ PopupBox::draw_mine_output_box() {
     return;
   }
 
-   //
+/*
+  //
   // DEBUG - find the requested resources destined for this building
   //
   if (building->get_requested_in_stock(0) > 0){
     Log::Info["popup"] << "debug: clicked mine of type " << NameBuilding[building->get_type()] << " at pos " << building->get_position() << " has stock[0].requested: " << building->get_requested_in_stock(0);
     int reqd_res_found = 0;
-    Log::Verbose["popup"] << "thread #" << std::this_thread::get_id() << " is locking mutex for requested-resource debug search in PopupBox::draw_mine_output_box";
-    interface->get_game()->get_mutex()->lock();
-    Log::Verbose["popup"] << "thread #" << std::this_thread::get_id() << " has locked mutex for requested-resource debug search in PopupBox::draw_mine_output_box";
+    interface->get_game()->->mutex_lock("PopupBox::draw_mine_output_box requested-resource debug search in PopupBox::draw_mine_output_box");
     // search all of this player's flags to see if they have any resources destined for this building's flag
     Flags *flags = interface->get_game()->get_flags();
     Flags::Iterator i = flags->begin();
@@ -2306,15 +2305,15 @@ PopupBox::draw_mine_output_box() {
       }
     }
 
-    Log::Verbose["popup"] << "thread #" << std::this_thread::get_id() << " is unlocking mutex for requested-resource debug search in PopupBox::draw_mine_output_box";
-    interface->get_game()->get_mutex()->unlock();
-    Log::Verbose["popup"] << "thread #" << std::this_thread::get_id() << " has unlocked mutex for requested-resource debug search in PopupBox::draw_mine_output_box";
+    interface->get_game()->mutex_unlock();
+
     if (reqd_res_found == building->get_requested_in_stock(0)){
       Log::Info["popup"] << "debug: all requested stock[0] resources requested to building " << NameBuilding[building->get_type()] << " at pos " << building->get_position() << " are accounted for and en-route";
     }else{
       Log::Warn["popup"] << "debug: " << building->get_requested_in_stock(0) - reqd_res_found << " of requested stock[0] resources are unaccounted for to building " << NameBuilding[building->get_type()] << " at pos " << building->get_position();
     }
   }
+*/
 
 
   /* Draw building */

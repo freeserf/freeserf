@@ -112,11 +112,19 @@ EventLoopSDL::run() {
   Graphics &gfx = Graphics::get_instance();
   Frame *screen = nullptr;
   gfx.get_screen_factor(&screen_factor_x, &screen_factor_y);
+  
+  // for FPS counter
+  int frames = 0;
+  int timenow = time(0);
+  int last_time = timenow;
+  int target_fps = 49;  // it seems freeserf caps FPS at 50 by default, not sure exactly where its controlled, maybe in game::update.  it is NOT controlled by TICK_LENGTH or TICKS_PER_SEC!
 
 
   while (SDL_WaitEvent(&event)) {
     unsigned int current_ticks = SDL_GetTicks();
     SDL_Keymod mod = SDL_GetModState();
+
+    timenow = time(0); // for FPS counter
 
     switch (event.type) {
       case SDL_MOUSEBUTTONUP:
@@ -288,6 +296,18 @@ EventLoopSDL::run() {
         break;
       default:
         if (event.type == eventUserTypeStep) {
+
+          // show frames/updates per second
+          frames++;
+          int time_delta = timenow - last_time;
+          if (time_delta >= 1){
+            int fps_lag = target_fps - (frames / time_delta);
+            if (fps_lag < 0){fps_lag = 0;}
+            Log::Error["event_loop-sdl.cc"] << "in past " << time_delta << "sec, processed " << frames << " frames, FPS Lag:" << fps_lag;
+            frames = 0;
+            last_time = timenow;
+          }
+
           // Update and draw interface
           notify_update();
 

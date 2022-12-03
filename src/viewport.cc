@@ -1384,7 +1384,16 @@ Viewport::draw_flag_and_res(MapPos pos, int lx, int ly) {
   }
 
   int pl_num = flag->get_owner();
+  // seeing exceptions when loading a game and switching players where
+  //  ths player index here is -1 and so the get_player_color call fails
+  //  added a work-around to get_player_color because I am not sure why
+  //  a flag owner is being set to invalid.   Might be a save/load thing?
+  // Also, check and throw error here
+  if (pl_num < 0 || pl_num > 3){
+    Log::Error["viewport.cc"] << "inside Viewpot::draw_flag_and_res for MapPos "<< pos << ", flag->get_owner returned invalid player index " << pl_num << "!  get_player_color will return 'black' as a fallback to avoid crashing";
+  }
   Color player_color = interface->get_player_color(pl_num);
+
   int spr = 0x80 + ((interface->get_game()->get_tick() >> 3) & 3);
 
   draw_shadow_and_building_sprite(lx, ly, spr, player_color);

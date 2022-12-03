@@ -721,13 +721,7 @@ AI::find_nearest_inventory_by_straightline(PMap map, unsigned int player_index, 
   AILogDebug["find_nearest_inventory_by_straightline"] << "inside find_nearest_inventory_by_straightline for flag_pos " << flag_pos;
   unsigned int shortest_dist = bad_score;
   MapPos closest_inv = bad_map_pos;
-  //AILogVerbose["find_nearest_inventory_by_straightline"] << "thread #" << std::this_thread::get_id() << " AI is locking mutex before calling game->get_player_buildings";
-  //game->get_mutex()->lock();
-  //AILogVerbose["find_nearest_inventory_by_straightline"] << "thread #" << std::this_thread::get_id() << " AI has locked mutex before calling game->get_player_buildings";
   Game::ListBuildings buildings = game->get_player_buildings(player);
-  //AILogVerbose["find_nearest_inventory_by_straightline"] << "thread #" << std::this_thread::get_id() << " AI is unlocking mutex after calling game->get_player_buildings";
-  //game->get_mutex()->unlock();
-  //AILogVerbose["find_nearest_inventory_by_straightline"] << "thread #" << std::this_thread::get_id() << " AI has unlocked mutex after calling game->get_player_buildings";
   for (Building *building : buildings) {
     if (building == nullptr)
       continue;

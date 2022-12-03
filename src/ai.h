@@ -91,6 +91,9 @@ class AI {
   int realm_occupied_building_count[25] = {0};
   //int realm_connected_building_count[25] = {0};
 
+  std::string mutex_message;  // used for logging why mutex being locked/unlocked
+  clock_t mutex_timer_start;  // used for logging how much time spent with mutex lock
+
   int change_buffer;
   int previous_knight_occupation_level;
   // list of bad building positions (where buildings had to be demolished for certain reasons)
@@ -203,6 +206,8 @@ class AI {
   void set_serf_lost();
   // return a pointer to the currently selected stock's Inventory
   Inventory * get_stock_inv() { return game->get_inventory(this_stock_inv_index); }
+  void mutex_lock(const char* message);
+  void mutex_unlock();
   
  protected:
   //

@@ -134,6 +134,8 @@ Game::Game()
   ai_locked = true;
   signal_ai_exit = false;
   ai_threads_remaining = 0;
+  mutex_message = "";
+  mutex_timer_start = 0;
 }
 
 Game::~Game() {
@@ -149,36 +151,23 @@ Game::~Game() {
    serf again. */
 void
 Game::clear_serf_request_failure() {
-  Log::Verbose["game"] << "thread #" << std::this_thread::get_id() << " is locking mutex inside Game::clear_serf_request_failure";
-  mutex.lock();
-  Log::Verbose["game"] << "thread #" << std::this_thread::get_id() << " has locking mutex inside Game::clear_serf_request_failure";
+  mutex_lock("Game::clear_serf_request_failure");
   for (Building *building : buildings) {
     building->clear_serf_request_failure();
   }
-
-  // dec10 2021 got vector iterators incompatible at for(Flag *flag : flags)
-  // again same day
-  // this is very likely because AI is invaliding game->Flags, added some extra mutex and
-  //  copying of Flags when iterating so avoid this, see if it fixes it
   for (Flag *flag : flags) {
     flag->serf_request_clear();
   }
-  Log::Verbose["game"] << "thread #" << std::this_thread::get_id() << " is unlocking mutex inside Game::clear_serf_request_failure";
-  mutex.unlock();
-  Log::Verbose["game"] << "thread #" << std::this_thread::get_id() << " has unlocked mutex inside Game::clear_serf_request_failure";
+  mutex_unlock();
 }
 
 void
 Game::update_knight_morale() {
-  Log::Verbose["game"] << "thread #" << std::this_thread::get_id() << " is locking mutex for Game::update_knight_morale";
-  mutex.lock();
-  Log::Verbose["game"] << "thread #" << std::this_thread::get_id() << " has locked mutex for Game::update_knight_morale";
+  mutex_lock("Game::update_knight_morale");
   for (Player *player : players) {
     player->update_knight_morale();
   }
-  Log::Verbose["game"] << "thread #" << std::this_thread::get_id() << " is unlocking mutex for Game::update_knight_morale";
-  mutex.unlock();
-  Log::Verbose["game"] << "thread #" << std::this_thread::get_id() << " has unlocked mutex for Game::update_knight_morale";
+  mutex_unlock();
 }
 
 typedef struct UpdateInventoriesData {
@@ -390,9 +379,7 @@ Game::update_inventories() {
       //  that is, the last valid invs[] array index
       int n = 0;
       // this may not require mutex locking because only the game can "bless" a new Stock or truly destroy a castle/stock
-      //Log::Verbose["game"] << "thread #" << std::this_thread::get_id() << " is locking mutex inside Game::update_inventories";
-      //mutex.lock();
-      //Log::Verbose["game"] << "thread #" << std::this_thread::get_id() << " has locked mutex inside Game::update_inventories";
+      //mutex_lock("Game::update_inventories");
       for (Inventory *inventory : inventories) {
 
         // debug
@@ -449,9 +436,7 @@ Game::update_inventories() {
         }
       }
 
-      //Log::Verbose["game"] << "thread #" << std::this_thread::get_id() << " is unlocking mutex inside Game::update_inventories";
-      //mutex.unlock();
-      //Log::Verbose["game"] << "thread #" << std::this_thread::get_id() << " has unlocked mutex inside Game::update_inventories";
+      //mutex_unlock();
 
       //
       // NOTE - so far nothing in this function is paying attention to where resources are REQUESTED
@@ -571,9 +556,7 @@ Game::update_inventories() {
 /* Update flags as part of the game progression. */
 void
 Game::update_flags() {
-  Log::Verbose["game"] << "thread #" << std::this_thread::get_id() << " is locking mutex for Game::update_flags";
-  mutex.lock();
-  Log::Verbose["game"] << "thread #" << std::this_thread::get_id() << " has locked mutex for Game::update_flags";
+  mutex_lock("Game::update_flags");
   // replacing with p1plp1 way, this works reliably
   Flags::Iterator i = flags.begin();
   Flags::Iterator prev = flags.begin();
@@ -596,9 +579,7 @@ Game::update_flags() {
         ++i;
     }
   }
-  Log::Verbose["game"] << "thread #" << std::this_thread::get_id() << " is unlocking mutex for Game::update_flags";
-  mutex.unlock();
-  Log::Verbose["game"] << "thread #" << std::this_thread::get_id() << " has unlocked mutex for Game::update_flags";
+  mutex_unlock();
 }
 
 typedef struct SendSerfToFlagData {
@@ -807,9 +788,7 @@ Game::send_geologist(Flag *dest) {
 /* Update buildings as part of the game progression. */
 void
 Game::update_buildings() {
-  Log::Verbose["game"] << "thread #" << std::this_thread::get_id() << " is locking mutex for Game::update_buildings";
-  mutex.lock();
-  Log::Verbose["game"] << "thread #" << std::this_thread::get_id() << " has locked mutex for Game::update_buildings";
+  mutex_lock("Game::update_buildings");
   Buildings blds(buildings);
   Buildings::Iterator i = blds.begin();
   while (i != blds.end()) {
@@ -817,31 +796,25 @@ Game::update_buildings() {
     ++i;
     building->update(tick);
   }
-  Log::Verbose["game"] << "thread #" << std::this_thread::get_id() << " is unlocking mutex for Game::update_buildings";
-  mutex.unlock();
-  Log::Verbose["game"] << "thread #" << std::this_thread::get_id() << " has unlocked mutex for Game::update_buildings";
+  mutex_unlock();
 }
 
 /* Update serfs as part of the game progression. */
 void
 Game::update_serfs() {
-  Log::Verbose["game"] << "thread #" << std::this_thread::get_id() << " is locking mutex for Game::update_serfs";
-  mutex.lock();
-  Log::Verbose["game"] << "thread #" << std::this_thread::get_id() << " has locked mutex for Game::update_serfs";
+  mutex_lock("Game::update_serfs");
   Serfs::Iterator i = serfs.begin();
   while (i != serfs.end()) {
     Serf *serf = *i;
     ++i;
-    if (serf == nullptr){  // saw a crash here dec 2021, is this a reasonable response?
+    if (serf == nullptr){
       continue;
     }
     if (serf->get_index() != 0) {
       serf->update();
     }
   }
-  Log::Verbose["game"] << "thread #" << std::this_thread::get_id() << " is unlocking mutex for Game::update_serfs";
-  mutex.unlock();
-  Log::Verbose["game"] << "thread #" << std::this_thread::get_id() << " has unlocked mutex for Game::update_serfs";
+  mutex_unlock();
 }
 
 
@@ -2193,17 +2166,13 @@ Game::surrender_land(MapPos pos) {
 /* Initialize land ownership for whole map. */
 void
 Game::init_land_ownership() {
-  Log::Verbose["game"] << "thread #" << std::this_thread::get_id() << " is locking mutex inside Game::init_land_ownership";
-  mutex.lock();
-  Log::Verbose["game"] << "thread #" << std::this_thread::get_id() << " has locked mutex inside Game::init_land_ownership";
+  mutex_lock("Game::init_land_ownership");
   for (Building *building : buildings) {
     if (building->is_military()) {
       update_land_ownership(building->get_position());
     }
   }
-  Log::Verbose["game"] << "thread #" << std::this_thread::get_id() << " is unlocking mutex inside Game::init_land_ownership";
-  mutex.unlock();
-  Log::Verbose["game"] << "thread #" << std::this_thread::get_id() << " has unlocking mutex inside Game::init_land_ownership";
+  mutex_unlock();
 }
 
 /* Update land ownership around map position. */
@@ -2448,19 +2417,14 @@ Game::set_inventory_resource_mode(Inventory *inventory, int mode) {
 
   if (mode > 0) {
     flag->set_accepts_resources(false);
-
     /* Clear destination of serfs with resources destined
        for this inventory. */
     int dest = flag->get_index();
-  Log::Verbose["game"] << "thread #" << std::this_thread::get_id() << " is locking mutex inside Game::set_inventory_resource_mode";
-  mutex.lock();
-  Log::Verbose["game"] << "thread #" << std::this_thread::get_id() << " is locking mutex inside Game::set_inventory_resource_mode";
+    mutex_lock("Game::set_inventory_resource_mode");
     for (Serf *serf : serfs) {
       serf->clear_destination2(dest);
     }
-  Log::Verbose["game"] << "thread #" << std::this_thread::get_id() << " is locking mutex inside Game::set_inventory_resource_mode";
-  mutex.unlock();
-  Log::Verbose["game"] << "thread #" << std::this_thread::get_id() << " is locking mutex inside Game::set_inventory_resource_mode";
+    mutex_unlock();
   } else {
     flag->set_accepts_resources(true);
   }
@@ -2484,15 +2448,11 @@ Game::set_inventory_serf_mode(Inventory *inventory, int mode) {
 
     /* Clear destination of serfs destined for this inventory. */
     int dest = flag->get_index();
-  Log::Verbose["game"] << "thread #" << std::this_thread::get_id() << " is locking mutex inside Game::set_inventory_serf_mode";
-  mutex.lock();
-  Log::Verbose["game"] << "thread #" << std::this_thread::get_id() << " is locking mutex inside Game::set_inventory_serf_mode";
+   mutex_lock("Game::set_inventory_serf_mode");
     for (Serf *serf : serfs) {
       serf->clear_destination(dest);
     }
-  Log::Verbose["game"] << "thread #" << std::this_thread::get_id() << " is locking mutex inside Game::set_inventory_serf_mode";
-  mutex.unlock();
-  Log::Verbose["game"] << "thread #" << std::this_thread::get_id() << " is locking mutex inside Game::set_inventory_serf_mode";
+    mutex_unlock();
   } else {
     flag->set_accepts_serfs(true);
   }
@@ -2722,19 +2682,14 @@ Game::ListSerfs
 Game::get_serfs_in_inventory(Inventory *inventory) {
   ListSerfs result;
 
-  Log::Verbose["game"] << "thread #" << std::this_thread::get_id() << " is locking mutex inside Game::get_serfs_in_inventory";
-  mutex.lock();
-  Log::Verbose["game"] << "thread #" << std::this_thread::get_id() << " is locking mutex inside Game::get_serfs_in_inventory";
+  mutex_lock("Game::get_serfs_in_inventory");
   for (Serf *serf : serfs) {
     if (serf->get_state() == Serf::StateIdleInStock &&
         inventory->get_index() == serf->get_idle_in_stock_inv_index()) {
       result.push_back(serf);
     }
   }
-
-  Log::Verbose["game"] << "thread #" << std::this_thread::get_id() << " is locking mutex inside Game::get_serfs_in_inventory";
-  mutex.unlock();
-  Log::Verbose["game"] << "thread #" << std::this_thread::get_id() << " is locking mutex inside Game::get_serfs_in_inventory";
+  mutex_unlock();
   return result;
 }
 
@@ -2810,6 +2765,29 @@ Game::clear_search_id() {
   for (Flag *flag : flags) {
     flag->clear_search_id();
   }
+}
+
+// lock and unlock mutex during non-threadsafe
+// iterations and changes between game and AI threads
+void
+Game::mutex_lock(const char* message){
+  Log::Verbose["game.cc"] << "inside Game::mutex_lock, thread #" << std::this_thread::get_id() << " about to lock mutex, message: " << message;
+  clock_t start = std::clock();
+  mutex.lock();
+  double wait_for_mutex = (std::clock() - start) / static_cast<double>(CLOCKS_PER_SEC);
+  Log::Verbose["game.cc"] << "inside Game::mutex_lock, thread #" << std::this_thread::get_id() << " has locked mutex, message: " << mutex_message << ", waited " << wait_for_mutex << "sec for lock";
+  // store the lock message and start a timer so message and time-in-mutex can be printed on unlock
+  mutex_message = message;
+  mutex_timer_start = std::clock();
+}
+
+void
+Game::mutex_unlock(){
+  // message is known from lock
+  //Log::Error["game.cc"] << "inside Game::mutex_unlock, thread #" << std::this_thread::get_id() << " about to unlock mutex, message: " << mutex_message;
+  double time_in_mutex = (std::clock() - mutex_timer_start) / static_cast<double>(CLOCKS_PER_SEC);
+  mutex.unlock();
+  Log::Verbose["game.cc"] << "inside Game::mutex_unlock, thread #" << std::this_thread::get_id() << " has unlocked mutex, message: " << mutex_message << ", spent " << time_in_mutex << "sec holding lock";
 }
 
 SaveReaderBinary&
