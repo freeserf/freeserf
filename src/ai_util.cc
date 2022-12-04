@@ -648,6 +648,7 @@ AI::build_best_road(MapPos start_pos, RoadOptions road_options, Road *built_road
 
       Roads split_roads;  // moving this here inside loop so it isn't accumulating ALL split_roads from ALL real flags
       Road proposed_direct_road = plot_road(map, player_index, start_pos, target_pos, &split_roads);
+
       bool plotted_succesfully = false;
       if (proposed_direct_road.get_length() > 0){
         plotted_succesfully = true;
@@ -958,7 +959,19 @@ AI::build_best_road(MapPos start_pos, RoadOptions road_options, Road *built_road
       // NOTE - the split_roads vector will be filled by this plot_road call with all potential splitting Road solutions! 
       //
       Roads split_roads;  // moving this here inside loop so it isn't accumulating ALL split_roads from ALL real flags
+      
       Road potential_road = plot_road(map, player_index, start_pos, end_pos, &split_roads, road_options.test(RoadOption::HoldBuildingPos));
+
+      /* this proves the cache is effective!
+      // DEBUG - performance testing plot_road caching  
+      AILogDebug["util_build_best_road"] << " REPEAT cache on";
+      Road perf_test_junk1 = plot_road(map, player_index, start_pos, end_pos, &split_roads, road_options.test(RoadOption::HoldBuildingPos));
+      //use_plot_road_cache = false;
+      AILogDebug["util_build_best_road"] << " REPEAT cache off";
+      Road perf_test_junk2 = plot_road(map, player_index, start_pos, end_pos, &split_roads, road_options.test(RoadOption::HoldBuildingPos));
+      AILogDebug["util_build_best_road"] << " REPEAT DONE";
+      */
+
       // this while(true) loop looks goofy to me but it was the only clean way to do it without a GOTO statement
       while (true){
         if (potential_road.get_length() == 0) {

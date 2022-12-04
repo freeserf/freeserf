@@ -25,6 +25,7 @@
 #include "src/gfx.h"     // for AI overlay, needed to get Color class, maybe find a simpler way?
 #include "src/log.h"     // for separate AI logger
 #include "src/serf.h"    // for serf->is_waiting check for stuck serfs
+#include "src/pathfinder.h"  // for tile SearchNode/PSearchNode
 
 #include "src/ai_roadbuilder.h"  // additional pathfinder functions for AI
 #include "src/lookup.h"  // for console log, has text names for enums and such
@@ -266,6 +267,12 @@ class AI {
   //void attack_nearest_target(MapPosSet*);
   void attack_nearest_target(MapPosSet*, unsigned int min_score, double min_ratio);
   bool flag_and_road_suitable_for_removal(PGame game, PMap map, MapPos flag_pos, Direction *road_dir);
+  // cache of PSearchNode results from recent searches, indexed by start flag
+  //  RE-EVALUATE THE ENTIRE RoadBuilder CLASS, SEE IF IT CAN BE ELIMINATED
+  //std::set<std::pair<MapPos, std::list<PSearchNode>>> closed;
+  ClosedNodesByStartPos plot_road_closed_cache;
+  OpenNodesByStartPos plot_road_open_cache;
+  bool use_plot_road_cache;
 
   struct StockBuilding {
     int count[25] = { 0 };
@@ -462,10 +469,12 @@ static const unsigned int max_goldmines = 1;
 // this does NOT factor in any penalties, it only looks at the actual Road.get_length() in tiles for convolution checks
 static constexpr double max_convolution = 3.00;
 
-static const unsigned int plot_road_max_pos_considered = 2000;  // the maximum number of "nodes" (MapPos) considered as part of a single plot_road call before giving up
-//  NOTE that this may be a bad way to limit things if it prevents a shorter road from being found simply because of the random dir the plot "fill" happened
-static const unsigned int plot_road_max_length = 500;  // the maximum length of a road solution for plot_road before giving up
-// with this available, checking for MapPos considered is probably not needed, but think about it first
+
+// NEED TO ADD EXCEPTION IF straight_line_dist is very long also, indicating a long road is required!
+static const unsigned int plot_road_max_pos_considered = 10000;  // the maximum number of "nodes" (MapPos) considered as part of a single plot_road call before giving up
+static const unsigned int plot_road_max_length = 150;  // the maximum length of a road solution for plot_road before giving up
+// NEED TO ADD EXCEPTION IF straight_line_dist is very long also, indicating a long road is required!
+
 
 // fixed penalty for a non-direct road that contains the castle flag (but doesn't start/end there)
 static const unsigned int contains_castle_flag_penalty = 20;  //increased this from 10 to 20 on dec04 2021

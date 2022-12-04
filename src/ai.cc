@@ -63,6 +63,9 @@ AI::AI(PGame current_game, unsigned int _player_index) {
   std::string mutex_message = "";  // used for logging why mutex being locked/unlocked
   clock_t mutex_timer_start = 0;  // used for logging how much time spent with mutex lock
   longest_road_so_far = {};
+  plot_road_closed_cache = {};
+  plot_road_open_cache = {};
+  use_plot_road_cache = true;   // this is definitely effective, tried comparing w/ cache off vs on
 
   road_options.reset(RoadOption::Direct);
   road_options.set(RoadOption::SplitRoads);
@@ -417,6 +420,16 @@ AI::do_update_clear_reset() {
   }
 
   //have_inventory_building = false;  // this isn't really needed as it checks each time
+
+  // flush the closed-node cache for plot_roads
+  // IMPORTANT - this should probably be flushed on every call of build_best_road
+  //  or on each do_XXX AI function?
+  //  or every time something is demolished?
+  //  or add some function to the game to indicate when any flag/path-on-road-MapPos is tainted?
+  AILogDebug["do_update_clear_reset"] << "clearing plot_road caches";
+  plot_road_open_cache.clear();
+  plot_road_closed_cache.clear();
+  use_plot_road_cache = true;
 }
 
 

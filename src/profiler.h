@@ -22,7 +22,10 @@
 #ifndef SRC_PROFILER_H_
 #define SRC_PROFILER_H_
 
-/* The length between game updates in miliseconds. */
+// The length between game updates in miliseconds
+//   this is controlled by SDL_Timer ever TICK_LENGTH which triggers and SDL Event
+//   and is handled by the SDL_WaitEvent inside event_loop-sdl.cc EventLoopSDL::run()
+//   which also handles other SDL Events such as user input immediately
 #define TICK_LENGTH  20
 #define TICKS_PER_SEC  (1000/TICK_LENGTH)
 

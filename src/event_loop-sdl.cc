@@ -117,7 +117,10 @@ EventLoopSDL::run() {
   int frames = 0;
   int timenow = time(0);
   int last_time = timenow;
-  int target_fps = 49;  // it seems freeserf caps FPS at 50 by default, not sure exactly where its controlled, maybe in game::update.  it is NOT controlled by TICK_LENGTH or TICKS_PER_SEC!
+  int target_fps = 49;
+  
+  // it seems freeserf caps FPS at 50 by default, it seems to be controlled by the TICK_LENGTH define# 
+  // and SDL_ADDTimer controls it by creating a timer event every TICK_LENGTH settings intead of using an open SDL_PollEvent
 
 
   while (SDL_WaitEvent(&event)) {
@@ -303,7 +306,7 @@ EventLoopSDL::run() {
           if (time_delta >= 1){
             int fps_lag = target_fps - (frames / time_delta);
             if (fps_lag < 0){fps_lag = 0;}
-            Log::Error["event_loop-sdl.cc"] << "in past " << time_delta << "sec, processed " << frames << " frames, FPS Lag:" << fps_lag;
+            Log::Debug["event_loop-sdl.cc"] << "in past " << time_delta << "sec, processed " << frames << " frames, FPS Lag:" << fps_lag;
             frames = 0;
             last_time = timenow;
           }

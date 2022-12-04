@@ -83,12 +83,27 @@ AI::plot_road(PMap map, unsigned int player_index, MapPos start_pos, MapPos end_
   std::list<PSearchNode> closed;
   PSearchNode node(new SearchNode);
 
+  if (use_plot_road_cache){
+    // use cached open & closed nodes from previous search from same start_pos
+    //  this cache must be cleared frequently!
+    if (plot_road_closed_cache.count(start_pos) > 0){
+      //AILogDebug["plot_road"] << "DEBUG plot_roadplot_road_closed_cache_cache.at(start_pos) size is " << plot_road_closed_cache.at(start_pos).size();
+      AILogDebug["plot_road"] << "inside plot_road for Player" << player_index << " with start " << start_pos << ", end " << end_pos << ", using cached closed node list from plot_road_cache";
+      closed = plot_road_closed_cache.at(start_pos);
+    }
+    if (plot_road_open_cache.count(start_pos) > 0){
+      //AILogDebug["plot_road"] << "DEBUG plot_road_open_cache.at(start_pos) size is " << plot_road_open_cache.at(start_pos).size();
+      AILogDebug["plot_road"] << "inside plot_road for Player" << player_index << " with start " << start_pos << ", end " << end_pos << ", using cached open node list from plot_road_cache";
+      open = plot_road_open_cache.at(start_pos);
+    }
+  }
+
   // prevent path in the potential building spot be inserting into the closed list!
   if (hold_building_pos == true){
     //AILogDebug["plot_road"] << "debug - hold_building_pos is TRUE!";
     PSearchNode hold_building_pos_node(new SearchNode);
     hold_building_pos_node->pos = map->move_up_left(start_pos);
-    closed.push_front(hold_building_pos_node);
+    closed.push_front(hold_building_pos_node);  // will this cause problems with cache???
     //AILogDebug["plot_road"] << "debug - hold_building_pos is TRUE, added hold_building_pos " << hold_building_pos_node->pos << " which is up-left of start_pos " << start_pos;
   }
 
@@ -124,7 +139,9 @@ AI::plot_road(PMap map, unsigned int player_index, MapPos start_pos, MapPos end_
   unsigned int max_fake_flags = 10;
   unsigned int fake_flags_count = 0;
   unsigned int split_road_solutions = 0;
-  unsigned int pos_considered = 0;
+  unsigned int new_closed_nodes = 0;
+  unsigned int new_open_nodes = 0;
+  unsigned int total_pos_considered = 0;
 
   // this is a TILE search, finding open PATHs to build a single Road between two Flags
   while (!open.empty()) {
@@ -136,11 +153,16 @@ AI::plot_road(PMap map, unsigned int player_index, MapPos start_pos, MapPos end_
     //  want to find a way to also check current road length to reject
     //  based on length without rejecting other, shorter roads as part of 
     //  same solution!
-    if (pos_considered > plot_road_max_pos_considered){
-      AILogDebug["plot_road"] << "plot_road: maximum MapPos POSITIONS-checked reached (plot_road_max_pos) " << pos_considered << ", ending search";
+    if (total_pos_considered >= plot_road_max_pos_considered){
+      AILogDebug["plot_road"] << "plot_road: maximum MapPos POSITIONS-checked reached (plot_road_max_pos) " << total_pos_considered << ", ending search";
       break;
     }
-    pos_considered++;
+    // PERFORMANCE - try pausing for a very brief time every thousand pos checked to give the CPU a break, see if it fixes frame rate lag
+    if (total_pos_considered > 0 && total_pos_considered % 1000 == 0){
+      AILogDebug["plot_road"] << "plot_road: taking a quick sleep at " << total_pos_considered << " to give CPU a break";
+      std::this_thread::sleep_for(std::chrono::milliseconds(200));
+    }
+    total_pos_considered++;
 
     // limit the *length* considered
     unsigned int current_length = 0;
@@ -150,7 +172,7 @@ AI::plot_road(PMap map, unsigned int player_index, MapPos start_pos, MapPos end_
       tmp_length_check_node = tmp_length_check_node->parent;
     }
     AILogDebug["plot_road"] << "plot_road: current road-length so far for this solution is " << current_length;
-    if (current_length > plot_road_max_length){
+    if (current_length >= plot_road_max_length){
       AILogDebug["plot_road"] << "plot_road: maximum road-length reached (plot_road_max_length) " << current_length << ", ending search";
       break;
     }
@@ -168,7 +190,7 @@ AI::plot_road(PMap map, unsigned int player_index, MapPos start_pos, MapPos end_
         breadcrumb_solution.extend(reverse_direction(dir));
         //ai_mark_road->extend(reverse_direction(dir));
         //ai_mark_pos.insert(ColorDot(node->pos, "black"));
-        //sleep_speed_adjusted(100);
+        //sleep_speed_adjusted(10);
         node = node->parent;
       }
       unsigned int new_length = static_cast<unsigned int>(breadcrumb_solution.get_length());
@@ -183,7 +205,9 @@ AI::plot_road(PMap map, unsigned int player_index, MapPos start_pos, MapPos end_
     }
 
     // otherwise, close this node and continue
-    closed.push_front(node);
+    closed.push_front(node);  // note this can create a duplicate cache entry but I don't think it matters
+    new_closed_nodes++;
+
     // consider each direction for extending road
     // oct21 2020 - changing to this use RANDOM start direction to avoid issue where a road
     //   is never built because of an obstacle in one major direction, but a road could have been built if
@@ -194,7 +218,7 @@ AI::plot_road(PMap map, unsigned int player_index, MapPos start_pos, MapPos end_
       unsigned int cost = actual_cost(map.get(), node->pos, d);
       //ai_mark_road->extend(d);
       //ai_mark_pos.insert(ColorDot(new_pos, "blue"));
-      //sleep_speed_adjusted(100);
+      //sleep_speed_adjusted(10);
       // Check if neighbour is valid
       if (new_pos == end_pos && !map->is_road_segment_valid(node->pos, d) && game->can_build_flag(new_pos, player)){
         // solution found but the end_pos does not have a flag because this is a specifically-requested
@@ -249,7 +273,7 @@ AI::plot_road(PMap map, unsigned int player_index, MapPos start_pos, MapPos end_
             split_flag_breadcrumb_solution.extend(reverse_direction(dir));
             //ai_mark_road->extend(reverse_direction(dir));
             //ai_mark_pos.insert(ColorDot(node->pos, "black"));
-            //sleep_speed_adjusted(100);
+            //sleep_speed_adjusted(10);
             split_flag_node = split_flag_node->parent;
           }
           // restore original node so search can resume
@@ -276,20 +300,60 @@ AI::plot_road(PMap map, unsigned int player_index, MapPos start_pos, MapPos end_
       //  continue;
       //}
 
+      /*  note that this debug function doesn't help anything other than debugging
+           and it also itself causes a perf hit
+      // DEBUG
+      if (plot_road_cache.count(start_pos) > 0){
+        int cached_items = -1;
+        for (PSearchNode closed_node : plot_road_cache.at(start_pos)){
+          cached_items++;
+          if (closed_node == nullptr){
+            //AILogDebug["plot_road"] << "plot_road: closed_node #" << cached_items << " in cache is nullptr, skipping";
+            continue;
+          }
+          //AILogDebug["plot_road"] << "plot_road: closed_node #" << cached_items << " in cache is not null";
+          if (closed_node->pos == new_pos) {
+            AILogDebug["plot_road"] << "plot_road: found cache hit for start_pos " << start_pos << ", node pos " << new_pos;
+            cache_hits++;
+            continue;
+          }
+          //AILogDebug["plot_road"] << "plot_road: cache miss for start_pos " << start_pos << ", node pos " << new_pos;
+        }
+      }
+      */
+
       /* Check if neighbour is in closed list. */
       bool in_closed = false;
       for (PSearchNode closed_node : closed) {
         if (closed_node->pos == new_pos) {
-          in_closed = true;
-          //ai_mark_pos.erase(new_pos);
-          //ai_mark_pos.insert(ColorDot(new_pos, "magenta"));
-          //sleep_speed_adjusted(100);
+          // to avoid missing the end_pos because it was marked
+          // as closed a previous search from the same start_pos:
+          //  if this is the end_pos, do NOT set in_closed to true
+          //  so it will continue and find solution on next loop
+            //ai_mark_pos.erase(new_pos);
+            //ai_mark_pos.insert(ColorDot(new_pos, "red"));
+            //sleep_speed_adjusted(10);
+          if (closed_node->pos == end_pos){
+            AILogDebug["plot_road"] << "plot_road: cache has end_pos " << end_pos << " marked as already closed, bypassing this, solution coming";
+          }else{
+            in_closed = true;
+            //ai_mark_pos.erase(new_pos);
+            //ai_mark_pos.insert(ColorDot(new_pos, "magenta"));
+            //sleep_speed_adjusted(10);
+            // PERFORMANCE - try pausing for a very brief time every thousand pos checked to give the CPU a break, see if it fixes frame rate lag
+            if (total_pos_considered > 0 && total_pos_considered % 1000 == 0){
+              AILogDebug["plot_road"] << "plot_road: taking a quick sleep at " << total_pos_considered << " to give CPU a break";
+              std::this_thread::sleep_for(std::chrono::milliseconds(200));
+            }
+            total_pos_considered++;
+          }
           break;
         }
       }
+
       //ai_mark_pos.erase(new_pos);
       //ai_mark_pos.insert(ColorDot(new_pos, "green"));
-      //sleep_speed_adjusted(100);
+      //sleep_speed_adjusted(10);
 
       if (in_closed) continue;
 
@@ -302,7 +366,7 @@ AI::plot_road(PMap map, unsigned int player_index, MapPos start_pos, MapPos end_
           in_open = true;
           //ai_mark_pos.erase(new_pos);
           //ai_mark_pos.insert(ColorDot(new_pos, "seafoam"));
-          //sleep_speed_adjusted(100);
+          //sleep_speed_adjusted(10);
           if (n->g_score >= node->g_score + cost) {
             n->g_score = node->g_score + cost;
             n->f_score = n->g_score + heuristic_cost(map.get(), new_pos, end_pos);
@@ -330,6 +394,9 @@ AI::plot_road(PMap map, unsigned int player_index, MapPos start_pos, MapPos end_
 
         open.push_back(new_node);
         std::push_heap(open.begin(), open.end(), search_node_less);
+
+        new_open_nodes++;
+
       }
     } // foreach direction
   } // while nodes left to search
@@ -350,8 +417,44 @@ AI::plot_road(PMap map, unsigned int player_index, MapPos start_pos, MapPos end_
   //  ai_mark_road = &longest_road_so_far;
   //}
 
+  // update the closed node cache for this start_pos
+  if (use_plot_road_cache){
+    AILogDebug["plot_road"] << "caching (posibly-updated) plot_road cached-node lists for start_pos " << start_pos;
+    plot_road_closed_cache.erase(start_pos);
+    plot_road_closed_cache.insert(std::make_pair(start_pos, closed));
+    plot_road_open_cache.erase(start_pos);
+    plot_road_open_cache.insert(std::make_pair(start_pos, open));
+  }
+
+  //
+  // ALL ATTEMPTS TO CALCULATE CACHE HIT RATE AND pos per second with cache vs no-cache
+  //   have failed beacuse it is difficult to identify a cache hit without doing 
+  //   additional work that will slow the request down.  Each pos may be visited multiple 
+  //   times so can't use "new pos created vs total pos visited" and it isn't easy to tell
+  //   how many positions were not considered at all because they were bypassed by resuming
+  //   the open cache
+  //
+  //  THE BEST WAY to prove the cache works is to run repeat calls of the exact same
+  //   plot_road request and seeing that the second call is much faster and considers far
+  //   fewer positions
+  //
+  //unsigned int cache_hits = total_pos_considered - new_closed_nodes;
+  //
+  //int cache_hit_ratio = 0;
+  ////if (cache_hits > 0){cache_hit_ratio = ( pos_considered / cache_hits) * 100;}
+  //if (cache_hits > 0){cache_hit_ratio = ( double(cache_hits) / double(total_pos_considered - 1) ) * double(100.00);}
+
   duration = (std::clock() - start) / static_cast<double>(CLOCKS_PER_SEC);
-  AILogDebug["plot_road"] << "plot_road call considered " << pos_considered << " MapPos, took " << duration;
+
+  //int pos_per_second = total_pos_considered / duration / 1000; // in thousands
+  //if (duration == 0){pos_per_second = 999;}
+
+  //AILogDebug["plot_road"] << "plot_road call considered " << pos_considered << " MapPos, took " << duration;
+  //AILogDebug["plot_road"] << "plot_road call with start_pos " << start_pos << ", end_pos " << end_pos << ", considered " << total_pos_considered << " MapPos, took " << duration << ", cache_hits " << cache_hits << ", cache_hit_ratio " << cache_hit_ratio << "%";
+  //AILogDebug["plot_road"] << "plot_road call with start_pos " << start_pos << ", end_pos " << end_pos << ", considered " << total_pos_considered << " MapPos, took " << duration << ", pos_per_sec " << pos_per_second << "k/sec";
+  AILogDebug["plot_road"] << "plot_road call with start_pos " << start_pos << ", end_pos " << end_pos << ", considered " << total_pos_considered << " MapPos, took " << duration;
+
+  //sleep_speed_adjusted(2000);
   return direct_road;
 }
 

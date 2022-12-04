@@ -14,6 +14,7 @@
 #include <string>      // to satisfy cpplint
 #include "src/building.h"  // used to know Building classconst char*
 #include "src/gfx.h"   // for AI overlay, needed to get Color class, maybe find a simpler way?
+#include "src/pathfinder.h"  // for tile SearchNode/PSearchNode
 
 //
 // NOTE - cpplint says to change const std:string to const char* but when I do so it causesconst char*
@@ -441,6 +442,8 @@ const unsigned int slots_garrison[5] = { 1,3,6,9,12 };
 
 typedef std::set<std::pair<MapPos, unsigned int>> MapPosSet;
 typedef std::vector<MapPos> MapPosVector;
+typedef std::map<MapPos, std::list<PSearchNode>> ClosedNodesByStartPos;
+typedef std::map<MapPos, std::vector<PSearchNode>> OpenNodesByStartPos;
 
 // key pos/dir -> val unordered(?) list of flags, assume starting at the Inventory
 typedef std::map<std::pair<MapPos, Direction>, MapPosVector> FlagDirToFlagVectorMap;
