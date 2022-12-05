@@ -25,4 +25,6 @@
 //extern const char FREESERF_VERSION[];
 extern const char FORKSERF_VERSION[];
 
+extern int tick_length;  // I couldn't figure out how else to get it without redefinitions because of the rat's nest of header includes
+
 #endif  // SRC_VERSION_H_

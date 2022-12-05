@@ -431,7 +431,8 @@ Serf::path_splited(unsigned int flag_1, Direction dir_1,
 
   //
   // debug stuck serf issues with StateWaitIdleOnPath
-  //split_merge_tainted = true;
+  Log::Debug["serf.cc"] << "debug StateWaitIdleOnPath issues: inside Serf::path_splited, a serf of type " << get_type() << " at pos " << get_pos() << " is MERGE/SPLIT TAINTED";
+  split_merge_tainted = true;
   //
   //
 
@@ -564,7 +565,8 @@ Serf::path_merged2(unsigned int flag_1, Direction dir_1,
 
   //
   // debug stuck serf issues with StateWaitIdleOnPath
-  //split_merge_tainted = true;
+  Log::Debug["serf.cc"] << "debugging StateWaitIdleOnPath issues: inside Serf::path_merged2, a serf of type " << get_type() << " at pos " << get_pos() << " is MERGE/SPLIT TAINTED";
+  split_merge_tainted = true;
   //
   //
   if (state == StateReadyToLeaveInventory &&
@@ -6171,7 +6173,7 @@ Serf::handle_serf_idle_on_path_state() {
     //Log::Info["serf"] << "debug: inside handle_serf_idle_on_path_state, a serf of type " << NameSerf[get_type()] << " at pos " << pos << " is about to be set to StateWaitIdleOnPath because it was called to wake but there is another serf at this pos.  The other serf has type " << NameSerf[game->get_serf_at_pos(pos)->get_type()] << ", index " << game->get_serf_at_pos(pos)->get_index() << ", pos " << game->get_serf_at_pos(pos)->get_pos();
     //set_state(StateWaitIdleOnPath);
 
-    // DEBUG stuck serfs 
+    //// DEBUG stuck serfs 
     //if (split_merge_tainted){
     //  Log::Warn["serf"] << "debug: inside handle_serf_idle_on_path_state, a serf of type " << NameSerf[get_type()] << " at pos " << pos << " is MERGE/SPLIT TAINTED";
     //}
@@ -6293,9 +6295,9 @@ Serf::handle_serf_wake_on_path_state() {
   set_state(StateWaitIdleOnPath);
   
   // DEBUG stuck serfs 
-  //if (split_merge_tainted){
-  //  Log::Warn["serf"] << "debug: inside handle_serf_wake_on_path_state, a serf of type " << NameSerf[get_type()] << " at pos " << get_pos() << " is MERGE/SPLIT TAINTED";
-  //}
+  if (split_merge_tainted){
+    Log::Debug["serf"] << "debugging StateWaitIdleOnPath issues: inside handle_serf_wake_on_path_state, a serf of type " << NameSerf[get_type()] << " at pos " << get_pos() << " is MERGE/SPLIT TAINTED";
+  }
 
   for (Direction d : cycle_directions_ccw()) {
     if (BIT_TEST(game->get_map()->paths(pos), d)) {

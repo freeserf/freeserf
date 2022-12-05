@@ -196,9 +196,9 @@ class AI {
     double msec_ = msec;
     if (speed > 2){
       // scale AI speed linearly with game speed
-      //msec_ = msec_ * 1/(speed - 1);
+      msec_ = msec_ * 1/(speed - 1);
       // less increase in AI speed as game speed increases, capped around 9x
-      msec_ = msec_ * 1/((speed - 1) / 4);  // this works pretty well, at game speed 40 ai pause time is about 9% of game speed 2
+      //msec_ = msec_ * 1/((speed - 1) / 4);  // this works pretty well, at game speed 40 ai pause time is about 9% of game speed 2
     }
     //AILogDebug["sleep_speed_adjusted"] << "msec: " << msec << ", game speed: " << speed << ", adjusted msec: " << int(msec_);
     msec = msec_;

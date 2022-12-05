@@ -43,10 +43,13 @@
 #include "src/ai.h"
 #include "src/game-options.h"
 
+#include "src/version.h" // for tick_length
+
 
 // Interval between automatic save games
 //#define AUTOSAVE_INTERVAL  (5*60*TICKS_PER_SEC)  // this is reasonable for normal play
-#define AUTOSAVE_INTERVAL  (1*60*TICKS_PER_SEC)  // much higher frequency, for debugging
+//#define AUTOSAVE_INTERVAL  (1*60*TICKS_PER_SEC)  // much higher frequency, for debugging
+#define AUTOSAVE_INTERVAL  (5*60*1000/tick_length)  // this is reasonable for normal play
 
 Interface::Interface()
   : building_road_valid_dir(0)
@@ -303,7 +306,8 @@ Interface::open_message() {
   }
 
   msg_flags |= BIT(1);
-  return_timeout = 60*TICKS_PER_SEC;
+  //return_timeout = 60*TICKS_PER_SEC;
+  return_timeout = 60*1000/tick_length;
   play_sound(Audio::TypeSfxClick);
 }
 

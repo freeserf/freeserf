@@ -44,10 +44,10 @@
 //   this is controlled by SDL_Timer ever TICK_LENGTH which triggers and SDL Event
 //   and is handled by the SDL_WaitEvent inside event_loop-sdl.cc EventLoopSDL::run()
 //   which also handles other SDL Events such as user input immediately
-#define TICK_LENGTH  20
+//#define TICK_LENGTH  20
 // 1000/20 is 50, but it seems the actual timing is about 100 per second at game speed 2
 //  maybe it is intended for game speed 1?
-#define TICKS_PER_SEC  (1000/TICK_LENGTH)
+//#define TICKS_PER_SEC  (1000/TICK_LENGTH)
 
 
 class Inventory;

@@ -26,6 +26,8 @@
 //   this is controlled by SDL_Timer ever TICK_LENGTH which triggers and SDL Event
 //   and is handled by the SDL_WaitEvent inside event_loop-sdl.cc EventLoopSDL::run()
 //   which also handles other SDL Events such as user input immediately
+
+// THIS IS NO LONGER SET HERE!!! profiler needs to be updated to match main game timer tick control
 #define TICK_LENGTH  20
 #define TICKS_PER_SEC  (1000/TICK_LENGTH)
 

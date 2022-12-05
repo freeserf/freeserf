@@ -956,18 +956,24 @@ AI::do_fix_stuck_serfs() {
       if (game->get_tick() > trigger_tick) {
         AILogDebug["do_fix_stuck_serfs"] << "SerfWaitTimer triggering serf_wait_idle_on_road_timer for serf " << serf->get_index() << " and serf type " << NameSerf[serf->get_type()] << " at pos " << serf->get_pos();
 
-        AILogWarn["do_fix_stuck_serfs"] << "SerfWaitTimer detected WAIT_IDLE_ON_PATH STUCK SERF at pos " << serf->get_pos() << " of type " << NameSerf[serf->get_type()] << ", marking its current pos in lt_purple";
-        ai_mark_pos.insert(ColorDot(serf->get_pos(), "lt_purple"));
+        //AILogWarn["do_fix_stuck_serfs"] << "SerfWaitTimer detected WAIT_IDLE_ON_PATH STUCK SERF at pos " << serf->get_pos() << " of type " << NameSerf[serf->get_type()] << ", marking its current pos in lt_purple";
+        //ai_mark_pos.insert(ColorDot(serf->get_pos(), "lt_purple"));
         // I THINK I FIXED THIS ISSUE FOR GOOD - see https://github.com/freeserf/freeserf/issues/492
         //  changing this to a crash exception in case I am wrong about the fix being 100% effective
         //  nope it sitll happens just less often, I might be wrong about the root cause
-        sleep_speed_adjusted(120000);
+        // UPDATE - Dec04 2022, I have not seen this in a long time, removing sleep, throwing exception
+        //   NOPE, it definitely still happens I just wasn't noticing
+        //AILogError["do_fix_stuck_serfs"] << "SerfWaitTimer detected WAIT_IDLE_ON_PATH STUCK SERF at pos " << serf->get_pos() << " of type " << NameSerf[serf->get_type()] << ", throwing exception";
+        //AILogError["do_fix_stuck_serfs"] << "SerfWaitTimer detected WAIT_IDLE_ON_PATH STUCK SERF at pos " << serf->get_pos() << " of type " << NameSerf[serf->get_type()] << ", marking it in purple and pausing game";
+        AILogError["do_fix_stuck_serfs"] << "SerfWaitTimer detected WAIT_IDLE_ON_PATH STUCK SERF at pos " << serf->get_pos() << " of type " << NameSerf[serf->get_type()] << ", will boot this serf to avoid gridlock";
         //throw ExceptionFreeserf("SerfWaitTimer detected WAIT_IDLE_ON_PATH STUCK SERF at pos - I THOUGHT I FIXED THIS");
 
         // don't erase timer if problem isn't fixed yet, keep checking each AI loop
-        AILogWarn["do_fix_stuck_serfs"] << "WARNING - SerfWaitTimer attempting to set serf to lost state, updating marking to purple";
-        ai_mark_pos.erase(serf->get_pos());
-        ai_mark_pos.insert(ColorDot(serf->get_pos(), "purple"));
+        //AILogWarn["do_fix_stuck_serfs"] << "WARNING - SerfWaitTimer attempting to set serf to lost state, updating marking to purple";
+        //ai_mark_pos.erase(serf->get_pos());
+        //ai_mark_pos.insert(ColorDot(serf->get_pos(), "purple"));
+        //game->pause();
+        
         Serf::Type serf_job = serf->get_type();
         // got a nullptr here for flag->get_position, maybe break it up and mutex lock?
         // got another nullptr. trying a slight modification...
@@ -1085,10 +1091,12 @@ AI::do_fix_missing_transporters() {
         no_transporter_timer = no_transporter_timers.erase(no_transporter_timer);
       }
       else {
-        AILogDebug["do_fix_missing_transporters"] << "timer detected BUG FOUND - NO TRANSPORTER on road at pos " << flag->get_position() << " in dir " << NameDirection[dir] << ", marking flag in cyan and dir in dk_cyan";
-        ai_mark_pos.insert(ColorDot(flag->get_position(), "cyan"));
-        ai_mark_pos.insert(ColorDot(map->move(flag->get_position(), dir), "dk_cyan"));
-        sleep_speed_adjusted(5000);
+        //AILogDebug["do_fix_missing_transporters"] << "timer detected BUG FOUND - NO TRANSPORTER on road at pos " << flag->get_position() << " in dir " << NameDirection[dir] << ", marking flag in cyan and dir in dk_cyan";
+        // UPDATE Dec04 2022 - throw exception instead
+        AILogError["do_fix_missing_transporters"] << "timer detected BUG FOUND - NO TRANSPORTER on road at pos " << flag->get_position() << " in dir " << NameDirection[dir] << ", throwing exceptio";
+        //ai_mark_pos.insert(ColorDot(flag->get_position(), "cyan"));
+        //ai_mark_pos.insert(ColorDot(map->move(flag->get_position(), dir), "dk_cyan"));
+        //sleep_speed_adjusted(5000);
         //game->pause();
         AILogDebug["do_fix_missing_transporters"] << "timer trying to force call a transporter";
         mutex_lock("AI::do_fix_missing_transporters calling flag->call_transporter, to work around no-transporter issue");
@@ -1209,21 +1217,22 @@ AI::do_fix_missing_transporters() {
           - the Lost transporter walks off somewhere east, eventually makes is way back to the Castle, and obviously never returns, and no replacement is sent (because this isn't supposed to happen)
           - the game doesn't realize the transporter is lost, the only way I was detecting it is by walking the road to see that no transporter was actually there despite the Flag having a record of an active transporter there
           */
-          AILogDebug["do_fix_missing_transporters"] << "WARNING - found rare type of missing transporter bug!  Flag #" << flag->get_index() << " at pos " << flag->get_position() << " seems to be missing a transporter on road in dir " << NameDirection[dir] << " despite it thinking there is one there!";
-          ai_mark_pos.insert(std::make_pair(flag->get_position(), "lt_blue"));
-          sleep_speed_adjusted(5000);
-          //AILogDebug["do_fix_missing_transporters"] << "trying to immediately force call a transporter";
-          //AILogVerbose["do_fix_missing_transporters"] << "thread #" << std::this_thread::get_id() << " AI is locking mutex before calling flag->call_transporter, to work around RARER no-transporter issue";
-          //game->get_mutex()->lock();
-          //AILogVerbose["do_fix_missing_transporters"] << "thread #" << std::this_thread::get_id() << " AI has locked mutex before calling flag->call_transporter, to work around RARER no-transporter issue";
-          
-          AILogDebug["do_fix_missing_transporters"] << "NOT calling out missing new transporter, trying to debug this now";
-          bool was_called = false;
-          //bool was_called = flag->call_transporter(dir, false);  // hardcoding is_water_path to false because I am seeing weird crash with this checking for Serf::TypeSailor
+          // UPDATE Dec04 2022 - changing this to throw exception, not sure how often it has been happening
+          //     It is definitely still happening, not often but saw it again same day
+          //AILogDebug["do_fix_missing_transporters"] << "WARNING - found rare type of missing transporter bug!  Flag #" << flag->get_index() << " at pos " << flag->get_position() << " seems to be missing a transporter on road in dir " << NameDirection[dir] << " despite it thinking there is one there!  pausing game and marking pos in lt_blue";
+          //AILogError["do_fix_missing_transporters"] << "WARNING - found rare type of missing transporter bug!  Flag #" << flag->get_index() << " at pos " << flag->get_position() << " seems to be missing a transporter on road in dir " << NameDirection[dir] << " despite it thinking there is one there!  throwing exception";
+          AILogError["do_fix_missing_transporters"] << "WARNING - found rare type of missing transporter bug!  Flag #" << flag->get_index() << " at pos " << flag->get_position() << " seems to be missing a transporter on road in dir " << NameDirection[dir] << " despite it thinking there is one there!  attempting to call another to work around the bug";
+          //ai_mark_pos.insert(std::make_pair(flag->get_position(), "lt_blue"));
+          //sleep_speed_adjusted(5000);
+          //game->pause();
+          //throw ExceptionFreeserf("found rare type of missing transporter bug!  seems to be missing a transporter on road in dir despite it thinking there is one there!");
+          //AILogDebug["do_fix_missing_transporters"] << "NOT calling out missing new transporter, trying to debug this now";
+          //bool was_called = false;
+          AILogWarn["do_fix_missing_transporters"] << "trying to immediately force call a transporter";
+          mutex_lock("do_fix_missing_transporters calling flag->call_transporter, to work around RARER no-transporter issue");
+          bool was_called = flag->call_transporter(dir, false);  // hardcoding is_water_path to false because I am seeing weird crash with this checking for Serf::TypeSailor
+          mutex_unlock();
 
-          //AILogVerbose["do_fix_missing_transporters"] << "thread #" << std::this_thread::get_id() << " AI is unlocking mutex after calling flag->call_transporter, to work around RARER no-transporter issue";
-          //game->get_mutex()->unlock();
-          //AILogVerbose["do_fix_missing_transporters"] << "thread #" << std::this_thread::get_id() << " AI has unlocked mutex after calling flag->call_transporter, to work around RARER no-transporter issue";
           /*
           if (!was_called) {
             AILogDebug["do_fix_missing_transporters"] << "WARNING - flag->call_transporter to " << flag->get_position() << ", dir " << NameDirection[dir] << " - failed while trying to work around RARER no-transporter issue!  I guess let it try again next time";
@@ -3501,7 +3510,7 @@ AI::do_build_steelsmelter() {
     return;
   }
 
-  AILogInfo["do_build_steelsmelter"] << inventory_pos << " want to build steel smelter";
+  AILogInfo["do_build_steelsmelter"] << inventory_pos << " want to build steelsmelter";
   // try to place steel smelter halfway between a coal mine and iron mine if both exist, preferring active ones
   // re-enabling halfway_pos checking again
   //  ehh I still think this is never going to be used effectively

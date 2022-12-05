@@ -1161,9 +1161,10 @@ AI::identify_arterial_roads(PMap map){
           // nope still broken, trying same fix as used elsewhere, setting fnode->dir = d earlier
           // wait that isn't even done here, this function is written differently.  look into why, one of them is probably wrong
           //
+          // UPDATE Dec04 2022, I haven't seen this in a long time, disabling sleep
           if (inv_flag_conn_dir == DirectionNone){
             AILogError["util_identify_arterial_roads"] << "could not find the Dir from fnode->parent->pos " << fnode->parent->pos << " to child fnode->pos " << fnode->pos << "! throwing exception";
-            std::this_thread::sleep_for(std::chrono::milliseconds(120000));
+            //std::this_thread::sleep_for(std::chrono::milliseconds(120000));
             throw ExceptionFreeserf("in AI::util_identify_arterial_roads, could not find the Dir from fnode->parent->pos to child !fnode->pos!  it should be known");
           }
           // actually, I take it back, tracking it the entire way is fine
@@ -1499,10 +1500,11 @@ AI::find_flag_path_and_tile_dist_between_flags(PMap map, MapPos start_pos, MapPo
       // get the other Flag in this dir
       Flag *other_end_flag = flag->get_other_end_flag(dir);
       if (other_end_flag == nullptr){
-        AILogError["find_flag_path_and_tile_dist_between_flags"] << "got nullptr for game->get_other_end_flag(" << NameDirection[dir] << ") from flag at pos " << fnode->pos << ", marking in coral and throwing exception";
-        ai_mark_pos->erase(map->move(fnode->pos, dir));
-        ai_mark_pos->insert(ColorDot(map->move(fnode->pos, dir), "coral"));
-        std::this_thread::sleep_for(std::chrono::milliseconds(30000));
+        AILogError["find_flag_path_and_tile_dist_between_flags"] << "got nullptr for game->get_other_end_flag(" << NameDirection[dir] << ") from flag at pos " << fnode->pos << ", throwing exception";
+        //ai_mark_pos->erase(map->move(fnode->pos, dir));
+        //ai_mark_pos->insert(ColorDot(map->move(fnode->pos, dir), "coral"));
+        // update Dec04 2022 - haven't seen this in a long time, removing sleep
+        //std::this_thread::sleep_for(std::chrono::milliseconds(30000));
         throw ExceptionFreeserf("got nullptr for game->get_other_end_flag");
       }
       MapPos other_end_flag_pos = other_end_flag->get_position();

@@ -39,7 +39,7 @@
 #include "src/lookup.h"
 
 #define DEFAULT_GAME_SPEED  2
-
+#define DEFAULT_TICK_LENGTH  20
 #define GAME_MAX_PLAYER_COUNT  4
 
 // these were originally private, inside Game class

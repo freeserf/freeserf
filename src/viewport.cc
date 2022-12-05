@@ -2754,6 +2754,7 @@ Viewport::draw_serf_row_behind(MapPos pos, int y_base, int cols, int x_base) {
       // got a nullptr here once, adding check
       if (serf == nullptr){
         Log::Warn["viewport.cc"] << "inside draw_serf_row_behind, got nullptr for serf!  not drawing this one";
+        // got a segfault here after the "got nullptr" message, maybe the whole draw call needs to be cancelled?  I guess try that if it happens repeatedly
         continue;
       }
       if (serf->get_state() == Serf::StateMining &&
@@ -2761,8 +2762,8 @@ Viewport::draw_serf_row_behind(MapPos pos, int y_base, int cols, int x_base) {
            serf->get_mining_substate() == 4 ||
            serf->get_mining_substate() == 9 ||
            serf->get_mining_substate() == 10)) {
-            draw_active_serf(serf, pos, x_base, y_base);
-         }
+        draw_active_serf(serf, pos, x_base, y_base);
+      }
     }
   }
 }
@@ -3010,6 +3011,25 @@ Viewport::draw_map_cursor_possible_build() {
     base_pos = map->move_right(base_pos);
   }
 }
+
+// got crash & heap dump once here on linux, though I don't usually leave AI overlay on
+// during long running testing, this was a 4xAI 40 game speed test
+/*
+*** Error in `./Forkserf': double free or corruption (fasttop): 0x00007f5094034e50 ***
+======= Backtrace: =========
+/lib64/libc.so.6(+0x81609)[0x7f510ce38609]
+./Forkserf(_ZN8Viewport15draw_ai_overlayEv+0xd73)[0x4b2183]
+./Forkserf(_ZN8Viewport13internal_drawEv+0x90)[0x4b2dc0]
+./Forkserf(_ZN9GuiObject4drawEP5Frame+0x131)[0x4c8131]
+./Forkserf(_ZN9Interface12handle_eventEPK5Event+0x40)[0x4c27e0]
+./Forkserf(_ZN9EventLoop15notify_handlersEP5Event+0xb2)[0x5e2b22]
+./Forkserf(_ZN9EventLoop11notify_drawEP5Frame+0x21)[0x5e2d31]
+./Forkserf(_ZN12EventLoopSDL3runEv+0x8aa)[0x5e624a]
+./Forkserf(main+0xaf4)[0x441324]
+/lib64/libc.so.6(__libc_start_main+0xf5)[0x7f510cdd9495]
+./Forkserf[0x482f3f]
+*/
+
 
 void
 Viewport::draw_ai_overlay() {
