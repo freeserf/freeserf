@@ -22,9 +22,13 @@
 #ifndef SRC_FREESERF_H_
 #define SRC_FREESERF_H_
 
-/* The length between game updates in miliseconds. */
-#define TICK_LENGTH  20
-#define TICKS_PER_SEC  (1000/TICK_LENGTH)
+// The length between game updates in miliseconds
+//   this is controlled by SDL_Timer ever TICK_LENGTH which triggers and SDL Event
+//   and is handled by the SDL_WaitEvent inside event_loop-sdl.cc EventLoopSDL::run()
+//   which also handles other SDL Events such as user input immediately
+//#define TICK_LENGTH  20
+//#define TICKS_PER_SEC  (1000/TICK_LENGTH)
+#define DEFAULT_TICK_LENGTH  20
 /* this file doesn't seem to be included by building.cc
     so I am moving it there, and also copying the TICKS_PER_SEC there
 // adding support for requested resource timeouts

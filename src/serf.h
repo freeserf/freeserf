@@ -175,8 +175,8 @@ class Serf : public GameObject {
   //
   // DEBUG stuck serf WaitIdleOnPath issues
   //
-  //bool split_merge_tainted;    // note if serf has ever been involved in a fill_path_data call from a merged/split road
-  unsigned int recent_dest;  // store the most recent destination for each serf, in case they become Lost, try to send another serf.  Flag index
+  bool split_merge_tainted = false;    // note if serf has ever been involved in a fill_path_data call from a merged/split road
+  unsigned int recent_dest = 0;  // store the most recent destination for each serf, in case they become Lost, try to send another serf.  Flag index
 
   union s {
     struct {

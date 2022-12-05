@@ -24,3 +24,6 @@
 
 //const char FREESERF_VERSION[] = VERSION_VCS;
 const char FORKSERF_VERSION[] = VERSION_VCS;
+
+#define DEFAULT_TICK_LENGTH  20
+int tick_length = DEFAULT_TICK_LENGTH;  // I couldn't figure out how else to get it without redefinitions because of the rat's nest of header includes

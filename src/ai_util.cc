@@ -148,13 +148,7 @@ AI::update_buildings() {
   start = std::clock();
 
   AILogDebug["util_update_buildings"] << "start";
-  //AILogVerbose["util_update_buildings"] << "thread #" << std::this_thread::get_id() << " AI is locking mutex inside AI::update_buildings";
-  //game->get_mutex()->lock();
-  //AILogVerbose["util_update_buildings"] << "thread #" << std::this_thread::get_id() << " AI has locked mutex inside AI::update_buildings";
   Game::ListBuildings buildings = game->get_player_buildings(player);
-  //AILogVerbose["util_update_buildings"] << "thread #" << std::this_thread::get_id() << " AI is unlocking mutex inside AI::update_buildings";
-  //game->get_mutex()->unlock();
-  //AILogVerbose["util_update_buildings"] << "thread #" << std::this_thread::get_id() << " AI has unlocked mutex inside AI::update_buildings";
   // reset all to zero
   memset(realm_building_count, 0, sizeof(realm_building_count));
   memset(realm_completed_building_count, 0, sizeof(realm_completed_building_count));
@@ -368,13 +362,7 @@ AI::update_stocks_pos() {
   start = std::clock();
 
   AILogDebug["util_update_stocks_pos"] << "inside AI::update_stocks_pos";
-  //AILogVerbose["util_update_stocks_pos"] << "thread #" << std::this_thread::get_id() << " AI is locking mutex inside AI::update_stocks_pos";
-  //game->get_mutex()->lock();
-  //AILogVerbose["util_update_stocks_pos"] << "thread #" << std::this_thread::get_id() << " AI has locked mutex inside AI::update_stocks_pos";
   Game::ListBuildings buildings = game->get_player_buildings(player);
-  //AILogVerbose["util_update_stocks_pos"] << "thread #" << std::this_thread::get_id() << " AI is unlocking mutex inside AI::update_stocks_pos";
-  //game->get_mutex()->unlock();
-  //AILogVerbose["util_update_stocks_pos"] << "thread #" << std::this_thread::get_id() << " AI has unlocked mutex inside AI::update_stocks_pos";
   stocks_pos = {};
   for (Building *building : buildings) {
     if (building == nullptr)
@@ -645,13 +633,9 @@ AI::build_best_road(MapPos start_pos, RoadOptions road_options, Road *built_road
         if (!map->has_flag(target_pos)){
           AILogDebug["util_build_best_road"] << "" << calling_function << " zzz direct road requested, no flag at target_pos, trying to build one";
           if (game->can_build_flag(target_pos, player)){
-            AILogVerbose["util_build_best_road"] << "" << calling_function << " thread #" << std::this_thread::get_id() << " AI is locking mutex before calling game->build_flag (direct road target_pos has no flag)";
-            game->get_mutex()->lock();
-            AILogVerbose["util_build_best_road"] << "" << calling_function << " thread #" << std::this_thread::get_id() << " AI has locked mutex before calling game->build_flag (direct road target_pos has no flag)";
+            mutex_lock("AI::build_best_road calling game->build_flag (direct road target_pos has no flag)");
             built_flag = game->build_flag(target_pos, player);
-            AILogVerbose["util_build_best_road"] << "" << calling_function << " thread #" << std::this_thread::get_id() << " AI is unlocking mutex after calling game->build_flag (direct road target_pos has no flag)";
-            game->get_mutex()->unlock();
-            AILogVerbose["util_build_best_road"] << "" << calling_function << " thread #" << std::this_thread::get_id() << " AI has unlocked mutex after calling game->build_flag (direct road target_pos has no flag)";
+            mutex_unlock();
             if (built_flag){
               AILogDebug["util_build_best_road"] << "" << calling_function << " zzz direct road requested, built new flag at target_pos";
             }else{
@@ -664,6 +648,7 @@ AI::build_best_road(MapPos start_pos, RoadOptions road_options, Road *built_road
 
       Roads split_roads;  // moving this here inside loop so it isn't accumulating ALL split_roads from ALL real flags
       Road proposed_direct_road = plot_road(map, player_index, start_pos, target_pos, &split_roads);
+
       bool plotted_succesfully = false;
       if (proposed_direct_road.get_length() > 0){
         plotted_succesfully = true;
@@ -709,18 +694,24 @@ AI::build_best_road(MapPos start_pos, RoadOptions road_options, Road *built_road
 
       bool was_built = false;
       if (plotted_succesfully && !convolution_rejected){
-        AILogVerbose["util_build_best_road"] << "" << calling_function << " thread #" << std::this_thread::get_id() << " AI is locking mutex before calling game->build_road (direct road)";
-        game->get_mutex()->lock();
-        AILogVerbose["util_build_best_road"] << "" << calling_function << " thread #" << std::this_thread::get_id() << " AI has locked mutex before calling game->build_road (direct road)";
+        mutex_lock("AI::build_best_road calling game->build_road (direct road)");
         was_built = game->build_road(proposed_direct_road, player);
-        AILogVerbose["util_build_best_road"] << "" << calling_function << " thread #" << std::this_thread::get_id() << " AI is unlocking mutex after calling game->build_road (direct road)";
-        game->get_mutex()->unlock();
-        AILogVerbose["util_build_best_road"] << "" << calling_function << " thread #" << std::this_thread::get_id() << " AI has unlocked mutex after calling game->build_road (direct road)";
+        mutex_unlock();
       }
       if (was_built) {
         AILogDebug["util_build_best_road"] << "" << calling_function << " zzz successfully built direct road directly from flag at " << start_pos << " to flag at " << target_pos;
         //roads_built++;
         *built_road = *(&proposed_direct_road);
+
+        // for debugging, keep track of the largest road built to get an idea of what is a reasonable limit to set for performance reasons
+        //  also, consider making the limit an argument to this function, so that high limits can be allowed for certain roads but low limits
+        //  for others in plot_road AI util function
+        if (proposed_direct_road.get_length() > longest_road_so_far.get_length()){
+          AILogDebug["build_best_road"] << "this road is the new longest road built by this AI so far, with length " << proposed_direct_road.get_length() << ", highlighting it as ai_mark_road";
+          longest_road_so_far = proposed_direct_road; 
+          ai_mark_road = &longest_road_so_far;
+        }
+
         //AILogDebug["util_build_best_road"] << "" << calling_function << " spiderweb road debug, stored proposed_direct_road as built_road (which has mem addr " << built_road << "), proposed_direct_road source " << proposed_direct_road.get_source() << " built_road (should be same) source is " << built_road->get_source();
         return true;
       }
@@ -729,13 +720,9 @@ AI::build_best_road(MapPos start_pos, RoadOptions road_options, Road *built_road
         AILogDebug["util_build_best_road"] << "" << calling_function << " zzz failed to connect specified flag to road system! returning false";
         if (built_flag){
           AILogDebug["util_build_best_road"] << "" << calling_function << " zzz removing newly built flag that was intended to terminate this failed road";
-          AILogVerbose["util_build_best_road"] << "" << calling_function << " thread #" << std::this_thread::get_id() << " AI is locking mutex before calling game->demolish_flag (direct road to new flag failed)";
-          game->get_mutex()->lock();
-          AILogVerbose["util_build_best_road"] << "" << calling_function << " thread #" << std::this_thread::get_id() << " AI has locked mutex before calling game->demolish_flag (direct road to new flag failed)";
+          mutex_lock("AI::build_best_road calling game->demolish_flag (direct road to new flag failed)");
           game->demolish_flag(target_pos, player);
-          AILogVerbose["util_build_best_road"] << "" << calling_function << " thread #" << std::this_thread::get_id() << " AI is unlocking mutex after calling game->demolish_flag (direct road to new flag failed)";
-          game->get_mutex()->unlock();
-          AILogVerbose["util_build_best_road"] << "" << calling_function << " thread #" << std::this_thread::get_id() << " AI has unlocked mutex after calling game->demolish_flag (direct road to new flag failed)";
+          mutex_unlock();
         }
         return false;
       }
@@ -972,7 +959,19 @@ AI::build_best_road(MapPos start_pos, RoadOptions road_options, Road *built_road
       // NOTE - the split_roads vector will be filled by this plot_road call with all potential splitting Road solutions! 
       //
       Roads split_roads;  // moving this here inside loop so it isn't accumulating ALL split_roads from ALL real flags
+      
       Road potential_road = plot_road(map, player_index, start_pos, end_pos, &split_roads, road_options.test(RoadOption::HoldBuildingPos));
+
+      /* this proves the cache is effective!
+      // DEBUG - performance testing plot_road caching  
+      AILogDebug["util_build_best_road"] << " REPEAT cache on";
+      Road perf_test_junk1 = plot_road(map, player_index, start_pos, end_pos, &split_roads, road_options.test(RoadOption::HoldBuildingPos));
+      //use_plot_road_cache = false;
+      AILogDebug["util_build_best_road"] << " REPEAT cache off";
+      Road perf_test_junk2 = plot_road(map, player_index, start_pos, end_pos, &split_roads, road_options.test(RoadOption::HoldBuildingPos));
+      AILogDebug["util_build_best_road"] << " REPEAT DONE";
+      */
+
       // this while(true) loop looks goofy to me but it was the only clean way to do it without a GOTO statement
       while (true){
         if (potential_road.get_length() == 0) {
@@ -1476,13 +1475,9 @@ AI::build_best_road(MapPos start_pos, RoadOptions road_options, Road *built_road
       bool created_new_flag = false;
       if (!map->has_flag(end_pos)) {
         AILogDebug["util_build_best_road"] << "" << calling_function << " end_pos " << end_pos << " has no flag, must be fake flag/split road, trying to create a real flag";
-        AILogVerbose["util_build_best_road"] << "" << calling_function << " thread #" << std::this_thread::get_id() << " AI is locking mutex before calling game->build_flag (split road)";
-        game->get_mutex()->lock();
-        AILogVerbose["util_build_best_road"] << "" << calling_function << " thread #" << std::this_thread::get_id() << " AI has locked mutex before calling game->build_flag (split road)";
+        mutex_lock("AI::build_best_road calling game->build_flag (split road)");
         bool was_built = game->build_flag(end_pos, player);
-        AILogVerbose["util_build_best_road"] << "" << calling_function << " thread #" << std::this_thread::get_id() << " AI is unlocking mutex after calling game->build_flag (split road)";
-        game->get_mutex()->unlock();
-        AILogVerbose["util_build_best_road"] << "" << calling_function << " thread #" << std::this_thread::get_id() << " AI has unlocked mutex after calling game->build_flag (split road)";
+        mutex_unlock();
         if (was_built) {
           AILogDebug["util_build_best_road"] << "" << calling_function << " successfully built new flag at end_pos " << end_pos << ", splitting the road";
           created_new_flag = true;
@@ -1505,18 +1500,24 @@ AI::build_best_road(MapPos start_pos, RoadOptions road_options, Road *built_road
         
       // build the road!
       AILogDebug["util_build_best_road"] << "" << calling_function << " about to build road with source=" << road.get_source() << ", end=" << road.get_end(game->get_map().get());
-      AILogVerbose["util_build_best_road"] << "" << calling_function << " thread #" << std::this_thread::get_id() << " AI is locking mutex before calling game->build_road (non-direct road)";
-      game->get_mutex()->lock();
-      AILogVerbose["util_build_best_road"] << "" << calling_function << " thread #" << std::this_thread::get_id() << " AI has locked mutex before calling game->build_road (non-direct road)";
+      mutex_lock("AI::build_best_road calling game->build_road (non-direct road)");
       bool was_built = game->build_road(road, game->get_player(player_index));
-      AILogVerbose["util_build_best_road"] << "" << calling_function << " thread #" << std::this_thread::get_id() << " AI is unlocking mutex after calling game->build_road (non-direct road)";
-      game->get_mutex()->unlock();
-      AILogVerbose["util_build_best_road"] << "" << calling_function << " thread #" << std::this_thread::get_id() << " AI has unlocked mutex after calling game->build_road (non-direct road)";
+      mutex_unlock();
       if (was_built) {
         roads_built++;
         AILogDebug["util_build_best_road"] << "" << calling_function << " successfully built road from " << start_pos << " to " << end_pos << " as specified in PotentialRoad, roads_built: " << roads_built;
         // set this so the calling function can tell the exact Road built if it needs it
         *built_road = *(&road);
+        
+        // for debugging, keep track of the largest road built to get an idea of what is a reasonable limit to set for performance reasons
+        //  also, consider making the limit an argument to this function, so that high limits can be allowed for certain roads but low limits
+        //  for others in plot_road AI util function
+        if (road.get_length() > longest_road_so_far.get_length()){
+          AILogDebug["build_best_road"] << "this road is the new longest road built by this AI so far, with length " << road.get_length() << ", highlighting it as ai_mark_road";
+          longest_road_so_far = road; 
+          ai_mark_road = &longest_road_so_far;
+        }
+
         continue;
       }
       else {
@@ -1528,13 +1529,9 @@ AI::build_best_road(MapPos start_pos, RoadOptions road_options, Road *built_road
       // if a new flag was built but the road creation failed, destroy the newly built flag
       if (created_new_flag) {
         AILogDebug["util_build_best_road"] << "" << calling_function << " removing the newly created flag at end_pos so it doesn't screw up the rest of the road solutions";
-        AILogVerbose["util_build_best_road"] << "" << calling_function << " thread #" << std::this_thread::get_id() << " AI is locking mutex before calling game->demolish_flag (couldn't connect new flag)";
-        game->get_mutex()->lock();
-        AILogVerbose["util_build_best_road"] << "" << calling_function << " thread #" << std::this_thread::get_id() << " AI has locked mutex before calling game->demolish_flag (couldn't connect new flag)";
+        mutex_lock("AI::build_best_road calling game->demolish_flag (couldn't connect new flag)");
         game->demolish_flag(end_pos, game->get_player(player_index));
-        AILogVerbose["util_build_best_road"] << "" << calling_function << " thread #" << std::this_thread::get_id() << " AI is unlocking mutex after calling game->demolish_flag (couldn't connect new flag)";
-        game->get_mutex()->unlock();
-        AILogVerbose["util_build_best_road"] << "" << calling_function << " thread #" << std::this_thread::get_id() << " AI has unlocked mutex after calling game->demolish_flag (couldn't connect new flag)";
+        mutex_unlock();
       }
       AILogDebug["util_build_best_road"] << "" << calling_function << " done trying to build road from " << start_pos << " to " << end_pos;
 
@@ -1669,13 +1666,7 @@ AI::find_nearest_building(MapPos pos, CompletionLevel level, Building::Type buil
   AILogDebug["util_find_nearest_building"] << "inside find_nearest_building of type " << NameBuilding[building_type] << ", completion_level " << NameCompletionLevel[level] << ", max_dist " << (signed)max_dist << ", and pos " << pos;
   unsigned int shortest_dist = bad_score;
   Building *closest_building = nullptr;
-  //AILogVerbose["util_find_nearest_building"] << "thread #" << std::this_thread::get_id() << " AI is locking mutex before calling game->get_player_buildings";
-  //game->get_mutex()->lock();
-  //AILogVerbose["util_find_nearest_building"] << "thread #" << std::this_thread::get_id() << " AI has locked mutex before calling game->get_player_buildings";
   Game::ListBuildings buildings = game->get_player_buildings(player);
-  //AILogVerbose["util_find_nearest_building"] << "thread #" << std::this_thread::get_id() << " AI is unlocking mutex after calling game->get_player_buildings";
-  //game->get_mutex()->unlock();
-  //AILogVerbose["util_find_nearest_building"] << "thread #" << std::this_thread::get_id() << " AI has unlocked mutex after calling game->get_player_buildings";
   for (Building *building : buildings) {
     if (building == nullptr)
       continue;
@@ -2473,13 +2464,9 @@ AI::build_near_pos(MapPos center_pos, unsigned int distance, Building::Type buil
       bool built_new_flag = false;
       if (!map->has_flag(flag_pos)){
         AILogDebug["util_build_near_pos"] << "no flag yet exists at flag_pos " << flag_pos << " for potential new building of type " << NameBuilding[building_type] << " at pos " << pos << ", trying to build one";
-        AILogVerbose["util_build_near_pos"] << "thread #" << std::this_thread::get_id() << " AI is locking mutex before calling game->demolish_flag (build_near_pos verify_stock test)";
-        game->get_mutex()->lock();
-        AILogVerbose["util_build_near_pos"] << "thread #" << std::this_thread::get_id() << " AI has locked mutex before calling game->demolish_flag (build_near_pos verify_stock test)";
+        mutex_lock("AI::build_near_pos calling game->demolish_flag (build_near_pos verify_stock test)");
         built_new_flag = game->build_flag(flag_pos, player);
-        AILogVerbose["util_build_near_pos"] << "thread #" << std::this_thread::get_id() << " AI is unlocking mutex after calling game->demolish_flag (build_near_pos verify_stock test)";
-        game->get_mutex()->unlock();
-        AILogVerbose["util_build_near_pos"] << "thread #" << std::this_thread::get_id() << " AI has unlocked mutex after calling game->demolish_flag (build_near_pos verify_stock test)";
+        mutex_unlock();
         if (!built_new_flag){
           AILogWarn["util_build_near_pos"] << "failed to build flag at flag_pos " << flag_pos << " for potential new building of type " << NameBuilding[building_type] << " at pos " << pos << "!  skipping this pos";
           continue;
@@ -2510,13 +2497,9 @@ AI::build_near_pos(MapPos center_pos, unsigned int distance, Building::Type buil
             AILogDebug["util_build_best_road"] << "verify_stock for existing flag - flag at flag_pos " << flag_pos << " is not closest to current inventory_pos " << inventory_pos << ", skipping";
             // if a new flag was built, remove it
             if (built_new_flag){
-              AILogVerbose["util_build_near_pos"] << "thread #" << std::this_thread::get_id() << " AI is locking mutex before calling game->demolish_flag (build_near_pos verify_stock test)";
-              game->get_mutex()->lock();
-              AILogVerbose["util_build_near_pos"] << "thread #" << std::this_thread::get_id() << " AI has locked mutex before calling game->demolish_flag (build_near_pos verify_stock test)";
+              mutex_lock("AI::build_near_pos calling game->demolish_flag (build_near_pos verify_stock test)");
               game->demolish_flag(flag_pos, player);
-              AILogVerbose["util_build_near_pos"] << "thread #" << std::this_thread::get_id() << " AI is unlocking mutex after calling game->demolish_flag (build_near_pos verify_stock test)";
-              game->get_mutex()->unlock();
-              AILogVerbose["util_build_near_pos"] << "thread #" << std::this_thread::get_id() << " AI has unlocked mutex after calling game->demolish_flag (build_near_pos verify_stock test)";
+              mutex_unlock();
             }
             // skip this flag/pos and try the next position
             continue;
@@ -2532,13 +2515,9 @@ AI::build_near_pos(MapPos center_pos, unsigned int distance, Building::Type buil
         //ai_mark_pos.erase(pos);
         //ai_mark_pos.insert(std::make_pair(pos, "cyan"));
         //sleep_speed_adjusted(5000);
-        AILogVerbose["util_build_near_pos"] << "thread #" << std::this_thread::get_id() << " AI is locking mutex before calling game->demolish_flag (build_near_pos failed to connect)";
-        game->get_mutex()->lock();
-        AILogVerbose["util_build_near_pos"] << "thread #" << std::this_thread::get_id() << " AI has locked mutex before calling game->demolish_flag (build_near_pos failed to connect)";
+        mutex_lock("AI::build_near_pos calling game->demolish_flag (build_near_pos failed to connect)");
         game->demolish_flag(flag_pos, player);
-        AILogVerbose["util_build_near_pos"] << "thread #" << std::this_thread::get_id() << " AI is unlocking mutex after calling game->demolish_flag (build_near_pos failed to connect)";
-        game->get_mutex()->unlock();
-        AILogVerbose["util_build_near_pos"] << "thread #" << std::this_thread::get_id() << " AI has unlocked mutex after calling game->demolish_flag (build_near_pos failed to connect)";
+        mutex_unlock();
         // mark as bad pos, to avoid repeateadly rebuilding same building in same spot
         bad_building_pos.insert(std::make_pair(pos, building_type));
         // try the next position
@@ -2560,13 +2539,9 @@ AI::build_near_pos(MapPos center_pos, unsigned int distance, Building::Type buil
     } // if is_mine
 
     // try to build it
-    AILogVerbose["util_build_near_pos"] << "thread #" << std::this_thread::get_id() << " AI is locking mutex before calling game->build_building (build_near_pos) of type " << NameBuilding[building_type];
-    game->get_mutex()->lock();
-    AILogVerbose["util_build_near_pos"] << "thread #" << std::this_thread::get_id() << " AI has locked mutex before calling game->build_building (build_near_pos) of type " << NameBuilding[building_type];
+    mutex_lock("AI::build_near_pos calling game->build_building (build_near_pos)");
     bool was_built = game->build_building(pos, building_type, player);
-    AILogVerbose["util_build_near_pos"] << "thread #" << std::this_thread::get_id() << " AI is unlocking mutex after calling game->build_building (build_near_pos) of type " << NameBuilding[building_type];
-    game->get_mutex()->unlock();
-    AILogVerbose["util_build_near_pos"] << "thread #" << std::this_thread::get_id() << " AI has unlocked mutex after calling game->build_building (build_near_pos) of type " << NameBuilding[building_type];
+    mutex_unlock();
     if (!was_built) {
       AILogDebug["util_build_near_pos"] << "failed to build building of type " << NameBuilding[building_type] << " despite can_build being true!  WAITING 10sec - look at the pos in coral!";
       ai_mark_pos.insert(ColorDot(pos, "coral"));
@@ -3050,13 +3025,7 @@ AI::score_enemy_targets(MapPosSet *scored_targets) {
   expand_towards = last_expand_towards;
 
   update_buildings();
-  //AILogVerbose["util_score_enemy_targets"] << "thread #" << std::this_thread::get_id() << " AI is locking mutex before calling game->get_player_buildings(player) (for score_enemy_targets)";
-  //game->get_mutex()->lock();
-  //AILogVerbose["util_score_enemy_targets"] << "thread #" << std::this_thread::get_id() << " AI has locked mutex before calling game->get_player_buildings(player) (for score_enemy_targets)";
   Game::ListBuildings buildings = game->get_player_buildings(player);
-  //AILogVerbose["util_score_enemy_targets"] << "thread #" << std::this_thread::get_id() << " AI is unlocking mutex before calling game->get_player_buildings(player) (for score_enemy_targets)";
-  //game->get_mutex()->unlock();
-  //AILogVerbose["util_score_enemy_targets"] << "thread #" << std::this_thread::get_id() << " AI has unlocked mutex before calling game->get_player_buildings(player) (for score_enemy_targets)";
   std::set<MapPos> unique_enemy_targets = {};
   // foreach my hut in range of attacking enemy
   //    foreach enemy hut within range of attack
@@ -3302,4 +3271,30 @@ AI::flag_and_road_suitable_for_removal(PGame game, PMap map, MapPos flag_pos, Di
   // flag must be eligible if this point reached
   AILogDebug["util_flag_and_road_suitable_for_removal"] << "flag at pos " << flag_pos << " is eligible for removal, road dir is " << *(road_dir) << " / " << NameDirection[*(road_dir)] << ", returning true";
   return true;
+}
+
+
+// lock and unlock mutex during non-threadsafe
+//  iterations and changes between game and AI threads
+// this calls mutex_lock, ut is only separate so that
+//  it can write to ai log instead of main console log
+void
+AI::mutex_lock(const char* message){
+  AILogVerbose["game.cc"] << "inside AI::mutex_lock, thread #" << std::this_thread::get_id() << " about to lock mutex, message: " << message;
+  clock_t start = std::clock();
+  game->get_mutex()->lock();
+  double wait_for_mutex = (std::clock() - start) / static_cast<double>(CLOCKS_PER_SEC);
+  AILogVerbose["game.cc"] << "inside AI::mutex_lock, thread #" << std::this_thread::get_id() << " has locked mutex, message: " << mutex_message << ", waited " << wait_for_mutex << "sec for lock";
+  // store the lock message and start a timer so message and time-in-mutex can be printed on unlock
+  mutex_message = message;
+  mutex_timer_start = std::clock();
+}
+
+void
+AI::mutex_unlock(){
+  // message is known from lock
+  //Log::Error["game.cc"] << "inside Game::mutex_unlock, thread #" << std::this_thread::get_id() << " about to unlock mutex, message: " << mutex_message;
+  double time_in_mutex = (std::clock() - mutex_timer_start) / static_cast<double>(CLOCKS_PER_SEC);
+  game->get_mutex()->unlock();
+  AILogVerbose["game.cc"] << "inside AI::mutex_unlock, thread #" << std::this_thread::get_id() << " has unlocked mutex, message: " << mutex_message << ", spent " << time_in_mutex << "sec holding lock";
 }

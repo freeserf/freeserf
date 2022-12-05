@@ -910,17 +910,13 @@ Player::update() {
 
   if (has_castle()) {
     reproduction_counter -= delta;
-
     while (reproduction_counter < 0) {
       serf_to_knight_counter += serf_to_knight_rate;
       if (serf_to_knight_counter < serf_to_knight_rate) {
         knights_to_spawn += 1;
         if (knights_to_spawn > 2) knights_to_spawn = 2;
       }
-
-    Log::Verbose["game"] << "thread #" << std::this_thread::get_id() << " is locking mutex for Player::update before spawn_serf";
-    game->get_mutex()->lock();
-    Log::Verbose["game"] << "thread #" << std::this_thread::get_id() << " has locked mutex for Player::update before spawn_serf";
+      game->mutex_lock("Player::update before spawn_serf");
       if (knights_to_spawn == 0) {
         // Create unassigned serf
         spawn_serf(nullptr, nullptr, false);
@@ -932,7 +928,6 @@ Player::update() {
           if (inventory->get_count_of(Resource::TypeSword) != 0 &&
               inventory->get_count_of(Resource::TypeShield) != 0) {
             knights_to_spawn -= 1;
-            //inventory->specialize_serf(serf, Serf::TypeKnight0);
             if (inventory->specialize_serf(serf, Serf::TypeKnight0)){
               //Log::Debug["player"] << "inside player->update for player " << index << ", creating knight, successful return from specialize_serf";
             }else{
@@ -941,10 +936,7 @@ Player::update() {
           }
         }
       }
-    Log::Verbose["game"] << "thread #" << std::this_thread::get_id() << " is unlocking mutex for Player::update before spawn_serf";
-    game->get_mutex()->unlock();
-    Log::Verbose["game"] << "thread #" << std::this_thread::get_id() << " has unlocked mutex for Player::update before spawn_serf";
-
+      game->mutex_unlock();
       reproduction_counter += static_cast<int>(reproduction_reset);
     }
   }

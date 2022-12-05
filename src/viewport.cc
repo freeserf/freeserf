@@ -1384,7 +1384,16 @@ Viewport::draw_flag_and_res(MapPos pos, int lx, int ly) {
   }
 
   int pl_num = flag->get_owner();
+  // seeing exceptions when loading a game and switching players where
+  //  ths player index here is -1 and so the get_player_color call fails
+  //  added a work-around to get_player_color because I am not sure why
+  //  a flag owner is being set to invalid.   Might be a save/load thing?
+  // Also, check and throw error here
+  if (pl_num < 0 || pl_num > 3){
+    Log::Error["viewport.cc"] << "inside Viewpot::draw_flag_and_res for MapPos "<< pos << ", flag->get_owner returned invalid player index " << pl_num << "!  get_player_color will return 'black' as a fallback to avoid crashing";
+  }
   Color player_color = interface->get_player_color(pl_num);
+
   int spr = 0x80 + ((interface->get_game()->get_tick() >> 3) & 3);
 
   draw_shadow_and_building_sprite(lx, ly, spr, player_color);
@@ -2745,6 +2754,7 @@ Viewport::draw_serf_row_behind(MapPos pos, int y_base, int cols, int x_base) {
       // got a nullptr here once, adding check
       if (serf == nullptr){
         Log::Warn["viewport.cc"] << "inside draw_serf_row_behind, got nullptr for serf!  not drawing this one";
+        // got a segfault here after the "got nullptr" message, maybe the whole draw call needs to be cancelled?  I guess try that if it happens repeatedly
         continue;
       }
       if (serf->get_state() == Serf::StateMining &&
@@ -2752,8 +2762,8 @@ Viewport::draw_serf_row_behind(MapPos pos, int y_base, int cols, int x_base) {
            serf->get_mining_substate() == 4 ||
            serf->get_mining_substate() == 9 ||
            serf->get_mining_substate() == 10)) {
-            draw_active_serf(serf, pos, x_base, y_base);
-         }
+        draw_active_serf(serf, pos, x_base, y_base);
+      }
     }
   }
 }
@@ -3002,6 +3012,25 @@ Viewport::draw_map_cursor_possible_build() {
   }
 }
 
+// got crash & heap dump once here on linux, though I don't usually leave AI overlay on
+// during long running testing, this was a 4xAI 40 game speed test
+/*
+*** Error in `./Forkserf': double free or corruption (fasttop): 0x00007f5094034e50 ***
+======= Backtrace: =========
+/lib64/libc.so.6(+0x81609)[0x7f510ce38609]
+./Forkserf(_ZN8Viewport15draw_ai_overlayEv+0xd73)[0x4b2183]
+./Forkserf(_ZN8Viewport13internal_drawEv+0x90)[0x4b2dc0]
+./Forkserf(_ZN9GuiObject4drawEP5Frame+0x131)[0x4c8131]
+./Forkserf(_ZN9Interface12handle_eventEPK5Event+0x40)[0x4c27e0]
+./Forkserf(_ZN9EventLoop15notify_handlersEP5Event+0xb2)[0x5e2b22]
+./Forkserf(_ZN9EventLoop11notify_drawEP5Frame+0x21)[0x5e2d31]
+./Forkserf(_ZN12EventLoopSDL3runEv+0x8aa)[0x5e624a]
+./Forkserf(main+0xaf4)[0x441324]
+/lib64/libc.so.6(__libc_start_main+0xf5)[0x7f510cdd9495]
+./Forkserf[0x482f3f]
+*/
+
+
 void
 Viewport::draw_ai_overlay() {
   int x_off = 0;
@@ -3017,6 +3046,7 @@ Viewport::draw_ai_overlay() {
   // got exception here for first time jan04 2022
   ColorDotMap ai_mark_pos = *(ai->get_ai_mark_pos());
   Road *ai_mark_road = ai->get_ai_mark_road();
+  Log::Debug["viewport"] << "Player" << current_player_index << " ai_mark_road has length " << ai_mark_road->get_length();
 
   for (int x_base = x_off; x_base < width + MAP_TILE_WIDTH;
     x_base += MAP_TILE_WIDTH) {
@@ -3067,8 +3097,9 @@ Viewport::draw_ai_overlay() {
   // did I forget this somewhere when copying from Freeserf to Freeserf-with-AI-Plus?
   PGame game = interface->get_game();
   
-  /*
-  // draw road pathfinding
+  //
+  // draw ai_mark_road to highlight any road set by AI
+  //
   MapPos prevpos = ai->get_ai_mark_road()->get_source();
   for (const auto &dir : ai->get_ai_mark_road()->get_dirs()) {
           MapPos thispos = map->move(prevpos, dir);
@@ -3087,7 +3118,6 @@ Viewport::draw_ai_overlay() {
           frame->draw_line(prev_sx, prev_sy, this_sx, this_sy, ai->get_mark_color("white"));
           prevpos = thispos;
   }
-  */
 
   /*
   //
@@ -3186,6 +3216,7 @@ Viewport::draw_ai_overlay() {
   }
   */ //end highlight arterial roads
 
+/*
   //
   // draw spider-web roads
   //
@@ -3219,7 +3250,9 @@ Viewport::draw_ai_overlay() {
       }
     }
   }
+  */
 
+/*
   //
   // draw build_better_roads
   //
@@ -3253,6 +3286,7 @@ Viewport::draw_ai_overlay() {
       }
     }
   }
+  */
 
   // draw AI status text box
   std::string status = ai->get_ai_status();

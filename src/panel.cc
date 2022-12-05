@@ -31,6 +31,8 @@
 #include "src/freeserf.h"
 #include "src/minimap.h"
 
+#include "src/version.h" // for tick_length
+
 PanelBar::PanelBar(Interface *_interface) {
   interface = _interface;
 
@@ -349,8 +351,8 @@ PanelBar::handle_click_left(int cx, int cy, int modifier) {
       timer_length = 60*60;
     }
 
-    interface->get_player()->add_timer(timer_length * TICKS_PER_SEC,
-                                       interface->get_map_cursor_pos());
+    //interface->get_player()->add_timer(timer_length * TICKS_PER_SEC, interface->get_map_cursor_pos());
+    interface->get_player()->add_timer(timer_length * 1000/tick_length, interface->get_map_cursor_pos());
 
     play_sound(Audio::TypeSfxAccepted);
   } else if (cy >= 4 && cy < 36 && cx >= 64) {

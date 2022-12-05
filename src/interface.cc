@@ -43,10 +43,13 @@
 #include "src/ai.h"
 #include "src/game-options.h"
 
+#include "src/version.h" // for tick_length
+
 
 // Interval between automatic save games
 //#define AUTOSAVE_INTERVAL  (5*60*TICKS_PER_SEC)  // this is reasonable for normal play
-#define AUTOSAVE_INTERVAL  (1*60*TICKS_PER_SEC)  // much higher frequency, for debugging
+//#define AUTOSAVE_INTERVAL  (1*60*TICKS_PER_SEC)  // much higher frequency, for debugging
+#define AUTOSAVE_INTERVAL  (5*60*1000/tick_length)  // this is reasonable for normal play
 
 Interface::Interface()
   : building_road_valid_dir(0)
@@ -303,7 +306,8 @@ Interface::open_message() {
   }
 
   msg_flags |= BIT(1);
-  return_timeout = 60*TICKS_PER_SEC;
+  //return_timeout = 60*TICKS_PER_SEC;
+  return_timeout = 60*1000/tick_length;
   play_sound(Audio::TypeSfxClick);
 }
 
@@ -607,6 +611,10 @@ Interface::set_player(unsigned int player_index) {
 
 Color
 Interface::get_player_color(unsigned int player_index) {
+  if (game->get_player(player_index) == nullptr){
+    Log::Error["interface.cc"] << "inside Interface::get_player_color, game->get_player(" << player_index << ") returned nullptr!  why is this invalid?  returning 'black'!";
+    return Color::Color::black;
+  }
   Player::Color player_color = game->get_player(player_index)->get_color();
   Color color(player_color.red, player_color.green, player_color.blue);
   return color;
@@ -994,9 +1002,7 @@ Interface::update() {
     //  note that this is const tick so should save at regular real time interval not game-tick interval (which increases with game speed)
     if (game->get_const_tick() >= AUTOSAVE_INTERVAL + last_autosave_tick){
       Log::Debug["interface"] << "auto-save interval reached, preparing to auto-save game...";
-      Log::Verbose["interface"] << "thread #" << std::this_thread::get_id() << " is locking mutex before auto-saving game";
-      game->get_mutex()->lock();
-      Log::Verbose["interface"] << "thread #" << std::this_thread::get_id() << " has locked mutex before auto-saving game";
+      game->mutex_lock("Interface::update auto-saving game");
       std::string savename = "AUTOSAVE.save";
       Log::Verbose["interface"] << "savegame name is '" << savename << " '";
       if (GameStore::get_instance().quick_save("autosave", game.get())){
@@ -1004,10 +1010,7 @@ Interface::update() {
       } else {
         Log::Warn["interface"] << "FAILED TO SAVE GAME!";
       }
-      Log::Verbose["interface"] << "thread #" << std::this_thread::get_id() << " is unlocking mutex after auto-saving game";
-      game->get_mutex()->unlock();
-      Log::Verbose["interface"] << "thread #" << std::this_thread::get_id() << " has unlocked mutex after auto-saving game";
-
+      game->mutex_unlock();
       last_autosave_tick = game->get_const_tick();
     }
   }

@@ -39,7 +39,7 @@
 #include "src/lookup.h"
 
 #define DEFAULT_GAME_SPEED  2
-
+#define DEFAULT_TICK_LENGTH  20
 #define GAME_MAX_PLAYER_COUNT  4
 
 // these were originally private, inside Game class
@@ -117,6 +117,8 @@ class Game {
   bool signal_ai_exit;
   unsigned int ai_threads_remaining;
   ColorDotMap debug_mark_pos;  // list of positions for LayerDebug to mark
+  std::string mutex_message;  // used for logging why mutex being locked/unlocked
+  clock_t mutex_timer_start;  // used for logging how much time spent with mutex lock
 
  public:
   Game();
@@ -141,8 +143,7 @@ class Game {
   void ai_thread_exiting() { ai_threads_remaining--; Log::Debug["game"] << "ai_thread_exiting, " << ai_threads_remaining << " remain"; }
   void ai_thread_starting() { ai_threads_remaining++; Log::Debug["game"] << "ai_thread_starting, " << ai_threads_remaining << " started"; }
   unsigned int get_ai_thread_count() { return ai_threads_remaining; }
-  // used by AI for many actions that risk vector invalidation and other non-threadsafe things
-  std::mutex * get_mutex() { return &mutex; }
+  std::mutex * get_mutex() { return &mutex; }  // AI uses this to call game mutex lock/unlock while writing log messages to its own AI log
   // used by AI to check if game is paused
   unsigned int get_game_speed() const { return game_speed; }
   // used for Debug overlay LayerDebug to mark MapPos on screen
@@ -257,6 +258,8 @@ class Game {
   unsigned int get_enemy_score(const Player *player) const;
   void building_captured(Building *building);
   void clear_search_id();
+  void mutex_lock(const char* message);
+  void mutex_unlock();
 
 
 

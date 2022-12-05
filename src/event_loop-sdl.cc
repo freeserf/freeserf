@@ -28,6 +28,8 @@
 #include "src/freeserf.h"
 #include "src/video-sdl.h"
 
+#include "src/version.h"  // for tick_length, I couldn't figure out how else to get it without redefinitions because of the rat's nest of header includes
+
 EventLoop &
 EventLoop::get_instance() {
   static EventLoopSDL event_loop;
@@ -54,6 +56,8 @@ EventLoopSDL::EventLoopSDL()
   eventUserTypeStep++;
 }
 
+// note SDL_Timer does not appear to create just a single timer run,
+//  but it initiates a repeating, never-ending Timer!
 Uint32
 EventLoopSDL::timer_callback(Uint32 interval, void *param) {
   EventLoopSDL *eventLoop = static_cast<EventLoopSDL*>(param);
@@ -64,7 +68,7 @@ EventLoopSDL::timer_callback(Uint32 interval, void *param) {
   event.user.data1 = 0;
   event.user.data2 = 0;
   SDL_PushEvent(&event);
-
+  //Log::Error["event_loop-sdl.cc"] << "inside EventLoopSDL::timer_callback, SDL_TimerID returning interval " << interval;
   return interval;
 }
 
@@ -94,7 +98,14 @@ EventLoopSDL::deferred_call(DeferredCall call, void *data) {
 // The code for one iteration of the original game_loop is in game_loop_iter.
 void
 EventLoopSDL::run() {
-  SDL_TimerID timer_id = SDL_AddTimer(TICK_LENGTH, timer_callback, this);
+  // note SDL_Timer does not appear to create just a single timer run,
+  //  but it initiates a repeating, never-ending Timer!  each Timer expiration
+  // triggers an SDL Event that causes the loop to run 
+  Log::Error["event_loop-sdl.cc"] << "tick_length is " << tick_length;
+  //SDL_TimerID timer_id = SDL_AddTimer(TICK_LENGTH, timer_callback, this);
+  // need to detect when tick_interval is changed, and when detected
+  //  stop the SDL Timer and replace it with one using the new tick_interval!
+  SDL_TimerID timer_id = SDL_AddTimer(tick_length, timer_callback, this);
   if (timer_id == 0) {
     return;
   }
@@ -112,11 +123,58 @@ EventLoopSDL::run() {
   Graphics &gfx = Graphics::get_instance();
   Frame *screen = nullptr;
   gfx.get_screen_factor(&screen_factor_x, &screen_factor_y);
+  
+  // for FPS counter
+  int frames = 0;
+  int timenow = time(0);
+  int last_time = timenow;
+  int target_fps = 49;  // default game speed 2 is 49-50fps.  Adjusted later for game_speed
 
+  /* target fps for various speeds (best case scenario, tiny tiny screen, no players active)
+  speed fps
+  3   53/52
+  4   56/55
+  5   59/58
+  6   63/62/61
+  7   67/66
+  8   72/71/70
+  9   77/76
+  10  83/82
+  11  91/90
+  12  97/96 << math says target should be 100fps, 1000/10, this is actually lagging!
+  */
+
+  // it seems freeserf caps FPS at 50 by default, it seems to be controlled by the TICK_LENGTH define# 
+  // and SDL_ADDTimer controls it by creating a timer event every TICK_LENGTH settings intead of using an open SDL_PollEvent
+
+  int last_tick_length = tick_length;
 
   while (SDL_WaitEvent(&event)) {
+
+    //Log::Error["event_loop-sdl.cc"] << "tick_length is " << tick_length;
+    // TRIGGER RESET OF Timer here!
+    if (tick_length != last_tick_length){
+      Log::Debug["event_loop-sdl.cc"] << "tick_length changed from " << last_tick_length << " to " << tick_length << ", resetting SDL Timer";
+      last_tick_length = tick_length;
+      if (SDL_RemoveTimer(timer_id)){
+        Log::Debug["event_loop-sdl.cc"] << "SDL_RemoveTimer successfully removed timer_id " << timer_id;
+      }else{
+        Log::Error["event_loop-sdl.cc"] << "SDL_RemoveTimer failed to remove timer_id " << timer_id << "!";
+        throw ExceptionFreeserf("failed to remove SDL timer when changing game speed!  this would result in multiple timers or other strange behavior");
+        return;
+      }
+      timer_id = SDL_AddTimer(tick_length, timer_callback, this);
+      if (timer_id == 0) {
+        Log::Error["event_loop-sdl.cc"] << "SDL_TimerID returned 0, indicating error setting timer.  If this becomes a problem, add code to capture the error";
+        throw ExceptionFreeserf("failed to re-create SDL timer when changing game speed!  this would result in game stopping or other strange behavior");
+        return;
+      }
+    }
     unsigned int current_ticks = SDL_GetTicks();
     SDL_Keymod mod = SDL_GetModState();
+
+    timenow = time(0); // for FPS counter
+
 
     switch (event.type) {
       case SDL_MOUSEBUTTONUP:
@@ -288,6 +346,19 @@ EventLoopSDL::run() {
         break;
       default:
         if (event.type == eventUserTypeStep) {
+
+          // show frames/updates per second
+          frames++;
+          int time_delta = timenow - last_time;
+          if (time_delta >= 1){
+            target_fps = 1000 / tick_length; // same as TICKS_PER_SEC
+            int fps_lag = target_fps - (frames / time_delta);
+            if (fps_lag < 0){fps_lag = 0;}
+            Log::Debug["event_loop-sdl.cc"] << "in past " << time_delta << "sec, processed " << frames << " frames, target_fps " << target_fps << ", FPS loss:" << fps_lag;
+            frames = 0;
+            last_time = timenow;
+          }
+
           // Update and draw interface
           notify_update();
 
