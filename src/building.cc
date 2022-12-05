@@ -1145,7 +1145,7 @@ Building::update() {
               !inventory->have_any_out_mode() == 0 &&  // Not serf or
                                                        // res OUT mode
               inventory->free_serf_count() == 0) {
-            if (player->tick_send_generic_delay()) {
+            if (player->tick_send_generic_delay()) { // game_speed adjusted for time warp speeds
               send_serf_to_building(Serf::TypeGeneric,
                                     Resource::TypeNone,
                                     Resource::TypeNone);
@@ -1489,7 +1489,7 @@ Building::update_castle() {
         first_knight = serf->get_index();
         player->increase_castle_knights();
       } else {
-        if (player->tick_send_knight_delay()) {
+        if (player->tick_send_knight_delay()) {  // game_speed adjusted for time warp speeds
           send_serf_to_building(Serf::TypeNone,
                                 Resource::TypeNone,
                                 Resource::TypeNone);
@@ -1515,7 +1515,7 @@ Building::update_castle() {
   if (holder &&
       !inventory->have_any_out_mode() && /* Not serf or res OUT mode */
       inventory->free_serf_count() == 0) {
-    if (player->tick_send_generic_delay()) {
+    if (player->tick_send_generic_delay()) {   // game_speed adjusted for time warp speeds
       send_serf_to_building(Serf::TypeGeneric,
                             Resource::TypeNone,
                             Resource::TypeNone);

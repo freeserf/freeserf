@@ -281,6 +281,20 @@ PanelBar::button_click(int button) {
           Interface::CursorTypeRemovableFlag) {
         interface->demolish_object();
       } else {
+        // if QuickDemo is enabled skip the "are you sure?" confirmation for *incomplete* buildings
+        if (option_QuickDemoEmptyBuildSites && interface->get_map_cursor_type() == Interface::CursorTypeBuilding) {
+          Building *building = interface->get_game()->get_building_at_pos(interface->get_map_cursor_pos());
+          if (building == nullptr){
+            Log::Warn["panel.cc"] << "inside PanelBar::button_click for ButtonDestroy, building at pos " << interface->get_map_cursor_pos() << "is nullptr!  breaking early";
+            break;
+          }
+          if (!building->is_done()){
+            Log::Debug["panel.cc"] << "inside PanelBar::button_click for ButtonDestroy, option_QuickDemoEmptyBuildSites is true and this is an unfinished building at pos " << interface->get_map_cursor_pos() << ", not showing confirmation popup";
+            interface->demolish_object();
+            break;
+          }
+        }
+        // show "are you sure" confirmation popup
         panel_btns[0] = ButtonBuildInactive;
         panel_btns[1] = ButtonDestroyInactive;
         panel_btns[2] = ButtonMapInactive;

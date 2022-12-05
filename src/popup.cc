@@ -2685,6 +2685,7 @@ PopupBox::draw_resdir_box() {
   }
 }
 
+// civ<>knight slider, create-knights button, gold-morale %, switch knights, button.  "Knight stomping" icon
 void
 PopupBox::draw_sett_8_box() {
   const int layout[] = {
@@ -2737,6 +2738,7 @@ PopupBox::draw_sett_8_box() {
   draw_green_number(12, 40, static_cast<int>(convertible_to_knights));
 }
 
+// "INVENTORY-priority" order for resources, only used in Evacuation mode for Castle/Stocks (very rarely used)
 void
 PopupBox::draw_sett_6_box() {
   const int layout[] = {

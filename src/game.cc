@@ -998,7 +998,8 @@ Game::update() {
   //   like this, but it sounds possible.
   //  NOTE - in Freeserf there is only "time warp" and the game always runs with SDL_Timer of 20 (20ms between updates)
   //   which results in about 50 "FPS" (i.e. updates per second) maximum.  Adding "cpu warp" is new to Forkserf.
-  int game_ticks_per_update = 2;
+  //int game_ticks_per_update = 2;  // this is a global/extern now
+  game_ticks_per_update = 2;
   if (game_speed == 0){
     game_ticks_per_update = 0;  // paused
   }else if (game_speed == 1){

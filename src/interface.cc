@@ -758,6 +758,7 @@ Interface::demolish_object() {
          building->get_type() == Building::TypeTower ||
          building->get_type() == Building::TypeFortress)) {
       /* TODO */
+      // ... to do what?  -tlongstretch
     }
 
     play_sound(Audio::TypeSfxAhhh);

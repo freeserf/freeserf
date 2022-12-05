@@ -433,7 +433,8 @@ Serf::path_splited(unsigned int flag_1, Direction dir_1,
   // debug stuck serf issues with StateWaitIdleOnPath
   Log::Debug["serf.cc"] << "debug StateWaitIdleOnPath issues: inside Serf::path_splited, a serf of type " << get_type() << " at pos " << get_pos() << " is MERGE/SPLIT TAINTED";
   split_merge_tainted = true;
-  //
+  //  WHY AM I SEEING THIS MESSAGE REPEATED MANY TIMES OVER FOR THE SAME FLAG/SERF FOR THE SAME SPLIT??  is this some kind of bug?
+  //   why would path_splited be called repeatedly?  this was at game speed 30 if it matters
   //
 
   //Log::Debug["serf"] << "inside path_splited for serf with index " << get_index() << " and state " << get_state();

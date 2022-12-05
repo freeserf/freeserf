@@ -216,8 +216,8 @@ class PopupBox : public GuiObject {
   void draw_sett_1_box();
   void draw_sett_2_box();
   void draw_sett_3_box();
-  void draw_knight_level_box();
-  void draw_sett_4_box();
+  void draw_knight_level_box();  // knight staffing level min/max based on threat_level (i.e. how close to enemy)
+  void draw_sett_4_box();  // toolmaker build priority sliders
   void draw_popup_resource_stairs(int order[]);
   void draw_sett_5_box();
   void draw_quit_confirm_box();
@@ -233,8 +233,8 @@ class PopupBox : public GuiObject {
   void draw_transport_info_box();
   void draw_castle_serf_box();
   void draw_resdir_box();
-  void draw_sett_8_box();
-  void draw_sett_6_box();
+  void draw_sett_8_box();  // civ<>knight slider, create-knights button, gold-morale %, switch knights, button.  "Knight stomping" icon
+  void draw_sett_6_box();  // "INVENTORY-priority" order for resources, only used in Evacuation mode for Castle/Stocks (very rarely used)
   void draw_bld_1_box();
   void draw_bld_2_box();
   void draw_bld_3_box();

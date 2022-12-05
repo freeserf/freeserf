@@ -400,8 +400,11 @@ Inventory::specialize_serf(Serf *serf, Serf::Type type) {
 }
 
 // this is ONLY used for creating knights, not serfs
-//  in castle as part of the civilian<>knight slider
-//  and possibly the "create 1-5-10-20 knights" button
+//  and ONLY used by the "castle defending knights" code
+//  i.e. the knights inside the castle reserved for defense
+//  and NOT appearing as idle knights in the Castle Inventory
+// knights created from civ<>knight slider are in Player::update
+//   see 'serf_to_knight_rate' variable
 Serf*
 Inventory::specialize_free_serf(Serf::Type type) {
   if (serfs[Serf::TypeGeneric] == 0) {
