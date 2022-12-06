@@ -50,6 +50,7 @@ bool option_EnableAutoSave = false;
 //bool option_ImprovedPigFarms = false;  // removing this as it turns out the default behavior for pig farms is to require almost no grain
 bool option_CanTransportSerfsInBoats = false;
 bool option_QuickDemoEmptyBuildSites = false;
+bool option_AdvancedDemolition = true;  // DEFAULTING ON WHILE DEVELOPING THIS, LATER DEFAULT TO OFF!
 bool option_TreesReproduce = false;
 bool option_BabyTreesMatureSlowly = false;
 bool option_ResourceRequestsTimeOut = true;  // this is forced true to indicate that the code to make them optional isn't added yet
@@ -641,7 +642,7 @@ Game::send_serf_to_flag_search_cb(Flag *flag, void *d) {
     // non-knight specialist serfs
     //
     if (inv->have_serf((Serf::Type)type)) {
-      // ... already in inventory, call out
+      // ... already idle in inventory, call out
       // if an idle serf of this type already exists, or 5+ free serfs
       //  available to be specialized (I guess the intent is to reserve
       //  four to be made available as transporters?  or knights?)
@@ -694,7 +695,11 @@ Game::send_serf_to_flag_search_cb(Flag *flag, void *d) {
 // Dispatch a non-road-transporter serf from the nearest
 //  *capable* inventory to flags/buildings.  Includes both
 //  knights and specialized/professioal serfs that may require
-//  tools.
+//  tools.  
+// Creates a new specialist/professioal serf or knight if necessary,
+//  which will consume tools/weapons
+// Returns true if a serf was sent, false if it could not be sent
+//
 // The "if have tools" check is done here inside the flagsearch call back
 //  send_serf_to_flag_cb, and the tool consumption
 //  happens here
@@ -727,16 +732,19 @@ Game::send_serf_to_flag(Flag *dest, Serf::Type type, Resource::Type res1,
   data.res1 = res1;  // tool1
   data.res2 = res2;  // tool2
 
-  //Log::Debug["game.cc"] << "inside Game::send_serf_to_flag, before flagsearch, data.inventory = " << data.inventory;
+  // this callback returns true if either an existing idle serf can be sent out from an Inv
+  //  or if a new serf can be created (consuming tools or weapons) and sent out from an Inv
   bool r = FlagSearch::single(dest, send_serf_to_flag_search_cb, true, false, &data);
-  //Log::Debug["game.cc"] << "inside Game::send_serf_to_flag, after flagsearch, data.inventory = " << data.inventory;
 
   if (!r) {
-    // cannot send a serf of this type. previous flagsearch could find no reachable, capable inventory
+    // cannot send a serf of this type. previous flagsearch could find no reachable, capable inventory 
+    //  that has either a serf of requested type sitting idle, or tools to create one
     //Log::Info["game"] << "inside send_serf_to_flag, serf type " << NameSerf[type] << ", request no reachable, capable Inventory found to provide this type of serf";
     return false;
   } else if (data.inventory != NULL) {
     // an Inventory was found that can create a new serf of this type (no idle serf of this type available to call)
+    //  NOTE - if an existing idle serf of requested type was found, and a new one does NOT need to be created,
+    //   then data.inventory would be NULL.  It seems that == NULL means "have one" and != NULL means "create one"
     //Log::Debug["game"] << "inside send_serf_to_flag, serf type " << NameSerf[type] << ", an Inventory was found that can create a new serf of this type";}
     Inventory *inventory = data.inventory;
     Serf *serf = inventory->call_out_serf(Serf::TypeGeneric);
@@ -777,6 +785,8 @@ Game::send_serf_to_flag(Flag *dest, Serf::Type type, Resource::Type res1,
       if (res1 != Resource::TypeNone) inventory->pop_resource(res1);
       if (res2 != Resource::TypeNone) inventory->pop_resource(res2);
     }
+    // an existing idle serf/knight of the requested type was dispatched
+    //  a new one was NOT required to be created and so no tools consumed
     return true;
   }
   return true;
@@ -2180,6 +2190,29 @@ Game::demolish_building(MapPos pos, Player *player) {
 
   Log::Debug["game.cc"] << "inside Game::demolish_building, calling demolish_building_ on building at pos " << pos << " owned by player #" << player->get_index();
   return demolish_building_(pos);
+}
+
+// mark building for demolition
+//  by a Digger serf that is dispatched to it
+//  only used with option_AdvancedDemolition
+bool
+Game::mark_building_for_demolition(MapPos pos, Player *player) {
+  Building *building = buildings[map->get_obj_index(pos)];
+  if (building == nullptr){
+    Log::Warn["game.cc"] << "inside Game::mark_building_for_demolition, building at pos " << pos << " is nullptr!  returning false";
+    return false;
+  }
+  if (building->get_owner() != player->get_index()){
+    Log::Warn["game.cc"] << "inside Game::mark_building_for_demolition, building at pos " << pos << " is not owned by this player!  returning false";
+    return false;
+  }
+  if (building->is_burning()){
+    Log::Warn["game.cc"] << "inside Game::mark_building_for_demolition, building at pos " << pos << " is already on fire!  returning false";
+    return false;
+  }
+  building->call_for_demolition();
+  Log::Debug["game.cc"] << "inside Game::mark_building_for_demolition, pending_demolition set for building at pos " << pos << " owned by player #" << player->get_index();
+  return true;
 }
 
 /* Map pos is lost to the owner, demolish everything. */

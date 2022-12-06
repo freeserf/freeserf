@@ -9,6 +9,7 @@ extern bool option_EnableAutoSave;
 //extern bool option_ImprovedPigFarms;  // removing this as it turns out the default behavior for pig farms is to require almost no grain
 extern bool option_CanTransportSerfsInBoats;
 extern bool option_QuickDemoEmptyBuildSites;
+extern bool option_AdvancedDemolition;
 extern bool option_TreesReproduce;
 extern bool option_BabyTreesMatureSlowly;
 extern bool option_ResourceRequestsTimeOut;

@@ -2471,7 +2471,7 @@ PopupBox::draw_defenders_box() {
   draw_green_string(3, 62, "Defenders:");
 
   /* Draw knights */
-  int next_knight = building->get_first_knight();
+  int next_knight = building->get_holder_or_first_knight();
   for (int i = 0; next_knight != 0; i++) {
     Serf *serf = interface->get_game()->get_serf(next_knight);
     draw_popup_icon(3 + 4*(i%3), 72 + 16*(i/3), 7 + serf->get_type());
@@ -2642,7 +2642,7 @@ PopupBox::draw_resdir_box() {
     draw_custom_icon_box(knights_layout);
 
     /* Follow linked list of knights on duty */
-    int serf_index = building->get_first_knight();
+    int serf_index = building->get_holder_or_first_knight();
     while (serf_index != 0) {
       Serf *serf = interface->get_game()->get_serf(serf_index);
       Serf::Type serf_type = serf->get_type();

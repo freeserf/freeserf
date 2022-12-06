@@ -109,6 +109,7 @@ class Building : public GameObject {
   unsigned int owner;
   /* Building under construction */
   bool constructing;
+  bool pending_demolition; // for option_AdvancedDemolition
   /* Flags */
   size_t threat_level;  // 0 is safest/white flag, 3 is highest threat, thick cross
   bool playing_sfx;
@@ -121,7 +122,7 @@ class Building : public GameObject {
   unsigned int flag;
   /* Stock of this building */
   Stock stock[kMaxStock];
-  unsigned int first_knight;
+  unsigned int holder_or_first_knight;
   int burning_counter;
   int progress;
   union u {
@@ -140,9 +141,9 @@ class Building : public GameObject {
   void link_flag(unsigned int flag_index) { flag = flag_index; }
   void unlink_flag() { flag = 0; }
 
-  bool has_knight() const { return (first_knight != 0); }
-  unsigned int get_first_knight() const { return first_knight; }
-  void set_first_knight(unsigned int serf);
+  bool has_knight() const { return (holder_or_first_knight != 0); }
+  unsigned int get_holder_or_first_knight() const { return holder_or_first_knight; }
+  void set_holder_or_first_knight(unsigned int serf);
 
   int get_burning_counter() const { return burning_counter; }
   void set_burning_counter(int counter) { burning_counter = counter; }
@@ -191,8 +192,13 @@ class Building : public GameObject {
   /* Building is burning. */
   bool is_burning() const { return burning; }
   bool burnup();
+  void call_for_demolition() { pending_demolition = true; }  // for option_AdvancedDemolition
+  //void cancel_demolition() { pending_demolition = false; }  // for option_AdvancedDemolition  NOT IMPLEMENTED YET
+  bool is_pending_demolition() { return pending_demolition; }  // for option_AdvancedDemolition
   /* Building has an associated serf. */
   bool has_serf() const { return holder; }
+  //void evict_holder() { holder = false; active = false; } // used for option_AdvancedDemolition
+  void evict_holder(); // used for option_AdvancedDemolition
   /* Building has succesfully requested a serf. */
   void serf_request_granted() { serf_requested = true; }
   void requested_serf_lost();
@@ -215,9 +221,9 @@ class Building : public GameObject {
   unsigned int get_knight_count() const { return waiting_planks(); }  // wtf is this???
 
   unsigned int waiting_stone() const {
-    return stock[1].available; }  // Stone allways in stock #1
+    return stock[1].available; }  // Stone always in stock #1
   unsigned int waiting_planks() const {
-    return stock[0].available; }  // Planks allways in stock #0
+    return stock[0].available; }  // Planks always in stock #0
   unsigned int military_gold_count() const;
 
   void cancel_transported_resource(Resource::Type res);

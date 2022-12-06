@@ -743,8 +743,12 @@ Interface::extend_road(const Road &road) {
   return 0;
 }
 
+// the human player has clicked the "destroy building" panelbar button
+//  which destroys a flag if possible, or burns a building
+//   includes handling of option_AdvancedDemolition
 void
 Interface::demolish_object() {
+  Log::Debug["interface.cc"] << "inside Interface::demolish_object";
   determine_map_cursor_type();
 
   if (map_cursor_type == CursorTypeRemovableFlag) {
@@ -752,15 +756,51 @@ Interface::demolish_object() {
     game->demolish_flag(map_cursor_pos, player);
   } else if (map_cursor_type == CursorTypeBuilding) {
     Building *building = game->get_building_at_pos(map_cursor_pos);
+    if (building == nullptr){
+      Log::Warn["interface.cc"] << "inside Interface::demolish_object, building at pos " << map_cursor_pos << " is nullptr!  returning early";
+      return;
+    }
+  
+    //if (false){
+    if (option_AdvancedDemolition){
+      Log::Debug["interface.cc"] << "inside Interface::demolish_object, option_AdvancedDemolition is on";
+      // building must be fully completed to require serf for demolition
+      // Exclude Stocks, let them be "self burnt".  For now.  I guess could check and see if
+      //  stock has or can produce a Leveler that can be made to burn it
+      // other serf Holder will be immediately sent back to nearest Inventory
+      if (building->is_done() && building->get_type() != Building::TypeStock && building->get_type() != Building::TypeCastle){
+        
+        // then the digger arrives, this bool tells him to burn it instead of doing the normal leveling routine
+        if (game->mark_building_for_demolition(map_cursor_pos, player)){
+          Log::Info["interface.cc"] << "inside Interface::demolish_object, option_AdvancedDemolition is on, successfully marked building for deletion";
+        }else{
+          Log::Warn["interface.cc"] << "inside Interface::demolish_object, option_AdvancedDemolition is on, failed marked building for deletion, is it not mine?? returning early";
+          return;
+        }
 
-    if (building->is_done() &&
-        (building->get_type() == Building::TypeHut ||
-         building->get_type() == Building::TypeTower ||
-         building->get_type() == Building::TypeFortress)) {
-      /* TODO */
-      // ... to do what?  -tlongstretch
+        // immediately evict the Holder serf
+        // knights in military buildings should not abandon their post until the building is actually on fire
+        // buildings with no Holder have nobody to evict
+        if (!building->is_military() && building->has_serf()){
+          Log::Info["interface.cc"] << "inside Interface::demolish_object, option_AdvancedDemolition is on, evicting the Holder of this building";
+          building->evict_holder();
+        }
+
+        // call a Digger to the building so he can burn it and clear the building site
+        Flag *dest_flag = game->get_flag(building->get_flag_index());
+        if (dest_flag == nullptr){
+          Log::Error["interface.cc"] << "inside Interface::demolish_object, Flag* for building with pos " << map_cursor_pos << " is nullptr!";
+          throw ExceptionFreeserf("inside Interface::demolish_object, Flag* for building is nullptr!  cannot call demolition");
+        }
+        Log::Info["interface.cc"] << "inside Interface::demolish_object, calling a Digger to demolish & clear building of type " << NameBuilding[building->get_type()] << " at pos " << map_cursor_pos;
+        play_sound(Audio::TypeSfxAccepted);
+        game->send_serf_to_flag(dest_flag, Serf::TypeDigger, Resource::TypeShovel, Resource::TypeNone);
+        return;
+      }
     }
 
+    // handle normal demo (either option_AdvancedDemolition is not enabled, or
+    //                      the building type or state is not eligible for it)
     play_sound(Audio::TypeSfxAhhh);
     game->demolish_building(map_cursor_pos, player);
   } else {

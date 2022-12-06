@@ -206,6 +206,7 @@ class Game {
   bool demolish_road(MapPos pos, Player *player);
   bool demolish_flag(MapPos pos, Player *player);
   bool demolish_building(MapPos pos, Player *player);
+  bool mark_building_for_demolition(MapPos pos, Player *player);
 
   void set_inventory_resource_mode(Inventory *inventory, int mode);
   void set_inventory_serf_mode(Inventory *inventory, int mode);

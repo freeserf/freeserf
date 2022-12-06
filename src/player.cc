@@ -560,7 +560,7 @@ Player::start_attack() {
                                          Serf::TypeKnight4;
       int best_index = -1;
 
-      int knight_index = b->get_first_knight();
+      int knight_index = b->get_holder_or_first_knight();
       while (knight_index != 0) {
         Serf *knight = game->get_serf(knight_index);
         if (send_strongest()) {
@@ -827,7 +827,7 @@ Player::create_initial_castle_serfs(Building *castle) {
   game->get_map()->set_serf_index(serf->get_pos(), serf->get_index());
 
   Building *building_ = game->get_building(building);
-  building_->set_first_knight(serf->get_index());
+  building_->set_holder_or_first_knight(serf->get_index());
 
   /* Spawn generic serfs */
   for (int i = 0; i < 5; i++) {

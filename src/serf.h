@@ -156,7 +156,10 @@ class Serf : public GameObject {
      original save game. */
     StateKnightAttackingDefeatFree,
     StateWaitForBoat,   // to support option_CanTransportSerfsInBoats
-    StateBoatPassenger  // to support option_CanTransportSerfsInBoats
+    StateBoatPassenger, // to support option_CanTransportSerfsInBoats
+    StateExitBuildingForDemolition,    // to support option_AdvancedDemolotion 
+    StateObservingDemolition,          // to support option_AdvancedDemolotion
+    StateCleaningRubble                // to support option_AdvancedDemolotion
   } State;
 
  protected:
@@ -435,8 +438,9 @@ class Serf : public GameObject {
   void path_merged2(unsigned int flag_1, Direction dir_1,
                     unsigned int flag_2, Direction dir_2);
   void flag_deleted(MapPos flag_pos);
-  bool building_deleted(MapPos building_pos, bool escape);
-  void castle_deleted(MapPos castle_pos, bool transporter);
+  bool castle_deleted(MapPos building_pos, bool escape);       // these two function names were reversed in Freeserf!
+  //void building_deleted(MapPos castle_pos, bool transporter);  // these two function names were reversed in Freeserf!
+  void building_deleted(MapPos castle_pos);  // I don't think the 'transporter' toggle is needed anymore
   bool change_transporter_state_at_pos(MapPos pos, State state);
   void restore_path_serf_info();
   void clear_destination(unsigned int dest);
@@ -472,7 +476,7 @@ class Serf : public GameObject {
 
   Serf *extract_last_knight_from_list();
   void insert_before(Serf *knight);
-  unsigned int get_next() const { return s.defending.next_knight; }
+  unsigned int get_next() const { return s.defending.next_knight; }  // this should be called "get_next_defender" not just "get_next"!
   void set_next(int next) { s.defending.next_knight = next; }
 
   // AI addition to help debug lack of serf transporter issue/bug
@@ -606,6 +610,9 @@ class Serf : public GameObject {
   void handle_serf_defending_castle_state();
   void handle_serf_wait_for_boat_state();
   void handle_serf_boat_passenger_state();
+  void handle_serf_exit_building_for_demolition_state();
+  void handle_serf_observing_demolition_state();
+  void handle_serf_cleaning_rubble_state();
 };
 
 #endif  // SRC_SERF_H_

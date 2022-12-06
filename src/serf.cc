@@ -174,6 +174,8 @@ static const int counter_from_animation[] = {
 };
 
 
+// this ref table is annoying and useless
+//   remove it entirely from the game
 static const char *serf_state_name[] = {
   "NULL",  // SERF_STATE_NULL
   "IDLE IN STOCK",  // SERF_STATE_IDLE_IN_STOCK
@@ -257,6 +259,9 @@ static const char *serf_state_name[] = {
   "KNIGHT ATTACKING DEFEAT FREE",  // SERF_STATE_KNIGHT_ATTACKING_DEFEAT_FREE
   "WAIT FOR BOAT",  // SERF_STATE_WAIT_FOR_BOAT
   "PASSENGER IN BOAT",  // SERF_STATE_PASSENGER_IN_BOAT
+  "EXITING BUILDING TO DEMO",
+  "OBSERVING DEMOLITION",
+  "CLEANING UP RUBBLE"
 };
 
 
@@ -621,12 +626,17 @@ Serf::flag_deleted(MapPos flag_pos) {
   }
 }
 
+// when a Castle or Stock is destroyed
+//  up to 12 serfs are allowed to escape
+//  the rest are killed
 bool
-Serf::building_deleted(MapPos building_pos, bool escape) {
-  if (pos == building_pos &&
-      (state == StateIdleInStock || state == StateReadyToLeaveInventory)) {
+Serf::castle_deleted(MapPos castle_pos, bool escape) {
+  // I'm not sure what other state serfs in a castle could have, maybe this is to avoid
+  //  breaking serfs that are in the out-queue or something like that?
+  if (pos == castle_pos && (state == StateIdleInStock || state == StateReadyToLeaveInventory)) {
     if (escape) {
       /* Serf is escaping. */
+      // he will walk to his building flag and then go back to an Inv
       state = StateEscapeBuilding;
     } else {
       /* Kill this serf. */
@@ -635,25 +645,34 @@ Serf::building_deleted(MapPos building_pos, bool escape) {
     }
     return true;
   }
-
   return false;
 }
 
+// removing the 'bool transporter' arg as I think it confuses things
+//  and the only time it is needed is for Stock/Castle destruction
+//  and that is already handled prior to calling this function (inside Building::burnup)
 void
-Serf::castle_deleted(MapPos castle_pos, bool transporter) {
-  if ((!transporter || (get_type() == TypeTransporterInventory)) &&
-      pos == castle_pos) {
-    if (transporter) {
-      set_type(TypeTransporter);
-    }
-  }
-
+//Serf::building_deleted(MapPos building_pos, bool transporter) {
+Serf::building_deleted(MapPos building_pos) {
+  // I think this sets holder of a destroyed Stock or Castle from 
+  //  TypeTransporterInventory back to a normal Transporter serf
+  //  because TypeTransporterInventory isn't a "real" serf occupation
+  // UPDATE - it seems the code that calls building_deleted already checks for
+  //  TypeTransporterInventory and is less convolute than this, simply removing this check
+  //  which was part of Freeserf code
+  //if ((!transporter || (get_type() == TypeTransporterInventory)) && pos == building_pos) {
+  //  if (transporter) {
+  //    set_type(TypeTransporter);
+  //  }
+  //}
   counter = 0;
-
+  // if serf Holder is out working somewhere...
   if (game->get_map()->get_serf_index(pos) == index) {
+    // ...set him to Lost, he will return to his building flag and then go back to an Inv
     set_state(StateLost);
     s.lost.field_B = 0;
   } else {
+    // ...otherwise have him leave building, he will walk to his building flag and then go back to an Inv
     set_state(StateEscapeBuilding);
   }
 }
@@ -2282,10 +2301,34 @@ Serf::handle_serf_entering_building_state() {
         if (s.entering_building.field_B == -2) {
           enter_inventory();
         } else {
+          Building *building = game->get_building_at_pos(pos);
+
+          // handle option_AdvancedDemolition
+          if (building->is_pending_demolition()){
+            Log::Warn["serf.cc"] << "inside Serf::handle_serf_entering_building_state, building is_pending_demolition";
+            // sanity check
+            if (building->get_progress() > 1 || !option_AdvancedDemolition){
+              Log::Warn["serf.cc"] << "inside Serf::handle_serf_entering_building_state, a Digger about to enter a building is being set to StateLost because the building is not eligible for demo!";
+              Log::Warn["serf.cc"] << "inside Serf::handle_serf_entering_building_state, a Digger about to enter a building is being set to StateLost because the building is not eligible for demo! progress is " << building->get_progress();
+              set_state(StateLost);
+              break;
+            }
+            Log::Warn["serf.cc"] << "inside Serf::handle_serf_entering_building_state, building is_pending_demolition, setting this Digger to StateExitBuildingForDemolition";
+            //counter = 1000;
+            counter = 200;
+            //counter = 0;
+            animation = 82;
+            tick = game->get_tick();
+            set_state(StateExitBuildingForDemolition);
+            break;
+          }else{
+            Log::Warn["serf.cc"] << "inside Serf::handle_serf_entering_building_state, building IS NOT pending_demolition";
+          }
+
+          // handle normal "digging/leveling a new Large building site" behavior
           set_state(StateDigging);
           s.digging.h_index = 15;
 
-          Building *building = game->get_building_at_pos(pos);
           s.digging.dig_pos = 6;
           s.digging.target_h = building->get_level();
           s.digging.substate = 1;
@@ -2625,8 +2668,8 @@ Serf::handle_serf_entering_building_state() {
               counter = 6000;
 
               /* Prepend to knight list */
-              s.defending.next_knight = building->get_first_knight();
-              building->set_first_knight(get_index());
+              s.defending.next_knight = building->get_holder_or_first_knight();
+              building->set_holder_or_first_knight(get_index());
 
               game->get_player(
                               building->get_owner())->increase_castle_knights();
@@ -2656,8 +2699,8 @@ Serf::handle_serf_entering_building_state() {
             counter = 6000;
 
             /* Prepend to knight list */
-            s.defending.next_knight = building->get_first_knight();
-            building->set_first_knight(get_index());
+            s.defending.next_knight = building->get_holder_or_first_knight();
+            building->set_holder_or_first_knight(get_index());
           }
         }
         break;
@@ -6358,10 +6401,89 @@ Serf::handle_serf_wait_for_boat_state() {
 
 void
 Serf::handle_serf_boat_passenger_state() {
-  //Log::Info["serf"] << "debug: a serf at pos " << pos << " is in state Serf::BoatPassenger";
+  //Log::Info["serf"] << "debug: a serf at pos " << pos << " is in state Serf::StateBoatPassenger";
   // do nothing
   // in fact, this state should never be checked because serfs in BoatPassenger 
   //  state do not have an attached map pos and so should never be checked for drawing/update?
+}
+
+void
+Serf::handle_serf_exit_building_for_demolition_state() {
+  Log::Info["serf.cc"] << "inside Serf::handle_serf_exit_building_for_demolition_state, a serf at pos " << pos << " is in state Serf::StateExitBuildingForDemolition";
+  // copied leaving_building state for now...
+  uint16_t delta = game->get_tick() - tick;
+  tick = game->get_tick();
+  counter -= delta;
+  // copied from leave_building_state
+  int slope;
+  Building *building = game->get_building_at_pos(pos);
+  if (building == nullptr){
+    Log::Warn["serf"] << "inside Serf::handle_serf_exit_building_for_demolition_state, got nullptr for building at pos " << pos << ", trying a safe default slope value";
+    slope = 30;
+  }else{
+    slope = 31 - road_building_slope[building->get_type()];
+    if (!building->is_done()) slope = 30;
+  }
+  PMap map = game->get_map();
+  Log::Info["serf.cc"] << "inside Serf::handle_serf_exit_building_for_demolition_state, counter = " << counter << ", slope = " << slope;
+  // THE PROBLEM HERE IS
+  //  normally, a serf cannot leave a building until the flag is freed (actually, test this by demolishing a building
+  //   while a transporter is at the flag)
+  //  I think that when a serf leaves a building their pos is updated to be the flag pos, so the walking animation DownRight beings at the
+  //  center of the building.  If ther serf is still at the pos of the building, they will be showing as walking from a pos up-left of the 
+  //  building about to be burned.  Because this demo serf isn't actually occupying the building-flag-pos, I don't want to have to wait
+  //  for him to be able to occupy the flag pos (what if it is blocked? and we dont' want the demo serf hogging the pos either)
+  //  This will be a problem because I think even if I fake the serf pos inside the Serf object, the Map won't see him at the flag pos
+  //  and won't draw him in the flag pos (CHECK THIS, IT MIGHT ACTUALLY WORK IF IT USES MAP->pos TO FIND THE SERF AND Serf->pos TO
+  //  DETERMINE DRAW OFFSET (unlikely, though)
+  //  - possible to hack the viewport to allow drawing serfs in this state one tile over?
+  //  - possible that an animation value can be set that draws the serf in the desired position? (unlikely)
+  //  - SEE HOW THIS IS HANDLED FOR BURNT BUILDINGS!  I sort of suspect that a serf at the flag somehow does not stop a burning
+  //     building's occupants from exiting, but not sure
+  //
+  animation = get_walking_animation(map->get_height(pos) - map->get_height(map->move_down_right(pos)), Direction::DirectionDownRight, 0);
+  //counter += (slope * counter_from_animation[animation]) >> 5;
+
+  if (counter < 0) {
+    Log::Info["serf.cc"] << "inside Serf::handle_serf_exit_building_for_demolition_state, triggering next state";
+    if (building == nullptr){
+      Log::Warn["serf.cc"] << "inside Serf::handle_serf_exit_building_for_demolition_state, building is nullptr! setting serf to state Lost";
+      set_state(Serf::StateLost);
+      return;
+    }
+    building->burnup();
+    counter = 0;
+    set_state(Serf::StateObservingDemolition);
+  }
+}
+
+void
+Serf::handle_serf_observing_demolition_state() {
+  Log::Info["serf.cc"] << "inside Serf::handle_serf_observing_demolition_state, a serf at pos " << pos << " is in state Serf::StateObservingDemolition";
+  // face the building (always up-left / Dir 3)
+  animation = 81 + 3;
+  counter = 0;  // is this needed?
+  Building *building = game->get_building_at_pos(pos);
+  if (building == nullptr){
+    Log::Warn["serf.cc"] << "inside inside Serf::handle_serf_observing_demolition_state, building-to-be-demolished expected at pos " << pos << " is nullptr!  setting this serf to StateLost";
+    set_state(Serf::StateLost);
+    return;
+  }
+  if (building->is_burning()){
+    Log::Debug["serf.cc"] << "inside inside Serf::handle_serf_observing_demolition_state, building is still burning, check again next update";
+    return;
+  }
+  // building has finished burning, go clean it up
+  Log::Debug["serf.cc"] << "inside inside Serf::handle_serf_observing_demolition_state, building has finished burning, changing to Serf::StateCleaningRubble";
+  set_state(Serf::StateCleaningRubble);
+}
+
+void
+Serf::handle_serf_cleaning_rubble_state() {
+  Log::Info["serf.cc"] << "inside Serf::handle_serf_cleaning_rubble_state, a serf at pos " << pos << " is in state Serf::StateCleaningRubble";
+  // just call Digging state for now, will crash
+  counter = 0;
+  set_state(Serf::StateDigging);
 }
 
 
@@ -6602,6 +6724,15 @@ Serf::update() {
     break;
   case StateBoatPassenger:
     handle_serf_boat_passenger_state();
+    break;
+  case StateExitBuildingForDemolition:
+    handle_serf_exit_building_for_demolition_state();
+    break;
+  case StateObservingDemolition:
+    handle_serf_observing_demolition_state();
+    break;
+  case StateCleaningRubble:
+    handle_serf_cleaning_rubble_state();
     break;
   default:
     Log::Debug["serf"] << "Serf state " << state << " isn't processed";

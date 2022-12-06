@@ -34,6 +34,7 @@ Building::Building(Game *game, unsigned int index)
   , stock{} {
   type = TypeNone;
   constructing = true; /* Unfinished building */
+  pending_demolition = false;  // for option_AdvancedDemolition
   flag = 0;
   playing_sfx = false;
   threat_level = 0;  // 0 is safest/white flag, 3 is highest threat, thick cross
@@ -60,7 +61,7 @@ Building::Building(Game *game, unsigned int index)
     }
   }
 
-  first_knight = 0;
+  holder_or_first_knight = 0;
   burning_counter = 0;
 }
 
@@ -135,7 +136,7 @@ void
 Building::done_leveling() {
   progress = 1;
   holder = false;
-  first_knight = 0;
+  holder_or_first_knight = 0;
 }
 
 bool
@@ -151,7 +152,7 @@ Building::build_progress() {
 
   progress = 0;
   constructing = false; /* Building finished */
-  first_knight = 0;
+  holder_or_first_knight = 0;
 
   if (type == TypeCastle) {
     return true;
@@ -218,8 +219,8 @@ Building::increase_mining(int res) {
 }
 
 void
-Building::set_first_knight(unsigned int serf) {
-  first_knight = serf;
+Building::set_holder_or_first_knight(unsigned int serf) {
+  holder_or_first_knight = serf;
 
   /* Test whether building is already occupied by knights */
   if (!active) {
@@ -266,11 +267,11 @@ Building::call_defender_out() {
   }
 
   /* The last knight in the list has to defend. */
-  Serf *first_serf = game->get_serf(first_knight);
+  Serf *first_serf = game->get_serf(holder_or_first_knight);
   Serf *def_serf = first_serf->extract_last_knight_from_list();
 
-  if (def_serf->get_index() == first_knight) {
-    first_knight = 0;
+  if (def_serf->get_index() == holder_or_first_knight) {
+    holder_or_first_knight = 0;
   }
 
   return def_serf;
@@ -281,11 +282,11 @@ Building::call_attacker_out(int) {
   stock[0].available -= 1;
 
   /* Unlink knight from list. */
-  Serf *first_serf = game->get_serf(first_knight);
+  Serf *first_serf = game->get_serf(holder_or_first_knight);
   Serf *def_serf = first_serf->extract_last_knight_from_list();
 
-  if (def_serf->get_index() == first_knight) {
-    first_knight = 0;
+  if (def_serf->get_index() == holder_or_first_knight) {
+    holder_or_first_knight = 0;
   }
 
   return def_serf;
@@ -593,9 +594,9 @@ bool
 Building::knight_come_back_from_fight(Serf *knight) {
   if (is_enough_place_for_knight()) {
     stock[0].available += 1;
-    Serf *serf = game->get_serf(first_knight);
+    Serf *serf = game->get_serf(holder_or_first_knight);
     knight->insert_before(serf);
-    first_knight = knight->get_index();
+    holder_or_first_knight = knight->get_index();
     return true;
   }
 
@@ -612,6 +613,39 @@ Building::knight_occupy() {
   }
 }
 
+
+// for use with option_AdvancedDemolition
+// send the Holder serf out and have him go back to Inv
+//  or just have him go to his flag and then back to Inv
+// mark the building as inactive
+// update the building to have no holder
+// anything else that is normally done to make a building "burning"
+//  without actually setting it to burn yet
+void
+Building::evict_holder() {
+  Log::Info["building.cc"] << "start of Building::evict_holder";
+  remove_stock();
+  stop_playing_sfx();
+  unsigned int _serf_index = holder_or_first_knight;
+  holder = false;
+  if (_serf_index < 1){
+    Log::Error["building.cc"] << "inside Building::evict_holder(), holder_or_first_knight has serf index #" << _serf_index << "! this means no holder or some other issue, investigate";
+    return;
+  }
+  Serf *serf = game->get_serf(_serf_index);
+  if (serf == nullptr){
+    Log::Error["building.cc"] << "inside Building::evict_holder(), game->get_serf returned nullptr for holder_or_first_knight with serf index #" << _serf_index << "!  investigate";
+    return;
+  }
+  // I guess this is okay to leave in case I end up making this handle Stocks, so it isn't forgotten
+  if (serf->get_type() == Serf::TypeTransporterInventory) {
+    serf->set_type(Serf::TypeTransporter);
+  }
+  serf->building_deleted(pos);  // this is what actually evicts the serf
+  Log::Info["building.cc"] << "done Building::evict_holder(), successfully evicted holder";
+  return;
+}
+
 bool
 Building::burnup() {
   if (is_burning()) {
@@ -621,6 +655,7 @@ Building::burnup() {
   burning = true;
 
   /* Remove lost gold stock from total count. */
+  // it seems dumb that gold would be wasted in this way, but that is how the original game handles it
   if (!constructing &&
       (get_type() == TypeHut ||
        get_type() == TypeTower ||
@@ -644,11 +679,13 @@ Building::burnup() {
     }else{
       Log::Warn["building.cc"] << "inside Building::burnup, this is a Castle/Stock that is NOT ACTIVE, NOT deleting its inventory from game";
     }
-
-    /* Let some serfs escape while the building is burning. */
+    // up to 12 serfs can escape while the Castle/Stock is burning (the rest are killed)
     unsigned int escaping_serfs = 0;
     for (Serf *serf : game->get_serfs_at_pos(pos)) {
-      if (serf->building_deleted(pos, escaping_serfs < 12)) {
+      // it might be nice if professional serfs were prioritized for escape, but I guess that isn't realistic!
+      //  this function basically results in a bunch of useless Generic serfs clogging up the roads, though it makes
+      //  a nice visual effect and the road-clogging mob is a realistic outcome
+      if (serf->castle_deleted(pos, escaping_serfs < 12)) {
         escaping_serfs++;
       }
     }
@@ -656,17 +693,11 @@ Building::burnup() {
     active = false;
   }
 
-  /* Remove stock from building. */
   remove_stock();
-
   stop_playing_sfx();
-
-  // why is first_knight sometimes still serf index 0??
-  //  seeing issue when burning buildings, the serf->castle_deleted
-  //  call below fails because the serf is invalid.  For now trying
-  //  to simply work around it and skip that if serf index is zero
-  unsigned int _serf_index = first_knight;
+  unsigned int _serf_index = holder_or_first_knight;
   burning_counter = 2047;
+
   //
   // adding support for option_QuickDemoEmptyBuildSites
   //
@@ -698,35 +729,46 @@ Building::burnup() {
   Player *player = game->get_player(owner);
   player->building_demolished(this);
 
+  // NOTE - holder can be a specialist/professional serf occupying the building
+  //    OR one or more knights garrisoned inside
+  //    OR a Builder (or Digger?) that is constructing the building
   if (holder) {
     holder = false;
 
-    if (!constructing && (type == TypeCastle)) {
+    if (!constructing && type == TypeCastle) {
+      // castles burn for much longer than other buildings
       set_burning_counter(8191);
-
-      for (Serf *serf : game->get_serfs_at_pos(pos)) {
-        serf->castle_deleted(pos, true);
-      }
     }
-
+    
     if (!constructing && is_military()) {
+      // military buildings can have multiple knights, so they must
+      //  all be sent out one after another
+      // NOTE - the castle is_military building, but if it is burning it
+      //  should not have any knights, because they would have died defending it!
       while (_serf_index != 0) {
         Serf *serf = game->get_serf(_serf_index);
-        _serf_index = serf->get_next();
-
-        serf->castle_deleted(pos, false);
+        // get the index of the next knight garrisoned in this building (NOT just next serf index # in the player's Serfs list!)
+        _serf_index = serf->get_next();  // this should be called "get_next_defender", because that is what it does
+        serf->building_deleted(pos);
       }
     } else {
-      // avoid crash when first_knight serf index is zero causing nullptr below
+      // if a building has a holder, the holder must be evicted
+      // NOTE that there is no '!constructing' check here so this
+      //  runs even on incomplete buildings
+
+      // avoid crash when holder_or_first_knight serf index is zero causing nullptr below
       //  not sure of root cause of that, see it when burning buildings
       if (_serf_index < 1){
-        Log::Warn["building"] << "ERROR:  _serf_index / first_knight has serf index zero, invalid!  for building at pos " << pos << " of type " << NameBuilding[type] << "!  not calling serf->castle_deleted function";
+        Log::Warn["building"] << "ERROR:  _serf_index / holder_or_first_knight has serf index zero, invalid!  for building at pos " << pos << " of type " << NameBuilding[type] << "!  not calling serf->building_deleted function";
       }else{
         Serf *serf = game->get_serf(_serf_index);
+        // the Holder serf of a Castle or Stock has pseudo-type TypeTransporterInventory
+        //  and must be converted to a normal Transporter because TypeTransporter isn't a real job category
+        //  for idle serfs in Inventories
         if (serf->get_type() == Serf::TypeTransporterInventory) {
           serf->set_type(Serf::TypeTransporter);
         }
-        serf->castle_deleted(pos, false);
+        serf->building_deleted(pos);
       }
     }
   }
@@ -814,7 +856,7 @@ void
 Building::requested_serf_reached(Serf *serf) {
   holder = true;
   if (serf_requested) {
-    first_knight = serf->get_index();
+    holder_or_first_knight = serf->get_index();
   }
   serf_requested = false;
 }
@@ -1420,9 +1462,7 @@ Building::update_unfinished_adv() {
 
   /* Request digger */
   if (!serf_request_failed) {
-    serf_request_failed = !send_serf_to_building(Serf::TypeDigger,
-                                                 Resource::TypeShovel,
-                                                 Resource::TypeNone);
+    serf_request_failed = !send_serf_to_building(Serf::TypeDigger, Resource::TypeShovel, Resource::TypeNone);
   }
 }
 
@@ -1441,7 +1481,7 @@ Building::update_castle() {
   if (player->get_castle_knights() == player->get_castle_knights_wanted()) {
     Serf *best_knight = NULL;
     Serf *last_knight = NULL;
-    unsigned int next_serf_index = first_knight;
+    unsigned int next_serf_index = holder_or_first_knight;
     while (next_serf_index != 0) {
       Serf *serf = game->get_serf(next_serf_index);
       if (serf == nullptr) {
@@ -1485,8 +1525,8 @@ Building::update_castle() {
         Serf *serf = inventory->specialize_free_serf(Serf::TypeKnight0);
         inventory->call_internal(serf);
 
-        serf->add_to_defending_queue(first_knight, false);
-        first_knight = serf->get_index();
+        serf->add_to_defending_queue(holder_or_first_knight, false);
+        holder_or_first_knight = serf->get_index();
         player->increase_castle_knights();
       } else {
         if (player->tick_send_knight_delay()) {  // game_speed adjusted for time warp speeds
@@ -1498,16 +1538,16 @@ Building::update_castle() {
     } else {
       /* Prepend to knights list */
       Serf *serf = inventory->call_internal(knight_type);
-      serf->add_to_defending_queue(first_knight, true);
-      first_knight = serf->get_index();
+      serf->add_to_defending_queue(holder_or_first_knight, true);
+      holder_or_first_knight = serf->get_index();
       player->increase_castle_knights();
     }
   } else {
     player->decrease_castle_knights();
 
-    int _serf_index = first_knight;
+    int _serf_index = holder_or_first_knight;
     Serf *serf = game->get_serf(_serf_index);
-    first_knight = serf->get_next();
+    holder_or_first_knight = serf->get_next();
 
     serf->stay_idle_in_stock(inventory->get_index());
   }
@@ -1588,7 +1628,7 @@ Building::update_military() {
                                        game->get_map()->move_down_right(pos))) {
     /* Kick least trained knight out. */
     Serf *leaving_serf = NULL;
-    int _serf_index = first_knight;
+    int _serf_index = holder_or_first_knight;
     while (_serf_index != 0) {
       Serf *serf = game->get_serf(_serf_index);
       if (serf == nullptr) {
@@ -1602,10 +1642,10 @@ Building::update_military() {
 
     if (leaving_serf != NULL) {
       /* Remove leaving serf from list. */
-      if (leaving_serf->get_index() == first_knight) {
-        first_knight = leaving_serf->get_next();
+      if (leaving_serf->get_index() == holder_or_first_knight) {
+        holder_or_first_knight = leaving_serf->get_next();
       } else {
-        _serf_index = first_knight;
+        _serf_index = holder_or_first_knight;
         while (_serf_index != 0) {
           Serf *serf = game->get_serf(_serf_index);
           if (serf->get_next() == leaving_serf->get_index()) {
@@ -1692,7 +1732,7 @@ operator >> (SaveReaderBinary &reader, Building &building) {
   }
 
   reader >> v16;  // 10
-  building.first_knight = v16;
+  building.holder_or_first_knight = v16;
   reader >> v16;  // 12
   building.progress = v16;
 
@@ -1849,7 +1889,7 @@ operator >> (SaveReaderText &reader, Building &building) {
   reader.value("stock[1].requested") >> building.stock[1].requested;
   reader.value("stock[1].maximum") >> building.stock[1].maximum;
 
-  reader.value("serf_index") >> building.first_knight;
+  reader.value("serf_index") >> building.holder_or_first_knight;
   reader.value("progress") >> building.progress;
 
   if (reader.has_value("inventory")) {
@@ -1895,7 +1935,7 @@ operator << (SaveWriterText &writer, Building &building) {
   writer.value("stock[1].requested") << building.stock[1].requested;
   writer.value("stock[1].maximum") << building.stock[1].maximum;
 
-  writer.value("serf_index") << building.first_knight;
+  writer.value("serf_index") << building.holder_or_first_knight;
   writer.value("progress") << building.progress;
 
   if (building.inventory != nullptr) {

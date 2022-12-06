@@ -1136,6 +1136,11 @@ AI::do_fix_missing_transporters() {
     //    I wonder if any other buildings do also?  warehouses?
     // YES!  I saw other mention such as in path_splited() that at least 
     //  some buildings show up as having a valid path UP-LEFT
+    // YES, it seems *every* building has a path up-left into it from its flag
+    //  and this path is very real in the sense that it is drawn on game map
+    //  if you remove it using code, the building and flag are still drawn
+    //   and serfs will still walk the path in/out of building, but the path itself
+    //   will no longer be drawn
     if (flag->get_position() == castle_flag_pos)
       continue;
     flag_index = flag->get_index();
