@@ -848,7 +848,16 @@ Viewport::draw_building_unfinished(Building *building, Building::Type bld_type,
 
 void
 Viewport::draw_ocupation_flag(Building *building, int lx, int ly, float mul) {
+  // building->has_knight() doesn't actually check if the holder is a knight type!
   if (building->has_knight()) {
+    //  to avoid drawing the occupation_flag for the demo serf entering building to demo
+    //  must check serf type
+    //Serf *holder_serf = interface->get_game->get_serf(building->get_holder_or_first_knight());
+    // wait... instead just check to see if it was marked for demo, that's simpler
+    if (building->is_pending_demolition()){
+      // don't draw the occupation_flag
+      return;
+    }
     draw_game_sprite(lx, ly -
                      static_cast<int>(mul * building->get_knight_count()),
                      182 + ((interface->get_game()->get_tick() >> 3) & 3) +

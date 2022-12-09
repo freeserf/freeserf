@@ -220,6 +220,11 @@ Building::increase_mining(int res) {
 
 void
 Building::set_holder_or_first_knight(unsigned int serf) {
+  Log::Debug["serf.cc"] << "inside Serf::set_holder_or_first_knight(), provided serf index is " << serf;
+  if (game->get_serf(serf) == nullptr){
+    Log::Error["serf.cc"] << "inside Serf::set_holder_or_first_knight(), game->get_serf on provided serf index " << serf << " results in a nullptr!";
+    throw ExceptionFreeserf("tried to call building->set_holder_or_first_knight but serf index results in a nullptr!");
+  }
   holder_or_first_knight = serf;
 
   /* Test whether building is already occupied by knights */
@@ -626,11 +631,21 @@ Building::knight_occupy() {
 // REMOVED       For non-military buildings the holder is evicted immediately  REMOVED      
 void
 Building::evict_holder() {
-  Log::Info["building.cc"] << "start of Building::evict_holder";
-  remove_stock();
+  Log::Debug["building.cc"] << "start of Building::evict_holder";
+
+  // DO NOT REMOVE INVENTORY YET, it messes up military buildings that receive new knights that were sent prior to eviction
+  //  and possibly would cause similar issue if a Resource arrives that was sent prior to eviction
+  //remove_stock();
+  // hmm, try just clearing requests...
+  //  actually I don't think this even matters now
+  //stock[0].requested = 0;
+  //stock[1].requested = 0;
+
   stop_playing_sfx();
   unsigned int _serf_index = holder_or_first_knight;
+  holder_or_first_knight = 0;
   holder = false;
+  //active = false;  // don't set it to inactive yet either, I think this also contributes to "knight arrives after building evicted" bug
   if (_serf_index < 1){
     Log::Error["building.cc"] << "inside Building::evict_holder(), holder_or_first_knight has serf index #" << _serf_index << "! this means no holder or some other issue, investigate";
     return;
@@ -647,13 +662,13 @@ Building::evict_holder() {
 
   serf->building_deleted(pos);  // this is what actually evicts the serf
 
-/* NO, must evict the knights immediately 
+  // handle eviction of knights upon demo serf arrival
+  /* NO, must evict the knights immediately 
    because if it does not happen until demo serf arrives
    the demo serf blocks the flag so knights can't escape
    It might be possible to allow the knights to pass through
    the demo serf, but more work than I want to do right now
-
-  // handle eviction of knights upon demo serf arrival
+   */
   if (is_military()) {
     Log::Debug["building.cc"] << "inside Building::evict_holder(), this is a military building, evicting the knights";
     // military buildings can have multiple knights, so they must
@@ -671,9 +686,8 @@ Building::evict_holder() {
       knight->building_deleted(pos);   // this is what actually evicts the serf
     }
   }
-*/
 
-  Log::Info["building.cc"] << "done Building::evict_holder(), successfully evicted holder";
+  Log::Debug["building.cc"] << "done Building::evict_holder(), successfully evicted holder";
   return;
 }
 
@@ -742,6 +756,7 @@ Building::burnup() {
   //    building progress 1 means leveling complete
   //    building progress >1 means builder arrived and has received at least first plank and begun building
   //    no way I know of to check if a builder is in place but no materials delivered yet.   Might be possible, didn't look
+  //       I think if (holder) would do this, as the builder becomes the initial building Holder.  Also maybe if (active)
   //    16385 = 1st plank consumed, half framing done
   //    32769 = 2nd plank consumed, framing complete
   //    43697 = 1st stone consumed, 1/3 exterior complete
@@ -920,7 +935,9 @@ Building::requested_serf_lost() {
 void
 Building::requested_serf_reached(Serf *serf) {
   holder = true;
+  Log::Debug["building.cc"] << "inside Building::requested_serf_reached for this serf with index " << serf->get_index() << ", serf type " << serf->get_type();
   if (serf_requested) {
+    Log::Debug["building.cc"] << "inside Building::requested_serf_reached, a serf was requested, holder_or_first_knight being set to this serf with index " << serf->get_index() << ", serf type " << serf->get_type();
     holder_or_first_knight = serf->get_index();
   }
   serf_requested = false;
@@ -1018,7 +1035,7 @@ Building::request_serf_if_needed() {
 
   if (!serf_request_failed && !holder && !serf_requested) {
     if (requests[type].serf_type != Serf::TypeNone) {
-      //Log::Debug["building.cc"] << "inside Building::request_serf_if_needed(), found a request of serf_type " << NameSerf[requests[type].serf_type] << ", calling send_serf_to_building to this building of type " << NameBuilding[get_type()] << " at pos " << get_position();
+      Log::Debug["building.cc"] << "inside Building::request_serf_if_needed(), found a request of serf_type " << NameSerf[requests[type].serf_type] << ", calling send_serf_to_building to this building of type " << NameBuilding[get_type()] << " at pos " << get_position();
       serf_request_failed = !send_serf_to_building(requests[type].serf_type, requests[type].res_type_1, requests[type].res_type_2);
     }
   }
@@ -1026,6 +1043,7 @@ Building::request_serf_if_needed() {
 
 void
 Building::update() {
+  //Log::Debug["building.cc"] << "start of Building::update";
   /* moving this to after resource timeout checks so res timeout checks
   //  can be applied to buildings under construction
   if (!constructing) {
@@ -1081,7 +1099,7 @@ Building::update() {
           }
           // find any expired timeouts
           if (stock[j].req_timeout_tick[x] < (signed)game->get_tick()){
-            Log::Debug["building"] << "inside Building::update(), building type " << NameBuilding[type] << " at pos " << get_position() << ", res type " << NameResource[stock[j].type] << ", resource request timeout triggered! req_timeout_tick = " << stock[j].req_timeout_tick[x] << ", current tick = " << game->get_tick();
+            //Log::Debug["building"] << "inside Building::update(), building type " << NameBuilding[type] << " at pos " << get_position() << ", res type " << NameResource[stock[j].type] << ", resource request timeout triggered! req_timeout_tick = " << stock[j].req_timeout_tick[x] << ", current tick = " << game->get_tick();
             // decrement the requested count so another can be requested
             stock[j].requested -= 1;
             // delete the timer
@@ -1150,8 +1168,10 @@ Building::update() {
   //} if holder
   // end of resource request timeout code
 
+  //Log::Debug["building"] << "inside Building::update(), building type " << NameBuilding[type] << " at pos " << get_position();
 
   if (!constructing) {
+    //Log::Debug["building"] << "inside Building::update(), building type " << NameBuilding[type] << " at pos " << get_position() << " is fully constructed";
     //
     // this request_serf_if_needed function looks like a good place to handle 
     //  timeout/retry of missing professionals?  Especially if the stuck serf
@@ -1274,6 +1294,10 @@ Building::update() {
         if (option_AdvancedDemolition && pending_demolition){
           Log::Debug["building.cc"] << "inside Building::update(), NOT calling update_military on this military building because it is pending_demolition";
         }else{
+
+          //debug
+          Log::Debug["building.cc"] << "inside Building::update(), holder_or_first_knight index is " << holder_or_first_knight << " and holder bool is " << holder;
+
           update_military();
         }
         break;
@@ -1680,6 +1704,14 @@ Building::update_military() {
       break;
   }
 
+  /* no longer needed, instead do not even call update_military
+  // for option_AdvancedDemolition, prevent new knights from being sent to a building marked for demolition
+  if (option_AdvancedDemolition && pending_demolition){
+    Log::Debug["building.cc"] << "inside Building::update_military(), setting needed_occupants to zero because this building is pending_demolition";
+    needed_occupants = 0;
+  }
+  */
+
   int total_knights = stock[0].requested + stock[0].available;
   int present_knights = stock[0].available;
   if (total_knights < needed_occupants) {
@@ -1687,22 +1719,43 @@ Building::update_military() {
       //Log::Debug["building.cc"] << "inside Building::update_military(), calling send_serf_to_building for a Generic serf";
       serf_request_failed = !send_serf_to_building(Serf::TypeNone, Resource::TypeNone, Resource::TypeNone);  // TypeNone means a knight
     }
-  } else if (needed_occupants < present_knights &&
-             !game->get_map()->has_serf(
-                                       game->get_map()->move_down_right(pos))) {
+  } else if (needed_occupants < present_knights 
+             && !game->get_map()->has_serf(game->get_map()->move_down_right(pos))) {
     /* Kick least trained knight out. */
     Serf *leaving_serf = NULL;
     int _serf_index = holder_or_first_knight;
+    //Log::Debug["building.cc"] << "inside Building::update_military(), _serf_index is " << _serf_index;
     while (_serf_index != 0) {
+      //Log::Debug["building.cc"] << "inside Building::update_military(), about to get serf with _serf_index " << _serf_index;
       Serf *serf = game->get_serf(_serf_index);
+      //Log::Debug["building.cc"] << "inside Building::update_military(), _serf_index " << _serf_index << ", about to do nullptr check";
       if (serf == nullptr) {
+        //
+        // hang/crash issue here with option_AdvancedDemolition
+        //   if a military building is marked for demo, its knights are evicted no new knights will be sent
+        //   however, if knights are already on way, when the first arrives at the building flag he will become
+        //   the new holder, but because Building::update runs before Serf::update, the s.defending.next_knight
+        //   index will not have been set yet.  I think there is a better way to fix this by ensuring the value
+        //   is set, but for now just skip sending excess knights out so that it Serf::update can run and on
+        //   next Building::update it should send the knights back out
+        // NO - instead prevent the serf from ever reaching ReadyToEnter/EnteringBuilding states at all
+        //  and leave this code as it was (throw exception)
+        Log::Error["building.cc"] << "inside Building::update_military(), _serf_index " << _serf_index << ", serf is nullptr!";
         throw ExceptionFreeserf("Index of nonexistent serf in the queue.");
+        //Log::Debug["building.cc"] << "inside Building::update_military(), _serf_index " << _serf_index << ", serf is nullptr, assuming this is a knight-arriving-to-a-building-pending_demolition and ignoring this update, faking _serf_index = 0";
+        //_serf_index = 0;
+        //continue;
       }
+      Log::Debug["building.cc"] << "inside Building::update_military(), _serf_index " << _serf_index << ", passed nullptr check";
+      Log::Debug["building.cc"] << "inside Building::update_military(), serf->get_type = " << serf->get_type();
       if (leaving_serf == NULL || serf->get_type() < leaving_serf->get_type()) {
         leaving_serf = serf;
+        //Log::Debug["building.cc"] << "inside Building::update_military(), leaving_serf being set to serf";
       }
+      //Log::Debug["building.cc"] << "inside Building::update_military(), serf->get_next() is " << serf->get_next();
       _serf_index = serf->get_next();
     }
+    //Log::Debug["building.cc"] << "inside Building::update_military(), done while(_serf_index) loop";
 
     if (leaving_serf != NULL) {
       /* Remove leaving serf from list. */

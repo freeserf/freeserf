@@ -141,7 +141,7 @@ class Building : public GameObject {
   void link_flag(unsigned int flag_index) { flag = flag_index; }
   void unlink_flag() { flag = 0; }
 
-  bool has_knight() const { return (holder_or_first_knight != 0); }
+  bool has_knight() const { return (holder_or_first_knight != 0); }  // this doesn't actually check if the holder is a knight!!
   unsigned int get_holder_or_first_knight() const { return holder_or_first_knight; }
   void set_holder_or_first_knight(unsigned int serf);
 
