@@ -258,7 +258,7 @@ Frame::draw_sprite_special0x(int x, int y, Data::Resource res, unsigned int inde
 
     //Data::PSprite s = data_source->get_sprite(res, index, pc);
     if (!s) {
-      Log::Warn["gfx.cc"] << "Failed to decode sprite #"
+      Log::Warn["gfx.cc"] << "inside Frame::draw_sprite_special0x, Failed to decode sprite #"
                             << Data::get_resource_name(res) << ":" << index;
       return;
     }
@@ -278,7 +278,7 @@ Frame::draw_sprite_special0x(int x, int y, Data::Resource res, unsigned int inde
 // added to support messing with weather/seasons/palette tiles, copy of protected Frame::draw_sprite#2
 void
 Frame::draw_sprite_special3(int x, int y, Data::Resource res, unsigned int index, bool use_off, const Color &color, float progress, unsigned int pos, unsigned int obj) {
-  //Log::Info["gfx.cc"] << "inside Frame::draw_sprite_special3  with res " << res << ", index " << index << ", pos " << pos << ", obj " << obj;
+  Log::Info["gfx.cc"] << "inside Frame::draw_sprite_special3  with res " << res << ", index " << index << ", pos " << pos << ", obj " << obj;
   Data::Sprite::Color pc = {color.get_blue(),
                             color.get_green(),
                             color.get_red(),
@@ -296,7 +296,7 @@ Frame::draw_sprite_special3(int x, int y, Data::Resource res, unsigned int index
 
     if (res == Data::AssetMapObject || res == Data::AssetMapShadow){
     //if (res == Data::AssetMapObject){  // why is it still looking up MapShadows?  I thought I told it to use another function
-      //Log::Info["gfx.cc"] << "inside Frame::draw_sprite_special3, trying to load Custom MapObject graphic with index " << index;
+      Log::Info["gfx.cc"] << "inside Frame::draw_sprite_special3, trying to load Custom MapObject graphic with index " << index;
       Data &data = Data::get_instance();
       if (data.get_data_source_Custom() == nullptr){
         Log::Error["gfx.cc"] << "inside Frame::draw_sprite_special3, index " << index << ", data_source (custom) is nullptr!, are the custom data files missing?";
@@ -308,6 +308,7 @@ Frame::draw_sprite_special3(int x, int y, Data::Resource res, unsigned int index
         s = data_source->get_sprite(res, orig_index, pc);
       }else{
         // load the custom sprite
+        Log::Debug["gfx.cc"] << "inside Frame::draw_sprite_special3, custom datasource successfully loaded for sprite index " << index;
         s = data.get_data_source_Custom()->get_sprite(res, index, pc); // FourSeasons, with crammed animation
       }
     }else{
@@ -316,7 +317,7 @@ Frame::draw_sprite_special3(int x, int y, Data::Resource res, unsigned int index
 
     //Data::PSprite s = data_source->get_sprite(res, index, pc);
     if (!s) {
-      Log::Warn["gfx.cc"] << "Failed to decode sprite #"
+      Log::Warn["gfx.cc"] << "inside Frame::draw_sprite_special3, Failed to decode sprite #"
                             << Data::get_resource_name(res) << ":" << index;
       return;
     }
@@ -367,7 +368,7 @@ Frame::draw_sprite(int x, int y, Data::Resource res, unsigned int index,
 void
 Frame::draw_sprite_special2(int x, int y, Data::Resource res, unsigned int index,
                    bool use_off, const Color &color, unsigned int pos, unsigned int obj) {
-  //Log::Info["gfx"] << "inside Frame::draw_sprite_special2 calling Frame::draw_sprite_special3 with res " << res << " and index " << index;
+  Log::Info["gfx"] << "inside Frame::draw_sprite_special2 calling Frame::draw_sprite_special3 with res " << res << " and index " << index;
   draw_sprite_special3(x, y, res, index, use_off, color, 1.f, pos, obj);
 }
 

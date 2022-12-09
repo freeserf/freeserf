@@ -756,13 +756,30 @@ Viewport::draw_serf(int lx, int ly, const Color &color, int head, int body) {
 }
 
 void
-Viewport::draw_shadow_and_building_sprite(int lx, int ly, int index,
-                                          const Color &color) {
+Viewport::draw_shadow_and_building_sprite(int lx, int ly, int index, const Color &color) {
   // this says shadow and building but it seems to include ANY map object sprite such as trees, stones
   //Log::Info["viewport"] << "inside Viewport::draw_shadow_and_building_sprite for sprite index " << index;
   frame->draw_sprite(lx, ly, Data::AssetMapShadow, index, true);  // call Frame::draw_sprite#3
   frame->draw_sprite(lx, ly, Data::AssetMapObject, index, true, color);  // call Frame::draw_sprite#5
 }
+
+/*
+// to try showing a "rubble" building with option_AdvancedDemolition
+void
+Viewport::draw_shadow_and_custom_building_sprite(int lx, int ly, int index, const Color &color) {
+  // this says shadow and building but it seems to include ANY map object sprite such as trees, stones
+  Log::Info["viewport"] << "inside Viewport::draw_shadow_and_custom_building_sprite for sprite index " << index;
+  //frame->draw_sprite(lx, ly, Data::AssetMapShadow, index, true);  // call Frame::draw_sprite#3
+  // draw the shadow closer so it seems smaller
+  //frame->draw_sprite(lx -2, ly, Data::AssetMapShadow, index, true);  // call Frame::draw_sprite#3
+  // don't draw a shadow
+  
+  // force to rubble image 500
+  index = 500;
+  //frame->draw_sprite(lx, ly, Data::AssetMapObject, index, true, color);  // call Frame::draw_sprite#5
+  frame->draw_sprite_special2(lx, ly, Data::AssetMapObject, index, true, color, bad_map_pos, Map::ObjectNone);
+}
+*/
 
 // new function to try messing with weather/seasons/palette
 void
@@ -2729,10 +2746,10 @@ draw_serf_row(MapPos pos, int y_base, int cols, int x_base) {
 
       Serf *serf = interface->get_game()->get_serf_at_pos(pos);
 
-      // for option_AdvancedDemolition
-      //  a demolishing serf must be drawn one pos down-right
-      //  of his indicated pos so he can stand outside the
-      //  burning building without holding & blocking the flag pos
+        // for option_AdvancedDemolition
+        //  a demolishing serf must be drawn one pos down-right
+        //  of his indicated pos so he can stand outside the
+        //  burning building without holding & blocking the flag pos
       if (serf->get_state() == Serf::StateExitBuildingForDemolition){
         // draw demo serf down-right one pos from building (i.e. flag pos)
         Log::Info["viewport.cc"] << "inside Viewport::draw_row_serf, option_AdvancedDemolition related, serf in state StateExitBuildingForDemolition is being drawn one pos down-right";
@@ -2749,25 +2766,36 @@ draw_serf_row(MapPos pos, int y_base, int cols, int x_base) {
           //   because that is drawn in draw_serf_row_behind instead of here
           //do nothing, skip this serf
 
-        } else if (serf->get_state() == Serf::StateCleaningRubble && serf->get_animation() == 87 ) {
-          // for option_AdvancedDemolition, shift the x_base to show the
-          //  serf moving sideways as he digs.  In the original Digger animation
-          //  the serf moves to a real MapPos and digs in the center of it, so
-          //  no base shifting is required, but with this special state the 
-          //  digging animation frames are re-used but the serf must stay in the
-          //  former-building-site's pos
-          // NOTE the if animation==87 check, it only offsets the serf while in the digging
-          //  animation #87 state, not when he switches to #4 walking-right at the end
+        } else if (serf->get_state() == Serf::StateCleaningRubble){
+          // for option_AdvancedDemolition
+          //  to make a "burned building rubble" sprite appear
+          //  without having to define a new MapObject, simply draw the building sprite
+          //  any time a serf is in StateCleaningRubble
+          Log::Info["viewport.cc"] << "inside Viewport::draw_row_serf, option_AdvancedDemolition related, serf in state StateCleaningRubble, drawing rubble behind the serf";
+          //draw_shadow_and_custom_building_sprite(lx, ly, 500,0,0);
+          // try directly drawing it
+          //  this is such a hack, instead at least try drawing it inside draw_map_objects_row and testing for demo/digger serf there
+          //  I have no idea why the y_base offset needs to be 2.5x map height, I just messed with it until it fit
+          //   it is likely that when building height changes it won't line up anymore, yet another reason to do this inside draw_map_object_row
 
-          // move four pixels left every dig
-          int x_dig_offset = serf->get_digging_substate() * 4;
-          draw_active_serf(serf, pos, x_base - x_dig_offset, y_base);
-
+          frame->draw_sprite_special2(x_base, y_base - MAP_TILE_HEIGHT * 2.5, Data::AssetMapObject, 500, true, Color::transparent, bad_map_pos, Map::ObjectNone);
+          if (serf->get_animation() == 87 ) {
+            // for option_AdvancedDemolition, shift the x_base to show the
+            //  serf moving sideways as he digs.  In the original Digger animation
+            //  the serf moves to a real MapPos and digs in the center of it, so
+            //  no base shifting is required, but with this special state the 
+            //  digging animation frames are re-used but the serf must stay in the
+            //  former-building-site's pos
+            // NOTE the if animation==87 check, it only offsets the serf while in the digging
+            //  animation #87 state, not when he switches to #4 walking-right at the end
+            // move four pixels left every dig
+            
+            int x_dig_offset = serf->get_digging_substate() * 4;
+            draw_active_serf(serf, pos, x_base - x_dig_offset, y_base);
+          }
         } else {
-
           // draw normal active serf
           draw_active_serf(serf, pos, x_base, y_base);
-
         }
       }
     }
