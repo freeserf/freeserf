@@ -222,8 +222,7 @@ class Game {
 
   uint16_t random_int();
 
-  bool send_serf_to_flag(Flag *dest, Serf::Type type, Resource::Type res1,
-                         Resource::Type res2);
+  bool send_serf_to_flag(Flag *dest, Serf::Type type, Resource::Type res1, Resource::Type res2);
 
   int get_player_history_index(size_t scale) const {
     return player_history_index[scale]; }

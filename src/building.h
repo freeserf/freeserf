@@ -197,7 +197,6 @@ class Building : public GameObject {
   bool is_pending_demolition() { return pending_demolition; }  // for option_AdvancedDemolition
   /* Building has an associated serf. */
   bool has_serf() const { return holder; }
-  //void evict_holder() { holder = false; active = false; } // used for option_AdvancedDemolition
   void evict_holder(); // used for option_AdvancedDemolition
   /* Building has succesfully requested a serf. */
   void serf_request_granted() { serf_requested = true; }
@@ -299,8 +298,7 @@ class Building : public GameObject {
 
   void request_serf_if_needed();
 
-  bool send_serf_to_building(Serf::Type type, Resource::Type res1,
-                             Resource::Type res2);
+  bool send_serf_to_building(Serf::Type type, Resource::Type res1, Resource::Type res2);
 };
 
 

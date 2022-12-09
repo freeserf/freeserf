@@ -827,6 +827,7 @@ Serf::insert_before(Serf *knight) {
 
 void
 Serf::go_out_from_inventory(unsigned int inventory, MapPos dest, int mode) {
+  Log::Debug["serf.cc"] << "inside Serf::go_out_from_inventory, a serf of type " << get_type() << " is being sent to dest pos " << pos;
   set_state(StateReadyToLeaveInventory);
   // 'mode' seems to be simply the initial Dir that the serf goes as it exists the Inventory Flag, or <1 for special cases maybe?  Such as flagsearch not finding a dest??
   //  this is rabbit hole, not sure I understand it and don't feel like figuring it out 
@@ -1598,6 +1599,11 @@ Serf::start_walking(Direction dir, int slope, int change_pos) {
   pos = new_pos;
 }
 
+// I don't understand what this is for... is it
+//  saying that the walking time to enter a building
+//  varies based on building *type*???  and this is
+//  adjusted by faking a slope value as if it were
+//  a steeper road?
 static const int road_building_slope[] = {
   /* Finished building */
   5, 18, 18, 15, 18, 22, 22, 22,
@@ -1610,6 +1616,12 @@ static const int road_building_slope[] = {
    If join_pos is set the serf is assumed to origin from
    a joined position so the source position will not have it's
    serf index cleared. */
+// it seems that join_pos is only set when it is a knight leaving
+//  a building for a fight, meaning the knight is joining the 
+//  attacking serf's pos without actually taking the pos as far
+//  as serf-pos and map-serf-at-pos tracking goes
+// Note that Viewport:draw_serf_row function handles drawing both
+//  knights in the same pos as a special case
 void
 Serf::enter_building(int field_B, int join_pos) {
   //Log::Info["serf"] << "debug: inside enter_building, setting state to StateEnteringBuilding";
@@ -1628,6 +1640,12 @@ Serf::enter_building(int field_B, int join_pos) {
 
 /* Start leaving building by switching to LEAVING BUILDING and
    setting appropriate state. */
+// it seems that join_pos is only set when it is a knight leaving
+//  a building for a fight, meaning the knight is joining the 
+//  attacking serf's pos without actually taking the pos as far
+//  as serf-pos and map-serf-at-pos tracking goes
+// Note that Viewport:draw_serf_row function handles drawing both
+//  knights in the same pos as a special case
 void
 Serf::leave_building(int join_pos) {
   Building *building = game->get_building_at_pos(pos);
@@ -1657,13 +1675,39 @@ Serf::handle_serf_walking_state_dest_reached() {
     Building *building = game->get_building_at_pos(map->move_up_left(pos));
     building->requested_serf_reached(this);
 
+    /* this does not work, because the demo serf
+         blocks the flag so the knights cannot exit
+      INSTEAD I THINK the knights will just be evicted immediately
+      instead of when demo arrives
+
+    // handle option_AdvancedDemolition
+    if (option_AdvancedDemolition && get_type() == Serf::TypeDigger && building->is_pending_demolition()){
+      // a demo serf has arrived at the building to be demolished
+      Log::Debug["serf.cc"] << "inside handle_serf_walking_state_dest_reached, option_AdvancedDemolition, a demo serf has at the dest flag for a building pending_demolition at pos " << pos;
+      // evict any knights now (a non-military building's holder should have already been evicted
+      //  when the building was marked for demo, long before the demo serf arrives
+      building->evict_holder();
+      // HOW TO WAIT FOR ALL KNIGHTS TO EXIT???
+      // actually, I think the next if-block will handle it
+      //  I think the demo serf wlil be put into StateReadyToEnter
+      //  until any knights are evicted
+      // nope, try forcing it
+      animation = 85;
+      counter = 1000;
+      set_state(StateWaitIdleOnPath);
+      return;
+    }
+    */
+
     if (map->has_serf(map->move_up_left(pos))) {
-     //Log::Info["serf"] << "debug: inside handle_serf_walking_state_dest_reached, C";
+      // if there is a serf blocking, wait (?)
+      //Log::Info["serf"] << "debug: inside handle_serf_walking_state_dest_reached, C";
       animation = 85;
       counter = 0;
       set_state(StateReadyToEnter);
     } else {
-     //Log::Info["serf"] << "debug: inside handle_serf_walking_state_dest_reached, D";
+      // otherwise enter the building now
+      //Log::Info["serf"] << "debug: inside handle_serf_walking_state_dest_reached, D";
       enter_building(s.walking.dir1, 0);
     }
    //Log::Info["serf"] << "debug: inside handle_serf_walking_state_dest_reached, E";
@@ -2313,12 +2357,28 @@ Serf::handle_serf_entering_building_state() {
               set_state(StateLost);
               break;
             }
+
             Log::Warn["serf.cc"] << "inside Serf::handle_serf_entering_building_state, building is_pending_demolition, setting this Digger to StateExitBuildingForDemolition";
-            //counter = 1000;
-            counter = 200;
-            //counter = 0;
-            animation = 82;
+            counter = 0;  // this is the normal starting counter for a serf leaving a building, it is then set by counter += (slope * counter_from_animation[animation]) >> 5;
             tick = game->get_tick();
+            int slope;
+            Building *building = game->get_building_at_pos(pos);
+            if (building == nullptr){
+              Log::Warn["serf"] << "inside Serf::handle_serf_entering_building_state, got nullptr for building at pos " << pos << ", trying a safe default slope value";
+              slope = 30;
+            }else{
+              slope = 31 - road_building_slope[building->get_type()];
+            }
+            PMap map = game->get_map();
+            animation = get_walking_animation(map->get_height(pos) - map->get_height(map->move_down_right(pos)), Direction::DirectionDownRight, 0);
+            //counter += (slope * counter_from_animation[animation]) >> 5;  // original value, walks to center of new pos (i.e. the building's flag pos)
+            //counter += (slope * counter_from_animation[animation]) >> 6;  // only walk a fraction of the way, we want him to simply exit the building
+            //counter += 5;
+            // _________________________-
+            //  NOW WITH USING THE WALK-BACK-AND-FORTH ANIMATION
+            //   the serf doesn't need to walk as far, tweak the counter and height until it looks right
+            // *******************************
+            Log::Debug["serf.cc"] << "inside Serf::handle_serf_entering_building_state, counter = " << counter << ", slope = " << slope;
             set_state(StateExitBuildingForDemolition);
             break;
           }else{
@@ -2339,7 +2399,7 @@ Serf::handle_serf_entering_building_state() {
           enter_inventory();
         } else {
           set_state(StateBuilding);
-          animation = 98;
+          animation = 98;  // this is the walking-back-and-forth animation used to show Builder constructing, and also Miner striking/refusing to work without food
           counter = 127;
           s.building.mode = 1;
           s.building.bld_index = map->get_obj_index(pos);
@@ -2886,6 +2946,11 @@ Serf::handle_serf_digging_state() {
             }
             /* Dig here */
             s.digging.substate = 2;
+            // I'm not sure what animation # 87 vs 88 means here
+            //  Initially I assumed it was "dig facing left" and "dig facing right"
+            //  but I now think Digger can only face left while digging, no sprites
+            //  exist for "dig facing right" and watching normal Digger action he
+            //  always faces left while digging
             if (s.digging.h_index & 1) {
               animation = 87;
             } else {
@@ -2964,7 +3029,7 @@ Serf::handle_serf_building_state() {
       s.building.counter -= 1;
       if (s.building.counter == 0) {
         s.building.mode = 1;
-        animation = 98;
+        animation = 98;  // this is the walking-back-and-forth animation used to show Builder constructing, and also Miner striking/refusing to work without food
         if (BIT_TEST(s.building.material_step, 7)) animation = 100;
 
         /* 353A5 */
@@ -4615,7 +4680,7 @@ Serf::handle_serf_mining_state() {
           counter = counter_from_animation[animation];
         } else {
           map->set_serf_index(pos, index);
-          animation = 98;
+          animation = 98; // this is the walking-back-and-forth animation used to show striking/refusing to work without food (and also for Builder constructing)
           counter += 256;
           if (counter < 0) counter = 255;
         }
@@ -6414,79 +6479,170 @@ Serf::handle_serf_exit_building_for_demolition_state() {
   uint16_t delta = game->get_tick() - tick;
   tick = game->get_tick();
   counter -= delta;
-  // copied from leave_building_state
-  int slope;
-  Building *building = game->get_building_at_pos(pos);
-  if (building == nullptr){
-    Log::Warn["serf"] << "inside Serf::handle_serf_exit_building_for_demolition_state, got nullptr for building at pos " << pos << ", trying a safe default slope value";
-    slope = 30;
-  }else{
-    slope = 31 - road_building_slope[building->get_type()];
-    if (!building->is_done()) slope = 30;
-  }
-  PMap map = game->get_map();
-  Log::Info["serf.cc"] << "inside Serf::handle_serf_exit_building_for_demolition_state, counter = " << counter << ", slope = " << slope;
-  // THE PROBLEM HERE IS
-  //  normally, a serf cannot leave a building until the flag is freed (actually, test this by demolishing a building
-  //   while a transporter is at the flag)
-  //  I think that when a serf leaves a building their pos is updated to be the flag pos, so the walking animation DownRight beings at the
-  //  center of the building.  If ther serf is still at the pos of the building, they will be showing as walking from a pos up-left of the 
-  //  building about to be burned.  Because this demo serf isn't actually occupying the building-flag-pos, I don't want to have to wait
-  //  for him to be able to occupy the flag pos (what if it is blocked? and we dont' want the demo serf hogging the pos either)
-  //  This will be a problem because I think even if I fake the serf pos inside the Serf object, the Map won't see him at the flag pos
-  //  and won't draw him in the flag pos (CHECK THIS, IT MIGHT ACTUALLY WORK IF IT USES MAP->pos TO FIND THE SERF AND Serf->pos TO
-  //  DETERMINE DRAW OFFSET (unlikely, though)
-  //  - possible to hack the viewport to allow drawing serfs in this state one tile over?
-  //  - possible that an animation value can be set that draws the serf in the desired position? (unlikely)
-  //  - SEE HOW THIS IS HANDLED FOR BURNT BUILDINGS!  I sort of suspect that a serf at the flag somehow does not stop a burning
-  //     building's occupants from exiting, but not sure
-  //
-  animation = get_walking_animation(map->get_height(pos) - map->get_height(map->move_down_right(pos)), Direction::DirectionDownRight, 0);
-  //counter += (slope * counter_from_animation[animation]) >> 5;
 
-  if (counter < 0) {
+  if (counter < 20) {
+    counter = 0;
     Log::Info["serf.cc"] << "inside Serf::handle_serf_exit_building_for_demolition_state, triggering next state";
+    // set animation & counter for the *NEXT STATE*
+    //int slope;
+    Building *building = game->get_building_at_pos(pos);
     if (building == nullptr){
       Log::Warn["serf.cc"] << "inside Serf::handle_serf_exit_building_for_demolition_state, building is nullptr! setting serf to state Lost";
       set_state(Serf::StateLost);
       return;
     }
-    building->burnup();
-    counter = 0;
+    /*
+    slope = 31 - road_building_slope[building->get_type()];
+    PMap map = game->get_map();
+    //// serf is to stop and turn around, facing UpLeft towards the building
+    //animation = get_walking_animation(map->get_height(pos) - map->get_height(map->move_up_left(pos)), Direction::DirectionUpLeft, 0);
+    // it seems there is no good "stopped" diagonal walking animation, instead try DirectionLeft(3)
+    animation = get_walking_animation(map->get_height(pos) - map->get_height(map->move_up_left(pos)), Direction::DirectionLeft, 0);
+    counter += (slope * counter_from_animation[animation]) >> 5;  // original value
+    //counter += 1;
+    //counter += (slope * counter_from_animation[animation]) >> 6;  // this is the counter for the NEXT STATE
+    //counter += counter_from_animation[animation];
+    Log::Info["serf.cc"] << "inside Serf::handle_serf_exit_building_for_demolition_state, animation = " << animation << ", counter = " << counter << ", slope = " << slope;
+    */
+    // fire it up
+    //building->burnup();
+    // need to call game->demolish_building, which calls building->burnup() 
+    //  and also clears the path into building and Flag<>Building association
+    Player *player = game->get_player(get_owner());
+    if (player == nullptr){
+      Log::Warn["serf.cc"] << "inside Serf::handle_serf_exit_building_for_demolition_state, got nullptr from game->get_player for this serf's owning player with index " << get_owner() << "! returning early";
+      return;
+    }
+    game->demolish_building(building->get_position(), player);
+    // use the miner/builder walking-back-and-forth animation for now
+    animation = 98;
+    counter += 256;
+    Log::Info["serf.cc"] << "inside Serf::handle_serf_exit_building_for_demolition_state, done with building->burnup(), about to call set_state(Serf::StateObservingDemolition)";
     set_state(Serf::StateObservingDemolition);
   }
 }
 
 void
 Serf::handle_serf_observing_demolition_state() {
-  Log::Info["serf.cc"] << "inside Serf::handle_serf_observing_demolition_state, a serf at pos " << pos << " is in state Serf::StateObservingDemolition";
-  // face the building (always up-left / Dir 3)
-  animation = 81 + 3;
-  counter = 0;  // is this needed?
-  Building *building = game->get_building_at_pos(pos);
-  if (building == nullptr){
-    Log::Warn["serf.cc"] << "inside inside Serf::handle_serf_observing_demolition_state, building-to-be-demolished expected at pos " << pos << " is nullptr!  setting this serf to StateLost";
-    set_state(Serf::StateLost);
-    return;
+  //
+  // SERF NEEDS TO BE DRAWN a bit more up-left, find the appropriate animation step (walking up-left animation)?
+  //
+  //Log::Debug["serf.cc"] << "start of Serf::handle_serf_observing_demolition_state, a serf at pos " << pos << " is in state Serf::StateObservingDemolition";
+  uint16_t delta = game->get_tick() - tick;
+  tick = game->get_tick();
+  counter -= delta;
+
+  if (counter < 0){
+    // while the building is burning, it is a valid pointer with burning = true
+    //  however once it finishes burning it is deleted and becomes a nullptr
+    //  So, rather than checking for burning state, just wait until it becomes
+    //  a nullptr and then handle the next state
+    Building *building = game->get_building_at_pos(pos);
+    //if (building == nullptr){
+    //  Log::Warn["serf.cc"] << "inside inside Serf::handle_serf_observing_demolition_state, building-to-be-demolished expected at pos " << pos << " is nullptr!  setting this serf to StateLost";
+    //  set_state(Serf::StateLost);
+    //  return;
+    //}
+    // wait until the building is burnt, however long that takes
+    //if (building->is_burning()){
+    if (building != nullptr && building->is_burning()){
+      Log::Debug["serf.cc"] << "inside inside Serf::handle_serf_observing_demolition_state, building is still burning, check again next update";
+      counter += 256;  // reset counter so serf walks back and forth again
+      return;
+    }
+    // ______________________
+    //
+    // do something here to gracefully move to cleanup/digging
+    // maybe increase counter and let serf stand in place for a second
+    // with animation "walking left (or right) / standing"
+    //
+    // ((((((((((((((((((((((
+    
+    // building has finished burning, go clean it up
+    Log::Debug["serf.cc"] << "inside inside Serf::handle_serf_observing_demolition_state, building has finished burning, changing to Serf::StateCleaningRubble";
+    counter = 383;    // this is the proper counter for "walk up-right a bit then dig, then walk left a bit" animation
+    s.digging.substate = 0; // re-using this
+    animation = 87; // start the next state with the digging animation
+    set_state(Serf::StateCleaningRubble);
   }
-  if (building->is_burning()){
-    Log::Debug["serf.cc"] << "inside inside Serf::handle_serf_observing_demolition_state, building is still burning, check again next update";
-    return;
-  }
-  // building has finished burning, go clean it up
-  Log::Debug["serf.cc"] << "inside inside Serf::handle_serf_observing_demolition_state, building has finished burning, changing to Serf::StateCleaningRubble";
-  set_state(Serf::StateCleaningRubble);
 }
 
 void
 Serf::handle_serf_cleaning_rubble_state() {
   Log::Info["serf.cc"] << "inside Serf::handle_serf_cleaning_rubble_state, a serf at pos " << pos << " is in state Serf::StateCleaningRubble";
-  // just call Digging state for now, will crash
-  counter = 0;
-  set_state(Serf::StateDigging);
+  uint16_t delta = game->get_tick() - tick;
+  tick = game->get_tick();
+  counter -= delta;
+  // re-using the s.digging struct and s.digging.substate as a counter
+  //  indicating how many dig-then-move-left actions have been done
+  if (s.digging.substate < 2 && counter < 0){
+    animation = 87; // digging animation
+    // repeat twice, for 3 total digs
+    counter = 318;  // skip the "walk up-right a few steps into dig position" frames
+    s.digging.substate++;
+  }else if (s.digging.substate > 1 && counter < 78 && animation == 87){
+    // after the final dig animation, walk right a few steps back to center of pos
+    animation = 4;  // switch to the walking right animation
+    counter = 22;  // this sets the proper distance from center (when counter = 0 reached)
+  //}else if (s.digging.substate > 1 && counter < 0){
+  }else if (s.digging.substate > 1 && counter < 8 && animation == 4){
+    // done digging, back to center pos, move to next state
+    counter = 0;
+    set_state(Serf::StateFinishedBuilding); // re-using this state as it has desired effect
+  }
 }
 
-
+//
+// explanation of how serf animations are handled:
+///
+// 'animation' value is which animation set (an array containing a series of sprites & their x/y pixel coordinates within the MapPos)
+//      to play for a Serf in that state.  The serf sprites are actually drawn the graphics Frame in Viewport:draw_serf_row[_behind]
+//           **The various animations can be seen in wdigger's FSStudio QT app https://github.com/wdigger/fsstudio**
+//     For serf-travelling animations such as WALKING/BOATING/CARRYING there is a set of animations for each Direction travelled.
+//      Additionally, there is a slope-adjusted animation for *each slope-Direction combination*
+//      for example, "walking" animation is 82 for DirectionRight/0, 82 + 1 for DirectionDownRight/1,  82 + 2 for Dir 2, and so on
+// 'counter' value represents how far BACKWARDS in time (from the last frame) the animation is playing right now. i.e how much *remains*
+//      A counter of 0 or less than 0 means the last frame of the animation will be displayed this Game::update -> Viewport::draw_serf_row
+//      the initial value of the counter is set for the *next serf state* as that new state is assigned, NOT for the current serf state
+//      and when the serf enters that new state the appropriate handle_serf_XXXX_state code will begin counting down to zero from that
+//      initial value.  The length of the initial counter value is normally equal to the number of frames in the animation, and the lookup
+//      array 'counter_from_animation[]' provides the appropriate starting counter for a full play of each animation index.  
+//    NON-walking animation example: for an animation with 150 frames, counter = 300 means that the first animation frame will be shown,
+//      and every game update at normal speed 2 ticks will pass so counter will decrement by two.  A current counter of 200 means this
+//      animation is a third complete, a counter of 0 or below means the animation complete and the counter should be set to zero (if below
+//      zero) to leave the last frame shown until the next serf state can be entered.
+//    WALKING/BOATING/CARRYING animation example: I think these animations repeat a small number of SPRITES (showing one step-pair or
+//      on row of sailor oar) repeatedly, but the counter determines the position the serf is drawn, starting from one corner (max counter
+//      value) and moving to the *center of MapPos* which is at counter 0.  Once the serf reaches the center of the MapPos, he must move
+//      into the subsequent MapPos to continue his walk.  Again, the serf starts at far corner (max counter) and arrives at center of the 
+//      pos (at 0 counter).  The get_walking_animation function gives the value as "4 + h_diff + 9*d" where h_diff is the difference in
+//      height in pixels between the old & new MapPos traversed, and 'd' is the Direction number 0-5 (DirectionRight to DirectionUpRight)
+//     Sometimes a serf must wait in a state for some time, or pause in the middle of a state, this is done by not decrementing the counter
+//      and/or not entering the next serf state until eligible, keeping the counter static so the animation frame/sprite does not change.
+//     To start a travelling serf at a x/y pixel-pos-within-MapPos anywhere other than the far corner of the MapPos he is walking from,
+//      increment the 'counter' to the desired offset (lower for closer to center of MapPos, higher for closer to starting corner)
+//     To stop a travelling serf early, stop decrementing the counter and/or changeinto next serf state before the counter reaches 0.
+// 'height' values (of MapPos) are used for two things:  
+//    NON-walking/sailing animations adjust the y axis offset so an animation is drawn one pixel higher or lower for each height-diff to
+//      match the terrain slope.  (actually, is this even done? might just be travelling serfs)
+//    WALKING/BOATING/CARRYING animations compare the difference in height between two MapPos affects how long it takes for a
+//      serf to walk across the pos, steeper is slower.  The diffent slopes are handled by changing the animation
+//      (NOT the counter) as there is a unique animation # for each Dir-Slope combination.  Steeper slopes animations have more frames,
+//      longer max/initial counter, and the serf spends more time at each x/y pixel (i.e. they move more slowly).  The x/y coordinate 
+//      change is handled by the progression of the animation, the coordinates increase/decrease continuously to show the serf moving 
+//      across the MapPos.  Again, serf moves from far-corner to center of the current pos, then considers moving to next pos, usually in
+//      the Serf::change_direction function (which would be better renamed to something like Serf::consider_next_pos_dir)
+// 'tick' value is simply storing the game->tick of the last time the Game::update -> Serf::update ran for this serf to compare to the
+//      current game tick.  The temporary 'delta' var represents this, the number of ticks that have passed since the last update.  The tick
+//      delta is used to decrement the 'counter' which updates the animation frame *adjusted for game speed*.  At higher game speeds more
+//      ticks pass per game update, this results in animations playing faster as expected.  At speed 1 (slower than default speed 2), only
+//      a single tick passes per game update, but because the animations are designed for a tick of 2, the animations only actually change
+//      every 2 ticks (i.e. there is only a unique animation frame for every 2 ticks worth of game time) so speed 1 appears choppy instead
+//      of smoother than normal speed.
+// 'if (counter < 0)' code blocks are "if the animation is done playing (i.e. the serf has completed the action or arrived at his walking 
+//      destination), prepare to switch to the next Serf State - and set the appropriate initial counter value to start the *next* state's
+//      animation at the necessary frame (which is usually the beginning, but might not be)
+//
 void
 Serf::update() {
   switch (state) {

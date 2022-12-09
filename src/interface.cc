@@ -774,17 +774,21 @@ Interface::demolish_object() {
         if (game->mark_building_for_demolition(map_cursor_pos, player)){
           Log::Info["interface.cc"] << "inside Interface::demolish_object, option_AdvancedDemolition is on, successfully marked building for deletion";
         }else{
-          Log::Warn["interface.cc"] << "inside Interface::demolish_object, option_AdvancedDemolition is on, failed marked building for deletion, is it not mine?? returning early";
+          Log::Info["interface.cc"] << "inside Interface::demolish_object, option_AdvancedDemolition is on, failed marked building for deletion, is it already marked? is it not mine?? returning early";
+          play_sound(Audio::TypeSfxNotAccepted);
           return;
         }
 
         // immediately evict the Holder serf
-        // knights in military buildings should not abandon their post until the building is actually on fire
+        //if (!building->is_military() && building->has_serf()){
+        ///// NO, must evict knights immediately also, as the demo serf blocks the flag
+        /////   knights in military buildings should not abandon their post until the building is actually on fire
         // buildings with no Holder have nobody to evict
-        if (!building->is_military() && building->has_serf()){
+        if (building->has_serf()){
           Log::Info["interface.cc"] << "inside Interface::demolish_object, option_AdvancedDemolition is on, evicting the Holder of this building";
           building->evict_holder();
         }
+
 
         // call a Digger to the building so he can burn it and clear the building site
         Flag *dest_flag = game->get_flag(building->get_flag_index());

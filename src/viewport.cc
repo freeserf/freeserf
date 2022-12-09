@@ -746,11 +746,12 @@ Viewport::draw_game_sprite(int lx, int ly, int index) {
 
 void
 Viewport::draw_serf(int lx, int ly, const Color &color, int head, int body) {
+  // this is the actual serf_torso sprite # for the torso/body (and possibly head if all-in-one)
   frame->draw_sprite(lx, ly, Data::AssetSerfTorso, body, true, color);
-
+  //Log::Debug["viewport.cc"] << "inside Viewport::draw_serf, body/base = " << body << ", head = " << head;
+  // if serf has a separate head (some torso sprites include head, such as active working serfs, draw it
   if (head >= 0) {
-    frame->draw_sprite_relatively(lx, ly, Data::AssetSerfHead, head,
-                                  Data::AssetSerfTorso, body);
+    frame->draw_sprite_relatively(lx, ly, Data::AssetSerfHead, head, Data::AssetSerfTorso, body);
   }
 }
 
@@ -1694,7 +1695,7 @@ Viewport::draw_row_serf(int lx, int ly, bool shadow, const Color &color,
     352, 591, 401, 594, 352, 597, 401, 618,
     352, 621, 401, 624, 352, 627, 450, -1,
     192, -1
-  };
+  };  // there are 274 items in this array
 
   const int index2[] = {
     0, 0, 1, 0, 2, 0, 3, 0,
@@ -1734,7 +1735,7 @@ Viewport::draw_row_serf(int lx, int ly, bool shadow, const Color &color,
     56, 0, 57, 0, 58, 0, 59, 0,
     60, 0, 61, 0, 62, 0, 63, 0,
     64, 0
-  };
+  };  // there are 290 items in this array
 
   /* Shadow */
   if (shadow) {
@@ -1746,13 +1747,20 @@ Viewport::draw_row_serf(int lx, int ly, bool shadow, const Color &color,
 
   int base = index1[hi];
   int head = index1[hi+1];
+  //Log::Debug["viewport.cc"] << "inside Viewport::draw_row_serfA, body = " << body << ", head = " << head << ", lo = " << lo << ", hi = " << hi << ", base = " << base;
 
+  // if serf has a separate head (some torso sprites include head, such as active working serfs, look it up
   if (head < 0) {
+    // for "torso only" sprites where head is already included in the torso sprite
+    //  for animations that only one serf type can do (ex. digging, building, harvesting, fishing)
     base += index2[lo];
   } else {
+    // for sprites with separate torso + head (for animations that any serf type can do (ex. walking, carrying)
     base += index2[lo];
     head += index2[lo+1];
   }
+
+  //Log::Debug["viewport.cc"] << "inside Viewport::draw_row_serfB, body = " << body << ", head = " << head << ", lo = " << lo << ", hi = " << hi << ", base = " << base;
 
   draw_serf(lx, ly, color, head, base);
 }
@@ -1793,9 +1801,10 @@ Viewport::serf_get_body(Serf *serf) {
     0x7600, 0x5f00, 0x6000, 0, 0, 0, 0, 0, 0, 0
   };
 
-  Data::Animation animation = data_source->get_animation(serf->get_animation(),
-                                                         serf->get_counter());
-  int t = animation.sprite;
+  Data::Animation animation = data_source->get_animation(serf->get_animation(), serf->get_counter());
+  int t = animation.sprite;  // it seems that the sprite values show in the animation table in FSStudio may be
+                             //  adjusted and are not always literally mapped to the serf_torso sprite # you might expect!
+                             //  The 't' value here is the serf_torso base/body
 
   switch (serf->get_type()) {
   case Serf::TypeTransporter:
@@ -1886,6 +1895,10 @@ Viewport::serf_get_body(Serf *serf) {
       serf->stop_playing_sfx();
       t += 0x380;
     }
+    // note - the 'base' aka 'torso' number for the Digger doing actual digging
+    //  is 1024 through 1031, which are mapped in hi/lo/index1 to become serf_torso sprites #240-247
+    //  and the animation is animation #87 though it doesn't seem to be the right number of steps
+    //  I wonder if the animation # is also offset somewhere and it isn't truly animiation#87 frames
     break;
   case Serf::TypeBuilder:
     if (t < 0x80) {
@@ -2489,6 +2502,7 @@ Viewport::draw_active_serf(Serf *serf, MapPos pos, int x_base, int y_base) {
       //
       // **** draw any normal serf as usual ****
       //
+      //
       draw_row_serf(lx, ly, true, color, body);
     }
 
@@ -2653,7 +2667,8 @@ Viewport::draw_active_serf(Serf *serf, MapPos pos, int x_base, int y_base) {
    Note that idle serfs do not have their serf_t object linked from the map
    so they are drawn seperately from active serfs. */
 void
-Viewport::draw_serf_row(MapPos pos, int y_base, int cols, int x_base) {
+Viewport::
+draw_serf_row(MapPos pos, int y_base, int cols, int x_base) {
   const int arr_1[] = {
     0x240, 0x40, 0x380, 0x140, 0x300, 0x80, 0x180, 0x200,
     0, 0x340, 0x280, 0x100, 0x1c0, 0x2c0, 0x3c0, 0xc0
@@ -2702,15 +2717,50 @@ Viewport::draw_serf_row(MapPos pos, int y_base, int cols, int x_base) {
 
     /* Active serf */
     if (map->has_serf(pos)) {
+
       Serf *serf = interface->get_game()->get_serf_at_pos(pos);
 
-      if (serf->get_state() != Serf::StateMining ||
-          (serf->get_mining_substate() != 3 &&
-           serf->get_mining_substate() != 4 &&
-           serf->get_mining_substate() != 9 &&
-           serf->get_mining_substate() != 10)) {
-            draw_active_serf(serf, pos, x_base, y_base);
-         }
+      // for option_AdvancedDemolition
+      //  a demolishing serf must be drawn one pos down-right
+      //  of his indicated pos so he can stand outside the
+      //  burning building without holding & blocking the flag pos
+      if (serf->get_state() == Serf::StateExitBuildingForDemolition){
+        // draw demo serf down-right one pos from building (i.e. flag pos)
+        Log::Info["viewport.cc"] << "inside Viewport::draw_row_serf, option_AdvancedDemolition related, serf in state StateExitBuildingForDemolition is being drawn one pos down-right";
+        draw_active_serf(serf, map->move_down_right(pos), x_base + MAP_TILE_WIDTH / 2, y_base + MAP_TILE_HEIGHT);
+        //draw_active_serf(serf, pos, x_base + MAP_TILE_WIDTH / 2, y_base + MAP_TILE_HEIGHT);
+      }else{
+        // handle exceptions to normal serf drawing
+        if (serf->get_state() == Serf::StateMining &&
+          (serf->get_mining_substate() == 3 ||
+           serf->get_mining_substate() == 4 ||
+           serf->get_mining_substate() == 9 ||
+           serf->get_mining_substate() == 10)) {
+          //  this is "any serf that is not walking to his mine elevator"
+          //   because that is drawn in draw_serf_row_behind instead of here
+          //do nothing, skip this serf
+
+        } else if (serf->get_state() == Serf::StateCleaningRubble && serf->get_animation() == 87 ) {
+          // for option_AdvancedDemolition, shift the x_base to show the
+          //  serf moving sideways as he digs.  In the original Digger animation
+          //  the serf moves to a real MapPos and digs in the center of it, so
+          //  no base shifting is required, but with this special state the 
+          //  digging animation frames are re-used but the serf must stay in the
+          //  former-building-site's pos
+          // NOTE the if animation==87 check, it only offsets the serf while in the digging
+          //  animation #87 state, not when he switches to #4 walking-right at the end
+
+          // move four pixels left every dig
+          int x_dig_offset = serf->get_digging_substate() * 4;
+          draw_active_serf(serf, pos, x_base - x_dig_offset, y_base);
+
+        } else {
+
+          // draw normal active serf
+          draw_active_serf(serf, pos, x_base, y_base);
+
+        }
+      }
     }
 
     /* Idle serf */
@@ -2744,6 +2794,10 @@ Viewport::draw_serf_row(MapPos pos, int y_base, int cols, int x_base) {
 
 /* Draw serfs that should appear behind the building at their
    current position. */
+// it appears that ONLY mining serfs walking to their mine elevator
+//  are drawn here, nothing else
+// the other serfs-working-in-buildings are drawn as building sprites
+//  and not serf_torso sprites
 void
 Viewport::draw_serf_row_behind(MapPos pos, int y_base, int cols, int x_base) {
   for (int i = 0; i < cols;

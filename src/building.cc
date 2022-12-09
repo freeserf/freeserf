@@ -621,6 +621,9 @@ Building::knight_occupy() {
 // update the building to have no holder
 // anything else that is normally done to make a building "burning"
 //  without actually setting it to burn yet
+// REMOVED      NOTE - the calling function should not call evict_holder       REMOVED      
+// REMOVED       for military buildings until the demo Digger serf arrives!    REMOVED      
+// REMOVED       For non-military buildings the holder is evicted immediately  REMOVED      
 void
 Building::evict_holder() {
   Log::Info["building.cc"] << "start of Building::evict_holder";
@@ -641,7 +644,35 @@ Building::evict_holder() {
   if (serf->get_type() == Serf::TypeTransporterInventory) {
     serf->set_type(Serf::TypeTransporter);
   }
+
   serf->building_deleted(pos);  // this is what actually evicts the serf
+
+/* NO, must evict the knights immediately 
+   because if it does not happen until demo serf arrives
+   the demo serf blocks the flag so knights can't escape
+   It might be possible to allow the knights to pass through
+   the demo serf, but more work than I want to do right now
+
+  // handle eviction of knights upon demo serf arrival
+  if (is_military()) {
+    Log::Debug["building.cc"] << "inside Building::evict_holder(), this is a military building, evicting the knights";
+    // military buildings can have multiple knights, so they must
+    //  all be sent out one after another
+    // NOTE - the castle is_military building, but if it is burning it
+    //  should not have any knights, because they would have died defending it!
+    while (_serf_index != 0) {
+      Serf *knight = game->get_serf(_serf_index);
+      if (knight == nullptr){
+        Log::Error["building.cc"] << "inside Building::evict_holder(), game->get_serf returned nullptr for knight with serf index #" << _serf_index << "!  investigate";
+        return;
+      }
+      // get the index of the next knight garrisoned in this building (NOT just next serf index # in the player's Serfs list!)
+      _serf_index = knight->get_next();  // this should be called "get_next_defender", because that is what it does
+      knight->building_deleted(pos);   // this is what actually evicts the serf
+    }
+  }
+*/
+
   Log::Info["building.cc"] << "done Building::evict_holder(), successfully evicted holder";
   return;
 }
@@ -729,10 +760,43 @@ Building::burnup() {
   Player *player = game->get_player(owner);
   player->building_demolished(this);
 
+  // handle option_AdvancedDemolotion
+  //  when a building is marked for demolition, the Holder
+  //  will be immediately evicted using the new Building::evict_holder function
+  // However, when the demo serf (a Digger) arrives he switches to StateEnteringBuilding
+  //  and he *becomes* the new holder then.  When burnup is triggered, it will evict him
+  //  and make him lost, breaking his animation.  To avoid this, skip triggering this
+  //  if(holder) check if this is an AdvancedDemolition, to avoid both removing the new
+  //  demo-serf-holder before he is done and to avoid the serf->building_deleted call
+  //  from making him become Lost
+  bool planned_demo = false;
+  if (option_AdvancedDemolition){
+    Log::Debug["building.cc"] << "inside Building::burnup, option_AdvancedDemolition is true";
+    if (pending_demolition){
+      Log::Debug["building.cc"] << "inside Building::burnup, option_AdvancedDemolition is true and this building is pending_demolition";
+      if (holder){
+        Log::Debug["building.cc"] << "inside Building::burnup, option_AdvancedDemolition is true and this building is pending_demolition and has a Holder serf";
+        Serf *demo_serf = game->get_serf(holder_or_first_knight);
+        if (demo_serf == nullptr){
+          Log::Warn["building.cc"] << "inside Building::burnup, option_AdvancedDemolition, got nullptr for holder_or_first_knight!  this should be the demo serf.  Falling back to normal Building::burnup()";
+        }else{
+          if (demo_serf->get_type() != Serf::TypeDigger){
+            Log::Warn["building.cc"] << "inside Building::burnup, option_AdvancedDemolition, the holder_or_first_knight with serf index #" << holder_or_first_knight << " is not the expected TypeDigger!  instead he is type " << demo_serf->get_type() << ".  Falling back to normal Building::burnup()";
+          }else{
+            // expected Digger is holder and building is marked for demo, use special logic
+            Log::Info["building.cc"] << "inside Building::burnup, option_AdvancedDemolition, the demo Digger serf has arrived, calling special Building::burnup logic";
+            planned_demo = true;
+          }
+        }
+      }
+    }
+  }
+
   // NOTE - holder can be a specialist/professional serf occupying the building
   //    OR one or more knights garrisoned inside
   //    OR a Builder (or Digger?) that is constructing the building
-  if (holder) {
+  if (holder && !planned_demo) {
+
     holder = false;
 
     if (!constructing && type == TypeCastle) {
@@ -780,6 +844,7 @@ Building::burnup() {
     game->demolish_flag(flag_pos, player);
   }
 
+  Log::Debug["building.cc"] << "done Building::burnup, returning true";
   return true;
 }
 
@@ -953,9 +1018,8 @@ Building::request_serf_if_needed() {
 
   if (!serf_request_failed && !holder && !serf_requested) {
     if (requests[type].serf_type != Serf::TypeNone) {
-      serf_request_failed = !send_serf_to_building(requests[type].serf_type,
-                                                   requests[type].res_type_1,
-                                                   requests[type].res_type_2);
+      //Log::Debug["building.cc"] << "inside Building::request_serf_if_needed(), found a request of serf_type " << NameSerf[requests[type].serf_type] << ", calling send_serf_to_building to this building of type " << NameBuilding[get_type()] << " at pos " << get_position();
+      serf_request_failed = !send_serf_to_building(requests[type].serf_type, requests[type].res_type_1, requests[type].res_type_2);
     }
   }
 }
@@ -1173,13 +1237,12 @@ Building::update() {
           stock[1].available = 0xff;
           active = true;
 
-          game->get_player(get_owner())->add_notification(
-                                 Message::TypeNewStock, pos, 0);
+          game->get_player(get_owner())->add_notification(Message::TypeNewStock, pos, 0);
+
         } else {
           if (!serf_request_failed && !holder && !serf_requested) {
-            send_serf_to_building(Serf::TypeTransporter,
-                                  Resource::TypeNone,
-                                  Resource::TypeNone);
+            //Log::Debug["building.cc"] << "inside Building::update(), calling send_serf_to_building for a Transporter";
+            send_serf_to_building(Serf::TypeTransporter, Resource::TypeNone, Resource::TypeNone);
           }
 
           Player *player = game->get_player(get_owner());
@@ -1188,9 +1251,8 @@ Building::update() {
                                                        // res OUT mode
               inventory->free_serf_count() == 0) {
             if (player->tick_send_generic_delay()) { // game_speed adjusted for time warp speeds
-              send_serf_to_building(Serf::TypeGeneric,
-                                    Resource::TypeNone,
-                                    Resource::TypeNone);
+              //Log::Debug["building.cc"] << "inside Building::update(), calling send_serf_to_building for a Generic serf";
+              send_serf_to_building(Serf::TypeGeneric, Resource::TypeNone, Resource::TypeNone);
             }
           }
 
@@ -1208,7 +1270,12 @@ Building::update() {
       case TypeHut:
       case TypeTower:
       case TypeFortress:
-        update_military();
+        // for option_AdvancedDemolition
+        if (option_AdvancedDemolition && pending_demolition){
+          Log::Debug["building.cc"] << "inside Building::update(), NOT calling update_military on this military building because it is pending_demolition";
+        }else{
+          update_military();
+        }
         break;
       case TypeButcher:
         if (holder) {
@@ -1405,9 +1472,7 @@ Building::update_unfinished() {
   /* Request builder serf */
   if (!serf_request_failed && !holder && !serf_requested) {
     progress = 1;
-    serf_request_failed = !send_serf_to_building(Serf::TypeBuilder,
-                                                 Resource::TypeHammer,
-                                                 Resource::TypeNone);
+    serf_request_failed = !send_serf_to_building(Serf::TypeBuilder, Resource::TypeHammer, Resource::TypeNone);
   }
 
   /* Request planks */
@@ -1468,8 +1533,10 @@ Building::update_unfinished_adv() {
 
 /* Dispatch serf to building. */
 bool
-Building::send_serf_to_building(Serf::Type serf_type, Resource::Type res1,
-                                Resource::Type res2) {
+Building::send_serf_to_building(Serf::Type serf_type, Resource::Type res1, Resource::Type res2) {
+  //Log::Debug["building.cc"] << "inside Building::send_serf_to_building for serf_type " << serf_type << ", to building of type " << get_type() << " at pos " << get_position();
+  //Log::Debug["building.cc"] << "inside Building::send_serf_to_building for serf_type " << NameSerf[serf_type] << ", to building of type " << NameBuilding[get_type()] << " at pos " << get_position();
+  // NOTE - if serf_type is -1 it is calling a knight (see see in update_castle, it calls TypeNone)
   Flag *dest = game->get_flag(flag);
   return game->send_serf_to_flag(dest, serf_type, res1, res2);
 }
@@ -1529,10 +1596,9 @@ Building::update_castle() {
         holder_or_first_knight = serf->get_index();
         player->increase_castle_knights();
       } else {
+        //Log::Debug["building.cc"] << "inside Building::update_castle(), want to send_serf_to_building of TypeNone (-1) i.e. a knight) if tick_send_delay is true";
         if (player->tick_send_knight_delay()) {  // game_speed adjusted for time warp speeds
-          send_serf_to_building(Serf::TypeNone,
-                                Resource::TypeNone,
-                                Resource::TypeNone);
+          send_serf_to_building(Serf::TypeNone, Resource::TypeNone, Resource::TypeNone);
         }
       }
     } else {
@@ -1556,9 +1622,8 @@ Building::update_castle() {
       !inventory->have_any_out_mode() && /* Not serf or res OUT mode */
       inventory->free_serf_count() == 0) {
     if (player->tick_send_generic_delay()) {   // game_speed adjusted for time warp speeds
-      send_serf_to_building(Serf::TypeGeneric,
-                            Resource::TypeNone,
-                            Resource::TypeNone);
+      //Log::Debug["building.cc"] << "inside Building::update_castle(), calling send_serf_to_building for a Generic serf";
+      send_serf_to_building(Serf::TypeGeneric, Resource::TypeNone, Resource::TypeNone);
     }
   }
 
@@ -1619,9 +1684,8 @@ Building::update_military() {
   int present_knights = stock[0].available;
   if (total_knights < needed_occupants) {
     if (!serf_request_failed) {
-      serf_request_failed = !send_serf_to_building(Serf::TypeNone,
-                                                   Resource::TypeNone,
-                                                   Resource::TypeNone);
+      //Log::Debug["building.cc"] << "inside Building::update_military(), calling send_serf_to_building for a Generic serf";
+      serf_request_failed = !send_serf_to_building(Serf::TypeNone, Resource::TypeNone, Resource::TypeNone);  // TypeNone means a knight
     }
   } else if (needed_occupants < present_knights &&
              !game->get_map()->has_serf(

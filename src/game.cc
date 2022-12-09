@@ -749,7 +749,9 @@ Game::send_serf_to_flag(Flag *dest, Serf::Type type, Resource::Type res1,
     Inventory *inventory = data.inventory;
     Serf *serf = inventory->call_out_serf(Serf::TypeGeneric);
     if ((type < 0) && (building != NULL)) {
-      // a knight was requested, with a valid building destination
+      // Serf::Type -1 / TypeNone
+      //  means a knight was requested to a building
+      //  but no knight is available, so create a new one
       building->knight_request_granted();
       serf->set_type(Serf::TypeKnight0);
       serf->go_out_from_inventory(inventory->get_index(), building->get_flag_index(), -1);
@@ -795,8 +797,7 @@ Game::send_serf_to_flag(Flag *dest, Serf::Type type, Resource::Type res1,
 /* Dispatch geologist to flag. */
 bool
 Game::send_geologist(Flag *dest) {
-  return send_serf_to_flag(dest, Serf::TypeGeologist, Resource::TypeHammer,
-                           Resource::TypeNone);
+  return send_serf_to_flag(dest, Serf::TypeGeologist, Resource::TypeHammer, Resource::TypeNone);
 }
 
 /* Update buildings as part of the game progression. */
@@ -2203,11 +2204,15 @@ Game::mark_building_for_demolition(MapPos pos, Player *player) {
     return false;
   }
   if (building->get_owner() != player->get_index()){
-    Log::Warn["game.cc"] << "inside Game::mark_building_for_demolition, building at pos " << pos << " is not owned by this player!  returning false";
+    Log::Debug["game.cc"] << "inside Game::mark_building_for_demolition, building at pos " << pos << " is not owned by this player!  returning false";
     return false;
   }
   if (building->is_burning()){
-    Log::Warn["game.cc"] << "inside Game::mark_building_for_demolition, building at pos " << pos << " is already on fire!  returning false";
+    Log::Debug["game.cc"] << "inside Game::mark_building_for_demolition, building at pos " << pos << " is already on fire!  returning false";
+    return false;
+  }
+  if (building->is_pending_demolition()){
+    Log::Debug["game.cc"] << "inside Game::mark_building_for_demolition, building at pos " << pos << " is already pending demolition!  returning false";
     return false;
   }
   building->call_for_demolition();

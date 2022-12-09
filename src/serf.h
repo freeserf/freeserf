@@ -473,6 +473,7 @@ class Serf : public GameObject {
   unsigned int get_idle_in_stock_inv_index() const {
                                              return s.idle_in_stock.inv_index; }
   int get_mining_substate() const { return s.mining.substate; }
+  int get_digging_substate() { return s.digging.substate; } // re-using the Digging substate for option_AdvancedDemolitio to keep count of how many digs so far in this pos
 
   Serf *extract_last_knight_from_list();
   void insert_before(Serf *knight);
