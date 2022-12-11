@@ -1508,7 +1508,7 @@ Serf::handle_serf_walking_state_search_cb(Flag *flag, void *data) {
 
 void
 Serf::start_walking(Direction dir, int slope, int change_pos) {
-  Log::Debug["serf.cc"] << "inside Serf::start_walking";
+  //Log::Debug["serf.cc"] << "start of Serf::start_walking";
   PMap map = game->get_map();
   MapPos new_pos = map->move(pos, dir);
   //Log::Info["serf"] << "debug: inside start_walking, old pos: " << pos << ", new pos: " << new_pos;
@@ -1518,13 +1518,13 @@ Serf::start_walking(Direction dir, int slope, int change_pos) {
 
   //Log::Info["serf"] << "debug: inside start_walking, animation = " << animation;
   if (change_pos) {
-    Log::Debug["serf.cc"] << "inside Serf::start_walking, change_pos is TRUE, moving serf to new_pos " << new_pos;
+    //Log::Debug["serf.cc"] << "inside Serf::start_walking, change_pos is TRUE, moving serf to new_pos " << new_pos;
     map->set_serf_index(pos, 0);
     map->set_serf_index(new_pos, get_index());
   }
 
   pos = new_pos;
-  Log::Debug["serf.cc"] << "done Serf::start_walking, serf #" << get_index() << " now occupies pos " << pos;
+  //Log::Debug["serf.cc"] << "done Serf::start_walking, serf #" << get_index() << " now occupies pos " << pos;
 }
 
 // I don't understand what this is for... is it
@@ -1550,6 +1550,9 @@ static const int road_building_slope[] = {
 //  as serf-pos and map-serf-at-pos tracking goes
 // Note that Viewport:draw_serf_row function handles drawing both
 //  knights in the same pos as a special case
+// NOTE - by the time enter_building is called, the Building already
+//  has holder=true because Building::requested_serf_reached sets
+//  holder to true, before enter_building is called
 void
 Serf::enter_building(int field_B, int join_pos) {
   Log::Debug["serf.cc"] << "inside Serf::enter_building, setting serf #" << get_index() << " state to StateEnteringBuilding";
@@ -1618,7 +1621,16 @@ Serf::handle_serf_walking_state_dest_reached() {
       return;
     }
 
-    building->requested_serf_reached(this);
+    /* this can't be set here, because the borders don't actually update until the 
+        building becomes active once the knight is inside
+    // with option_FogOfWar enabled, need to detect when borders change so that the tile cache can be refreshed to update shroud/FoW
+    if (option_FogOfWar && !building->has_serf() && building->is_military() && get_type() >= Serf::TypeKnight0 && get_type() <= Serf::TypeKnight4){
+      Log::Debug["serf.cc"] << "inside handle_serf_walking_state_dest_reached, option_FogOfWar, a requested knight has arrived to become the first holder of a military building";
+      game->set_redraw_frame();
+    }
+    */
+
+    building->requested_serf_reached(this);  // this is the only place in the entire code that this function is called and holder bool is set to true
 
     /* this does not work, because the demo serf
          blocks the flag so the knights cannot exit
@@ -2163,9 +2175,13 @@ Serf::enter_inventory() {
   s.idle_in_stock.inv_index = building->get_inventory()->get_index();
 }
 
+// NOTE - by the time enter_building is called, the Building already
+//  has holder=true because Building::requested_serf_reached sets
+//  holder to true, before enter_building is called (which results in
+//  the serf moving to Serf::StateEnteringBuilding which triggers this
 void
 Serf::handle_serf_entering_building_state() {
-  Log::Debug["serf.cc"] << "start of Serf::handle_serf_entering_building_state, serf #" << index << " has type " << type;
+  //Log::Debug["serf.cc"] << "start of Serf::handle_serf_entering_building_state, serf #" << index << " has type " << type;
   uint16_t delta = game->get_tick() - tick;
   tick = game->get_tick();
   counter -= delta;
@@ -2615,9 +2631,11 @@ Serf::handle_serf_entering_building_state() {
       case TypeKnight4:
         if (s.entering_building.field_B == -2) {
           // knight entering a Castle or Stock Inventory and becoming IdleInStock
+          //Log::Debug["serf.cc"] << "inside Serf::handle_serf_entering_building_state(), knight entering a Castle or Stock Inventory and becoming IdleInStock";
           enter_inventory();
         } else {
           // knight entering a military building as a defender
+          //Log::Debug["serf.cc"] << "inside Serf::handle_serf_entering_building_state(), knight entering a military building as a defender";
           Building *building = game->get_building_at_pos(pos);
           if (building->is_burning()) {
             set_state(StateLost);
@@ -2626,9 +2644,7 @@ Serf::handle_serf_entering_building_state() {
             map->set_serf_index(pos, 0);
 
             // knight entering Castle as a Defender (NOT IdleInStock)
-            Log::Debug["serf.cc"] << "inside Serf::handle_serf_entering_building_state(), FOO1";
             if (building->has_inventory()) {
-              Log::Debug["serf.cc"] << "inside Serf::handle_serf_entering_building_state(), FOO2";
               set_state(StateDefendingCastle);
               counter = 6000;
               /* Prepend to knight list */
@@ -2639,9 +2655,7 @@ Serf::handle_serf_entering_building_state() {
             }
 
             // knight entering a Hut/Tower/Garrison as a defender
-            Log::Debug["serf.cc"] << "inside Serf::handle_serf_entering_building_state(), FOO3";
             building->requested_knight_arrived();
-            Log::Debug["serf.cc"] << "inside Serf::handle_serf_entering_building_state(), FOO4";
 
             Serf::State next_state = (Serf::State)-1;
             switch (building->get_type()) {
@@ -2663,11 +2677,17 @@ Serf::handle_serf_entering_building_state() {
             set_state(next_state);
             counter = 6000;
 
+            // NOTE - by the time this code executes the Building already has
+            //  holder set to true (from way-upstream function) so it is too late to check
+            //  if this knight is occupying a new building or an already occupied one
+            // ACTUALLY - because the upstream function only sets holder=true, I think 
+            //  it can be tested if the holder_or_first_knight is valid and equal to this knight?
+            // NO - the upstream function ALSO sets holder_or_first_knight to the serf index
+            //  and the below code may be redundant 
+
             /* Prepend to knight list */
-            Log::Debug["serf.cc"] << "inside Serf::handle_serf_entering_building_state(), FOO5 s.defending.next_knight = " << s.defending.next_knight << ", building->get_holder_or_first_knight = " << building->get_holder_or_first_knight();
             s.defending.next_knight = building->get_holder_or_first_knight();
             building->set_holder_or_first_knight(get_index());
-            Log::Debug["serf.cc"] << "inside Serf::handle_serf_entering_building_state(), FOO6 s.defending.next_knight = " << s.defending.next_knight << ", building->get_holder_or_first_knight = " << building->get_holder_or_first_knight();
           }
         }
         break;

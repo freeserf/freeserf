@@ -79,12 +79,16 @@ class Viewport : public GuiObject, public Map::Handler {
   void map_pix_from_map_coord(MapPos pos, int h, int *mx, int *my);
   void screen_pix_from_map_coord(MapPos pos, int *sx, int *sy);
   MapPos map_pos_from_screen_pix(int x, int y);
+  //MapPos map_pos_from_tile_frame_coord(unsigned int tid, int tc, int tr);
+  MapPos map_pos_from_tile_frame_coord(int tc, int tr);
+  unsigned int tile_id_from_map_pos(MapPos pos);
 
   void redraw_map_pos(MapPos pos);
 
   void update();
 
  protected:
+  Map::Terrain special_terrain(MapPos pos, Map::Terrain type);  // convenience function to allow changes to both draw_triange_up & _down without code duplication
   void draw_triangle_up(int x, int y, int m, int left, int right, MapPos pos,
                         Frame *frame);
   void draw_triangle_down(int x, int y, int m, int left, int right,

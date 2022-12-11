@@ -219,17 +219,26 @@ Building::increase_mining(int res) {
 }
 
 void
-Building::set_holder_or_first_knight(unsigned int serf) {
-  Log::Debug["serf.cc"] << "inside Serf::set_holder_or_first_knight(), provided serf index is " << serf;
-  if (game->get_serf(serf) == nullptr){
-    Log::Error["serf.cc"] << "inside Serf::set_holder_or_first_knight(), game->get_serf on provided serf index " << serf << " results in a nullptr!";
+Building::set_holder_or_first_knight(unsigned int serf_index) {
+  Log::Debug["serf.cc"] << "inside Serf::set_holder_or_first_knight(), provided serf index is " << serf_index;
+
+  // the actual Serf object isn't needed by this function, but it seems wise to catch a nullptr assignment early
+  Serf *serf = game->get_serf(serf_index);
+  if (serf == nullptr){
+    Log::Error["serf.cc"] << "inside Serf::set_holder_or_first_knight(), game->get_serf on provided serf index #" << serf_index << " results in a nullptr!";
     throw ExceptionFreeserf("tried to call building->set_holder_or_first_knight but serf index results in a nullptr!");
   }
-  holder_or_first_knight = serf;
+  holder_or_first_knight = serf_index;
 
   /* Test whether building is already occupied by knights */
   if (!active) {
     active = true;
+
+    // with option_FogOfWar enabled, need to detect when borders change so that the tile cache can be refreshed to update shroud/FoW
+    if (option_FogOfWar && this->is_military() && serf->get_type() >= Serf::TypeKnight0 && serf->get_type() <= Serf::TypeKnight4){
+      Log::Debug["building.cc"] << "inside set_holder_or_first_knight, option_FogOfWar, a knight has become the first holder of a military building, triggering";
+      game->set_redraw_frame();
+    }
 
     int mil_type = -1;
     int max_gold = -1;
@@ -645,7 +654,15 @@ Building::evict_holder() {
   unsigned int _serf_index = holder_or_first_knight;
   holder_or_first_knight = 0;
   holder = false;
-  //active = false;  // don't set it to inactive yet either, I think this also contributes to "knight arrives after building evicted" bug
+  active = false;  // don't set it to inactive yet either, I think this also contributes to "knight arrives after building evicted" bug
+  //active = true;  // if building is set to inactive, then the player borders treat it as if it is staffed, but borders should be reduced as soon as the last knight exits
+                  //  I think that the above mentioned bug is fixed other ways and it may be okay to leave active = true now
+  // hmm, because Building::burnup *calls* game->update_land_ownership(pos), and isn't called until the demo serf arrives, it still doesn't work
+  //  try explicitly calling it now!
+  // AH, need building to be INactive after all, for borders to update properly, and then call this
+  // YES this works
+  game->update_land_ownership(pos);
+
   if (_serf_index < 1){
     Log::Error["building.cc"] << "inside Building::evict_holder(), holder_or_first_knight has serf index #" << _serf_index << "! this means no holder or some other issue, investigate";
     return;
@@ -934,7 +951,7 @@ Building::requested_serf_lost() {
 
 void
 Building::requested_serf_reached(Serf *serf) {
-  holder = true;
+  holder = true;  // this is the only place in code where holder bool is set to true (except for initial castle creation)
   Log::Debug["building.cc"] << "inside Building::requested_serf_reached for this serf with index " << serf->get_index() << ", serf type " << serf->get_type();
   if (serf_requested) {
     Log::Debug["building.cc"] << "inside Building::requested_serf_reached, a serf was requested, holder_or_first_knight being set to this serf with index " << serf->get_index() << ", serf type " << serf->get_type();
@@ -1291,6 +1308,16 @@ Building::update() {
       case TypeTower:
       case TypeFortress:
         // for option_AdvancedDemolition
+        //
+        // PROBLEM - when a military building is marked for demo
+        //  and the knights are evicted, the player borders are not
+        //  immediately redrawn if update_military is skipped,
+        //    !!!! this must be fixed!!!!
+        //
+        //  ACTUALLY, I don't see anything about redrawing borders in update_military, maybe it is elsewhere??
+        //    ah it seems     game->update_land_ownership(pos); does it, and it is tied to the building being 'active'
+        //    try making evict_holder keep the building active
+        //
         if (option_AdvancedDemolition && pending_demolition){
           Log::Debug["building.cc"] << "inside Building::update(), NOT calling update_military on this military building because it is pending_demolition";
         }else{
@@ -1740,6 +1767,7 @@ Building::update_military() {
         //   next Building::update it should send the knights back out
         // NO - instead prevent the serf from ever reaching ReadyToEnter/EnteringBuilding states at all
         //  and leave this code as it was (throw exception)
+        // UPDATE - preventing the serf from reaching this state works well
         Log::Error["building.cc"] << "inside Building::update_military(), _serf_index " << _serf_index << ", serf is nullptr!";
         throw ExceptionFreeserf("Index of nonexistent serf in the queue.");
         //Log::Debug["building.cc"] << "inside Building::update_military(), _serf_index " << _serf_index << ", serf is nullptr, assuming this is a knight-arriving-to-a-building-pending_demolition and ignoring this update, faking _serf_index = 0";

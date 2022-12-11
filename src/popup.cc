@@ -305,6 +305,8 @@ typedef enum Action {
   ACTION_GAME_OPTIONS_LostTransportersClearFaster,
   ACTION_GAME_OPTIONS_FourSeasons,
   ACTION_GAME_OPTIONS_FishSpawnSlowly,
+  ACTION_GAME_OPTIONS_AdvancedDemolition,
+  ACTION_GAME_OPTIONS_FogOfWar,
   ACTION_MAPGEN_ADJUST_TREES,
   ACTION_MAPGEN_ADJUST_STONEPILES,
   ACTION_MAPGEN_ADJUST_FISH,
@@ -2073,11 +2075,11 @@ PopupBox::draw_game_options2_box() {
   draw_green_string(3, 67, "Fish Spawn Very Slowly");
   draw_popup_icon(1, 64, option_FishSpawnSlowly ? 288 : 220);
 
-  //draw_green_string(3, 86, "PlaceHolder3");
-  //draw_popup_icon(1, 83, option_PlaceHolder3 ? 288 : 220);
+  draw_green_string(3, 86, "Advanced Demolition");
+  draw_popup_icon(1, 83, option_AdvancedDemolition ? 288 : 220);
 
-  //draw_green_string(3, 105, "PlaceHolder4");
-  //draw_popup_icon(1, 102, option_PlaceHolder4 ? 288 : 220);
+  draw_green_string(3, 105, "Fog Of War");
+  draw_popup_icon(1, 102, option_FogOfWar ? 288 : 220);
 
   draw_popup_icon(30, 128, 0x3d); // flipbox to previous page
   draw_popup_icon(32, 128, 60); /* exit */
@@ -3812,6 +3814,20 @@ PopupBox::handle_action(int action, int x_, int /*y_*/) {
       option_FishSpawnSlowly = true;
     }
     break;
+  case ACTION_GAME_OPTIONS_AdvancedDemolition:
+    if (option_AdvancedDemolition){
+      option_AdvancedDemolition = false;
+    }else{
+      option_AdvancedDemolition = true;
+    }
+    break;
+  case ACTION_GAME_OPTIONS_FogOfWar:
+    if (option_FogOfWar){
+      option_FogOfWar = false;
+    }else{
+      option_FogOfWar = true;
+    }
+    break;
   case ACTION_MAPGEN_ADJUST_TREES:
     Log::Info["popup"] << "ACTION_MAPGEN_ADJUST_TREES x_ = " << x_ << ", gui_get_slider_click_value(x_) = " << gui_get_slider_click_value(x_) << ", unint16_t(gui_get_slider_click_value(x_)) = " << uint16_t(gui_get_slider_click_value(x_));
     interface->set_custom_map_generator_trees(gui_get_slider_click_value(x_));                                         
@@ -4193,8 +4209,8 @@ PopupBox::handle_box_game_options2_clk(int cx, int cy) {
     ACTION_GAME_OPTIONS_LostTransportersClearFaster, 7, 26, 150, 16,
     ACTION_GAME_OPTIONS_FourSeasons, 7, 45, 150, 16,
     ACTION_GAME_OPTIONS_FishSpawnSlowly, 7, 64, 150, 16,
-    //ACTION_GAME_OPTIONS_Placeholder3, 7, 83, 150, 16,
-    //ACTION_GAME_OPTIONS_Placeholder4, 7, 102, 150, 16,
+    ACTION_GAME_OPTIONS_AdvancedDemolition, 7, 83, 150, 16,
+    ACTION_GAME_OPTIONS_FogOfWar, 7, 102, 150, 16,
     ACTION_GAME_OPTIONS_PREV_PAGE, 239, 126, 16, 16,  // flip button
     ACTION_GAME_OPTIONS_RETURN_TO_OPTIONS, 255, 126, 16, 16, // exit button
     -1

@@ -468,9 +468,11 @@ Interface::update_interface() {
   Log::Info["interface"] << "option_BabyTreesMatureSlowly is " << option_BabyTreesMatureSlowly;
   Log::Info["interface"] << "option_ResourceRequestsTimeOut is " << option_ResourceRequestsTimeOut;
   //PrioritizeUsableResources
+  //AdvancedDemolition
   Log::Info["interface"] << "option_LostTransportersClearFaster is " << option_LostTransportersClearFaster;
   Log::Info["interface"] << "option_FourSeasons is " << option_FourSeasons;
   Log::Info["interface"] << "option_FishSpawnSlowly is " << option_FishSpawnSlowly;
+  //option_FogOfWar
   */
 
 
@@ -925,6 +927,7 @@ Interface::layout() {
 /* Called periodically when the game progresses. */
 void
 Interface::update() {
+  //Log::Debug["interface.cc"] << "start of Interface::update()";
   if (!game) {
     return;
   }
@@ -933,6 +936,19 @@ Interface::update() {
 
   int tick_diff = game->get_const_tick() - last_const_tick;
   last_const_tick = game->get_const_tick();
+
+  // hack to trigger redraw for option_FogOfWar
+  //  any time borders change
+  if (game->get_redraw_frame()){
+    Log::Debug["interface.cc"] << "inside Interface::update(), game->get_redraw_frame is true";
+    if (viewport != nullptr) {
+      Log::Debug["interface.cc"] << "inside Interface::update(), game->get_redraw_frame is true and viewport is not a nullptr, calling viewport->set_size";
+      viewport->set_size(width, height);  // this does the magic refresh without affecting popups (as Interface->layout() does)
+    }
+    game->unset_redraw_frame();
+  }else{
+    //Log::Debug["interface.cc"] << "inside Interface::update(), game->get_redraw_frame is false";
+  }
 
   if (option_FourSeasons){
     // messing with weather/seasons/palette - increase subseason
@@ -1353,7 +1369,8 @@ Interface::clear_custom_graphics_cache() {
   // there are two mask types, each with 80 elements
   // Data::AssetMapMaskUp and Data::AssetMapMaskDown
   for (int mask_index=0; mask_index<81; mask_index++){
-    for (int map_ground_index=0; map_ground_index<33; map_ground_index++){
+    //for (int map_ground_index=0; map_ground_index<33; map_ground_index++){
+    for (int map_ground_index=0; map_ground_index<34; map_ground_index++){  // added a new Terrain type, TerrainShroud for option_FogOfWar
       to_purge.insert( Data::Sprite::create_id(Data::AssetMapGround, map_ground_index, Data::AssetMapMaskUp, mask_index, {0,0,0,0}) );
       to_purge.insert( Data::Sprite::create_id(Data::AssetMapGround, map_ground_index, Data::AssetMapMaskDown, mask_index, {0,0,0,0}) );
     }

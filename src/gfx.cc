@@ -406,7 +406,16 @@ Frame::draw_masked_sprite(int x, int y, Data::Resource mask_res,
   //Log::Info["gfx"] << "inside Frame::draw_masked_sprite  with res " << res;
   Image *image = Image::get_cached_image(id);
   if (image == nullptr) {
-    Data::PSprite s = data_source->get_sprite(res, index, {0, 0, 0, 0});
+    // handle new sprites for new Terrain types for option_FogOfWar
+    Data::PSprite s;
+    if (index > 32){
+      // new terrain sprite
+      Data &data = Data::get_instance();
+      s = data.get_data_source_Custom()->get_sprite(res, index, {0, 0, 0, 0});
+    }else{
+      // original terrain sprite
+      s = data_source->get_sprite(res, index, {0, 0, 0, 0});
+    }
     
     if (!s) {
       Log::Warn["graphics"] << "Failed to decode sprite #"

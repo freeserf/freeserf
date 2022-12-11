@@ -46,29 +46,103 @@
 #define MAP_TILE_MASKS     81
 
 /* Number of cols,rows in each landscape tile */
-#define MAP_TILE_COLS  16
-#define MAP_TILE_ROWS  16
+//#define MAP_TILE_COLS  16  // this is original value from Freeserf
+//#define MAP_TILE_ROWS  16  // this is original value from Freeserf
+
+// I tried experimenting with changing these
+//  values above 64x64 result in a division error somewhere, didn't investigate further
+//  values above 16x16 up to 64x64 result in modest performance games, got 4-5 more FPS in Debug build on speed 12 (max "physics warp")
+//  values below 8x8 result in modestly worse performance
+// didn't do extensive testing, posible that with Release build these differences are eliminated
+//   possible that the landscape tile drawing is insignificant compared to the active serfs/building being drawn on screen
+// also, at normal game tick speed (game speed 2 or 13+ "time warp") the frame rate is unchanged (stays 50fps)
+// consider that there could be intermittent performance hits when tiles are invalidated?  I tried doing the popups and weather changes
+//  that trigger this, but it didn't seem to have any effect.  Will leave it at 64x64 for some time since it appears to give better perf
+#define MAP_TILE_COLS  64
+#define MAP_TILE_ROWS  64
 
 MapPos debug_overlay_clicked_pos = bad_map_pos;
 
+// this array is used to get the map_ground sprite id for a given
+//  Map::Terrain type (ex. TypeSnow0)  and luminosity level
+// Notice that 32 (water) is all same because it only has one luminosity levle
+//  buy others have varying levels
 static const uint8_t tri_spr[] = {
-  32, 32, 32, 32, 32, 32, 32, 32,
-  32, 32, 32, 32, 32, 32, 32, 32,
-  32, 32, 32, 32, 32, 32, 32, 32,
-  32, 32, 32, 32, 32, 32, 32, 32,
-  0, 1, 2, 3, 4, 5, 6, 7,
-  0, 1, 2, 3, 4, 5, 6, 7,
-  0, 1, 2, 3, 4, 5, 6, 7,
-  0, 1, 2, 3, 4, 5, 6, 7,
-  24, 25, 26, 27, 28, 29, 30, 31,
-  24, 25, 26, 27, 28, 29, 30, 31,
-  24, 25, 26, 27, 28, 29, 30, 31,
-  8, 9, 10, 11, 12, 13, 14, 15,
-  8, 9, 10, 11, 12, 13, 14, 15,
-  8, 9, 10, 11, 12, 13, 14, 15,
-  16, 17, 18, 19, 20, 21, 22, 23,
-  16, 17, 18, 19, 20, 21, 22, 23
+  32, 32, 32, 32, 32, 32, 32, 32,  // water
+  32, 32, 32, 32, 32, 32, 32, 32,  // water
+  32, 32, 32, 32, 32, 32, 32, 32,  // water
+  32, 32, 32, 32, 32, 32, 32, 32,  // water
+  0, 1, 2, 3, 4, 5, 6, 7,          // grass
+  0, 1, 2, 3, 4, 5, 6, 7,          // grass
+  0, 1, 2, 3, 4, 5, 6, 7,          // grass
+  0, 1, 2, 3, 4, 5, 6, 7,          // grass
+  24, 25, 26, 27, 28, 29, 30, 31,  // desert
+  24, 25, 26, 27, 28, 29, 30, 31,  // desert
+  24, 25, 26, 27, 28, 29, 30, 31,  // desert
+  8, 9, 10, 11, 12, 13, 14, 15,    // tundra (brown mountain)
+  8, 9, 10, 11, 12, 13, 14, 15,    // tundra (brown mountain)
+  8, 9, 10, 11, 12, 13, 14, 15,    // tundra (brown mountain)
+  16, 17, 18, 19, 20, 21, 22, 23,  // snow
+  16, 17, 18, 19, 20, 21, 22, 23   // snow
 };
+
+// return the new type (or original type)
+//  as modified by any special new option
+//  logic.  This function exists to avoid
+//  having to constantly sync identical logic
+//  between draw_triangle_up & _down
+Map::Terrain
+Viewport::special_terrain(MapPos pos, Map::Terrain type){
+  //Log::Debug["viewport.cc"] << "start of Viewport::special_terrain(), pos " << pos << ", orig terrain type " << type;
+  Map::Terrain new_type = type;
+
+  if (option_FourSeasons){
+    // MID-WINTER
+    // make snow cover a bit more of mountains than usual
+    if (season == 3 && subseason >= 3 && subseason <= 14){      
+      if (type >= Map::TerrainTundra2){  // a bit more snow on mountains
+        // do a partial change for one subseason
+        if ((subseason == 3 || subseason == 14) && (pos % 7 == 0 || pos % 11 == 0 || pos % 13 == 0 || pos % 17 == 0 || pos % 19 == 0)){  // sort of "is prime?"
+          // skip every other pos
+        }else{
+          new_type = Map::TerrainSnow0;
+        }
+      }
+    }
+    // MID-SUMMER - a bit less snow on mountains than usual
+    if (season == 1 && subseason >= 3 && subseason <= 14){
+      if (type == Map::TerrainSnow0){    // a bit less snow on mountains
+        // do a partial change for one subseason
+        if ((subseason == 3 || subseason == 14) && (pos % 7 == 0 || pos % 11 == 0 || pos % 13 == 0 || pos % 17 == 0 || pos % 19 == 0)){  // sort of "is prime?"
+          // skip every other pos
+        }else{
+          new_type = Map::TerrainTundra2;
+        }  
+      }
+    }
+    //
+    // other times, normal amount
+    //
+
+    // SNOWSTORM!!!!!
+    //  need to add custom snow-on-buildings and trees for this to look acceptable
+    //if (season == 3 && type > Map::TerrainWater3){
+    //  new_type = Map::TerrainSnow0;
+    //}
+  }
+
+  // option_FogOfWar
+  if (map->get_owner(pos) == -1){  // cannot use <0 because it is unsigned int that overflows to max value!
+    //Log::Debug["viewport.cc"] << "start of Viewport::special_terrain(), pos " << pos << " has owner " << map->get_owner(pos) << ", CHANGING TO SNOW";
+    //new_type = Map::TerrainSnow0;
+    new_type = Map::TerrainShroud;
+  }else{
+    //Log::Debug["viewport.cc"] << "start of Viewport::special_terrain(), pos " << pos << " has owner " << map->get_owner(pos) << ", not changing";
+  }
+
+  //Log::Debug["viewport.cc"] << "start of Viewport::special_terrain(), pos " << pos << ", orig terrain type " << type << ", new type " << new_type;
+  return new_type;
+}
 
 void
 Viewport::draw_triangle_up(int lx, int ly, int m, int left, int right,
@@ -83,7 +157,7 @@ Viewport::draw_triangle_up(int lx, int ly, int m, int left, int right,
     -1, -1,  0,  1,  2,  4,  5,  6,  7,
     -1, -1, -1,  0,  1,  2,  5,  6,  7,
     -1, -1, -1, -1,  0,  1,  4,  6,  7
-  };
+  };  // this is a 9x9 array, so 81 values in array ([0-80])
 
   if (((left - m) < -4) || ((left - m) > 4)) {
     throw ExceptionFreeserf("Failed to draw triangle up (1).");
@@ -98,61 +172,35 @@ Viewport::draw_triangle_up(int lx, int ly, int m, int left, int right,
   }
 
   Map::Terrain type = map->type_up(map->move_up(pos));
+  
+  // apply any hack-ish modifications from various game options
+  type = special_terrain(pos, Map::Terrain(type));
 
-  // messing with weather/seasons/palette
-  //  by changing the *appearance* of Tundra0/1/2 to Snow, but it still functions as normal Tundra in game
-  //*******************************************************************************************
-  // WHEN CHANGING THESE, DON'T FORGET TO ALSO CHANGE THE OTHER TRIANGLE UP/DOWN FUNCTION!!!!
-  //*******************************************************************************************
-
-  //  *** MAKE THIS GRADUAL, by checking if MapPos is even/odd?  and only doing half at once
-
-  if (option_FourSeasons){
-    // MID-WINTER
-    // make snow cover a bit more of mountains than usual
-    if (season == 3 && subseason >= 3 && subseason <= 14){      
-      if (type >= Map::TerrainTundra2){  // a bit more snow on mountains
-        // do a partial change for one subseason
-        if ((subseason == 3 || subseason == 14) && (pos % 7 == 0 || pos % 11 == 0 || pos % 13 == 0 || pos % 17 == 0 || pos % 19 == 0)){  // sort of "is prime?"
-          // skip every other pos
-        }else{
-          type = Map::TerrainSnow0;
-        }
-      }
+  // handle new terrain types (for option_FogOfWar shroud)
+  int sprite = -1;
+  if (type > Map::TerrainSnow1){
+    // this is a newly added terrain type, do not use tri_ arrays
+    // because it has no varying luminosity
+    // HOWEVER, it looks simple to add new terrain types that DO have
+    // varying luminosity by adding entries to tri_mask and tri_spr
+    // Map::TerrainShroud
+    sprite = 33;
+  }else{
+    // original game terrain types
+    int index = (type << 3) | tri_mask[mask];
+    if (index >= 128) {
+      throw ExceptionFreeserf("Failed to draw triangle up (4).");
     }
-    // MID-SUMMER - a bit less snow on mountains than usual
-    if (season == 1 && subseason >= 3 && subseason <= 14){
-      if (type == Map::TerrainSnow0){    // a bit less snow on mountains
-        // do a partial change for one subseason
-        if ((subseason == 3 || subseason == 14) && (pos % 7 == 0 || pos % 11 == 0 || pos % 13 == 0 || pos % 17 == 0 || pos % 19 == 0)){  // sort of "is prime?"
-          // skip every other pos
-        }else{
-          type = Map::TerrainTundra2;
-        }  
-      }
-    }
-    //
-    // other times, normal amount
-    //
 
-    // SNOWSTORM!!!!!
-    //  need to add custom snow-on-buildings and trees for this to look acceptable
-    //if (season == 3 && type > Map::TerrainWater3){
-    //  type = Map::TerrainSnow0;
-    //}
+    // this array is used to get the map_ground sprite id for a given
+    //  Map::Terrain type (ex. TypeSnow0)  and luminosity level
+    // note that there are 15 terrain types but 33 terrain sprites
+    //  because all terrain types except water have varying luminosity
+    //int sprite = tri_spr[index];
+    sprite = tri_spr[index];
   }
 
-
-
-  int index = (type << 3) | tri_mask[mask];
-  if (index >= 128) {
-    throw ExceptionFreeserf("Failed to draw triangle up (4).");
-  }
-
-  int sprite = tri_spr[index];
-
-  tile->draw_masked_sprite(lx, ly, Data::AssetMapMaskUp, mask,
-                            Data::AssetMapGround, sprite);
+  tile->draw_masked_sprite(lx, ly, Data::AssetMapMaskUp, mask, Data::AssetMapGround, sprite);
 }
 
 void
@@ -184,58 +232,34 @@ Viewport::draw_triangle_down(int lx, int ly, int m, int left, int right,
 
   int type = map->type_down(map->move_up_left(pos));
 
-  // messing with weather/seasons/palette
-  //  by changing the *appearance* of Tundra0/1/2 to Snow, but it still functions as normal Tundra in game
-  //*******************************************************************************************
-  // WHEN CHANGING THESE, DON'T FORGET TO ALSO CHANGE THE OTHER TRIANGLE UP/DOWN FUNCTION!!!!
-  //*******************************************************************************************
-   //  *** MAKE THIS GRADUAL, by checking if MapPos is even/odd?  and only doing half at once
-
-  if (option_FourSeasons){
-    // MID-WINTER
-    // make snow cover a bit more of mountains than usual
-    if (season == 3 && subseason >= 3 && subseason <= 14){      
-      if (type >= Map::TerrainTundra2){  // a bit more snow on mountains
-        // do a partial change for one subseason
-        if ((subseason == 3 || subseason == 14) && (pos % 7 == 0 || pos % 11 == 0 || pos % 13 == 0 || pos % 17 == 0 || pos % 19 == 0)){  // sort of "is prime?"
-          // skip every other pos
-        }else{
-          type = Map::TerrainSnow0;
-        }
-      }
-    }
-    // MID-SUMMER - a bit less snow on mountains than usual
-    if (season == 1 && subseason >= 3 && subseason <= 14){
-      if (type == Map::TerrainSnow0){    // a bit less snow on mountains
-        // do a partial change for one subseason
-        if ((subseason == 3 || subseason == 14) && (pos % 7 == 0 || pos % 11 == 0 || pos % 13 == 0 || pos % 17 == 0 || pos % 19 == 0)){  // sort of "is prime?"
-          // skip every other pos
-        }else{
-          type = Map::TerrainTundra2;
-        }  
-      }
-    }
-    //
-    // other times, normal amount
-    //
-
-    // SNOWSTORM!!!!!
-    //  need to add custom snow-on-buildings and trees for this to look acceptable
-    //if (season == 3 && type > Map::TerrainWater3){
-    //  type = Map::TerrainSnow0;
-    //}
-  }
+  // apply any hack-ish modifications from various game options
+  type = special_terrain(pos, Map::Terrain(type));
   
-  int index = (type << 3) | tri_mask[mask];
-  if (index >= 128) {
-    throw ExceptionFreeserf("Failed to draw triangle down (4).");
+  // handle new terrain types (for option_FogOfWar shroud)
+  int sprite = -1;
+  if (type > Map::TerrainSnow1){
+    // this is a newly added terrain type, do not use tri_ arrays
+    // because it has no varying luminosity
+    // HOWEVER, it looks simple to add new terrain types that DO have
+    // varying luminosity by adding entries to tri_mask and tri_spr
+    // Map::TerrainShroud
+    sprite = 33;
+  }else{
+    // original game terrain types
+    int index = (type << 3) | tri_mask[mask];
+    if (index >= 128) {
+      throw ExceptionFreeserf("Failed to draw triangle up (4).");
+    }
+
+    // this array is used to get the map_ground sprite id for a given
+    //  Map::Terrain type (ex. TypeSnow0)  and luminosity level
+    // note that there are 15 terrain types but 33 terrain sprites
+    //  because all terrain types except water have varying luminosity
+    //int sprite = tri_spr[index];
+    sprite = tri_spr[index];
   }
 
-  int sprite = tri_spr[index];
-
-  tile->draw_masked_sprite(lx, ly + MAP_TILE_HEIGHT,
-                            Data::AssetMapMaskDown, mask,
-                            Data::AssetMapGround, sprite);
+  tile->draw_masked_sprite(lx, ly + MAP_TILE_HEIGHT, Data::AssetMapMaskDown, mask, Data::AssetMapGround, sprite);
 }
 
 /* Draw a column (vertical) of tiles, starting at an up pointing tile. */
@@ -365,13 +389,21 @@ Viewport::draw_down_tile_col(MapPos pos, int x_base, int y_base,
   }
 }
 
+// flush the entire landscape tile cache, 16x16 tiles
+//  will be redrawn and re-cached as they come into
+//  view of player Viewport?
 void
 Viewport::layout() {
   landscape_tiles.clear();
 }
 
+// flush a single tile, which is 16x16 block of MapPos triangle-pairs
+//  from the tile cache so it will be redrawn by get_tile_frame on next update
 void
 Viewport::redraw_map_pos(MapPos pos) {
+  // changing this to use new function
+  int tid = tile_id_from_map_pos(pos);
+  /*
   int mx, my;
   map_pix_from_map_coord(pos, map->get_height(pos), &mx, &my);
 
@@ -384,36 +416,153 @@ Viewport::redraw_map_pos(MapPos pos) {
   int tc = (mx / tile_width) % horiz_tiles;
   int tr = (my / tile_height) % vert_tiles;
   int tid = tc + horiz_tiles*tr;
-
+  */
   TilesMap::iterator it = landscape_tiles.find(tid);
   if (it != landscape_tiles.end()) {
     landscape_tiles.erase(tid);
   }
 }
 
+// return the MapPos of a get_tile_frame type
+//  coordinate set
+// I think that tc and tr are absolute coordinates that can
+//   directly translate to MapPos
+// NOTE - tid is *derived from* tc and tr, they are not separable
+//  and so the only reason to pass all three is for convient/performance?
+MapPos
+Viewport::map_pos_from_tile_frame_coord(int tc, int tr) {
+  int col = (tc*MAP_TILE_COLS + (tr*MAP_TILE_ROWS)/2) % map->get_cols();
+  int row = tr*MAP_TILE_ROWS;
+  MapPos pos = map->pos(col, row);
+}
+
+// return the tile id # (tid) of the
+//  the 16x16 tile that contains the given MapPos
+//  (so it can be fetched from the landscape_tiles cache)
+unsigned int
+Viewport::tile_id_from_map_pos(MapPos pos) {
+  int mx, my;
+  map_pix_from_map_coord(pos, map->get_height(pos), &mx, &my);
+  int horiz_tiles = map->get_cols()/MAP_TILE_COLS;
+  int vert_tiles = map->get_rows()/MAP_TILE_ROWS;
+  int tile_width = MAP_TILE_COLS*MAP_TILE_WIDTH;
+  int tile_height = MAP_TILE_ROWS*MAP_TILE_HEIGHT;
+  int tc = (mx / tile_width) % horiz_tiles;
+  int tr = (my / tile_height) % vert_tiles;
+  int tid = tc + horiz_tiles*tr;
+  return tid;
+}
+
+// this is NOT refreshed constantly
+//  it is only loaded once at the start of a map, and again
+//  when certain popups are open/closed or any time
+//  viewport->set_size(width, height) is called, which is used
+//  as the "magic refresh" by the weather graphics
+// during normal game time, it simply returns the cached landscape_tiles item
+// it seems to load the tile cache in large chunks, I think if any tile is not
+//  found in cache it reloads the entire game-viewport-sized area that contains it
+
+//
+// IMPORTANT - a "tile" appears to be an entire 16x16 block of MapPos as defined
+//  by these defines at the top of viewport.cc.  This value NEVER CHANGES regardless
+//  of map size, screen resolution, window size, etc.  A frame tile is always a group
+//  of 16x16 MapPos, and I believe that thefixed cache works in these units also so it is
+//  not possible to load or flush a single fixedMapPos, only an entire 16x16 pos tile"
+//fixed
+// I HAD ALWAYS ASSUMED a "tile" as referenced in Viewport was a single MapPos
+//  representing pair of up/down equilateral triangles combined into a "skewed-square"
+//  parallelogram, where the actual MapPos coord is one of the triangle corners...
+//                      ____ 
+//    like this:   down \  /\
+//                       \/__\ up
+// 
+//                                ... BUT THIS IS NOT CORRECT!!!!!
+//
+// I wonder what effect changing from 16x16 would have?  It seems the original game
+//  has smaller than 16x16 MapPos shown at once in the low-res VGA mode.  It is nearly 
+//  certain that at any given time the viewport spans multiple tile blocks so I am
+//  thinking the tile size is just a cache unit size chosen for performance reasons
+//  as a middleground between refreshing every single MapPos individually and
+//  refreshing the entire map at once?  I think this is a common video game pattern
+//
+
+//#define MAP_TILE_WIDTH   32
+//#define MAP_TILE_HEIGHT  20
+//
+//#define MAP_TILE_TEXTURES  33
+//#define MAP_TILE_MASKS     81
+//
+///* Number of cols,rows in each landscape tile */
+//#define MAP_TILE_COLS  16                      <-- this
+//#define MAP_TILE_ROWS  16                      <-- this
+//
+
+
+// NOTE - tid is *derived from* tc and tr, they are not separable
+//  and so the only reason to pass all three is for convenience/performance?
 Frame *
 Viewport::get_tile_frame(unsigned int tid, int tc, int tr) {
+  //Log::Debug["viewport.cc"] << "start of Viewport::get_tile_frame()";
+
+  MapPos pos = map_pos_from_tile_frame_coord(tc, tr);
+
+/*
+  //
+  // to implement FogOfWar, create a second tile cache that shows the fogged
+  //  tiles, and choose which to use when returning each tile
+  //
+  Log::Debug["viewport.cc"] << "inside of Viewport::get_tile_frame(), got pos " << pos << " from_tile_frame_coord " << tc << "," << tr;
+  if (map->get_owner(pos) < 0){
+    // return from shrouded FoW cache
+    Log::Debug["viewport.cc"] << "inside of Viewport::get_tile_frame(), pos " << pos << " has no owner, using alternate tile cache";
+    return nullptr;  // FAIL TEST
+  }
+  */
+
+  //
+  // if the requested 16x16 tile is already cached, return the cached tile_frame
+  //
   TilesMap::iterator it = landscape_tiles.find(tid);
   if (it != landscape_tiles.end()) {
+    //Log::Debug["viewport.cc"] << "start of Viewport::get_tile_frame(), tid " << tid << " found in cache, returning from tile cache";
     return it->second.get();
   }
+
+  //
+  // otherwise (re-)load the cache for this entire 16x16 tile?
+  //
+  //Log::Debug["viewport.cc"] << "inside of Viewport::get_tile_frame(), tid " << tid << " not found in cache, INITALIZING CACHE FOR ENTIRE AREA AROUND TILE";
 
   int tile_width = MAP_TILE_COLS*MAP_TILE_WIDTH;
   int tile_height = MAP_TILE_ROWS*MAP_TILE_HEIGHT;
 
+  // create a new frame, fill with black pixels
   std::unique_ptr<Frame> tile_frame(
     Graphics::get_instance().create_frame(tile_width, tile_height));
   tile_frame->fill_rect(0, 0, tile_width, tile_height, Color::black);
 
-  int col = (tc*MAP_TILE_COLS + (tr*MAP_TILE_ROWS)/2) % map->get_cols();
-  int row = tr*MAP_TILE_ROWS;
-  MapPos pos = map->pos(col, row);
+/*
+  // TEST
+  // skip every other 16x16 tile, in a checkerboard pattern
+  if ((tr + tc) % 2 == 0){
+    //return tile_frame.get();
+    landscape_tiles[tid] = std::move(tile_frame);
+    return landscape_tiles[tid].get();
+  }
+  */
+
+
+  // no longer needed if map_pos_from_tile_frame_coord used to set MapPos pos earlier
+  //int col = (tc*MAP_TILE_COLS + (tr*MAP_TILE_ROWS)/2) % map->get_cols();
+  //int row = tr*MAP_TILE_ROWS;
+  //MapPos pos = map->pos(col, row);
 
   int x_base = -(MAP_TILE_WIDTH/2);
 
   /* Draw one extra column as half a column will be outside the
    map tile on both right and left side.. */
   for (int col = 0; col < MAP_TILE_COLS+1; col++) {
+    Log::Debug["viewport.cc"] << "inside of Viewport::get_tile_frame(), loading tiles for col " << col << ", pos " << pos;
     draw_up_tile_col(pos, x_base, 0, tile_height, tile_frame.get());
     draw_down_tile_col(pos, x_base + MAP_TILE_WIDTH/2, 0, tile_height,
                        tile_frame.get());
@@ -436,10 +585,22 @@ Viewport::get_tile_frame(unsigned int tid, int tc, int tr) {
 
   }
 
-#if 0
+  //DEBUG
   /* Draw a border around the tile for debug. */
+  //
+  // this is confusing because while it shows the general concept of the tile frame
+  //  well, it is clear that any given 16x16 triangle-pairs are far from straight
+  //  because they can slope up/down for sometimes the entire length of the 16x16 tile!
+  // so the red borders I think don't actually show the exact area of the tile frame?
+  //  or, they overlap significantly to avoid gaps?"
+  // they DO show the exact area of the tile frame it seems, so then
+  //  it must be the case that there is significant overlap.  As a test, if I only draw
+  //  every other tile, there is no "bleed over" where a tile contains terrain
+  //  triangles outside of the rigid rectangle.  It seems like some modest performance
+  //  gain could be made by increasing the tile size to reduce the amount of duplicate
+  //  rendering?  experiment with that
   tile_frame->draw_rect(0, 0, tile_width, tile_height, Color(0xff, 0x00, 0x00));
-#endif
+  //END DEBUG
 
   Log::Verbose["viewport"] << "map: " << map->get_cols()*MAP_TILE_WIDTH << ","
                            << map->get_rows()*MAP_TILE_HEIGHT << ", cols,rows: "
@@ -454,6 +615,7 @@ Viewport::get_tile_frame(unsigned int tid, int tc, int tr) {
 
 void
 Viewport::draw_landscape() {
+  Log::Debug["viewport.cc"] << "start of Viewport::draw_landscape()";
 
   int horiz_tiles = map->get_cols()/MAP_TILE_COLS;
   int vert_tiles = map->get_rows()/MAP_TILE_ROWS;
@@ -484,6 +646,9 @@ Viewport::draw_landscape() {
       int tr = (my / tile_height) % vert_tiles;
       int tid = tc + horiz_tiles*tr;
 
+      // fetch the 16x16 tile_frame
+      //  from the landscape_tiles cache, or
+      //  if not found draw it and cache it
       Frame *tile_frame = get_tile_frame(tid, tc, tr);
 
       int w = tile_width - tx;
@@ -1382,6 +1547,13 @@ Viewport::draw_water_waves_row(MapPos pos, int y_base, int cols,
     if (map->type_up(pos) <= Map::TerrainWater3 ||
         map->type_down(pos) <= Map::TerrainWater3) {
       /*player->water_in_view += 1;*/
+
+      // option_FogOfWar
+      //   do not draw waves outside of shroud/FoW
+      if (map->get_owner(pos) == -1){  // cannot use <0 because it is unsigned int that overflows to max value!
+        continue;
+      }
+
       draw_water_waves(pos, x_base, y_base);
     }
   }
@@ -1454,6 +1626,13 @@ Viewport::draw_map_objects_row(MapPos pos, int y_base, int cols, int x_base, int
   for (int i = 0; i < cols;
        i++, x_base += MAP_TILE_WIDTH, pos = map->move_right(pos)) {
     if (map->get_obj(pos) == Map::ObjectNone) continue;  // comment this out if trying to draw red dot overlay to show focus area
+
+    // option_FogOfWar
+    //   do not draw objects outside of shroud/FoW
+    if (map->get_owner(pos) == -1){  // cannot use <0 because it is unsigned int that overflows to max value!
+      continue;
+    }
+
     int ly = y_base - 4 * map->get_height(pos);
     bool in_ambient_focus = false;
     if (i >= leftmost_focus_col && i <= rightmost_focus_col && ly >= topmost_focus_y && ly <= lowest_focus_y){
@@ -2789,7 +2968,7 @@ draw_serf_row(MapPos pos, int y_base, int cols, int x_base) {
             // NOTE the if animation==87 check, it only offsets the serf while in the digging
             //  animation #87 state, not when he switches to #4 walking-right at the end
             // move four pixels left every dig
-            
+
             int x_dig_offset = serf->get_digging_substate() * 4;
             draw_active_serf(serf, pos, x_base - x_dig_offset, y_base);
           }

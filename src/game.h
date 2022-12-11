@@ -119,6 +119,7 @@ class Game {
   ColorDotMap debug_mark_pos;  // list of positions for LayerDebug to mark
   std::string mutex_message;  // used for logging why mutex being locked/unlocked
   clock_t mutex_timer_start;  // used for logging how much time spent with mutex lock
+  bool must_redraw;  // part of hack for option_FogOfWar to allow Serf/Building to trigger frame redraw
 
  public:
   Game();
@@ -174,6 +175,12 @@ class Game {
   void speed_increase();
   void speed_decrease();
   void speed_reset();
+
+  // hack function to allow Serf, Building to trigger game to flush the frame
+  //  so for option_FogOfWar so FoW cna be updated only when borders change
+  void set_redraw_frame();
+  void unset_redraw_frame();
+  bool get_redraw_frame() {return must_redraw;}
 
   void prepare_ground_analysis(MapPos pos, int estimates[5]);
   bool send_geologist(Flag *dest);

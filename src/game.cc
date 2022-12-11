@@ -50,7 +50,7 @@ bool option_EnableAutoSave = false;
 //bool option_ImprovedPigFarms = false;  // removing this as it turns out the default behavior for pig farms is to require almost no grain
 bool option_CanTransportSerfsInBoats = false;
 bool option_QuickDemoEmptyBuildSites = false;
-bool option_AdvancedDemolition = true;  // DEFAULTING ON WHILE DEVELOPING THIS, LATER DEFAULT TO OFF!
+bool option_AdvancedDemolition = false;  // this needs more playtesting
 bool option_TreesReproduce = false;
 bool option_BabyTreesMatureSlowly = false;
 bool option_ResourceRequestsTimeOut = true;  // this is forced true to indicate that the code to make them optional isn't added yet
@@ -58,6 +58,7 @@ bool option_PrioritizeUsableResources = true;    // this is forced true to indic
 bool option_LostTransportersClearFaster = false;
 bool option_FourSeasons = false;
 bool option_FishSpawnSlowly = false;
+bool option_FogOfWar = true;  // defaulting to on for development, default to off later
 int season = 1;  // default to Summer
 int last_season = 1;
 int subseason = 0;  // for tree progression
@@ -139,6 +140,7 @@ Game::Game()
   ai_threads_remaining = 0;
   mutex_message = "";
   mutex_timer_start = 0;
+  must_redraw = false;  // part of hack for option_FogOfWar
 }
 
 Game::~Game() {
@@ -983,9 +985,11 @@ Game::update() {
   Log::Info["game"] << "option_BabyTreesMatureSlowly is " << option_BabyTreesMatureSlowly;
   Log::Info["game"] << "option_ResourceRequestsTimeOut is " << option_ResourceRequestsTimeOut;
   //PrioritizeUsableResources
+  //AdvancedDemolition
   Log::Info["game"] << "option_LostTransportersClearFaster is " << option_LostTransportersClearFaster;
   Log::Info["game"] << "option_FourSeasons is " << option_FourSeasons;
   Log::Info["game"] << "option_FishSpawnSlowly is " << option_FishSpawnSlowly;
+  //option_FogOfWar
   */
 
   /* Increment tick counters */
@@ -1138,6 +1142,23 @@ Game::speed_reset() {
   game_speed = DEFAULT_GAME_SPEED;
   tick_length = DEFAULT_TICK_LENGTH;
   Log::Info["game"] << "Game speed: " << game_speed;
+}
+
+
+// hack function to allow Serf, Building to trigger game to flush the frame
+//  so for option_FogOfWar so FoW can be updated only when borders change
+void
+Game::set_redraw_frame() {
+  Log::Debug["game.cc"] << "inside Game::redraw_frame()";
+  must_redraw = true;
+  //viewport->set_size(width, height);
+}
+
+void
+Game::unset_redraw_frame() {
+  Log::Debug["game.cc"] << "inside Game::unset_redraw_frame()";
+  must_redraw = false;
+  //viewport->set_size(width, height);
 }
 
 /* Generate an estimate of the amount of resources in the ground at map pos.*/
@@ -2273,6 +2294,7 @@ Game::init_land_ownership() {
 /* Update land ownership around map position. */
 void
 Game::update_land_ownership(MapPos init_pos) {
+  Log::Debug["game.cc"] << "start of Game::update_land_ownership around pos " << init_pos;
   /* Currently the below algorithm will only work when
      both influence_radius and calculate_radius are 8. */
   const int influence_radius = 8;
@@ -2286,6 +2308,8 @@ Game::update_land_ownership(MapPos init_pos) {
   std::unique_ptr<int[]> temp_arr =
     std::unique_ptr<int[]>(new int[temp_arr_size]());
 
+// does this mean that larger military buildings have a stronger
+//  influence on player borders??  I always assumed it was identical!
   const int military_influence[] = {
     0, 1, 2, 4, 7, 12, 18, 29, -1, -1,  /* hut */
     0, 3, 5, 8, 11, 15, 22, 30, -1, -1,  /* tower */
@@ -2331,6 +2355,7 @@ Game::update_land_ownership(MapPos init_pos) {
           /* Castle has military influence even when not done. */
           mil_type = 2;
         } else if (building->is_done() && building->is_active()) {
+          Log::Debug["game.cc"] << "start of Game::update_land_ownership around pos " << init_pos << ", a building at pos " << building->get_position() << " is done and active, type is " << building->get_type() << " check if it is military";
           switch (building->get_type()) {
             case Building::TypeHut: mil_type = 0; break;
             case Building::TypeTower: mil_type = 1; break;
@@ -2339,7 +2364,10 @@ Game::update_land_ownership(MapPos init_pos) {
           }
         }
 
+        Log::Debug["game.cc"] << "start of Game::update_land_ownership around pos " << init_pos << ", mil_type is " << mil_type;
+
         if (mil_type >= 0 && !building->is_burning()) {
+          Log::Debug["game.cc"] << "start of Game::update_land_ownership around pos " << init_pos << ", mil_type is " << mil_type << ", building is not burning";
           const int *influence = military_influence + 10*mil_type;
           const int *closeness = map_closeness +
                                  influence_diameter*std::max(-i, 0) +

@@ -226,7 +226,8 @@ class Map {
     TerrainTundra1,
     TerrainTundra2,
     TerrainSnow0,  // 14
-    TerrainSnow1
+    TerrainSnow1,
+    TerrainShroud  // 16  // for option_FogOfWar
   } Terrain;
 
   class Handler {
