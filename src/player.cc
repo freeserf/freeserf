@@ -186,6 +186,13 @@ Player::init(unsigned int _intelligence, unsigned int _supplies,
   reproduction_reset = (60 - (size_t)_reproduction) * 50;
   ai_intelligence = (1300 * (size_t)_intelligence) + 13535;
   reproduction_counter = static_cast<int>(reproduction_reset);
+
+  // for option_FogOfWar
+  //  create a player-specific copy of the Map
+  // THIS IS MORE COMPLEX THAN I INITIALLY THOUGHT, NEEDS DEVELOPMENT
+  //  BUT THIS IS THE PLACE TO CREATE THE INITIAL COPY OF THE MAP... maybe?
+  //known_map = game->get_map();
+  
 }
 
 void

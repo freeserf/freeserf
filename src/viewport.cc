@@ -159,7 +159,7 @@ Viewport::special_terrain_sprite(MapPos pos, int sprite_index){
       sprite_index = tri_fog[sprite_index];
     }
   }
-  
+
   //Log::Debug["viewport.cc"] << "start of Viewport::special_terrain(), pos " << pos << ", orig terrain type " << type << ", new type " << new_type;
   return sprite_index;
 }
@@ -857,7 +857,7 @@ Viewport::draw_paths_and_borders() {
 
       // option_FogOfWar
       //   do not draw paths/borders outside of shroud/FoW
-      if (!map->is_visible(pos, interface->get_player()->get_index())){
+      if (option_FogOfWar && !map->is_visible(pos, interface->get_player()->get_index())){
         // don't draw
       }else{
         // draw
@@ -1568,7 +1568,7 @@ Viewport::draw_water_waves_row(MapPos pos, int y_base, int cols,
 
       // option_FogOfWar
       //   do not draw waves outside of shroud/FoW
-      if (!map->is_visible(pos, interface->get_player()->get_index())){
+      if (option_FogOfWar && !map->is_visible(pos, interface->get_player()->get_index())){
         continue;
       }
 
@@ -1648,7 +1648,8 @@ Viewport::draw_map_objects_row(MapPos pos, int y_base, int cols, int x_base, int
     // option_FogOfWar
     //   do not draw objects outside of shroud/FoW
     //if (map->get_owner(pos) == -1){  // cannot use <0 because it is unsigned int that overflows to max value!
-    if (!map->is_visible(pos, interface->get_player()->get_index())){
+    if (option_FogOfWar && !map->is_visible(pos, interface->get_player()->get_index())
+       && map->get_obj(pos) != Map::ObjectCastle){   // always draw Castles when revealed, but not any other Objects
       continue;
     }
 
@@ -2941,7 +2942,7 @@ draw_serf_row(MapPos pos, int y_base, int cols, int x_base) {
 
     // option_FogOfWar
     //   do not draw serfs outside of shroud/FoW
-    if (!map->is_visible(pos, interface->get_player()->get_index())){
+    if (option_FogOfWar && !map->is_visible(pos, interface->get_player()->get_index())){
       continue;
     }
 
@@ -3006,6 +3007,7 @@ draw_serf_row(MapPos pos, int y_base, int cols, int x_base) {
 
     /* Idle serf */
     if (map->get_idle_serf(pos)) {
+      //Log::Debug["viewport.cc"] << "inside Viewport::draw_row_serf, and idle serf is at pos " << pos;
       int lx, ly, body;
       if (map->is_in_water(pos)) { /* Sailor */
         lx = x_base;
@@ -3023,7 +3025,7 @@ draw_serf_row(MapPos pos, int y_base, int cols, int x_base) {
       //  which is "nobody".  Not sure of cause, thinking I could just have
       //  get_color return black as default??
       // actually, for now just don't draw this serf it pos has owner of -1
-      if (map->has_owner(pos)) {
+      if (!map->has_owner(pos)) {
         Log::Warn["viewport"] << "got owner nobody / -1 for pos " << pos << " inside draw_row_serf call, not drawing this serf to avoid crash on get_color";
       }else{
         Color color = interface->get_player_color(map->get_owner(pos));
@@ -3046,7 +3048,7 @@ Viewport::draw_serf_row_behind(MapPos pos, int y_base, int cols, int x_base) {
 
     // option_FogOfWar
     //   do not draw serfs outside of shroud/FoW
-    if (!map->is_visible(pos, interface->get_player()->get_index())){
+    if (option_FogOfWar && !map->is_visible(pos, interface->get_player()->get_index())){
       continue;
     }
 
