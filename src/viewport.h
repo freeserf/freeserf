@@ -88,7 +88,8 @@ class Viewport : public GuiObject, public Map::Handler {
   void update();
 
  protected:
-  Map::Terrain special_terrain(MapPos pos, Map::Terrain type);  // convenience function to allow changes to both draw_triange_up & _down without code duplication
+  Map::Terrain special_terrain_type(MapPos pos, Map::Terrain type);  // convenience function to allow changes to both draw_triangle_up & _down without code duplication
+  int special_terrain_sprite(MapPos pos, int sprite_index);  // convenience function to allow changes to both draw_triangle_up & _down without code duplication
   void draw_triangle_up(int x, int y, int m, int left, int right, MapPos pos,
                         Frame *frame);
   void draw_triangle_down(int x, int y, int m, int left, int right,

@@ -227,13 +227,13 @@ class Map {
     TerrainTundra1,
     TerrainTundra2,
     TerrainSnow0,  // 14
-    TerrainSnow1,
-    TerrainShroud,  // 16  // for option_FogOfWar
-    TerrainWaterFog,       // for option_FogOfWar   // THERE IS NO DARK WATER TILE, WHAT TO DO?
-    TerrainGrassFog,       // for option_FogOfWar
-    TerrainDesertFog,      // for option_FogOfWar
-    TerrainTundraFog, //20 // for option_FogOfWar
-    TerrainSnowFog         // for option_FogOfWar
+    TerrainSnow1
+    //TerrainShroud,  // 16  // for option_FogOfWar
+    //TerrainWaterFog,       // for option_FogOfWar   // THERE IS NO DARK WATER TILE, WHAT TO DO?
+    //TerrainGrassFog,       // for option_FogOfWar
+    //TerrainDesertFog,      // for option_FogOfWar
+    //TerrainTundraFog, //20 // for option_FogOfWar
+    //TerrainSnowFog         // for option_FogOfWar
   } Terrain;
 
   class Handler {

@@ -92,8 +92,8 @@ static const uint8_t tri_spr[] = {
 //  having to constantly sync identical logic
 //  between draw_triangle_up & _down
 Map::Terrain
-Viewport::special_terrain(MapPos pos, Map::Terrain type){
-  //Log::Debug["viewport.cc"] << "start of Viewport::special_terrain(), pos " << pos << ", orig terrain type " << type;
+Viewport::special_terrain_type(MapPos pos, Map::Terrain type){
+  //Log::Debug["viewport.cc"] << "start of Viewport::special_terrain_type(), pos " << pos << ", orig terrain type " << type;
   Map::Terrain new_type = type;
 
   if (option_FourSeasons){
@@ -131,43 +131,37 @@ Viewport::special_terrain(MapPos pos, Map::Terrain type){
     //}
   }
 
-  // option_FogOfWar
-  //if (map->get_owner(pos) == -1){  // cannot use <0 because it is unsigned int that overflows to max value!
-  if (!map->is_visible(pos, interface->get_player()->get_index())){
-    //Log::Debug["viewport.cc"] << "start of Viewport::special_terrain(), pos " << pos << " has owner " << map->get_owner(pos) << ", CHANGING TO SNOW";
-    //new_type = Map::TerrainSnow0;
-    //new_type = Map::TerrainShroud;
-    // this is a newly added terrain type, do not use tri_ arrays
-    // because it has no varying luminosity
-    // HOWEVER, it looks simple to add new terrain types that DO have
-    // varying luminosity by adding entries to tri_mask and tri_spr
-    switch (type) {
-      //case Map::TerrainShroud: new_type = 33; break;    // new tile, all black
-      //case Map::TerrainWaterFog: new_type = 32; break;  // THERE IS NO DARK WATER TILE, WHAT TO DO?  using default for now
-      case Map::TerrainGrass0:
-      case Map::TerrainGrass1:
-      case Map::TerrainGrass2:
-      case Map::TerrainGrass3:
-        new_type = Map::TerrainGrassFog; break;   // darkest version of this tile
-      case Map::TerrainDesert0:
-      case Map::TerrainDesert1:
-      case Map::TerrainDesert2: 
-        new_type = Map::TerrainDesertFog; break; // darkest version of this tile
-      case Map::TerrainTundra0:
-      case Map::TerrainTundra1:
-      case Map::TerrainTundra2:
-        new_type = Map::TerrainTundraFog; break;  // darkest version of this tile
-      case Map::TerrainSnow0:
-      case Map::TerrainSnow1:
-         new_type = Map::TerrainSnowFog; break;   // darkest version of this tile
-      default: break;
-    }
-  }else{
-    //Log::Debug["viewport.cc"] << "start of Viewport::special_terrain(), pos " << pos << " has owner " << map->get_owner(pos) << ", not changing";
-  }
-
-  //Log::Debug["viewport.cc"] << "start of Viewport::special_terrain(), pos " << pos << ", orig terrain type " << type << ", new type " << new_type;
+  //Log::Debug["viewport.cc"] << "start of Viewport::special_terrain_type(), pos " << pos << ", orig terrain type " << type << ", new type " << new_type;
   return new_type;
+}
+
+// return the new sprite id (or original sprite id)
+//  as modified by any special new option
+//  logic.  This function exists to avoid
+//  having to constantly sync identical logic
+//  between draw_triangle_up & _down
+int
+Viewport::special_terrain_sprite(MapPos pos, int sprite_index){
+  //Log::Debug["viewport.cc"] << "start of Viewport::special_terrain_sprite(), pos " << pos << ", orig terrain type " << type;
+
+  // option_FogOfWar
+  //  draw revealed-but-not-currently-visible areas darker than normal
+  if (option_FogOfWar){
+    static const int8_t tri_fog[] = {
+      34, 34, 36,  0,  1,  2,  3,  4,  // grass   (default  0-7)  lower # is darker
+      37, 38, 39,  8,  9, 10, 11, 12,  // tundra  (default  8-15)
+      40, 41, 42, 16, 17, 18, 19, 20,  // snow    (default  16-23)
+      43, 44, 45, 24, 25, 26, 27, 28,  // desert  (default  24-31)
+      46,                              // water   (default has only has one luminosity, sprite 32)
+      33,                              // shroud  (does not exist in default, no luminosity change here. Added for simplicity)
+    };  // 34 values in array ([0-33])
+    if (!map->is_visible(pos, interface->get_player()->get_index())){
+      sprite_index = tri_fog[sprite_index];
+    }
+  }
+  
+  //Log::Debug["viewport.cc"] << "start of Viewport::special_terrain(), pos " << pos << ", orig terrain type " << type << ", new type " << new_type;
+  return sprite_index;
 }
 
 void
@@ -200,38 +194,24 @@ Viewport::draw_triangle_up(int lx, int ly, int m, int left, int right,
   Map::Terrain type = map->type_up(map->move_up(pos));
   
   // apply any hack-ish modifications from various game options
-  type = special_terrain(pos, Map::Terrain(type));
+  type = special_terrain_type(pos, Map::Terrain(type));
 
-  // handle new terrain types (for option_FogOfWar shroud)
   int sprite = -1;
-  if (type > Map::TerrainSnow1){
-    // this is a newly added terrain type, do not use tri_ arrays
-    // because it has no varying luminosity
-    // HOWEVER, it looks simple to add new terrain types that DO have
-    // varying luminosity by adding entries to tri_mask and tri_spr
-    switch (type) {
-      case Map::TerrainShroud: sprite = 33; break;    // new tile, all black
-      case Map::TerrainWaterFog: sprite = 32; break;  // THERE IS NO DARK WATER TILE, WHAT TO DO?  using default for now
-      case Map::TerrainGrassFog: sprite = 0; break;   // darkest version of this tile
-      case Map::TerrainDesertFog: sprite = 24; break; // darkest version of this tile
-      case Map::TerrainTundraFog: sprite = 8; break;  // darkest version of this tile
-      case Map::TerrainSnowFog: sprite = 16; break;   // darkest version of this tile
-      default: NOT_REACHED(); break;
-    }
-  }else{
-    // original game terrain types
-    int index = (type << 3) | tri_mask[mask];
-    if (index >= 128) {
-      throw ExceptionFreeserf("Failed to draw triangle up (4).");
-    }
 
-    // this array is used to get the map_ground sprite id for a given
-    //  Map::Terrain type (ex. TypeSnow0)  and luminosity level
-    // note that there are 15 terrain types but 33 terrain sprites
-    //  because all terrain types except water have varying luminosity
-    //int sprite = tri_spr[index];
-    sprite = tri_spr[index];
+  int index = (type << 3) | tri_mask[mask];
+  if (index >= 128) {
+    throw ExceptionFreeserf("Failed to draw triangle up (4).");
   }
+
+  // this array is used to get the map_ground sprite id for a given
+  //  Map::Terrain type (ex. TypeSnow0)  and luminosity level
+  // note that there are 15 terrain types but 33 terrain sprites
+  //  because all terrain types except water have varying luminosity
+  //int sprite = tri_spr[index];
+  sprite = tri_spr[index];
+
+  // apply any hack-ish modifications from various game options
+  sprite = special_terrain_sprite(pos, sprite);
 
   tile->draw_masked_sprite(lx, ly, Data::AssetMapMaskUp, mask, Data::AssetMapGround, sprite);
 }
@@ -266,38 +246,25 @@ Viewport::draw_triangle_down(int lx, int ly, int m, int left, int right,
   int type = map->type_down(map->move_up_left(pos));
 
   // apply any hack-ish modifications from various game options
-  type = special_terrain(pos, Map::Terrain(type));
+  type = special_terrain_type(pos, Map::Terrain(type));
   
   // handle new terrain types (for option_FogOfWar shroud)
   int sprite = -1;
-  if (type > Map::TerrainSnow1){
-    // this is a newly added terrain type, do not use tri_ arrays
-    // because it has no varying luminosity
-    // HOWEVER, it looks simple to add new terrain types that DO have
-    // varying luminosity by adding entries to tri_mask and tri_spr
-    switch (type) {
-      case Map::TerrainShroud: sprite = 33; break;    // new tile, all black
-      case Map::TerrainWaterFog: sprite = 32; break;  // THERE IS NO DARK WATER TILE, WHAT TO DO?  using default for now
-      case Map::TerrainGrassFog: sprite = 0; break;   // darkest version of this tile
-      case Map::TerrainDesertFog: sprite = 24; break; // darkest version of this tile
-      case Map::TerrainTundraFog: sprite = 8; break;  // darkest version of this tile
-      case Map::TerrainSnowFog: sprite = 16; break;   // darkest version of this tile
-      default: NOT_REACHED(); break;
-    }
-  }else{
-    // original game terrain types
-    int index = (type << 3) | tri_mask[mask];
-    if (index >= 128) {
-      throw ExceptionFreeserf("Failed to draw triangle up (4).");
-    }
 
-    // this array is used to get the map_ground sprite id for a given
-    //  Map::Terrain type (ex. TypeSnow0)  and luminosity level
-    // note that there are 15 terrain types but 33 terrain sprites
-    //  because all terrain types except water have varying luminosity
-    //int sprite = tri_spr[index];
-    sprite = tri_spr[index];
+  int index = (type << 3) | tri_mask[mask];
+  if (index >= 128) {
+    throw ExceptionFreeserf("Failed to draw triangle up (4).");
   }
+
+  // this array is used to get the map_ground sprite id for a given
+  //  Map::Terrain type (ex. TypeSnow0)  and luminosity level
+  // note that there are 15 terrain types but 33 terrain sprites
+  //  because all terrain types except water have varying luminosity
+  //int sprite = tri_spr[index];
+  sprite = tri_spr[index];
+
+  // apply any hack-ish modifications from various game options
+  sprite = special_terrain_sprite(pos, sprite);
 
   tile->draw_masked_sprite(lx, ly + MAP_TILE_HEIGHT, Data::AssetMapMaskDown, mask, Data::AssetMapGround, sprite);
 }
