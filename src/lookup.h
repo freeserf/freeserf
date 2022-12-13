@@ -64,7 +64,8 @@ const std::string NameTerrain[]{
     "Map::TerrainTundra1",
     "Map::TerrainTundra2",
     "Map::TerrainSnow0",
-    "Map::TerrainSnow1"
+    "Map::TerrainSnow1",
+    "Map::TerrainShroud", // new, index 16, map_ground sprite 33, for option_FogOfWar
 };
 
 const std::string NameObject[]{

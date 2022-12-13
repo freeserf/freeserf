@@ -91,7 +91,7 @@ AI::place_castle(PGame game, MapPos center_pos, unsigned int distance, unsigned 
     MapPos pos = map->pos_add_extended_spirally(center_pos, i);
 
     // don't count resouces that are inside enemy territory
-    if (map->get_owner(pos) != player_index && map->get_owner(pos) != -1) {
+    if (map->get_owner(pos) != player_index && map->has_owner(pos)) {
       AILogDebug["util_place_castle"] << "enemy territory at pos " << pos << ", not counting these resouces towards requirements";
       continue;
     }
@@ -706,11 +706,11 @@ AI::build_best_road(MapPos start_pos, RoadOptions road_options, Road *built_road
         // for debugging, keep track of the largest road built to get an idea of what is a reasonable limit to set for performance reasons
         //  also, consider making the limit an argument to this function, so that high limits can be allowed for certain roads but low limits
         //  for others in plot_road AI util function
-        if (proposed_direct_road.get_length() > longest_road_so_far.get_length()){
-          AILogDebug["build_best_road"] << "this road is the new longest road built by this AI so far, with length " << proposed_direct_road.get_length() << ", highlighting it as ai_mark_road";
-          longest_road_so_far = proposed_direct_road; 
-          ai_mark_road = &longest_road_so_far;
-        }
+        //if (proposed_direct_road.get_length() > longest_road_so_far.get_length()){
+        //  AILogDebug["build_best_road"] << "this road is the new longest road built by this AI so far, with length " << proposed_direct_road.get_length() << ", highlighting it as ai_mark_road";
+        //  longest_road_so_far = proposed_direct_road; 
+        //  ai_mark_road = &longest_road_so_far;
+        //}
 
         //AILogDebug["util_build_best_road"] << "" << calling_function << " spiderweb road debug, stored proposed_direct_road as built_road (which has mem addr " << built_road << "), proposed_direct_road source " << proposed_direct_road.get_source() << " built_road (should be same) source is " << built_road->get_source();
         return true;
@@ -1512,11 +1512,11 @@ AI::build_best_road(MapPos start_pos, RoadOptions road_options, Road *built_road
         // for debugging, keep track of the largest road built to get an idea of what is a reasonable limit to set for performance reasons
         //  also, consider making the limit an argument to this function, so that high limits can be allowed for certain roads but low limits
         //  for others in plot_road AI util function
-        if (road.get_length() > longest_road_so_far.get_length()){
-          AILogDebug["build_best_road"] << "this road is the new longest road built by this AI so far, with length " << road.get_length() << ", highlighting it as ai_mark_road";
-          longest_road_so_far = road; 
-          ai_mark_road = &longest_road_so_far;
-        }
+        //if (road.get_length() > longest_road_so_far.get_length()){
+        //  AILogDebug["build_best_road"] << "this road is the new longest road built by this AI so far, with length " << road.get_length() << ", highlighting it as ai_mark_road";
+        //  longest_road_so_far = road; 
+        //  ai_mark_road = &longest_road_so_far;
+        //}
 
         continue;
       }
@@ -2297,7 +2297,7 @@ AI::build_near_pos(MapPos center_pos, unsigned int distance, Building::Type buil
   bool enemy_near = false;
   for (unsigned int i = 0; i < AI::spiral_dist(8); i++) {
     MapPos pos = map->pos_add_extended_spirally(center_pos, i);
-    if (map->get_owner(pos) != player_index && map->get_owner(pos) != -1) {
+    if (map->get_owner(pos) != player_index && map->has_owner(pos)) {
       AILogDebug["util_build_near_pos"] << "enemy territory found near this center_pos";
       enemy_near = true;
       break;
@@ -2449,7 +2449,7 @@ AI::build_near_pos(MapPos center_pos, unsigned int distance, Building::Type buil
       // note if enemy borders are near
       for (unsigned int i = 0; i < AI::spiral_dist(10); i++) {
         MapPos pos = map->pos_add_extended_spirally(center_pos, i);
-        if (map->get_owner(pos) == -1) {
+        if (!map->has_owner(pos)) {
           AILogDebug["util_build_near_pos"] << "unclaimed territory found near this center_pos, not building warehouse in this corner";
           return bad_map_pos;
         }
@@ -2678,6 +2678,7 @@ AI::expand_borders() {
       // Also, it makes the "check for circumnavigating the globe" obsolete because that is way more than ten tiles
       for (int tiles_moved = 0; tiles_moved < 11; tiles_moved++){
         pos = map->move(pos, dir);
+  AILogDebug["util_expand_borders"] << "mappos " << pos << " is owned by player " << map->get_owner(pos) << " and has_owner is " << map->has_owner(pos);
         if (map->get_owner(pos) != player_index){
           unsigned int score = AI::score_area(pos, AI::spiral_dist(6));
           AILogDebug["util_expand_borders"] << "border in direction " << dir << " has score " << score;
@@ -2801,7 +2802,7 @@ AI::score_area(MapPos center_pos, unsigned int distance) {
 
     // oppose_enemy - any place that enemy territory found
     //    this has the effect of tending to encircle the enemy, which is a good thing
-    if (map->get_owner(pos) != player_index && map->get_owner(pos) != -1) {
+    if (map->get_owner(pos) != player_index && map->has_owner(pos)) {
       if (expand_towards.count("oppose_enemy") == 0){
         expand_towards.insert("oppose_enemy");
         //AILogDebug["util_score_area"] << "found enemy territory near our borders, adding oppose_enemy expansion goal for informative purpose";
@@ -2839,7 +2840,7 @@ AI::score_area(MapPos center_pos, unsigned int distance) {
     //  tiles owned by nobody, outside our borders, where the center_pos
     //   is near the castle, are valued to encourage building huts the castle
     if (get_straightline_tile_dist(map, center_pos, castle_flag_pos) < 18){
-      if (map->get_owner(pos) == -1) {
+      if (!map->has_owner(pos)) {
         pos_value += expand_towards.count("castle_buffer") * 1;
         //AILogDebug["util_score_area"] << "adding castle_buffer value for unclaimed territory near our castle with value of " << expand_towards.count("castle_buffer") * 2;
         //ai_mark_pos.erase(pos);
@@ -2929,7 +2930,7 @@ AI::score_enemy_area(MapPos center_pos, unsigned int distance) {
     //
     // enemy buildings
     //
-    if (map->get_owner(pos) != player_index && map->get_owner(pos) != -1 && map->has_building(pos)){
+    if (map->get_owner(pos) != player_index && map->has_owner(pos) && map->has_building(pos)){
       AILogDebug["util_score_enemy_area"] << "potential attack object is " << NameObject[obj] << " with building type " << NameBuilding[game->get_building_at_pos(pos)->get_type()];
       if (obj == Map::ObjectCastle){
         pos_value += 20;

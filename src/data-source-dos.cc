@@ -26,6 +26,11 @@
 #include <memory>
 #include <sstream>
 #include <utility>
+#include <bitset>   // TEMP DEBUG, only for printing binary representation of chars
+#include <sstream>  // TEMP DEBUG for printing ascii art
+#include <string>  // TEMP DEBUG for printing ascii art
+#include <iostream>  // TEMP DEBUG for printing ascii art
+
 
 #include "src/freeserf_endian.h"
 #include "src/log.h"
@@ -295,6 +300,7 @@ DataSourceDOS::get_sprite_parts(Data::Resource res, size_t index) {
     case SpriteTypeSolid: {
       //sprite = std::make_shared<SpriteDosSolid>(data, palette);
       sprite = std::make_shared<SpriteDosSolid>(data, palette, res);
+      //sprite = std::make_shared<SpriteDosSolid>(data, palette, res, dos_res.index + index);
       break;
     }
     case SpriteTypeTransparent: {
@@ -666,27 +672,61 @@ DataSourceDOS::SpriteDosTransparent::SpriteDosTransparent(PBuffer _data,
   data = reinterpret_cast<uint8_t*>(result->unfix());
 }
 
+// note that the image metadata such as height and width are set
+//  as part of SpriteBaseDOS(_data)
 DataSourceDOS::SpriteDosOverlay::SpriteDosOverlay(PBuffer _data,
                                                   ColorDOS *palette,
                                                   unsigned char value)
-  : SpriteBaseDOS(_data) {
+  : SpriteBaseDOS(_data) {  // metadata loaded here
+  
+  //Log::Debug["data-source-dos.cc"] << "start of DataSourceDOS::SpriteDosOverlay::SpriteDosOverlay with dimensions h" << get_height() << "w" << get_width();
+  //int bytes=0;
+  //std::vector<const char*> asciiart = {};
+
   PMutableBuffer result = std::make_shared<MutableBuffer>(Buffer::EndianessBig);
 
   while (_data->readable()) {
     size_t drop = _data->pop<uint8_t>();
+    //bytes++;
+    //Log::Debug["data-source-dos.cc"] << "inside DataSourceDOS::SpriteDosOverlay::SpriteDosOverlay, this alpha sprite has drop " << drop;
     result->push<uint32_t>(0x00000000, drop);
-
+    //for (size_t i = 0; i < drop; i++){
+    //  ColorDOS color = palette[value];
+    //  result->push<uint8_t>(color.b);  // Blue
+    //  result->push<uint8_t>(color.g);  // Green
+    //  result->push<uint8_t>(color.r);  // Red
+    //  result->push<uint8_t>(value);    // Alpha  // ALL ALPHA (this works)
+    //  asciiart.push_back("#");
+    //}
     size_t fill = _data->pop<uint8_t>();
     for (size_t i = 0; i < fill; i++) {
+      //Log::Debug["data-source-dos.cc"] << "inside DataSourceDOS::SpriteDosOverlay::SpriteDosOverlay, this alpha sprite has fill " << fill;
       ColorDOS color = palette[value];
       result->push<uint8_t>(color.b);  // Blue
       result->push<uint8_t>(color.g);  // Green
       result->push<uint8_t>(color.r);  // Red
       result->push<uint8_t>(value);    // Alpha
+      //asciiart.push_back("_");
+      // this seems to only contain alpha as nonzero (big-endian 1, 10000000, colors.r/g/b are zero 00000000
+      //Log::Debug["data-source-dos.cc"] << "inside DataSourceDOS::SpriteDosOverlay::SpriteDosOverlay, this alpha sprite has rgba " << std::bitset<8>(color.r) << ","<< std::bitset<8>(color.g) << "," << std::bitset<8>(color.b) << "," << std::bitset<8>(value);
     }
   }
 
+/*
+  // this works great!  draws the alpha layer/image in the console log
+  std::vector<const char*>::iterator it = asciiart.begin();
+  while (it != asciiart.end()){
+    std::stringstream osf;
+    for (size_t c=0;c < get_width();c++){
+      osf << *it;
+      it++;
+    }
+    Log::Debug["data-source-dos.cc"] << "ASCIIART " << osf.str();
+  }
+*/
+
   data = reinterpret_cast<uint8_t*>(result->unfix());
+  //Log::Debug["data-source-dos.cc"] << "done DataSourceDOS::SpriteDosOverlay::SpriteDosOverlay, data has " << bytes << " bytes";
 }
 
 DataSourceDOS::SpriteDosMask::SpriteDosMask(PBuffer _data)

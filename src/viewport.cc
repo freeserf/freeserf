@@ -132,10 +132,36 @@ Viewport::special_terrain(MapPos pos, Map::Terrain type){
   }
 
   // option_FogOfWar
-  if (map->get_owner(pos) == -1){  // cannot use <0 because it is unsigned int that overflows to max value!
+  //if (map->get_owner(pos) == -1){  // cannot use <0 because it is unsigned int that overflows to max value!
+  if (!map->is_visible(pos, interface->get_player()->get_index())){
     //Log::Debug["viewport.cc"] << "start of Viewport::special_terrain(), pos " << pos << " has owner " << map->get_owner(pos) << ", CHANGING TO SNOW";
     //new_type = Map::TerrainSnow0;
-    new_type = Map::TerrainShroud;
+    //new_type = Map::TerrainShroud;
+    // this is a newly added terrain type, do not use tri_ arrays
+    // because it has no varying luminosity
+    // HOWEVER, it looks simple to add new terrain types that DO have
+    // varying luminosity by adding entries to tri_mask and tri_spr
+    switch (type) {
+      //case Map::TerrainShroud: new_type = 33; break;    // new tile, all black
+      //case Map::TerrainWaterFog: new_type = 32; break;  // THERE IS NO DARK WATER TILE, WHAT TO DO?  using default for now
+      case Map::TerrainGrass0:
+      case Map::TerrainGrass1:
+      case Map::TerrainGrass2:
+      case Map::TerrainGrass3:
+        new_type = Map::TerrainGrassFog; break;   // darkest version of this tile
+      case Map::TerrainDesert0:
+      case Map::TerrainDesert1:
+      case Map::TerrainDesert2: 
+        new_type = Map::TerrainDesertFog; break; // darkest version of this tile
+      case Map::TerrainTundra0:
+      case Map::TerrainTundra1:
+      case Map::TerrainTundra2:
+        new_type = Map::TerrainTundraFog; break;  // darkest version of this tile
+      case Map::TerrainSnow0:
+      case Map::TerrainSnow1:
+         new_type = Map::TerrainSnowFog; break;   // darkest version of this tile
+      default: break;
+    }
   }else{
     //Log::Debug["viewport.cc"] << "start of Viewport::special_terrain(), pos " << pos << " has owner " << map->get_owner(pos) << ", not changing";
   }
@@ -183,8 +209,15 @@ Viewport::draw_triangle_up(int lx, int ly, int m, int left, int right,
     // because it has no varying luminosity
     // HOWEVER, it looks simple to add new terrain types that DO have
     // varying luminosity by adding entries to tri_mask and tri_spr
-    // Map::TerrainShroud
-    sprite = 33;
+    switch (type) {
+      case Map::TerrainShroud: sprite = 33; break;    // new tile, all black
+      case Map::TerrainWaterFog: sprite = 32; break;  // THERE IS NO DARK WATER TILE, WHAT TO DO?  using default for now
+      case Map::TerrainGrassFog: sprite = 0; break;   // darkest version of this tile
+      case Map::TerrainDesertFog: sprite = 24; break; // darkest version of this tile
+      case Map::TerrainTundraFog: sprite = 8; break;  // darkest version of this tile
+      case Map::TerrainSnowFog: sprite = 16; break;   // darkest version of this tile
+      default: NOT_REACHED(); break;
+    }
   }else{
     // original game terrain types
     int index = (type << 3) | tri_mask[mask];
@@ -242,8 +275,15 @@ Viewport::draw_triangle_down(int lx, int ly, int m, int left, int right,
     // because it has no varying luminosity
     // HOWEVER, it looks simple to add new terrain types that DO have
     // varying luminosity by adding entries to tri_mask and tri_spr
-    // Map::TerrainShroud
-    sprite = 33;
+    switch (type) {
+      case Map::TerrainShroud: sprite = 33; break;    // new tile, all black
+      case Map::TerrainWaterFog: sprite = 32; break;  // THERE IS NO DARK WATER TILE, WHAT TO DO?  using default for now
+      case Map::TerrainGrassFog: sprite = 0; break;   // darkest version of this tile
+      case Map::TerrainDesertFog: sprite = 24; break; // darkest version of this tile
+      case Map::TerrainTundraFog: sprite = 8; break;  // darkest version of this tile
+      case Map::TerrainSnowFog: sprite = 16; break;   // darkest version of this tile
+      default: NOT_REACHED(); break;
+    }
   }else{
     // original game terrain types
     int index = (type << 3) | tri_mask[mask];
@@ -429,11 +469,14 @@ Viewport::redraw_map_pos(MapPos pos) {
 //   directly translate to MapPos
 // NOTE - tid is *derived from* tc and tr, they are not separable
 //  and so the only reason to pass all three is for convient/performance?
+// THIS FUNCTION IS NOT YET USED!!! I created it thinking it would be 
+//  needed, but that was when I misunderstood how the 16x16 tile cache worked
 MapPos
 Viewport::map_pos_from_tile_frame_coord(int tc, int tr) {
   int col = (tc*MAP_TILE_COLS + (tr*MAP_TILE_ROWS)/2) % map->get_cols();
   int row = tr*MAP_TILE_ROWS;
   MapPos pos = map->pos(col, row);
+  return pos;
 }
 
 // return the tile id # (tid) of the
@@ -599,7 +642,7 @@ Viewport::get_tile_frame(unsigned int tid, int tc, int tr) {
   //  triangles outside of the rigid rectangle.  It seems like some modest performance
   //  gain could be made by increasing the tile size to reduce the amount of duplicate
   //  rendering?  experiment with that
-  tile_frame->draw_rect(0, 0, tile_width, tile_height, Color(0xff, 0x00, 0x00));
+  //tile_frame->draw_rect(0, 0, tile_width, tile_height, Color(0xff, 0x00, 0x00));
   //END DEBUG
 
   Log::Verbose["viewport"] << "map: " << map->get_cols()*MAP_TILE_WIDTH << ","
@@ -830,6 +873,7 @@ Viewport::draw_paths_and_borders() {
   for (int x_base = x_off; x_base < width + MAP_TILE_WIDTH;
        x_base += MAP_TILE_WIDTH) {
     MapPos pos = base_pos;
+
     int y_base = y_off;
     int row = 0;
 
@@ -844,16 +888,23 @@ Viewport::draw_paths_and_borders() {
       int ly = y_base - 4* map->get_height(pos);
       if (ly >= height) break;
 
-      /* For each direction right, down right and down,
-         draw the corresponding paths and borders. */
-      for (Direction d : cycle_directions_cw(DirectionRight, 3)) {
-        MapPos other_pos = map->move(pos, d);
+      // option_FogOfWar
+      //   do not draw paths/borders outside of shroud/FoW
+      if (!map->is_visible(pos, interface->get_player()->get_index())){
+        // don't draw
+      }else{
+        // draw
 
-        if (map->has_path(pos, d)) {
-          draw_path_segment(lx, y_base, pos, d);
-        } else if (map->has_owner(pos) != map->has_owner(other_pos) ||
-                   map->get_owner(pos) != map->get_owner(other_pos)) {
-          draw_border_segment(lx, y_base, pos, d);
+        /* For each direction right, down right and down,
+          draw the corresponding paths and borders. */
+        for (Direction d : cycle_directions_cw(DirectionRight, 3)) {
+          MapPos other_pos = map->move(pos, d);
+          if (map->has_path(pos, d)) {
+            draw_path_segment(lx, y_base, pos, d);
+          } else if (map->has_owner(pos) != map->has_owner(other_pos) ||
+                    map->get_owner(pos) != map->get_owner(other_pos)) {
+            draw_border_segment(lx, y_base, pos, d);
+          }
         }
       }
 #if 0
@@ -1550,7 +1601,7 @@ Viewport::draw_water_waves_row(MapPos pos, int y_base, int cols,
 
       // option_FogOfWar
       //   do not draw waves outside of shroud/FoW
-      if (map->get_owner(pos) == -1){  // cannot use <0 because it is unsigned int that overflows to max value!
+      if (!map->is_visible(pos, interface->get_player()->get_index())){
         continue;
       }
 
@@ -1629,7 +1680,8 @@ Viewport::draw_map_objects_row(MapPos pos, int y_base, int cols, int x_base, int
 
     // option_FogOfWar
     //   do not draw objects outside of shroud/FoW
-    if (map->get_owner(pos) == -1){  // cannot use <0 because it is unsigned int that overflows to max value!
+    //if (map->get_owner(pos) == -1){  // cannot use <0 because it is unsigned int that overflows to max value!
+    if (!map->is_visible(pos, interface->get_player()->get_index())){
       continue;
     }
 
@@ -2920,6 +2972,12 @@ draw_serf_row(MapPos pos, int y_base, int cols, int x_base) {
     }
 #endif
 
+    // option_FogOfWar
+    //   do not draw serfs outside of shroud/FoW
+    if (!map->is_visible(pos, interface->get_player()->get_index())){
+      continue;
+    }
+
     /* Active serf */
     if (map->has_serf(pos)) {
 
@@ -2998,7 +3056,7 @@ draw_serf_row(MapPos pos, int y_base, int cols, int x_base) {
       //  which is "nobody".  Not sure of cause, thinking I could just have
       //  get_color return black as default??
       // actually, for now just don't draw this serf it pos has owner of -1
-      if (map->get_owner(pos) == -1){
+      if (map->has_owner(pos)) {
         Log::Warn["viewport"] << "got owner nobody / -1 for pos " << pos << " inside draw_row_serf call, not drawing this serf to avoid crash on get_color";
       }else{
         Color color = interface->get_player_color(map->get_owner(pos));
@@ -3018,6 +3076,13 @@ void
 Viewport::draw_serf_row_behind(MapPos pos, int y_base, int cols, int x_base) {
   for (int i = 0; i < cols;
        i++, x_base += MAP_TILE_WIDTH, pos = map->move_right(pos)) {
+
+    // option_FogOfWar
+    //   do not draw serfs outside of shroud/FoW
+    if (!map->is_visible(pos, interface->get_player()->get_index())){
+      continue;
+    }
+
     /* Active serf */
     if (map->has_serf(pos)) {
       Serf *serf = interface->get_game()->get_serf_at_pos(pos);

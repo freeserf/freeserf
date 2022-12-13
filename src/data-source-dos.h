@@ -65,6 +65,7 @@ class DataSourceDOS : public DataSourceLegacy {
    public:
     //SpriteDosSolid(PBuffer data, ColorDOS *palette);
     SpriteDosSolid(PBuffer data, ColorDOS *palette, Data::Resource res);
+    //SpriteDosSolid(PBuffer data, ColorDOS *palette, Data::Resource res, size_t index);
     virtual ~SpriteDosSolid() {}
   };
   typedef std::shared_ptr<SpriteDosSolid> PSpriteDosSolid;

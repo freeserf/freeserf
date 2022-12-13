@@ -1555,15 +1555,26 @@ Game::build_flag_split_path(MapPos pos) {
 /* Check whether player can build flag at pos. */
 bool
 Game::can_build_flag(MapPos pos, const Player *player) const {
+  //Log::Debug["game.cc"] << "inside Game::can_build_flag, map->has_owner bool is " << map->has_owner(pos) << ", map->get_owner is " << map->get_owner(pos) << ", player index " << player->get_index();
+
+  //if (!map->has_owner(pos))
+  //  Log::Debug["game.cc"] << "inside Game::can_build_flag, A";
+  //if (map->get_owner(pos) != player->get_index())
+  //  Log::Debug["game.cc"] << "inside Game::can_build_flag, B";
+
   /* Check owner of land */
+  //if (!map->has_owner(pos) || map->get_owner(pos) != player->get_index()) {
   if (!map->has_owner(pos) || map->get_owner(pos) != player->get_index()) {
+    //Log::Debug["game.cc"] << "inside Game::can_build_flag, player index " << player->get_index() << ", ownership check FAILED";
     return false;
   }
+  //Log::Debug["game.cc"] << "inside Game::can_build_flag, player index " << player->get_index() << ", ownership check passed";
 
   /* Check that land is clear */
   if (Map::map_space_from_obj[map->get_obj(pos)] != Map::SpaceOpen) {
     return false;
   }
+  //Log::Debug["game.cc"] << "inside Game::can_build_flag, player index " << player->get_index() << ", clearance check passed";
 
   /* Check whether cursor is in water */
   if (map->type_up(pos) <= Map::TerrainWater3 &&
@@ -1575,12 +1586,15 @@ Game::can_build_flag(MapPos pos, const Player *player) const {
     return false;
   }
 
+  //Log::Debug["game.cc"] << "inside Game::can_build_flag, player index " << player->get_index() << ", water check passed";
+
   /* Check that no flags are nearby */
   for (Direction d : cycle_directions_cw()) {
     if (map->get_obj(map->move(pos, d)) == Map::ObjectFlag) {
       return false;
     }
   }
+  //Log::Debug["game.cc"] << "inside Game::can_build_flag, player index " << player->get_index() << ", flags-neaby check passed";
 
   return true;
 }
@@ -2052,6 +2066,12 @@ Game::build_castle(MapPos pos, Player *player) {
 
   update_land_ownership(pos);
 
+  // with option_FogOfWar enabled, need to detect when borders change so that the tile cache can be refreshed to update shroud/FoW
+  if (option_FogOfWar){
+    Log::Debug["game.cc"] << "inside Game::build_castle, option_FogOfWar, Player" << player->get_index() << " has placed their castle at pos " << pos << ", triggering tile frame refresh";
+    set_redraw_frame();
+  }
+
   player->building_founded(castle);
 
   castle->update_military_flag_state();
@@ -2277,6 +2297,7 @@ Game::surrender_land(MapPos pos) {
   if (map->get_obj(pos) == Map::ObjectFlag) {
     demolish_flag_(pos);
   }
+  
 }
 
 /* Initialize land ownership for whole map. */
@@ -2413,7 +2434,9 @@ Game::update_land_ownership(MapPos init_pos) {
 
       MapPos pos = map->pos_add(init_pos, j, i);
       int old_player = -1;
-      if (map->has_owner(pos)) old_player = map->get_owner(pos);
+      if (map->has_owner(pos)){
+        old_player = map->get_owner(pos);
+      }
 
       if (old_player >= 0 && player_index != old_player) {
         players[old_player]->decrease_land_area();
@@ -2421,9 +2444,36 @@ Game::update_land_ownership(MapPos init_pos) {
       }
 
       if (player_index >= 0) {
+
+        // for option_FogOfWar
+        for (unsigned int x = 0; x < 217; x++) {   // spiral_dist(8) is 217
+        MapPos tmppos = map->pos_add_extended_spirally(pos, x);
+          map->set_visible(tmppos, player_index);
+          if (!map->is_visible(tmppos, player_index)){
+            Log::Debug["game.cc"] << "inside Game::update_land_ownership, just set visible but is_visible returned false!";
+
+          }
+        }
+          
         if (player_index != old_player) {
           players[player_index]->increase_land_area();
           map->set_owner(pos, player_index);
+          
+          // for option_FogOfWar
+          //map->set_visible(pos, player_index);
+          //map->unset_visible(pos, old_player);  // need to do this elsewhere, because player view can overlap!
+          // also update nearby positions, as visibility extends somewhat beyond borders
+          // is there a better-performing way to do this??
+          // A BETTER WAY I think would be to only have military buildings create visibility
+          //  and only update spiral area around them instead of around EVERY owned pos
+          //  this would be trivial to allow longer dist for bigger military buildings!
+          //for (unsigned int x = 0; x < AI::spiral_dist(8); x++) {   // spiral_dist(8) is 217
+          //MapPos tmppos = pos;
+          //for (unsigned int x = 0; x < 217; x++) {   // spiral_dist(8) is 217
+          //  MapPos tmppos = map->pos_add_extended_spirally(pos, x);
+          //  map->set_visible(tmppos, player_index);
+          //}
+          
         }
       } else {
         map->del_owner(pos);
@@ -2503,6 +2553,7 @@ Game::occupy_enemy_building(Building *building, int player_num) {
     for (Direction d : cycle_directions_cw()) {
       MapPos pos = map->move(building->get_position(), d);
       map->set_owner(pos, player_num);
+
       if (pos != flag->get_position()) {
         demolish_flag_and_roads(pos);
       }

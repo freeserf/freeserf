@@ -1604,6 +1604,14 @@ Serf::handle_serf_walking_state_dest_reached() {
    //Log::Info["serf"] << "debug: inside handle_serf_walking_state_dest_reached, B";
     PMap map = game->get_map();
     Building *building = game->get_building_at_pos(map->move_up_left(pos));
+    if (building == nullptr){
+      Log::Warn["serf.cc"] << "inside Serf::handle_serf_walking_state_dest_reached(), building is nullptr!  cannot enter, setting serf to Lost";
+      set_state(Serf::StateLost);
+      //s.lost.field_B = 1;  // not sure what this does, copied from another set Lost segment. It seems to control whether closest or farther away flag is preferred as next dest?
+      s.lost.field_B = 0;  // this seems to be correct for "the building I am about to enter is no longer valid"
+      counter = 0;
+      return;
+    }
 
     // if a requested serf was already dispatched to this building before it was marked for demo
     //  he will arrive at its flag and attempt to enter.  Prevent this (unless it is the demo serf himself!)
