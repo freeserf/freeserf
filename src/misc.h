@@ -23,6 +23,7 @@
 #define SRC_MISC_H_
 
 #define BIT(n)            (1 << (n))
+// I was assuming that BIT_TEST returns a bool 0 or 1... but it seems like it actually returns 0 or actual value of the integer being tested?? or at least the decimal value of a bit *at that position*
 #define BIT_TEST(x, n)    ((x) & BIT(n))
 #define BIT_INVERT(x, n)  ((x) ^= 1 << (n))
 

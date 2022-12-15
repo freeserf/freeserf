@@ -1178,6 +1178,11 @@ Interface::handle_key_pressed(char key, int modifier) {
     case 'd': {
       Log::Info["interface"] << "'d' key pressed, toggling LayerDebug";
       viewport->switch_layer(Viewport::LayerDebug);
+      if (!viewport->layer_active(Viewport::LayerDebug)){
+        // clear the debug map pos any time debug layer turned off
+        Log::Info["interface"] << "LayerDebug was turned off, clearing debug_mark_pos list";
+        game->clear_debug_mark_pos();
+      }
       break;
     }
 

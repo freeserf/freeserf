@@ -239,7 +239,7 @@ DataSourceDOS::fixup() {
 Data::MaskImage
 //DataSourceDOS::get_sprite_parts(Data::Resource res, size_t index) {
 DataSourceDOS::get_sprite_parts(Data::Resource res, size_t index, bool darken) {
-  Log::Debug["data-source-dos.cc"] << "inside DataSourceDOS::get_sprite_parts, res type is " << res << ", sprite index is " << index << ", darken bool is " << darken;
+  //Log::Debug["data-source-dos.cc"] << "inside DataSourceDOS::get_sprite_parts, res type is " << res << ", sprite index is " << index << ", darken bool is " << darken;
   if (index >= Data::get_resource_count(res)) {
     return std::make_tuple(nullptr, nullptr);
   }
@@ -320,7 +320,7 @@ DataSourceDOS::get_sprite_parts(Data::Resource res, size_t index, bool darken) {
       //sprite = std::make_shared<SpriteDosSolid>(data, palette);
       //sprite = std::make_shared<SpriteDosSolid>(data, palette, res);  // FourSeasons needs the resource type
       //sprite = std::make_shared<SpriteDosSolid>(data, palette, res, dos_res.index + index);  // FogOfWar needs the resource type AND the sprite index (or some kind of bool I guess)
-      Log::Debug["data-source-dos.cc"] << "inside DataSourceDOS::get_sprite_parts, res type is " << res << ", sprite index is " << index << ", darken bool is " << darken << ", about to call SpriteDosSolid constructor";
+      //Log::Debug["data-source-dos.cc"] << "inside DataSourceDOS::get_sprite_parts, res type is " << res << ", sprite index is " << index << ", darken bool is " << darken << ", about to call SpriteDosSolid constructor";
       sprite = std::make_shared<SpriteDosSolid>(data, palette, res, dos_res.index + index, darken);  // using a bool for FogOfWar, previous way wouldn't work)
       break;
     }
@@ -367,7 +367,7 @@ DataSourceDOS::get_sprite_parts(Data::Resource res, size_t index, bool darken) {
 //DataSourceDOS::SpriteDosSolid::SpriteDosSolid(PBuffer _data, ColorDOS *palette, Data::Resource res, size_t sprite_index)
 DataSourceDOS::SpriteDosSolid::SpriteDosSolid(PBuffer _data, ColorDOS *palette, Data::Resource res, size_t index, bool darken)
      : SpriteBaseDOS(_data) {
-  Log::Debug["data-source-dos.cc"] << "inside DataSourceDOS::SpriteDosSolid::SpriteDosSolid, res type " << res << ", index " << index << ", darken bool is " << darken;
+  //Log::Debug["data-source-dos.cc"] << "inside DataSourceDOS::SpriteDosSolid::SpriteDosSolid, res type " << res << ", index " << index << ", darken bool is " << darken;
   size_t size = _data->get_size();
   if (size != (width * height + 10)) {
     throw ExceptionFreeserf("Failed to extract DOS solid sprite");

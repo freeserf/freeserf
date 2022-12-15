@@ -234,11 +234,13 @@ Building::set_holder_or_first_knight(unsigned int serf_index) {
   if (!active) {
     active = true;
 
+    /* moving this to inside building_captured or update_land_ownership
     // with option_FogOfWar enabled, need to detect when borders change so that the tile cache can be refreshed to update shroud/FoW
     if (option_FogOfWar && this->is_military() && serf->get_type() >= Serf::TypeKnight0 && serf->get_type() <= Serf::TypeKnight4){
       Log::Debug["building.cc"] << "inside set_holder_or_first_knight, option_FogOfWar, a knight has become the first holder of a military building, triggering";
       game->set_redraw_frame();
     }
+    */
 
     int mil_type = -1;
     int max_gold = -1;

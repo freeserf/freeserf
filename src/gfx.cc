@@ -550,7 +550,7 @@ void
 Frame::draw_masked_sprite(int x, int y, Data::Resource mask_res,
                           unsigned int mask_index, Data::Resource res,
                           unsigned int index, bool darken) {
-  Log::Debug["gfx.cc"] << "inside Frame::draw_masked_sprite  with res " << res;
+  //Log::Debug["gfx.cc"] << "inside Frame::draw_masked_sprite  with res " << res;
 
   // for option_FogOfWar
   //  The darkened terrain sprites must be cached with alernate sprite indexes

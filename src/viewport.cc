@@ -1715,13 +1715,13 @@ Viewport::draw_map_objects_row(MapPos pos, int y_base, int cols, int x_base, int
   //Log::Debug["viewport.cc"] << "inside draw_map_objects, pos " << pos << ", map height: " << height << ", ly: " << ly << ", center_y: " << center_y << ", top: " << topmost_focus_y << ", bottom: " << lowest_focus_y;
   for (int i = 0; i < cols;
        i++, x_base += MAP_TILE_WIDTH, pos = map->move_right(pos)) {
-    if (map->get_obj(pos) == Map::ObjectNone) continue;  // comment this out if trying to draw red dot overlay to show focus area
+
+    if (map->get_obj(pos) == Map::ObjectNone){continue;}  // comment this out if trying to draw red dot overlay to show focus area
 
     // option_FogOfWar
     //   do not draw objects outside of shroud/FoW
-    //if (map->get_owner(pos) == -1){  // cannot use <0 because it is unsigned int that overflows to max value!
     if (option_FogOfWar && !map->is_visible(pos, interface->get_player()->get_index())
-       && map->get_obj(pos) != Map::ObjectCastle){   // always draw Castles when revealed, but not any other Objects
+       && map->get_obj(pos) != Map::ObjectCastle){   // always draw Castles when revealed, but not any other Object
       continue;
     }
 

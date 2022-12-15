@@ -153,6 +153,7 @@ class Game {
     debug_mark_pos.erase(pos);
     debug_mark_pos.insert(ColorDot(pos, color));
   }
+  void clear_debug_mark_pos(){ debug_mark_pos.clear(); }
 
   unsigned int get_tick() const { return tick; }
   unsigned int get_const_tick() const { return const_tick; }
@@ -222,6 +223,7 @@ class Game {
   /* Internal interface */
   void init_land_ownership();
   void update_land_ownership(MapPos pos);
+  void update_FogOfWar(MapPos pos);  // option_FogOfWar
   void occupy_enemy_building(Building *building, int player);
 
   void cancel_transported_resource(Resource::Type type, unsigned int dest);
@@ -263,6 +265,7 @@ class Game {
 
   Player *get_next_player(const Player *player);
   unsigned int get_enemy_score(const Player *player) const;
+  // not only when captured from enemies, this runs when newly-built friendly military buildings first occupied also
   void building_captured(Building *building);
   void clear_search_id();
   void mutex_lock(const char* message);

@@ -70,6 +70,7 @@ class Viewport : public GuiObject, public Map::Handler {
   virtual ~Viewport();
 
   void switch_layer(Layer layer) { layers ^= layer; }
+  bool layer_active(Layer layer) { return layers & layer; }
 
   void move_to_map_pos(MapPos pos);
   void move_by_pixels(int x, int y);

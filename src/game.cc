@@ -2066,11 +2066,13 @@ Game::build_castle(MapPos pos, Player *player) {
 
   update_land_ownership(pos);
 
+  /* moving this to its own function
   // with option_FogOfWar enabled, need to detect when borders change so that the tile cache can be refreshed to update shroud/FoW
   if (option_FogOfWar){
     Log::Debug["game.cc"] << "inside Game::build_castle, option_FogOfWar, Player" << player->get_index() << " has placed their castle at pos " << pos << ", triggering tile frame refresh";
     set_redraw_frame();
   }
+  */
 
   player->building_founded(castle);
 
@@ -2316,6 +2318,14 @@ Game::init_land_ownership() {
 void
 Game::update_land_ownership(MapPos init_pos) {
   Log::Debug["game.cc"] << "start of Game::update_land_ownership around pos " << init_pos;
+
+  /* moving this to its own function
+  if (option_FogOfWar){
+    Log::Debug["game.cc"] << "inside Game::update_land_ownership, option_FogOfWar, calling set_redraw_frame";
+    set_redraw_frame();
+  }
+  */
+
   /* Currently the below algorithm will only work when
      both influence_radius and calculate_radius are 8. */
   const int influence_radius = 8;
@@ -2359,16 +2369,31 @@ Game::update_land_ownership(MapPos init_pos) {
 
   /* Find influence from buildings in 33*33 square
      around the center. */
+  // tlongstretch - 33x33??? that makes no sense, that is HUGE!
+  //  it is indeed a 33x33 area, confirmed with debug overlay
+  //  I guess because the castle influence area is so large, all
+  //  comparisons must be this large
+  //
+  // FYI - the shape of the "square" as seen on the game map
+  //  is like this  ____    with the building pos being evaluated 
+  //               /   /     at the center of the parallelogram
+  //              /___/
+  //
   for (int i = -(influence_radius+calculate_radius);
        i <= influence_radius+calculate_radius; i++) {
     for (int j = -(influence_radius+calculate_radius);
          j <= influence_radius+calculate_radius; j++) {
       MapPos pos = map->pos_add(init_pos, j, i);
 
-      // for option_FogOfWar
-      for (int x = 0; x < 3; x++){
-        map->unset_visible(pos, x);
+      /*moving this to its own function
+      if (option_FogOfWar){
+        // unset visibility for all players
+        //****** maybe make this its own function inside map.h?
+        for (int x = 0; x < 3; x++){
+          map->unset_visible(pos, x);
+        }
       }
+      */
 
       if (map->get_obj(pos) >= Map::ObjectSmallBuilding &&
           map->get_obj(pos) <= Map::ObjectCastle &&
@@ -2473,6 +2498,7 @@ Game::update_land_ownership(MapPos init_pos) {
 
       if (player_index >= 0) {
 
+        /*moving this to its own function
         // for option_FogOfWar
         //  set_visible 8 tiles outside borders
         map->set_visible(pos, player_index);
@@ -2491,6 +2517,7 @@ Game::update_land_ownership(MapPos init_pos) {
             Log::Debug["game.cc"] << "inside Game::update_land_ownership, just set visible but is_visible returned false!";
           }
         }
+        */
         
           
         if (player_index != old_player) {
@@ -2533,6 +2560,132 @@ Game::update_land_ownership(MapPos init_pos) {
         }
       }
     }
+  }
+
+  if (option_FogOfWar){
+    update_FogOfWar(init_pos);
+  }
+
+  Log::Debug["game.cc"] << "done Game::update_land_ownership around pos " << init_pos;
+
+}
+
+void
+Game::update_FogOfWar(MapPos init_pos) {
+  Log::Debug["game.cc"] << "start of Game::update_FogOfWar around init_pos " << init_pos;
+
+  /* do not require a building here!  need to update FogOfWar for destroyed buildings also
+  // sanity checks
+  if (building == nullptr){
+    Log::Error["game.cc"] << "inside Game::update_FogOfWar, expecting a building at init_pos " << init_pos << ", but get_building_at_pos returned a nullptr! crashing";
+    throw ExceptionFreeserf("inside Game::update_FogOfWar, expecting a building at init_pos but get_building_at_pos returned a nullptr!");
+  }
+  if (!building->is_military()) {
+    Log::Error["game.cc"] << "inside Game::update_FogOfWar, expecting a military building at init_pos " << init_pos << ", but found a non-military building of type " << building->get_type() << "! crashing";
+    throw ExceptionFreeserf("inside Game::update_FogOfWar, expecting a military building at init_pos but found a non-military building!");
+  }
+  */
+
+  // need to redraw terrain for FoW updates to be visible
+  set_redraw_frame();
+
+  const int visible_radius_by_type[25] = {0,0,0,0,0,0,0,0,0,0,0,6,0,0,0,0,0,0,0,0,0,10,14,0,16};
+  int reveal_beyond = 6;  // added to visible_radius when setting
+  // _spiral_dist / AI::spiral_dist ONLY GOES UP TO 25!!  DO NOT ALLOW REVEAL RADIUS TO BE LARGER!
+  // copied from AI::spiral_dist, MAKE THIS GLOBAL!
+  const int _spiral_dist[25] = { 1, 7, 19, 37, 61, 91, 127, 169, 217, 271, 331, 397,
+  469, 547, 631, 721, 817, 919, 1027, 1141, 1261, 1387, 1519, 1657, 1801 };
+
+  // IDEA - another possible way to handle FoW is to have a counter for each pos (for each player)
+  //  that indicates how many player-buildings currently contribute to the visibility of that pos
+  //  and inrement/decrement as buildings occupied/lost and draw based on a nonzero value
+  //  this would avoid having to check the influence of nearby buildings and so may be much faster?
+
+  // clear the visibility bit for all players for all pos within the influence_radius
+  // along the way, note all other buildings in the area that can view tiles in this area
+  //  so that their visibility can be set again after the area is wiped
+  int influence_radius = 20;  // THIS MUST BE AT LEAST AS LARGE AS THE LARGEST POSSIBLE visible_radius (castle's)
+  MapPosVector influential_buildings = {};
+  // NOTE - if the building at init_pos exists and is occupied, it will be found here and its visible and revealed radius will be set
+  //   if the building at init_pos was destroyed/lost, it will *not* be found here and so it will correctly lose visibilty
+  for (int i = 0; i < _spiral_dist[influence_radius]; i++) {
+    MapPos pos = map->pos_add_extended_spirally(init_pos, i);
+    // unset visibility for ALL players
+    //****** maybe make this its own function inside map.h?
+    for (int x = 0; x < 3; x++){
+      map->unset_visible(pos, x);
+    }
+    // look for buildings that can see this pos, for restoration
+    if (map->get_obj(pos) >= Map::ObjectSmallBuilding && map->get_obj(pos) <= Map::ObjectCastle) {
+      Building *building = get_building_at_pos(pos);
+      if (building == nullptr){
+        Log::Error["game.cc"] << "inside Game::update_FogOfWar, expecting building at pos " << pos << ", but get_building_at_pos returned a nullptr! crashing";
+        throw ExceptionFreeserf("inside Game::update_FogOfWar, expecting building at pos but get_building_at_pos returned a nullptr!");
+      }
+      if (!building->is_military()){
+        continue;
+      }
+      if (!building->is_active() || !building->is_done() || building->is_burning() || building->is_pending_demolition()){
+        Log::Debug["game.cc"] << "inside of Game::update_FogOfWar, building of type " << NameBuilding[building->get_type()] << " is not occupied & active, skipping";
+        continue;
+      }
+      int bld_vis_rad = visible_radius_by_type[building->get_type()];
+      Log::Debug["game.cc"] << "inside of Game::update_FogOfWar, building of type " << NameBuilding[building->get_type()] << " has visible radius " << bld_vis_rad;
+      if (i > _spiral_dist[bld_vis_rad]){
+        Log::Debug["game.cc"] << "inside of Game::update_FogOfWar, building of type " << NameBuilding[building->get_type()] << " is beyond its visual radius, skipping";
+        continue;
+      }
+      Log::Debug["game.cc"] << "inside of Game::update_FogOfWar, building of type " << NameBuilding[building->get_type()] << " is within its visual radius, adding to list";
+      influential_buildings.push_back(pos);
+    }
+  }
+  // restore visibility for all building in influence_radius
+  // NOTE this will frequently result in map->set_visible being called on pos
+  //  that are outside the influence_radius, because usually only part of an other_building's
+  //  visibility radius will be within the overall influence_radius being considered here
+  // It might be faster to save the list of MapPos inside the influence_radius to avoid
+  //  calling map->set_visible redundantly, but I suspect that would be slower than just doing it
+  for (MapPos bld_pos : influential_buildings){
+    Building *bld = get_building_at_pos(bld_pos);
+    if (bld == nullptr){
+      Log::Error["game.cc"] << "inside Game::update_FogOfWar, expecting bld at bld_pos " << bld_pos << ", but get_building_at_pos returned a nullptr! crashing";
+      throw ExceptionFreeserf("inside Game::update_FogOfWar, expecting bld at bld_pos but get_building_at_pos returned a nullptr!");
+    }
+    Building::Type bld_type = bld->get_type();
+    if (!bld->is_military()){
+      Log::Error["game.cc"] << "inside Game::update_FogOfWar, expecting bld at bld_pos " << bld_pos << " to be a military building, but instead it is type " << bld_type << "! crashing";
+      throw ExceptionFreeserf("inside Game::update_FogOfWar, expecting bld at bld_pos to be a military building, but it is not!");
+      continue;
+    }
+    unsigned int player_index = bld->get_owner();
+    // set the visibility bit for all buildings according to their radius
+    // this list should always include the initial building being considered!
+    Log::Debug["game.cc"] << "inside of Game::update_FogOfWar, calling map->set_visible() for all pos within radius " << visible_radius_by_type[bld_type] << " of this building of type " << NameBuilding[bld_type] << " at bld_pos " << bld_pos;
+    for (int i = 0; i < _spiral_dist[visible_radius_by_type[bld_type]]; i++) {
+      MapPos pos = map->pos_add_extended_spirally(bld_pos, i);
+      Log::Debug["game.cc"] << "inside of Game::update_FogOfWar, calling map->set_visible() for pos " << pos << ", Player" << player_index;
+      map->set_visible(pos, player_index);
+    }
+  }
+  // if there is an occupied building at init_pos,
+  // call set_revealed for the reveal_radius, for this building only
+  //  because this is the only one changing
+  // if this building were destroyed/lost, no change required because
+  //  revealed state can never be lost
+  Building *building = get_building_at_pos(init_pos);
+  if (building != nullptr && building->is_military()) {
+    unsigned int player_index = building->get_owner();
+    int reveal_radius = visible_radius_by_type[building->get_type()] + reveal_beyond;
+    Log::Debug["game.cc"] << "inside of Game::update_FogOfWar, building at init_pos " << init_pos << " of type " << NameBuilding[building->get_type()] << " has reveal_radius " << reveal_radius << ", owned by Player" << player_index;
+    Log::Debug["game.cc"] << "inside of Game::update_FogOfWar, wtf, _spiral_dist[" << reveal_radius << "] is " << _spiral_dist[reveal_radius];
+    // _spiral_dist / AI::spiral_dist ONLY GOES UP TO 25!!  DO NOT ALLOW REVEAL RADIUS TO BE LARGER!
+    for (int i = 0; i < _spiral_dist[reveal_radius]; i++) {
+      MapPos pos = map->pos_add_extended_spirally(init_pos, i);
+      Log::Debug["game.cc"] << "inside of Game::update_FogOfWar, calling map->set_revealed() for pos " << pos << ", Player" << player_index;
+      map->set_revealed(pos, player_index);
+    }
+  }else{
+    Log::Debug["game.cc"] << "inside of Game::update_FogOfWar, no building found at init_pos " << init_pos << ", assuming this was a destroyed/lost building.  Not setting revealed";
   }
 }
 
@@ -2945,8 +3098,14 @@ Game::get_enemy_score(const Player *player) const {
   return enemy_score;
 }
 
+// THE DESCRIPTION IS HIGHLY MISLEADING
+//  this is called any time an empty military building is occupied by a knight
+//  including player-owned buildings.  This means the vast majority of calls
+//  are from a player's own newly-built buildings and not ones captured from
+//  an enemy player
 void
 Game::building_captured(Building *building) {
+  Log::Debug["game.cc"] << "inside Game::building_captured, an empty military building at pos " << building->get_position() << " has been occupied by a knight";
   /* Save amount of land and buildings for each player */
   std::map<int, int> land_before;
   std::map<int, int> buildings_before;
@@ -2958,7 +3117,7 @@ Game::building_captured(Building *building) {
   /* Update land ownership */
   update_land_ownership(building->get_position());
 
-  /* Create notfications for lost land and buildings */
+  /* Create notifications for lost land and buildings */
   for (Player *player : players) {
     if (buildings_before[player->get_index()] > player->get_building_score()) {
       player->add_notification(Message::TypeLostBuildings,
