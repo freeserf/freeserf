@@ -2610,11 +2610,14 @@ Game::update_FogOfWar(MapPos init_pos) {
   //   if the building at init_pos was destroyed/lost, it will *not* be found here and so it will correctly lose visibilty
   for (int i = 0; i < _spiral_dist[influence_radius]; i++) {
     MapPos pos = map->pos_add_extended_spirally(init_pos, i);
+
     // unset visibility for ALL players
     //****** maybe make this its own function inside map.h?
-    for (int x = 0; x < 3; x++){
-      map->unset_visible(pos, x);
-    }
+    //for (int x = 0; x < 3; x++){
+    //  map->unset_visible(pos, x);
+    //}
+    map->unset_all_visible(pos);
+
     // look for buildings that can see this pos, for restoration
     if (map->get_obj(pos) >= Map::ObjectSmallBuilding && map->get_obj(pos) <= Map::ObjectCastle) {
       Building *building = get_building_at_pos(pos);

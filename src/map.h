@@ -531,6 +531,7 @@ class Map {
   //  unsigned int tmp = 3 + player + 1;
   //  return BIT_TEST(game_tiles[pos].owner, tmp);
   //}
+  /* this might not actually be needed, can always use unset_all_visible?
   void unset_visible(MapPos pos, unsigned int player) {
     unsigned int tmp = game_tiles[pos].owner;
     tmp &= 7;
@@ -542,6 +543,21 @@ class Map {
     tmp &= 7;
     tmp--;
     Log::Debug["map.h"] << "inside Map::unset_visible, pos " << pos << " now has fake owner Player" << tmp << ", real owner " << std::bitset<11>(game_tiles[pos].owner);  // added support for option_FogOfWar
+  }
+  */
+  void unset_all_visible(MapPos pos) {
+    // 10101010000 is 1360
+    // inverse is 01010101111 or 687
+    unsigned int tmp = game_tiles[pos].owner;
+    tmp &= 7;
+    tmp--;
+    //Log::Debug["map.h"] << "inside Map::unset_all_visible, pos " << pos << " had fake owner Player" << tmp << ", real owner " << std::bitset<11>(game_tiles[pos].owner);  // added support for option_FogOfWar
+    //Log::Debug["map.h"] << "inside Map::unset_all_visible, pos " << pos << " had fake owner Player" << tmp << ", BIT is " << std::bitset<11>(687);  // added support for option_FogOfWar
+    game_tiles[pos].owner &= 687;
+    tmp = game_tiles[pos].owner;
+    tmp &= 7;
+    tmp--;
+    //Log::Debug["map.h"] << "inside Map::unset_all_visible, pos " << pos << " now has fake owner Player" << tmp << ", real owner " << std::bitset<11>(game_tiles[pos].owner);  // added support for option_FogOfWar
   }
   //void del_owner(MapPos pos) { game_tiles[pos].owner = 0; } // original
   void del_owner(MapPos pos) {
