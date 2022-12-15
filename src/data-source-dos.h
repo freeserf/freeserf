@@ -64,11 +64,13 @@ class DataSourceDOS : public DataSourceLegacy {
   class SpriteDosSolid : public SpriteBaseDOS {
    public:
     //SpriteDosSolid(PBuffer data, ColorDOS *palette);
-    SpriteDosSolid(PBuffer data, ColorDOS *palette, Data::Resource res);
+    //SpriteDosSolid(PBuffer data, ColorDOS *palette, Data::Resource res);
     //SpriteDosSolid(PBuffer data, ColorDOS *palette, Data::Resource res, size_t index);
+    SpriteDosSolid(PBuffer data, ColorDOS *palette, Data::Resource res, size_t index, bool darken = false);  // it seems that using a default value on a constructor doesn't work correctly?  seeing this as false when called w/ true
+    //SpriteDosSolid(PBuffer data, ColorDOS *palette, Data::Resource res, size_t index, bool darken);  // and this doesn't compile, wtf
     virtual ~SpriteDosSolid() {}
   };
-  typedef std::shared_ptr<SpriteDosSolid> PSpriteDosSolid;
+  typedef std::shared_ptr<SpriteDosSolid> PSpriteDosSolid;  // this is never used
 
   class SpriteDosTransparent : public SpriteBaseDOS {
    public:
@@ -77,21 +79,21 @@ class DataSourceDOS : public DataSourceLegacy {
     SpriteDosTransparent(PBuffer data, ColorDOS *palette, Data::Resource res, size_t index, uint8_t color = 0);  // sprite data index (within resource type)
     virtual ~SpriteDosTransparent() {}
   };
-  typedef std::shared_ptr<SpriteDosTransparent> PSpriteDosTransparent;
+  typedef std::shared_ptr<SpriteDosTransparent> PSpriteDosTransparent;  // this is never used
 
   class SpriteDosOverlay : public SpriteBaseDOS {
    public:
     SpriteDosOverlay(PBuffer data, ColorDOS *palette, unsigned char value);
     virtual ~SpriteDosOverlay() {}
   };
-  typedef std::shared_ptr<SpriteDosOverlay> PSpriteDosOverlay;
+  typedef std::shared_ptr<SpriteDosOverlay> PSpriteDosOverlay;  // this is never used
 
   class SpriteDosMask : public SpriteBaseDOS {
    public:
     explicit SpriteDosMask(PBuffer data);
     virtual ~SpriteDosMask() {}
   };
-  typedef std::shared_ptr<SpriteDosMask> PSpriteDosMask;
+  typedef std::shared_ptr<SpriteDosMask> PSpriteDosMask;  // this is never used
 
  protected:
   // These entries follow the 8 byte header of the data file.
@@ -114,7 +116,8 @@ class DataSourceDOS : public DataSourceLegacy {
   virtual bool check();
   virtual bool load();
 
-  virtual Data::MaskImage get_sprite_parts(Data::Resource res, size_t index);
+  //virtual Data::MaskImage get_sprite_parts(Data::Resource res, size_t index);
+  virtual Data::MaskImage get_sprite_parts(Data::Resource res, size_t index, bool darken = false);
 
   virtual PBuffer get_sound(size_t index);
   virtual Data::MusicFormat get_music_format() { return Data::MusicFormatMidi; }

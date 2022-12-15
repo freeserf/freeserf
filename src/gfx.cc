@@ -79,6 +79,11 @@ Color::get_key() const {
                        static_cast<double>(b)/255.));
 }
 
+
+// this -1 values of col3 of the data_resources[] table in data.cc, used to identify when a sprite/(sound?) is out of normal
+//  range, indicating it should be handled as a mutated or custom sprite/(sound?) instead
+const int last_original_data_index[34] = {-1,0,199,0,6,6,13,0,0,15,80,80,26,32,9,278,3,9,15,3,7,43,43,317,193,193,24,25,540,629,2,89,6,0};
+
 ExceptionGFX::ExceptionGFX(const std::string &description)
   : ExceptionFreeserf(description) {
 }
@@ -178,23 +183,27 @@ Graphics::get_instance() {
 
 /* Draw the opaque sprite with data file index of
    sprite at x, y in dest frame. */
-void
-Frame::draw_sprite(int x, int y, Data::Resource res, unsigned int index) {
-  //Log::Info["gfx"] << "inside Frame::draw_sprite#1  with res " << res << " and index " << index;
-  draw_sprite(x, y, res, index, false, Color::transparent, 1.f);
-}
+//void
+//Frame::draw_sprite(int x, int y, Data::Resource res, unsigned int index) {
+//  //Log::Info["gfx"] << "inside Frame::draw_sprite#1  with res " << res << " and index " << index;
+//  throw ExceptionFreeserf("called deprecated draw_sprite #1 function");
+//  //draw_sprite(x, y, res, index, false, Color::transparent, 1.f);
+//}
 
+/*
 // copy of draw_sprite #! but allowing custom datasource (for frame_bottom weather dial graphics)
 void
 Frame::draw_sprite_special0(int x, int y, Data::Resource res, unsigned int index) {
   //Log::Info["gfx.cc"] << "inside Frame::draw_sprite_special0  with res " << res << " and index " << index;
-  draw_sprite_special0x(x, y, res, index, false, Color::transparent, 1.f);
+  //draw_sprite_special0x(x, y, res, index, false, Color::transparent, 1.f);
+  //draw_sprite(x, y, res, index, false, Color::transparent, 1.f);
 }
+*/
 
+/* this is the original draw_sprite #2
 // #2
 void
-Frame::draw_sprite(int x, int y, Data::Resource res, unsigned int index,
-                   bool use_off, const Color &color, float progress) {
+Frame::draw_sprite(int x, int y, Data::Resource res, unsigned int index, bool use_off, const Color &color, float progress) {
   //Log::Info["gfx"] << "inside Frame::draw_sprite#2  with res " << res << " and index " << index;
   Data::Sprite::Color pc = {color.get_blue(),
                             color.get_green(),
@@ -222,12 +231,92 @@ Frame::draw_sprite(int x, int y, Data::Resource res, unsigned int index,
                                                      progress);
   video->draw_image(image->get_video_image(), x, y, y_off, video_frame);
 }
+*/
 
-// for custom frame_bottom graphics for season_dial, copy of #2
+//
+// EXPLANATION OF CUSTOM GRAPHICS:
+//
+//  - terrain "appearance swap" is done by changing the drawn original tile
+//      to another type, without changing the underlying type in terms of gameplay
+//     This effect is done totally within draw_triangle_up/down by swapping the
+//      sprite type to be drawn and not actually modifying any sprites
+//     But, because the terrain is rendered and acched by frame tile cache it
+//      must be flushed when these swaps happen
+//     Example:
+//        FourSeasons changes snow level appearance on mountains by changing some tiles between Tundra and Snow
+//
+//  - new sprites for MapObjects (SpriteTransparent)
+//     These are loaded from custom PNG files included in the game build 
+//     These replace the the original sprites (when conditions are met)
+//      and are set in place by logic in draw_map_objects_row that swaps the original
+//      sprite indexes with the custom indexes.
+//     These result in out-of-original-range sprite indexes
+//      and will try to fall back to the original sprite if not found
+//     Example:
+//        Trees & their shadows for FourSeasons fall/winter/spring tree graphics
+//          NOTE custom tree graphics use "crammed animation", see elsewhere in Forkserf code for explanation
+//        The FourSeasons 'season dial' that shows summer/fall/winter/spring icon changing each season
+//
+//  - mutated original sprites for MapObjects (SpriteTransparent)
+//     These replace original sprites with modified rgb color values as they are (re)loaded.
+//     These take the orignal sprite index so the original sprite becomes unreachable.
+//     The mutation is handled inside the SpriteDosTransparent constructor and not applied for Amiga
+//     Example:
+//        Seeds/immature wheat Fields have reduced green to look better with FourSeasons winter terrain
+//
+//  - mutated original sprites for MapGround (SpriteSolid) that are made available
+//     in addition to original sprites, with both available at same time.  These are set in place
+//     by logic in the draw_triangle_up/down functions and result in out-of-original-range sprite indexes
+//     Example:
+//        FogOfWar black shroud is just a black sprite the same 32x20 size as normal terrain sprites, for not-revealed po
+//        FogOfWar darker versions of normal terrain sprites (type+luminosity) for revealed-but-not-currently-visible pos
+//
+// BOTH terrain and map objects are cached, in two different ways:
+//
+//   IN THE ORIGINAL CODE:
+//    - map objects (and any other sprites) are cached upon first load, and never reloaded unless explicitly flushed
+//    - terrain components: map_ground sprites (rectangular) and their map_mask_up/down masks are also cached like any other sprite
+//    - terrain is rendered into triangles from terrain-sprite + mask and stored in 16x16 blocks called tile_frames or tile cache or frame cache?
+//    - the tile frames are flushed every time certain events happen, at the very least when popups are closed (not sure why) and possibly other times
+//
+//   FOR CUSTOM GRAPHICS:
+//    - cached sprites must be flushed explicitly to force an update, including terrain, if the sprite id is the same
+//    - rendered terrain (tile frame cache) 16x16 blocks must be flushed when changing terrain 
+//        using the various tricks such as game->set_redraw_XXX and viewport->resize
+//     
+//
+// NOTE that 'index' is the relative index within the Data::Resource type
+//  and the base resource type starting index is added in get_sprite_parts
+//  when get_object is called to get the "from zero" data object id
+//
+//
+// FUNCTION FLOW for default DOS sprites
+//
+// # terrain #
+//  Viewport::internal_draw() called during each SDL Timer based loop
+//    Viewport::draw_landscape()
+//      Viewport::get_tile_frame(frame tile id)
+//      | Viewport::draw_up/down_tile_col(map pos of start of row) if 16x16 rendered terrain frame not found in landscape_tiles cache
+//      | | Viewport::draw_triangle_up/down(map pos)
+//      | | | Frame::draw_masked_sprite(res type + relative sprite index)
+//      | | | | DataSourceBase::get_sprite(res type + relative sprite index) for map_ground           if image[id] not found in cache (which contains final sprite w/mask applied)
+//      | | | | DataSourceBase::get_sprite(res type + relative sprite index) for map_mask_up/down     if image[id] not found in cache (which contains final sprite w/mask applied)
+//      | | | | | DataSourceDOS::get_sprite_parts(res type + relative sprite index)
+//      | | | | |   DataSourceDos::get_object(absolute datafile index) from SPAx.PA        <-- this must be a real sprite when it reaches this point!  no fake sprite ids
+//      | | | | |     DataSourceDos::SpriteDosSolid constructor
+//      | | | | |       this reads the actual rgba value and returns as a Data::PSprite    <-- can mutate here during image load
+//      | | | | applies mask to base terrain sprite and renders it on the Video Frame object using VideoSDL::draw_image
+//      | | | | caches the image using "res type + relative sprite index" as key
+//      | | draws the finalized sprite onto the 16x16 tile frame
+//      | draws the column of terrain triangles
+//      caches the 16x16 tile frame
+//            
+//              
+//
+//
 void
-Frame::draw_sprite_special0x(int x, int y, Data::Resource res, unsigned int index,
-                   bool use_off, const Color &color, float progress) {
-  //Log::Info["gfx.cc"] << "inside Frame::draw_sprite_special0x  with res " << res << " and index " << index;
+Frame::draw_sprite(int x, int y, Data::Resource res, unsigned int index, bool use_off, const Color &color, float progress) {
+  //Log::Info["gfx.cc"] << "inside Frame::draw_sprite  with res " << res << " and index " << index;
   Data::Sprite::Color pc = {color.get_blue(),
                             color.get_green(),
                             color.get_red(),
@@ -235,36 +324,89 @@ Frame::draw_sprite_special0x(int x, int y, Data::Resource res, unsigned int inde
 
   uint64_t id = Data::Sprite::create_id(res, index, 0, 0, pc);
   Image *image = Image::get_cached_image(id);
+  
+  // if image not found already cached, fetch it and cache it
   if (image == nullptr) {
     Data::PSprite s;
-    if (res == Data::AssetFrameBottom){
-      //Log::Info["gfx.cc"] << "inside Frame::draw_sprite_special0x, trying to load custom FrameBottom graphic with index " << index;
-      Data &data = Data::get_instance();
-      if (data.get_data_source_Custom() == nullptr){
-        Log::Error["gfx.cc"] << "inside Frame::draw_sprite_special0x, index " << index << ", data_source (custom) is nullptr!, are the custom data files missing?";
-        // need to get the original 00x sprite number instead of the 2xx/3xx/4xx set used for FourSeasons
-        //  mod 10 essentially "strips the first two digits" which works because the original Tree values are 0 through 9
-        // note that this assumes it is a Tree because nothing else should be using this draw_sprite_special3 function, but if it does it will likely break!
-        unsigned int orig_index = index % 100;
-        Log::Warn["gfx.cc"] << "inside Frame::draw_sprite_special0x, custom datasource not found for sprite index " << index <<", trying to fall back to default datasource for this sprite, using " << orig_index;
-        s = data_source->get_sprite(res, orig_index, pc);
+
+    bool darken = false; // used for FogOfWar
+
+    // handle special sprites, either mutated-originals or totally new Custom sprites
+    //  new custom sprites will work for Amiga, but mutated ones will not as the
+    //  mutation happens within the DOS data loading functions
+    if (index > last_original_data_index[res]){
+      Log::Debug["gfx.cc"] << "inside Frame::draw_sprite, sprite index " << index << " is higher than the last_original_data_index " << last_original_data_index[res] << " for this Data::Resource type " << res << ", assuming it is a special sprite";
+
+      unsigned int orig_index = -1;
+
+      // these types, if having beyond-original indexes, are new graphics
+      //  loaded from actual PNG files using the data_source_Custom
+      if (res == Data::AssetFrameBottom
+       || res == Data::AssetMapObject
+       || res == Data::AssetMapShadow){
+        Data &data = Data::get_instance();
+        if (data.get_data_source_Custom() == nullptr){
+          // try load the custom sprite
+          Log::Warn["gfx.cc"] << "inside Frame::draw_sprite, custom datasource not available at all, cannot even attempt to load sprite index " << index << ", trying to fall back to default datasource for this sprite, using " << orig_index;
+          s = data_source->get_sprite(res, orig_index, pc);
+        }else{
+          s = data.get_data_source_Custom()->get_sprite(res, index, pc);
+          if (s == nullptr){
+            // try falling back to original sprite if custom sprite couldn't be loaded
+            if (res == Data::AssetFrameBottom){
+              orig_index = 6;  // this is the original sprite that the seasons dial replaces
+            }else{
+              // stripping the first two digits results in 0-7 which hold the original Trees & Tree-shadows
+              //  and the original frame_bottom sprite that the seasons dial replaces is #6, which will also work
+              // NOTE - if sprites >#9 are to be modified in the future, this orig_index fallback logic must be modified
+              orig_index = index % 10;
+            }
+            Log::Warn["gfx.cc"] << "inside Frame::draw_sprite, custom datasource not found for sprite index " << index <<", trying to fall back to default datasource for this sprite, using " << orig_index;
+            s = data_source->get_sprite(res, orig_index, pc);
+          }else{
+            Log::Debug["gfx.cc"] << "inside Frame::draw_sprite, custom datasource successfully loaded for res type " << res << ", sprite index " << index;
+          }
+        }
+      }else if (res == Data::AssetMapGround){
+        // for option_FogOfWar
+        //  call get_sprite for the BASE terrain sprite index to be mutated
+        //
+        // logic inside the downstream SpriteDosSolid/Transparent/Overlay constructor
+        //   will apply necessary mutation when it sees darken bool set
+        //
+        // this mutated sprite will be cached with its new higher-than-original index
+        //  so it will be loaded from cache on subsequent draw_sprite calls without
+        //  overwriting the original sprite, so both could be drawn at once
+        //
+        // this is not a typo, updating the 'index' to be the base terrain 
+        //index = index % 100; // stripping the first digit results in 0-32 which hold the original map_ground terrain sprites
+        darken = true;
       }else{
-        // load the custom sprite
-        s = data.get_data_source_Custom()->get_sprite(res, index, pc); // FourSeasons, with crammed animation
+        // throw exception
+        Log::Error["gfx.cc"] << "inside Frame::draw_sprite, index " << index << " is higher than the last_original_data_index " << last_original_data_index[res] << " for this Data::Resource type " << res << ", but no matching custom rule found, crashing!";
+        throw ExceptionFreeserf("inside Frame::draw_sprite, no matching custom sprite rule found for beyond-original-range sprite index");
       }
     }else{
-      s = data_source->get_sprite(res, index, pc);
-    }
+      // normal sprite, unmodified from original DOS or Amiga data source
+      //   ~~~~ OR ~~~~
+      // mutated sprite that directly replaces the original at the same sprite index
+      //  by logic inside the downstream SpriteDosSolid/Transparent/Overlay constructor
+      //  This means both original and new cannot both be drawn in same frame
+      //
+      //    - option_FourSeasons uses this for seasonal changes to terrain
+      //
+      //s = data_source->get_sprite(res, index, pc);
+      s = data_source->get_sprite(res, index, pc, darken);
+    } // if index beyond original range
 
-    //Data::PSprite s = data_source->get_sprite(res, index, pc);
     if (!s) {
-      Log::Warn["gfx.cc"] << "inside Frame::draw_sprite_special0x, Failed to decode sprite #"
+      Log::Warn["gfx.cc"] << "inside Frame::draw_sprite, Failed to decode sprite #"
                             << Data::get_resource_name(res) << ":" << index;
       return;
     }
     image = new Image(video, s);
     Image::cache_image(id, image);
-  }
+  } // if image not in cache
 
   if (use_off) {
     x += image->get_offset_x();
@@ -275,6 +417,7 @@ Frame::draw_sprite_special0x(int x, int y, Data::Resource res, unsigned int inde
   video->draw_image(image->get_video_image(), x, y, y_off, video_frame);
 }
 
+/*
 // added to support messing with weather/seasons/palette tiles, copy of protected Frame::draw_sprite#2
 void
 Frame::draw_sprite_special3(int x, int y, Data::Resource res, unsigned int index, bool use_off, const Color &color, float progress, unsigned int pos, unsigned int obj) {
@@ -290,9 +433,9 @@ Frame::draw_sprite_special3(int x, int y, Data::Resource res, unsigned int index
     // messing with weather/seasons/palette
     Data::PSprite s;
     //int frame = index % 10;
-    //int offset = season_offset[season]; // THIS DOESN'T WORK FOR CROSS-SEASONAL SPRITES AS subseason CHANGES!
+    //int offset = season_sprite_offset[season]; // THIS DOESN'T WORK FOR CROSS-SEASONAL SPRITES AS subseason CHANGES!
     //int tree = (index - offset - frame) / 10;
-    //Log::Info["gfx.cc"] << "inside Frame::draw_sprite_special3, found season_offset[" << season << "] of " << offset << ", Tree#" << tree << " and frame# " << frame;
+    //Log::Info["gfx.cc"] << "inside Frame::draw_sprite_special3, found season_sprite_offset[" << season << "] of " << offset << ", Tree#" << tree << " and frame# " << frame;
 
     if (res == Data::AssetMapObject || res == Data::AssetMapShadow){
     //if (res == Data::AssetMapObject){  // why is it still looking up MapShadows?  I thought I told it to use another function
@@ -334,43 +477,49 @@ Frame::draw_sprite_special3(int x, int y, Data::Resource res, unsigned int index
                                                      progress);
   video->draw_image(image->get_video_image(), x, y, y_off, video_frame);
 }
+*/
 
 
+/*
 void
 Frame::draw_sprite(int x, int y, Data::Resource res, unsigned int index,
                    bool use_off) {
   //Log::Info["gfx"] << "inside Frame::draw_sprite#3, calling draw_sprite#2 with res " << res << ", index " << index;
   draw_sprite(x, y, res, index, use_off, Color::transparent, 1.f);  // this is Frame::draw_sprite#2
 }
+*/
 
+/*
 // copy of Frame::draw_sprite#3 but with passing of pos and object type to support messing with weather/seasons/palette tiles
 void
 Frame::draw_sprite_special1(int x, int y, Data::Resource res, unsigned int index, bool use_off, unsigned int pos, unsigned int obj) {
   //Log::Info["gfx"] << "inside Frame::draw_sprite_special1, calling Frame::draw_sprite_special3 with res " << res << ", index " << index;
-  draw_sprite_special3(x, y, res, index, use_off, Color::transparent, 1.f, pos, obj);  // this is Frame::draw_sprite#2
+  //draw_sprite_special3(x, y, res, index, use_off, Color::transparent, 1.f, pos, obj);  // this is Frame::draw_sprite#2
 }
+*/
 
-void
-Frame::draw_sprite(int x, int y, Data::Resource res, unsigned int index,
-                   bool use_off, float progress) {
-  //Log::Info["gfx"] << "inside Frame::draw_sprite#4, calling draw_sprite#2 with res " << res << ", index " << index;
-  draw_sprite(x, y, res, index, use_off, Color::transparent, progress);  // this is Frame::draw_sprite#2
-}
+//void
+//Frame::draw_sprite(int x, int y, Data::Resource res, unsigned int index, bool use_off, float progress) {
+//  //Log::Info["gfx"] << "inside Frame::draw_sprite#4, calling draw_sprite#2 with res " << res << ", index " << index;
+//  draw_sprite(x, y, res, index, use_off, Color::transparent, progress);  // this is Frame::draw_sprite#2
+//}
 
-void
-Frame::draw_sprite(int x, int y, Data::Resource res, unsigned int index,
-                   bool use_off, const Color &color) {
-  //Log::Info["gfx"] << "inside Frame::draw_sprite#5  with res " << res << " and index " << index;
-  draw_sprite(x, y, res, index, use_off, color, 1.f);
-}
+//void
+//Frame::draw_sprite(int x, int y, Data::Resource res, unsigned int index,
+//                   bool use_off, const Color &color) {
+//  //Log::Info["gfx"] << "inside Frame::draw_sprite#5  with res " << res << " and index " << index;
+//  draw_sprite(x, y, res, index, use_off, color, 1.f);
+//}
 
+/*
 // copy of Frame::draw_sprite#5 but with passing of pos and object type to support messing with weather/seasons/palette tiles
 void
 Frame::draw_sprite_special2(int x, int y, Data::Resource res, unsigned int index,
                    bool use_off, const Color &color, unsigned int pos, unsigned int obj) {
   Log::Info["gfx"] << "inside Frame::draw_sprite_special2 calling Frame::draw_sprite_special3 with res " << res << " and index " << index;
-  draw_sprite_special3(x, y, res, index, use_off, color, 1.f, pos, obj);
+  //draw_sprite_special3(x, y, res, index, use_off, color, 1.f, pos, obj);
 }
+*/
 
 void
 Frame::draw_sprite_relatively(int x, int y, Data::Resource res,
@@ -393,29 +542,44 @@ Frame::draw_sprite_relatively(int x, int y, Data::Resource res,
 }
 
 //
-// this function only seems to load MapGround type sprites - Terrain
+// this function only seems to be used for MapGround type sprites - Terrain
 //
 /* Draw the masked sprite with given mask and sprite
    indices at x, y in dest frame. */
 void
 Frame::draw_masked_sprite(int x, int y, Data::Resource mask_res,
                           unsigned int mask_index, Data::Resource res,
-                          unsigned int index) {
-  uint64_t id = Data::Sprite::create_id(res, index, mask_res, mask_index,
-                                        {0, 0, 0, 0});
-  //Log::Info["gfx"] << "inside Frame::draw_masked_sprite  with res " << res;
+                          unsigned int index, bool darken) {
+  Log::Debug["gfx.cc"] << "inside Frame::draw_masked_sprite  with res " << res;
+
+  // for option_FogOfWar
+  //  The darkened terrain sprites must be cached with alernate sprite indexes
+  //   to allow both the fully-visible and revealed-but-not-currently-visible
+  //   sprites to be drawn at the same time
+  //  To support this, fake the sprite index for the darkened sprites by using +100
+  //   so that they are cached and retrieved with the higher index but the original
+  //   sprite index is actually passed to the downstream functions to retrieve from
+  //   the SPAx.PA data file, as the darkened sprites don't actually exist anywhere,
+  //   they are built by mutating the original sprite during loading
+  uint64_t id; // image cache key
+  if (darken){
+    // fake high sprite index
+    id = Data::Sprite::create_id(res, index + 100, mask_res, mask_index, {0, 0, 0, 0});
+  }else{
+    // original sprite index
+    id = Data::Sprite::create_id(res, index, mask_res, mask_index, {0, 0, 0, 0});
+  }
+  
+  // see if finalized sprite w/ mask applied already in cache  
   Image *image = Image::get_cached_image(id);
+
+  // if not, get the sprite and its mask sprite and apply the mask
   if (image == nullptr) {
-    // handle new sprites for new Terrain types for option_FogOfWar
     Data::PSprite s;
-    if (index > 32){
-      // new terrain sprite
-      Data &data = Data::get_instance();
-      s = data.get_data_source_Custom()->get_sprite(res, index, {0, 0, 0, 0});
-    }else{
-      // original terrain sprite
-      s = data_source->get_sprite(res, index, {0, 0, 0, 0});
-    }
+    //
+    // fetch the base sprite, MASK IS NOT APPLIED YET
+    //   darken if specified
+    s = data_source->get_sprite(res, index, {0, 0, 0, 0}, darken);
     
     if (!s) {
       Log::Warn["graphics"] << "Failed to decode sprite #"
@@ -423,8 +587,13 @@ Frame::draw_masked_sprite(int x, int y, Data::Resource mask_res,
       return;
     }
 
-    Data::PSprite m = data_source->get_sprite(mask_res, mask_index,
-                                              {0, 0, 0, 0});
+    //
+    // fetch the mask sprite as if it were a normal sprite
+    //
+    // darken bool is false is default, but listing explicitly here to avoid confusion
+    //   The mask is not modified, only the base terrain sprite is
+    Data::PSprite m = data_source->get_sprite(mask_res, mask_index,{0, 0, 0, 0}, darken = false);
+                                              
     if (!m) {
       Log::Warn["graphics"] << "Failed to decode sprite #"
                             << Data::get_resource_name(mask_res)

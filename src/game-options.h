@@ -22,6 +22,6 @@ extern int season;
 extern int last_season;
 extern int subseason;
 extern int last_subseason;
-extern int season_offset[4];
+extern int season_sprite_offset[4];
 
 #endif  // SRC_GAME_OPTIONS_H_

@@ -142,10 +142,12 @@ Viewport::special_terrain_type(MapPos pos, Map::Terrain type){
 //  between draw_triangle_up & _down
 int
 Viewport::special_terrain_sprite(MapPos pos, int sprite_index){
-  //Log::Debug["viewport.cc"] << "start of Viewport::special_terrain_sprite(), pos " << pos << ", orig terrain type " << type;
+  Log::Debug["viewport.cc"] << "start of Viewport::special_terrain_sprite(), pos " << pos << ", orig terrain sprite_index " << sprite_index;
 
   // option_FogOfWar
   //  draw revealed-but-not-currently-visible areas darker than normal
+  /* no longer using prerendered custom PNG sprites,
+      switching to using mutated sprites derived directly from base sprites
   if (option_FogOfWar){
     static const int8_t tri_fog[] = {
       34, 34, 36,  0,  1,  2,  3,  4,  // grass   (default  0-7)  lower # is darker
@@ -159,8 +161,17 @@ Viewport::special_terrain_sprite(MapPos pos, int sprite_index){
       sprite_index = tri_fog[sprite_index];
     }
   }
+  */
 
-  //Log::Debug["viewport.cc"] << "start of Viewport::special_terrain(), pos " << pos << ", orig terrain type " << type << ", new type " << new_type;
+  // use 100+base to indicate darker sprites for FogOfWar
+  //  the SpriteDosSolid constructor has added logic to handle it
+  if (option_FogOfWar){
+    if (!map->is_visible(pos, interface->get_player()->get_index())){
+      sprite_index += 100;
+    }
+  }
+
+  Log::Debug["viewport.cc"] << "start of Viewport::special_terrain_sprite(), pos " << pos << ", new sprite_index " << sprite_index;
   return sprite_index;
 }
 
@@ -211,9 +222,33 @@ Viewport::draw_triangle_up(int lx, int ly, int m, int left, int right,
   sprite = tri_spr[index];
 
   // apply any hack-ish modifications from various game options
-  sprite = special_terrain_sprite(pos, sprite);
+  //sprite = special_terrain_sprite(pos, sprite);
 
-  tile->draw_masked_sprite(lx, ly, Data::AssetMapMaskUp, mask, Data::AssetMapGround, sprite);
+  bool darken = false;
+  if (option_FogOfWar){
+    if (!map->is_revealed(pos,interface->get_player()->get_index())){ 
+      sprite = -1;
+    } else if (!map->is_visible(pos, interface->get_player()->get_index())){
+      // SPECIAL CATCH TO SMOOTH THE EDGES OF THE TOP-LEFT 
+      //  AND DOWN-RIGHT EDGES OF FOW HEXAGON - DRAW A HALF TRIANGLE
+      //  AT THE EDGE BE CHECKING IF LAST POS WAS DARKENED!
+      //if (false){
+        // NEVERMIND, this works for the initial castle hexagon but breaks down
+        //  once more activity happens, not going to bother with it now
+      //if (map->is_visible(map->move_right(pos), interface->get_player()->get_index())
+      // && !map->is_visible(map->move_up(pos), interface->get_player()->get_index()) 
+      // && !map->is_visible(map->move_down(pos), interface->get_player()->get_index()) ){
+        // !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+        // skip this Up triangle only DO NOT COPY THIS TO draw_triangle_down!!!!
+        // !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+      //}else{
+        darken = true;
+      //}
+    }
+  }
+
+  //tile->draw_masked_sprite(lx, ly, Data::AssetMapMaskUp, mask, Data::AssetMapGround, sprite);
+  tile->draw_masked_sprite(lx, ly, Data::AssetMapMaskUp, mask, Data::AssetMapGround, sprite, darken);
 }
 
 void
@@ -264,9 +299,32 @@ Viewport::draw_triangle_down(int lx, int ly, int m, int left, int right,
   sprite = tri_spr[index];
 
   // apply any hack-ish modifications from various game options
-  sprite = special_terrain_sprite(pos, sprite);
+  //sprite = special_terrain_sprite(pos, sprite);
 
-  tile->draw_masked_sprite(lx, ly + MAP_TILE_HEIGHT, Data::AssetMapMaskDown, mask, Data::AssetMapGround, sprite);
+  bool darken = false;
+  if (option_FogOfWar){
+    if (!map->is_revealed(pos,interface->get_player()->get_index())){ 
+      sprite = -1;
+    }else if (!map->is_visible(pos, interface->get_player()->get_index())){
+      // SPECIAL CATCH TO SMOOTH THE EDGES OF THE TOP-LEFT 
+      //  AND DOWN-RIGHT EDGES OF FOW HEXAGON - DRAW A HALF TRIANGLE
+      //  AT THE EDGE BE CHECKING IF LAST POS WAS DARKENED!
+      //if (false){
+        // NEVERMIND, this works for the initial castle hexagon but breaks down
+        //  once more activity happens, not going to bother with it now
+      //if (map->is_visible(map->move_left(pos), interface->get_player()->get_index())
+      // && !map->is_visible(map->move_up(pos), interface->get_player()->get_index()) 
+      // && !map->is_visible(map->move_down(pos), interface->get_player()->get_index()) ){
+        // !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+        // skip this Down triangle only DO NOT COPY THIS TO draw_triangle_up!!!!
+        // !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+      //}else{
+        darken = true;
+      //}
+    }
+  }
+
+  tile->draw_masked_sprite(lx, ly + MAP_TILE_HEIGHT, Data::AssetMapMaskDown, mask, Data::AssetMapGround, sprite, darken);
 }
 
 /* Draw a column (vertical) of tiles, starting at an up pointing tile. */
@@ -572,7 +630,7 @@ Viewport::get_tile_frame(unsigned int tid, int tc, int tr) {
   /* Draw one extra column as half a column will be outside the
    map tile on both right and left side.. */
   for (int col = 0; col < MAP_TILE_COLS+1; col++) {
-    Log::Debug["viewport.cc"] << "inside of Viewport::get_tile_frame(), loading tiles for col " << col << ", pos " << pos;
+    //Log::Debug["viewport.cc"] << "inside of Viewport::get_tile_frame(), loading tiles for col " << col << ", pos " << pos;
     draw_up_tile_col(pos, x_base, 0, tile_height, tile_frame.get());
     draw_down_tile_col(pos, x_base + MAP_TILE_WIDTH/2, 0, tile_height,
                        tile_frame.get());
@@ -625,7 +683,7 @@ Viewport::get_tile_frame(unsigned int tid, int tc, int tr) {
 
 void
 Viewport::draw_landscape() {
-  Log::Debug["viewport.cc"] << "start of Viewport::draw_landscape()";
+  //Log::Debug["viewport.cc"] << "start of Viewport::draw_landscape()";
 
   int horiz_tiles = map->get_cols()/MAP_TILE_COLS;
   int vert_tiles = map->get_rows()/MAP_TILE_ROWS;
@@ -807,7 +865,9 @@ Viewport::draw_border_segment(int lx, int ly, MapPos pos, Direction dir) {
     sprite += 3;
   }
 
-  frame->draw_sprite(lx, ly, Data::AssetMapBorder, sprite, false);
+  //frame->draw_sprite(lx, ly, Data::AssetMapBorder, sprite, false);
+  // avoid needing overloaded funtions, false is default anyway just omit it
+  frame->draw_sprite(lx, ly, Data::AssetMapBorder, sprite);
 }
 
 MapPos
@@ -924,13 +984,16 @@ Viewport::draw_paths_and_borders() {
 
 void
 Viewport::draw_game_sprite(int lx, int ly, int index) {
-  frame->draw_sprite(lx, ly, Data::AssetGameObject, index-1, true);
+  //frame->draw_sprite(lx, ly, Data::AssetGameObject, index-1, true);
+  // to avoid needing overloaded functions, just specify the defaults for other values
+  frame->draw_sprite(lx, ly, Data::AssetGameObject, index-1, true, Color::transparent, 1.f);
 }
 
 void
 Viewport::draw_serf(int lx, int ly, const Color &color, int head, int body) {
   // this is the actual serf_torso sprite # for the torso/body (and possibly head if all-in-one)
-  frame->draw_sprite(lx, ly, Data::AssetSerfTorso, body, true, color);
+  //frame->draw_sprite(lx, ly, Data::AssetSerfTorso, body, true, color);
+  frame->draw_sprite(lx, ly, Data::AssetSerfTorso, body, true, color, 1.f);
   //Log::Debug["viewport.cc"] << "inside Viewport::draw_serf, body/base = " << body << ", head = " << head;
   // if serf has a separate head (some torso sprites include head, such as active working serfs, draw it
   if (head >= 0) {
@@ -938,12 +1001,16 @@ Viewport::draw_serf(int lx, int ly, const Color &color, int head, int body) {
   }
 }
 
+// this says shadow and building but it seems to include ANY map object sprite that has a shadow
+//  such as trees, stones, junk objects?
 void
 Viewport::draw_shadow_and_building_sprite(int lx, int ly, int index, const Color &color) {
-  // this says shadow and building but it seems to include ANY map object sprite such as trees, stones
+  
   //Log::Info["viewport"] << "inside Viewport::draw_shadow_and_building_sprite for sprite index " << index;
-  frame->draw_sprite(lx, ly, Data::AssetMapShadow, index, true);  // call Frame::draw_sprite#3
-  frame->draw_sprite(lx, ly, Data::AssetMapObject, index, true, color);  // call Frame::draw_sprite#5
+  //frame->draw_sprite(lx, ly, Data::AssetMapShadow, index, true);  // call Frame::draw_sprite#3
+  frame->draw_sprite(lx, ly, Data::AssetMapShadow, index, true, Color::transparent, 1.f);
+  //frame->draw_sprite(lx, ly, Data::AssetMapObject, index, true, color);  // call Frame::draw_sprite#5
+  frame->draw_sprite(lx, ly, Data::AssetMapObject, index, true, color, 1.f);  // call Frame::draw_sprite#5
 }
 
 /*
@@ -964,7 +1031,10 @@ Viewport::draw_shadow_and_custom_building_sprite(int lx, int ly, int index, cons
 }
 */
 
-// new function to try messing with weather/seasons/palette
+// this function only exists as a hack to work around the fact that custom PNG shadow transparency
+//  doesn't seem to be working right, needs more investigation
+// ALSO THE ORIGINAL TREE SHADOWS are dynamically animated, they move like the tree does!  
+//  AND THESE CUSTOM TREE SHADOWS ARE STATIC, THIS NEEDS TO BE FIXED!!
 void
 Viewport::draw_map_sprite_special(int lx, int ly, int index, unsigned int pos, unsigned int obj, const Color &color) {
   // this is only used by draw_map_objects_row, added passing of pos and object type to support sprite replacement
@@ -981,18 +1051,20 @@ Viewport::draw_map_sprite_special(int lx, int ly, int index, unsigned int pos, u
   //   test for the existence of the custom data source here.  It might be easy, but this seems like an edge case.  Better to 
   //   simply force disable FourSeasons if the custom tree sprites are missing, OR allow a version that changes the terrain only
   //   to still allow AdvancedFarming?
-  if (index >= 220 && index <= 223){
+  if (index >= 1220 && index <= 1223){
     // use "full" deciduous tree shadow for SPRING Tree2 (the white flowered tree)
-    frame->draw_sprite(lx, ly, Data::AssetMapShadow, 0, true);  // call Frame::draw_sprite#3  
-  }else if (index >= 400 && index <= 499){
+    //frame->draw_sprite(lx, ly, Data::AssetMapShadow, 0, true);  // call Frame::draw_sprite#3  
+    frame->draw_sprite(lx, ly, Data::AssetMapShadow, 0, true, Color::transparent, 1.f);  // call Frame::draw_sprite#3  
+  }else if (index >= 1400 && index <= 1499){
     // FALL trees all have full shadows
-    frame->draw_sprite(lx, ly, Data::AssetMapShadow, 0, true);  // call Frame::draw_sprite#3  
+    frame->draw_sprite(lx, ly, Data::AssetMapShadow, 0, true, Color::transparent, 1.f);  // call Frame::draw_sprite#3  
   }else{
     // use "bare" tree shadow from dead tree index 084 for WINTER and most of FALL
-    frame->draw_sprite(lx, ly, Data::AssetMapShadow, 84, true);  // call Frame::draw_sprite#3  
+    frame->draw_sprite(lx, ly, Data::AssetMapShadow, 84, true, Color::transparent, 1.f);  // call Frame::draw_sprite#3  
   }
 
-  frame->draw_sprite_special2(lx, ly, Data::AssetMapObject, index, true, color, pos, obj);  // call Frame::draw_sprite#5
+  //frame->draw_sprite_special2(lx, ly, Data::AssetMapObject, index, true, color, pos, obj);  // call Frame::draw_sprite#5
+  frame->draw_sprite(lx, ly, Data::AssetMapObject, index, true, color); // pos and obj only needed for debugging
 }
 
 
@@ -1001,8 +1073,8 @@ Viewport::draw_shadow_and_building_unfinished(int lx, int ly, int index,
                                               int progress) {
   //Log::Info["viewport"] << "inside Viewport::draw_shadow_and_building_unfinished for sprite index " << index;
   float p = static_cast<float>(progress) / static_cast<float>(0xFFFF);
-  frame->draw_sprite(lx, ly, Data::AssetMapShadow, index, true, p);
-  frame->draw_sprite(lx, ly, Data::AssetMapObject, index, true, p);
+  frame->draw_sprite(lx, ly, Data::AssetMapShadow, index, true, Color::transparent, p);
+  frame->draw_sprite(lx, ly, Data::AssetMapObject, index, true, Color::transparent, p);
 }
 
 static const int map_building_frame_sprite[] = {
@@ -1728,10 +1800,10 @@ Viewport::draw_map_objects_row(MapPos pos, int y_base, int cols, int x_base, int
         //  animation frames for each is unlimited.  For now I have used a numbering system that limits 
         //  frame count to <=9 but the numbering system could be changed to allow any number of frames per tree type.  
         //
-        // #.. is season_offset (NOT same as 'season' because they are out of order, offset are
-        //    Spring = 200, Summer = 000 (none), Fall = 400, Winter = 300
-        // .#. is Tree#, 0-3 for some, 0-7 for others
-        // ..# is Frame#, 0-3 for some, 0-7 for others
+        // #... is season_sprite_offset (NOT same as 'season' because they are out of order, offset are
+        //          Spring = 1200, Summer = 000 (none), Fall = 1400, Winter = 1300
+        // ..#. is tree#, 0-3 for some, 0-7 for others
+        // ...# is frame#, 0-3 for some, 0-7 for others
         // so for example, Fall Tree#5 with 8 frames of animation is index 450 through 457
 
         int tree = 10*sprite;
@@ -1781,12 +1853,12 @@ Viewport::draw_map_objects_row(MapPos pos, int y_base, int cols, int x_base, int
               }else if (subseason*10 > tree){
                 // use early-spring coloration for this Tree#
                 frame = (sprite & ~7) + (slow_tree_anim & 3);  // spring trees have 8 types, two sets per type, each with 4 frames of animation
-                sprite = season_offset[season] + tree + frame;
+                sprite = season_sprite_offset[season] + tree + frame;
                 use_custom_set = true;
               }else{
                 // use previous (winter) coloration for this Tree#.  It is important that the Tree#s are synced between winter & spring because the trunks need to match!!
                 frame = (sprite & ~7) + (slow_tree_anim & 3);  // winter trees have 8 types, each with 4 frames of animation
-                sprite = season_offset[3] + tree + frame;
+                sprite = season_sprite_offset[3] + tree + frame;
                 use_custom_set = true;
               }
               break;
@@ -1800,12 +1872,12 @@ Viewport::draw_map_objects_row(MapPos pos, int y_base, int cols, int x_base, int
               if (subseason*10 > tree + 80){
                 // use second fall color
                 tree = fall_2nd_colors[tree/10];
-                sprite = season_offset[season] + tree + frame;
+                sprite = season_sprite_offset[season] + tree + frame;
                 use_custom_set = true;
               }else if (subseason*10 > tree){  // if subseason is 0, no tree changes yet
                 // use first fall color
                 tree = fall_1st_colors[tree/10];
-                sprite = season_offset[season] + tree + frame;
+                sprite = season_sprite_offset[season] + tree + frame;
                 use_custom_set = true;
               }else{
                 // continue using normal/summer green for this Tree#, no custom_set
@@ -1817,12 +1889,12 @@ Viewport::draw_map_objects_row(MapPos pos, int y_base, int cols, int x_base, int
               if (subseason*10 > tree){  // if subseason is 0, no tree changes yet.  trees all lose leaves in first half of 16 subseasons
                 // use winter coloration for this Tree#
                 frame = (sprite & ~7) + (slow_tree_anim & 3);  // winter trees have 8 types, each with 4 frames of animation
-                sprite = season_offset[season] + tree + frame;
+                sprite = season_sprite_offset[season] + tree + frame;
               }else{
                 // use previous (fall 2nd set) coloration for this Tree#.  Because the fall trunks are not visible, it doesn't matter if the tree#s are swapped here
                 tree = fall_2nd_colors[tree/10];
                 frame = (sprite & ~7) + (tree_anim & 7);  // fall trees have 8 types, each with 8 frames of animation
-                sprite = season_offset[2] + tree + frame;
+                sprite = season_sprite_offset[2] + tree + frame;
               }
               use_custom_set = true;  // winter always uses custom_set, for winter and fall trees shown
               break;
@@ -1964,7 +2036,8 @@ Viewport::draw_row_serf(int lx, int ly, bool shadow, const Color &color,
 
   /* Shadow */
   if (shadow) {
-    frame->draw_sprite(lx, ly, Data::AssetSerfShadow, 0, true);
+    //frame->draw_sprite(lx, ly, Data::AssetSerfShadow, 0, true);
+    frame->draw_sprite(lx, ly, Data::AssetSerfShadow, 0, true, Color::transparent, 1.f);
   }
 
   int hi = ((body >> 8) & 0xff) * 2;
@@ -2983,7 +3056,8 @@ draw_serf_row(MapPos pos, int y_base, int cols, int x_base) {
           //  I have no idea why the y_base offset needs to be 2.5x map height, I just messed with it until it fit
           //   it is likely that when building height changes it won't line up anymore, yet another reason to do this inside draw_map_object_row
 
-          frame->draw_sprite_special2(x_base, y_base - MAP_TILE_HEIGHT * 2.5, Data::AssetMapObject, 500, true, Color::transparent, bad_map_pos, Map::ObjectNone);
+          //frame->draw_sprite_special2(x_base, y_base - MAP_TILE_HEIGHT * 2.5, Data::AssetMapObject, 500, true, Color::transparent, bad_map_pos, Map::ObjectNone);
+          frame->draw_sprite(x_base, y_base - MAP_TILE_HEIGHT * 2.5, Data::AssetMapObject, 500, true, Color::transparent);
           if (serf->get_animation() == 87 ) {
             // for option_AdvancedDemolition, shift the x_base to show the
             //  serf moving sideways as he digs.  In the original Digger animation

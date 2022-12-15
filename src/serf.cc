@@ -4951,10 +4951,9 @@ Serf::handle_serf_farming_state() {
       // try setting a later field so it expires sooner instead of resetting so far back
       //object = Map::ObjectField4;  // Field4 works fine, try Field5
       object = Map::ObjectField5;  // I expect this will leave plenty of time for the farmer to finish reaping.
-    } else if (object == Map::ObjectSignLargeGold || object == Map::Object127) {
+    } else if (object == Map::ObjectSignLargeGold || object == Map::Object127) { 
       // WTF is this???
       object = Map::ObjectFieldExpired;
-    //}
     }else if (option_FourSeasons){
       // immediately Expire a field when harvested when AdvancedFarming on
       object = Map::ObjectFieldExpired;

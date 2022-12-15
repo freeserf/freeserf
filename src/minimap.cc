@@ -253,7 +253,9 @@ void
 Minimap::draw_minimap_rect() {
   int px = width / 2;
   int py = height / 2;
-  frame->draw_sprite(px, py, Data::AssetGameObject, 33, true);
+  //frame->draw_sprite(px, py, Data::AssetGameObject, 33, true);
+  // simply setting the values of default color, progress to avoid needing overloaded functions
+  frame->draw_sprite(px, py, Data::AssetGameObject, 33, true, Color::transparent, 1.f);
 }
 
 void

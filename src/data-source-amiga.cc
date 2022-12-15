@@ -371,7 +371,8 @@ DataSourceAmiga::load() {
 }
 
 Data::MaskImage
-DataSourceAmiga::get_sprite_parts(Data::Resource res, size_t index) {
+//DataSourceAmiga::get_sprite_parts(Data::Resource res, size_t index) {
+  DataSourceAmiga::get_sprite_parts(Data::Resource res, size_t index, bool darken) {
   Data::PSprite sprite;
 
   switch (res) {

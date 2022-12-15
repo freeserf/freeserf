@@ -100,7 +100,8 @@ PanelBar::draw_panel_frame() {
     if (option_FourSeasons && i == 0){ // if first item in array, which is the desired sprite 006 which is the leftmost shield sprite in the panel bottom
       int custom_sprite_index = 100*season + subseason + 100;  // +100 because the custom graphics START AT 100, 100=spring(0),200=summer(1),300=fall(2),400=winter(3) 
       //Log::Debug["panel.cc"] << "inside PanelBar::draw_panel_frame, custom_sprite_index is " << custom_sprite_index << ", season " << season << ", subseason " << subseason;
-      frame->draw_sprite_special0(layout[i+1], layout[i+2], Data::AssetFrameBottom, custom_sprite_index);
+      //frame->draw_sprite_special0(layout[i+1], layout[i+2], Data::AssetFrameBottom, custom_sprite_index);
+      frame->draw_sprite(layout[i+1], layout[i+2], Data::AssetFrameBottom, custom_sprite_index);
     }else{
       // use normal function
       frame->draw_sprite(layout[i+1], layout[i+2], Data::AssetFrameBottom, layout[i]);

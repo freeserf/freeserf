@@ -509,8 +509,9 @@ PopupBox::draw_custom_bld_box(const int sprites[]) {
   while (sprites[0] > 0) {
     int sx = sprites[1];
     int sy = sprites[2];
-    frame->draw_sprite(8 * sx + 8, sy + 9,
-                       Data::AssetMapObject, sprites[0], false);
+    //frame->draw_sprite(8 * sx + 8, sy + 9, Data::AssetMapObject, sprites[0], false);
+    // avoid needing overload functions, false is default anyway
+    frame->draw_sprite(8 * sx + 8, sy + 9, Data::AssetMapObject, sprites[0]);
     sprites += 3;
   }
 }

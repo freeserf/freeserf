@@ -743,15 +743,4 @@ const std::string NameSeason[] = {
   "SeasonWinter",
 };
 
-/* moving this to game_options.h because of multiple declaration issues and I don't understand globals
-// the Custom data map_objects offset for tree sprites
-int season_offset[4] = {
-    0, // Summer
-  400, // Fall
-  300, // Winter
-  200, // Spring
-};
-*/
-
-
 #endif  // SRC_LOOKUP_H_

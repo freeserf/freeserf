@@ -969,10 +969,10 @@ Interface::update() {
     int year_offset = game->get_tick() % 250000;
     season = 1 + year_offset / 62500;  // increment by 1 to default to Summer
     if (season > 3){season = 0;} // ... but wrap back around as there is no fifth season
-    int season_offset = year_offset % 62500;
-    subseason = season_offset / 3906;
-    int subseason_offset = season_offset % 3906;
-    //Log::Debug["interface.cc"] << "FourSeasons calendar:  tick " << game->get_tick() << ", year " << year << ", year_offset " << year_offset << ", season " << season << ", season_offset " << season_offset << ", subseason " << subseason << ", subseason_offset " << subseason_offset;
+    int season_tick_offset = year_offset % 62500;
+    subseason = season_tick_offset / 3906;
+    int subseason_tick_offset = season_tick_offset % 3906;
+    //Log::Debug["interface.cc"] << "FourSeasons calendar:  tick " << game->get_tick() << ", year " << year << ", year_offset " << year_offset << ", season " << season << ", season_tick_offset " << season_tick_offset << ", subseason " << subseason << ", subseason_tick_offset " << subseason_tick_offset;
 
     // IN THE FUTURE, ALLOW IT TO BE RANDOMIZED BY starting tick + random-seed offset up to 1yr
 
@@ -1352,10 +1352,10 @@ Interface::clear_custom_graphics_cache() {
   // this doesn't appear to actually be necessary!  it seems that map_object data is not cached
   //  for some reason.  Removing purge of this doesn't prevent trees graphics from changing with
   //  the seasons.
-  for (int season_offset : {200,300,400}){
+  for (int season_sprite_offset : {1200,1300,1400}){
     for (int tree_offset : {0,10,20,30,40,50,60,70}){
       for (int i=0; i<7; i++){
-        to_purge.insert( Data::Sprite::create_id(Data::AssetMapObject, i + season_offset + tree_offset, 0, 0, {0,0,0,0}) );
+        to_purge.insert( Data::Sprite::create_id(Data::AssetMapObject, i + season_sprite_offset + tree_offset, 0, 0, {0,0,0,0}) );
       }
     }
   }
@@ -1369,8 +1369,12 @@ Interface::clear_custom_graphics_cache() {
   // there are two mask types, each with 80 elements
   // Data::AssetMapMaskUp and Data::AssetMapMaskDown
   for (int mask_index=0; mask_index<81; mask_index++){
-    //for (int map_ground_index=0; map_ground_index<33; map_ground_index++){
-    for (int map_ground_index=0; map_ground_index<34; map_ground_index++){  // added a new Terrain type, TerrainShroud for option_FogOfWar
+    for (int map_ground_index=0; map_ground_index<33; map_ground_index++){
+      to_purge.insert( Data::Sprite::create_id(Data::AssetMapGround, map_ground_index, Data::AssetMapMaskUp, mask_index, {0,0,0,0}) );
+      to_purge.insert( Data::Sprite::create_id(Data::AssetMapGround, map_ground_index, Data::AssetMapMaskDown, mask_index, {0,0,0,0}) );
+    }
+    // clear the option_FogOfWar darkened sprites also, as they stil change with the seasons
+    for (int map_ground_index=100; map_ground_index<133; map_ground_index++){
       to_purge.insert( Data::Sprite::create_id(Data::AssetMapGround, map_ground_index, Data::AssetMapMaskUp, mask_index, {0,0,0,0}) );
       to_purge.insert( Data::Sprite::create_id(Data::AssetMapGround, map_ground_index, Data::AssetMapMaskDown, mask_index, {0,0,0,0}) );
     }

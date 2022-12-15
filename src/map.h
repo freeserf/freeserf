@@ -491,9 +491,20 @@ class Map {
     tmp--;
     //Log::Debug["map.h"] << "inside Map::set_owner, pos " << pos << " now has fake owner Player" << tmp  << ", real owner " << std::bitset<11>(game_tiles[pos].owner);  // added support for option_FogOfWar
     //Log::Debug["map.h"] << "inside Map::set_owner calling set_visible for pos " << pos << " with fake owner Player" << tmp;
-    set_visible(pos, _owner);
+    set_visible(pos, _owner);  // is this actually needed?
   } 
   //void set_revealed(MapPos pos, unsigned int player) { game_tiles[pos].owner |= BIT(3 + player*2); }   // THIS MIGHT BE BROKEN/WRONG
+  void set_revealed(MapPos pos, unsigned int player) {
+    unsigned int tmp = game_tiles[pos].owner;
+    tmp &= 7;
+    tmp--;
+    //Log::Debug["map.h"] << "inside Map::set_revealed, pos " << pos << " had fake owner Player" << tmp << ", real owner " << std::bitset<11>(game_tiles[pos].owner);  // added support for option_FogOfWar
+    game_tiles[pos].owner |= BIT(3 + player*2);
+    tmp = game_tiles[pos].owner;
+    tmp &= 7;
+    tmp--;
+    //Log::Debug["map.h"] << "inside Map::set_revealed, pos " << pos << " now has fake owner Player" << tmp << ", real owner " << std::bitset<11>(game_tiles[pos].owner);  // added support for option_FogOfWar
+  }
   // void is_revealead
   void set_visible(MapPos pos, unsigned int player) {
     unsigned int tmp = game_tiles[pos].owner;
@@ -505,8 +516,11 @@ class Map {
     tmp &= 7;
     tmp--;
     //Log::Debug["map.h"] << "inside Map::set_visible, pos " << pos << " now has fake owner Player" << tmp << ", real owner " << std::bitset<11>(game_tiles[pos].owner);  // added support for option_FogOfWar
-    //set_revealed(pos, player);
+    //set_revealed(pos, player);  // this should be independently set when setting visible now that revealed area is a bit larger than visible area
   }
+  bool is_revealed(MapPos pos, unsigned int player) {
+    return BIT_TEST(game_tiles[pos].owner, 3 + player*2);
+  } 
   bool is_visible(MapPos pos, unsigned int player) {
     return BIT_TEST(game_tiles[pos].owner, 3 + player*2 + 1);
   } 
@@ -515,7 +529,18 @@ class Map {
   //  unsigned int tmp = 3 + player + 1;
   //  return BIT_TEST(game_tiles[pos].owner, tmp);
   //}
-  //void unset_visible(MapPos pos, unsigned int player) { game_tiles[pos].owner &= BIT(3 + player + 1); }
+  void unset_visible(MapPos pos, unsigned int player) {
+    unsigned int tmp = game_tiles[pos].owner;
+    tmp &= 7;
+    tmp--;
+    //Log::Debug["map.h"] << "inside Map::unset_visible, pos " << pos << " had fake owner Player" << tmp << ", real owner " << std::bitset<11>(game_tiles[pos].owner);  // added support for option_FogOfWar
+    //Log::Debug["map.h"] << "inside Map::unset_visible, pos " << pos << " had fake owner Player" << tmp << ", BIT is " << std::bitset<11>(~BIT(3 + player*2 + 1));  // added support for option_FogOfWar
+    game_tiles[pos].owner &= ~BIT(3 + player*2 + 1);
+    tmp = game_tiles[pos].owner;
+    tmp &= 7;
+    tmp--;
+    //Log::Debug["map.h"] << "inside Map::unset_visible, pos " << pos << " now has fake owner Player" << tmp << ", real owner " << std::bitset<11>(game_tiles[pos].owner);  // added support for option_FogOfWar
+  }
   //void del_owner(MapPos pos) { game_tiles[pos].owner = 0; } // original
   void del_owner(MapPos pos) {
     int tmp = game_tiles[pos].owner;

@@ -70,11 +70,11 @@ typedef enum Season {
   SeasonWinter = 3,
 } Season;
 // the Custom data map_objects offset for tree sprites
-int season_offset[4] = {
-  200, // Spring
-    0, // Summer
-  400, // Fall
-  300, // Winter
+int season_sprite_offset[4] = {
+  1200, // Spring
+     0, // Summer  (use original sprites)
+  1400, // Fall
+  1300, // Winter
 };
 
 
@@ -2365,6 +2365,11 @@ Game::update_land_ownership(MapPos init_pos) {
          j <= influence_radius+calculate_radius; j++) {
       MapPos pos = map->pos_add(init_pos, j, i);
 
+      // for option_FogOfWar
+      for (int x = 0; x < 3; x++){
+        map->unset_visible(pos, x);
+      }
+
       if (map->get_obj(pos) >= Map::ObjectSmallBuilding &&
           map->get_obj(pos) <= Map::ObjectCastle &&
           map->has_path(pos,
@@ -2438,22 +2443,55 @@ Game::update_land_ownership(MapPos init_pos) {
         old_player = map->get_owner(pos);
       }
 
+      //// for option_FogOfWar
+      //if (player_index != old_player) {
+      //  map->unset_visible(pos, old_player);
+      //  // this will perform poorly, but do for now
+      //  for (unsigned int x = 0; x < 217; x++) {   // spiral_dist(8) is 217
+      //  MapPos tmppos = map->pos_add_extended_spirally(pos, x);
+      //    map->unset_visible(tmppos, old_player);
+      //    //if (!map->is_visible(tmppos, player_index)){
+      //    //  Log::Debug["game.cc"] << "inside Game::update_land_ownership, just set visible but is_visible returned false!";
+      //    //}
+      //  }
+      //}
+
       if (old_player >= 0 && player_index != old_player) {
         players[old_player]->decrease_land_area();
         surrender_land(pos);
+        // for option_FogOfWar
+        //map->unset_visible(pos, old_player);
+        // this will perform poorly, but do for now
+        //for (unsigned int x = 0; x < 217; x++) {   // spiral_dist(8) is 217
+        //MapPos tmppos = map->pos_add_extended_spirally(pos, x);
+        //  map->unset_visible(tmppos, old_player);
+        //  //if (!map->is_visible(tmppos, player_index)){
+        //  //  Log::Debug["game.cc"] << "inside Game::update_land_ownership, just set visible but is_visible returned false!";
+        //  //}
+        //}
       }
 
       if (player_index >= 0) {
 
         // for option_FogOfWar
+        //  set_visible 8 tiles outside borders
+        map->set_visible(pos, player_index);
         for (unsigned int x = 0; x < 217; x++) {   // spiral_dist(8) is 217
         MapPos tmppos = map->pos_add_extended_spirally(pos, x);
           map->set_visible(tmppos, player_index);
-          if (!map->is_visible(tmppos, player_index)){
+          //if (!map->is_visible(tmppos, player_index)){
+          //  Log::Debug["game.cc"] << "inside Game::update_land_ownership, just set visible but is_visible returned false!";
+          //}
+        }
+        //  set_revealed an additional 7 tiles out (15 from center)
+        for (unsigned int x = 217; x < 721; x++) {   // spiral_dist(15) is 721
+        MapPos tmppos = map->pos_add_extended_spirally(pos, x);
+          map->set_revealed(tmppos, player_index);
+          if (!map->is_revealed(tmppos, player_index)){
             Log::Debug["game.cc"] << "inside Game::update_land_ownership, just set visible but is_visible returned false!";
-
           }
         }
+        
           
         if (player_index != old_player) {
           players[player_index]->increase_land_area();
