@@ -215,6 +215,10 @@ PanelBar::button_click(int button) {
             if (minimap != nullptr) {
               //Log::Debug["panel.cc"] << "inside PanelBar::button_click, opening minimap F-D";
               minimap->set_player_index(interface->get_player()->get_index());  // for option_FogOfWar
+              // I guess this is still needed also or else the map is centered wrong, sometimes seeming to be all black on a big map
+              Viewport *viewport = interface->get_viewport(); 
+              MapPos pos = viewport->get_current_map_pos();
+              minimap->move_to_map_pos(pos);
             //}else{
               //Log::Debug["panel.cc"] << "inside PanelBar::button_click, opening minimap F-E, minimap is a nullptr";
             }

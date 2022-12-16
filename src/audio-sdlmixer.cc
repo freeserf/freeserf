@@ -80,7 +80,7 @@ AudioSDL::AudioSDL() {
   //  doesn't prevent it from causing a crash.  will try updating my
   //  pulseaudio version
   //try {
-  //  r = Mix_OpenAudio(44100, MIX_DEFAULT_FORMAT, MIX_DEFAULT_CHANNELS, 512);
+      r = Mix_OpenAudio(44100, MIX_DEFAULT_FORMAT, MIX_DEFAULT_CHANNELS, 512);
   //} catch (...) {
   //  throw ExceptionSDLmixer("inside AudioSDL::AudioSDL() constructor, Mix_OpenAudio call failed");
   //}
