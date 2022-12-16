@@ -1046,7 +1046,7 @@ Game::update() {
   for (Player *player : players) {
     // for option_FogOfWar, if a human player doesn't have a castle yet, build it for them
     //  using the same logic as AI uses (copied AI functions to Game, maybe combine them?)
-    if (option_FogOfWar && !player->has_castle() && player->get_face() == 12 || player->get_face() == 13){
+    if (option_FogOfWar && !player->has_castle() && (player->get_face() == 12 || player->get_face() == 13)){
       MapPos built_pos = auto_place_castle(player);
       set_update_viewport_cursor_pos(built_pos);
     }
@@ -2325,14 +2325,7 @@ Game::init_land_ownership() {
 /* Update land ownership around map position. */
 void
 Game::update_land_ownership(MapPos init_pos) {
-  Log::Debug["game.cc"] << "start of Game::update_land_ownership around pos " << init_pos;
-
-  /* moving this to its own function
-  if (option_FogOfWar){
-    Log::Debug["game.cc"] << "inside Game::update_land_ownership, option_FogOfWar, calling set_redraw_frame";
-    set_redraw_frame();
-  }
-  */
+  //Log::Debug["game.cc"] << "start of Game::update_land_ownership around pos " << init_pos;
 
   /* Currently the below algorithm will only work when
      both influence_radius and calculate_radius are 8. */
@@ -2393,16 +2386,6 @@ Game::update_land_ownership(MapPos init_pos) {
          j <= influence_radius+calculate_radius; j++) {
       MapPos pos = map->pos_add(init_pos, j, i);
 
-      /*moving this to its own function
-      if (option_FogOfWar){
-        // unset visibility for all players
-        //****** maybe make this its own function inside map.h?
-        for (int x = 0; x < 3; x++){
-          map->unset_visible(pos, x);
-        }
-      }
-      */
-
       if (map->get_obj(pos) >= Map::ObjectSmallBuilding &&
           map->get_obj(pos) <= Map::ObjectCastle &&
           map->has_path(pos,
@@ -2414,7 +2397,7 @@ Game::update_land_ownership(MapPos init_pos) {
           /* Castle has military influence even when not done. */
           mil_type = 2;
         } else if (building->is_done() && building->is_active()) {
-          Log::Debug["game.cc"] << "start of Game::update_land_ownership around pos " << init_pos << ", a building at pos " << building->get_position() << " is done and active, type is " << building->get_type() << " check if it is military";
+          //Log::Debug["game.cc"] << "start of Game::update_land_ownership around pos " << init_pos << ", a building at pos " << building->get_position() << " is done and active, type is " << building->get_type() << " check if it is military";
           switch (building->get_type()) {
             case Building::TypeHut: mil_type = 0; break;
             case Building::TypeTower: mil_type = 1; break;
@@ -2423,10 +2406,10 @@ Game::update_land_ownership(MapPos init_pos) {
           }
         }
 
-        Log::Debug["game.cc"] << "start of Game::update_land_ownership around pos " << init_pos << ", mil_type is " << mil_type;
+        //Log::Debug["game.cc"] << "start of Game::update_land_ownership around pos " << init_pos << ", mil_type is " << mil_type;
 
         if (mil_type >= 0 && !building->is_burning()) {
-          Log::Debug["game.cc"] << "start of Game::update_land_ownership around pos " << init_pos << ", mil_type is " << mil_type << ", building is not burning";
+          //Log::Debug["game.cc"] << "start of Game::update_land_ownership around pos " << init_pos << ", mil_type is " << mil_type << ", building is not burning";
           const int *influence = military_influence + 10*mil_type;
           const int *closeness = map_closeness +
                                  influence_diameter*std::max(-i, 0) +
@@ -2476,77 +2459,15 @@ Game::update_land_ownership(MapPos init_pos) {
         old_player = map->get_owner(pos);
       }
 
-      //// for option_FogOfWar
-      //if (player_index != old_player) {
-      //  map->unset_visible(pos, old_player);
-      //  // this will perform poorly, but do for now
-      //  for (unsigned int x = 0; x < 217; x++) {   // spiral_dist(8) is 217
-      //  MapPos tmppos = map->pos_add_extended_spirally(pos, x);
-      //    map->unset_visible(tmppos, old_player);
-      //    //if (!map->is_visible(tmppos, player_index)){
-      //    //  Log::Debug["game.cc"] << "inside Game::update_land_ownership, just set visible but is_visible returned false!";
-      //    //}
-      //  }
-      //}
-
       if (old_player >= 0 && player_index != old_player) {
         players[old_player]->decrease_land_area();
         surrender_land(pos);
-        // for option_FogOfWar
-        //map->unset_visible(pos, old_player);
-        // this will perform poorly, but do for now
-        //for (unsigned int x = 0; x < 217; x++) {   // spiral_dist(8) is 217
-        //MapPos tmppos = map->pos_add_extended_spirally(pos, x);
-        //  map->unset_visible(tmppos, old_player);
-        //  //if (!map->is_visible(tmppos, player_index)){
-        //  //  Log::Debug["game.cc"] << "inside Game::update_land_ownership, just set visible but is_visible returned false!";
-        //  //}
-        //}
       }
 
-      if (player_index >= 0) {
-
-        /*moving this to its own function
-        // for option_FogOfWar
-        //  set_visible 8 tiles outside borders
-        map->set_visible(pos, player_index);
-        for (unsigned int x = 0; x < 217; x++) {   // spiral_dist(8) is 217
-        MapPos tmppos = map->pos_add_extended_spirally(pos, x);
-          map->set_visible(tmppos, player_index);
-          //if (!map->is_visible(tmppos, player_index)){
-          //  Log::Debug["game.cc"] << "inside Game::update_land_ownership, just set visible but is_visible returned false!";
-          //}
-        }
-        //  set_revealed an additional 7 tiles out (15 from center)
-        for (unsigned int x = 217; x < 721; x++) {   // spiral_dist(15) is 721
-        MapPos tmppos = map->pos_add_extended_spirally(pos, x);
-          map->set_revealed(tmppos, player_index);
-          if (!map->is_revealed(tmppos, player_index)){
-            Log::Debug["game.cc"] << "inside Game::update_land_ownership, just set visible but is_visible returned false!";
-          }
-        }
-        */
-        
-          
+      if (player_index >= 0) { 
         if (player_index != old_player) {
           players[player_index]->increase_land_area();
           map->set_owner(pos, player_index);
-          
-          // for option_FogOfWar
-          //map->set_visible(pos, player_index);
-          //map->unset_visible(pos, old_player);  // need to do this elsewhere, because player view can overlap!
-          // also update nearby positions, as visibility extends somewhat beyond borders
-          // is there a better-performing way to do this??
-          // A BETTER WAY I think would be to only have military buildings create visibility
-          //  and only update spiral area around them instead of around EVERY owned pos
-          //  this would be trivial to allow longer dist for bigger military buildings!
-          //for (unsigned int x = 0; x < AI::spiral_dist(8); x++) {   // spiral_dist(8) is 217
-          //MapPos tmppos = pos;
-          //for (unsigned int x = 0; x < 217; x++) {   // spiral_dist(8) is 217
-          //  MapPos tmppos = map->pos_add_extended_spirally(pos, x);
-          //  map->set_visible(tmppos, player_index);
-          //}
-          
         }
       } else {
         map->del_owner(pos);
@@ -2574,7 +2495,7 @@ Game::update_land_ownership(MapPos init_pos) {
     update_FogOfWar(init_pos);
   }
 
-  Log::Debug["game.cc"] << "done Game::update_land_ownership around pos " << init_pos;
+  //Log::Debug["game.cc"] << "done Game::update_land_ownership around pos " << init_pos;
 
 }
 
@@ -3440,7 +3361,14 @@ Game::get_serf_at_pos(MapPos pos) {
 MapPos
 Game::auto_place_castle(Player *player) {
   Log::Debug["game.cc"] << "inside Game::auto_place_castle()";
-  if (!player->has_castle()) {
+  if (player == nullptr){
+    Log::Warn["game.cc"] << "inside Game::auto_place_castle(), Player" << player->get_index() << " is nullptr!  cannot check player->has_castle status!";
+    return bad_map_pos;
+  }
+  if (player->has_castle()) {
+    Log::Debug["game.cc"] << "inside Game::auto_place_castle(), Player" << player->get_index() << ", already has a castle, returning early";
+    return bad_map_pos;
+  }else{
     Log::Debug["game.cc"] << "inside Game::auto_place_castle(), Player" << player->get_index() << ", does not yet have a castle";
     // place castle
     //   improve this so that it is more intelligent about other resources than trees/stones/building_sites

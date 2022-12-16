@@ -1729,8 +1729,11 @@ Viewport::draw_map_objects_row(MapPos pos, int y_base, int cols, int x_base, int
 
     // option_FogOfWar
     //   do not draw objects outside of shroud/FoW
-    if (option_FogOfWar && !map->is_visible(pos, interface->get_player()->get_index())
-       && map->get_obj(pos) != Map::ObjectCastle){   // always draw Castles when revealed, but not any other Object
+    if ( option_FogOfWar && !map->is_visible(pos, interface->get_player()->get_index()) ){
+      // EXCEPT - always draw any Castle that has been revealed, even if it is not currently visible
+      if ( map->get_obj(pos) != Map::ObjectCastle && map->is_revealed(pos, interface->get_player()->get_index()) ){
+        // draw as usual, do not continue
+      }
       continue;
     }
 
