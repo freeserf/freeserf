@@ -1323,10 +1323,6 @@ Building::update() {
         if (option_AdvancedDemolition && pending_demolition){
           Log::Debug["building.cc"] << "inside Building::update(), NOT calling update_military on this military building because it is pending_demolition";
         }else{
-
-          //debug
-          Log::Debug["building.cc"] << "inside Building::update(), holder_or_first_knight index is " << holder_or_first_knight << " and holder bool is " << holder;
-
           update_military();
         }
         break;
@@ -1776,8 +1772,8 @@ Building::update_military() {
         //_serf_index = 0;
         //continue;
       }
-      Log::Debug["building.cc"] << "inside Building::update_military(), _serf_index " << _serf_index << ", passed nullptr check";
-      Log::Debug["building.cc"] << "inside Building::update_military(), serf->get_type = " << serf->get_type();
+      //Log::Debug["building.cc"] << "inside Building::update_military(), _serf_index " << _serf_index << ", passed nullptr check";
+      //Log::Debug["building.cc"] << "inside Building::update_military(), serf->get_type = " << serf->get_type();
       if (leaving_serf == NULL || serf->get_type() < leaving_serf->get_type()) {
         leaving_serf = serf;
         //Log::Debug["building.cc"] << "inside Building::update_military(), leaving_serf being set to serf";

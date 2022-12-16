@@ -376,8 +376,14 @@ class Map {
     return pos_add(pos_, spiral_pos_pattern[off]); }
 
   MapPos pos_add_extended_spirally(MapPos pos_, unsigned int off) const {
-    if (off > 3268) {
-      Log::Error["map"] << "cannot use pos_add_extended_spirally() beyond 3268 positions (~24 shells)";
+    // NOTE that if the spiral_dist radius/shells is increased further, you must figure out how many
+    //   mappos are found by checking the extended_spiral_coord_vector.size() and setting the
+    //   extended_spiral_pattern[] int array to that size (maybe plus 1?)
+    // you can NOT simply double/times-X increase it, it increases exponentially because the shells 
+    //  larger the further out you go  24 shells was 3268 pos, 48 shells is 13445 pos 
+    if (off > 13445) {
+      Log::Error["map"] << "cannot use pos_add_extended_spirally() beyond 13445 positions (~48 shells)";
+      throw ExceptionFreeserf("cannot use pos_add_extended_spirally() beyond 13445 positions (~48 shells)");
     }
     return pos_add(pos_, extended_spiral_pos_pattern[off]);
   }

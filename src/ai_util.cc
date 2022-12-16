@@ -22,9 +22,9 @@ AI::spiral_dist(int distance) {
   }*/
 
   // FIX - added a new function that has larger array:  map->pos_add_extended_spirally
-  //   AI is now using this, allows up to spiral_dist[24]
-  if (distance > 24) {
-    Log::Error["ai_util"] << "CANNOT USE spiral_dist() GREATER THAN 24!!!";
+  //   AI is now using this, allows up to spiral_dist[48]
+  if (distance > 48) {
+    Log::Error["ai_util"] << "CANNOT USE spiral_dist() GREATER THAN 48!!!";
   }
 
   // game spirals are hexagonal,
@@ -49,6 +49,9 @@ AI::spiral_dist(int distance) {
   AILogDebug["ai_util"] << "spiral distance of rows " << distance << " is " << spiral_dist;
   return spiral_dist;
   */
+ //
+ // NOTE - it looks like minimum map size 3 is 64x64 pos, so it should be safe to have spiral dist up to that if required
+ //
   return _spiral_dist[distance];
 }
 

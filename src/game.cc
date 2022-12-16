@@ -2574,6 +2574,8 @@ void
 Game::update_FogOfWar(MapPos init_pos) {
   Log::Debug["game.cc"] << "start of Game::update_FogOfWar around init_pos " << init_pos;
 
+
+
   /* do not require a building here!  need to update FogOfWar for destroyed buildings also
   // sanity checks
   if (building == nullptr){
@@ -2593,8 +2595,10 @@ Game::update_FogOfWar(MapPos init_pos) {
   int reveal_beyond = 6;  // added to visible_radius when setting
   // _spiral_dist / AI::spiral_dist ONLY GOES UP TO 25!!  DO NOT ALLOW REVEAL RADIUS TO BE LARGER!
   // copied from AI::spiral_dist, MAKE THIS GLOBAL!
-  const int _spiral_dist[25] = { 1, 7, 19, 37, 61, 91, 127, 169, 217, 271, 331, 397,
-  469, 547, 631, 721, 817, 919, 1027, 1141, 1261, 1387, 1519, 1657, 1801 };
+const int _spiral_dist[49] = { 1, 7, 19, 37, 61, 91, 127, 169, 217, 271, 331, 397,
+    469, 547, 631, 721, 817, 919, 1027, 1141, 1261, 1387, 1519, 1657, 1801, 1951,
+    2107, 2269, 2437, 2611, 2791, 2977, 3169, 3367, 3571, 3781, 3997, 4219, 4447,
+    4681, 4921, 5167, 5419, 5677, 5941, 6211, 6487, 6769 };
 
   // IDEA - another possible way to handle FoW is to have a counter for each pos (for each player)
   //  that indicates how many player-buildings currently contribute to the visibility of that pos
@@ -2604,18 +2608,16 @@ Game::update_FogOfWar(MapPos init_pos) {
   // clear the visibility bit for all players for all pos within the influence_radius
   // along the way, note all other buildings in the area that can view tiles in this area
   //  so that their visibility can be set again after the area is wiped
-  int influence_radius = 20;  // THIS MUST BE AT LEAST AS LARGE AS THE LARGEST POSSIBLE visible_radius (castle's)
+  int influence_radius = 33;  // THIS MUST BE AT LEAST *TWICE* LARGE AS THE LARGEST POSSIBLE visible_radius (castle's)
   MapPosVector influential_buildings = {};
   // NOTE - if the building at init_pos exists and is occupied, it will be found here and its visible and revealed radius will be set
   //   if the building at init_pos was destroyed/lost, it will *not* be found here and so it will correctly lose visibilty
   for (int i = 0; i < _spiral_dist[influence_radius]; i++) {
     MapPos pos = map->pos_add_extended_spirally(init_pos, i);
 
-    // unset visibility for ALL players
-    //****** maybe make this its own function inside map.h?
-    //for (int x = 0; x < 3; x++){
-    //  map->unset_visible(pos, x);
-    //}
+    // TEMP DEBUG
+    //set_debug_mark_pos(pos, "cyan");
+
     map->unset_all_visible(pos);
 
     // look for buildings that can see this pos, for restoration
@@ -2628,17 +2630,23 @@ Game::update_FogOfWar(MapPos init_pos) {
       if (!building->is_military()){
         continue;
       }
-      if (!building->is_active() || !building->is_done() || building->is_burning() || building->is_pending_demolition()){
-        Log::Debug["game.cc"] << "inside of Game::update_FogOfWar, building of type " << NameBuilding[building->get_type()] << " is not occupied & active, skipping";
+      if (building->get_type() != Building::TypeCastle && !building->is_active()){
+        Log::Debug["game.cc"] << "inside of Game::update_FogOfWar, non-castle military building of type " << NameBuilding[building->get_type()] << " is not active, skipping";
         continue;
       }
+      if (building->is_burning() || building->is_pending_demolition()){
+        Log::Debug["game.cc"] << "inside of Game::update_FogOfWar, military building of type " << NameBuilding[building->get_type()] << " at pos " << pos << " is burning or pending_demolition, skipping";
+        continue;
+      }
+      /* don't check this, this is bad logic
       int bld_vis_rad = visible_radius_by_type[building->get_type()];
-      Log::Debug["game.cc"] << "inside of Game::update_FogOfWar, building of type " << NameBuilding[building->get_type()] << " has visible radius " << bld_vis_rad;
+      Log::Debug["game.cc"] << "inside of Game::update_FogOfWar, military building of type " << NameBuilding[building->get_type()] << " at pos " << pos <<  " has visible radius " << bld_vis_rad;
       if (i > _spiral_dist[bld_vis_rad]){
-        Log::Debug["game.cc"] << "inside of Game::update_FogOfWar, building of type " << NameBuilding[building->get_type()] << " is beyond its visual radius, skipping";
+        Log::Debug["game.cc"] << "inside of Game::update_FogOfWar, military building of type " << NameBuilding[building->get_type()] << " at pos " << pos <<  " is beyond its visual radius, skipping";
         continue;
       }
-      Log::Debug["game.cc"] << "inside of Game::update_FogOfWar, building of type " << NameBuilding[building->get_type()] << " is within its visual radius, adding to list";
+      */
+      Log::Debug["game.cc"] << "inside of Game::update_FogOfWar, military building of type " << NameBuilding[building->get_type()] << " at pos " << pos << " is within influence radius, adding to list";
       influential_buildings.push_back(pos);
     }
   }
@@ -2680,8 +2688,6 @@ Game::update_FogOfWar(MapPos init_pos) {
     unsigned int player_index = building->get_owner();
     int reveal_radius = visible_radius_by_type[building->get_type()] + reveal_beyond;
     Log::Debug["game.cc"] << "inside of Game::update_FogOfWar, building at init_pos " << init_pos << " of type " << NameBuilding[building->get_type()] << " has reveal_radius " << reveal_radius << ", owned by Player" << player_index;
-    Log::Debug["game.cc"] << "inside of Game::update_FogOfWar, wtf, _spiral_dist[" << reveal_radius << "] is " << _spiral_dist[reveal_radius];
-    // _spiral_dist / AI::spiral_dist ONLY GOES UP TO 25!!  DO NOT ALLOW REVEAL RADIUS TO BE LARGER!
     for (int i = 0; i < _spiral_dist[reveal_radius]; i++) {
       MapPos pos = map->pos_add_extended_spirally(init_pos, i);
       Log::Debug["game.cc"] << "inside of Game::update_FogOfWar, calling map->set_revealed() for pos " << pos << ", Player" << player_index;

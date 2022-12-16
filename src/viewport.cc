@@ -226,6 +226,7 @@ Viewport::draw_triangle_up(int lx, int ly, int m, int left, int right,
 
   bool darken = false;
   if (option_FogOfWar){
+    //f (false){  // TEMP DISABLED
     if (!map->is_revealed(pos,interface->get_player()->get_index())){ 
       sprite = -1;
     } else if (!map->is_visible(pos, interface->get_player()->get_index())){
@@ -303,6 +304,7 @@ Viewport::draw_triangle_down(int lx, int ly, int m, int left, int right,
 
   bool darken = false;
   if (option_FogOfWar){
+    //f (false){  // TEMP DISABLED
     if (!map->is_revealed(pos,interface->get_player()->get_index())){ 
       sprite = -1;
     }else if (!map->is_visible(pos, interface->get_player()->get_index())){

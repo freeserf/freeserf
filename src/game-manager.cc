@@ -94,6 +94,7 @@ GameManager::start_game(PGameInfo game_info, CustomMapGeneratorOptions custom_ma
   }
 
   set_current_game(new_game);
+  //Log::Debug["game-manager.cc"] << "inside GameManager::start_game, this game map is " << new_game->get_map()->get_cols() << " cols wide x " << new_game->get_map()->get_rows() << " rows high";
 
   return true;
 }
