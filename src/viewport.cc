@@ -228,7 +228,10 @@ Viewport::draw_triangle_up(int lx, int ly, int m, int left, int right,
   if (option_FogOfWar){
     //f (false){  // TEMP DISABLED
     if (!map->is_revealed(pos,interface->get_player()->get_index())){ 
-      sprite = -1;
+      //sprite = -1;
+      //sprite = 200;
+      // this doesn't work... try just not drawing the sprite at all!
+      return;
     } else if (!map->is_visible(pos, interface->get_player()->get_index())){
       // SPECIAL CATCH TO SMOOTH THE EDGES OF THE TOP-LEFT 
       //  AND DOWN-RIGHT EDGES OF FOW HEXAGON - DRAW A HALF TRIANGLE
@@ -306,7 +309,10 @@ Viewport::draw_triangle_down(int lx, int ly, int m, int left, int right,
   if (option_FogOfWar){
     //f (false){  // TEMP DISABLED
     if (!map->is_revealed(pos,interface->get_player()->get_index())){ 
-      sprite = -1;
+      //sprite = -1;
+      //sprite = 200;
+      // this doesn't work... try just not drawing the sprite at all!
+      return;
     }else if (!map->is_visible(pos, interface->get_player()->get_index())){
       // SPECIAL CATCH TO SMOOTH THE EDGES OF THE TOP-LEFT 
       //  AND DOWN-RIGHT EDGES OF FOW HEXAGON - DRAW A HALF TRIANGLE
@@ -3426,7 +3432,7 @@ Viewport::draw_ai_overlay() {
   // got exception here for first time jan04 2022
   ColorDotMap ai_mark_pos = *(ai->get_ai_mark_pos());
   Road *ai_mark_road = ai->get_ai_mark_road();
-  Log::Debug["viewport"] << "Player" << current_player_index << " ai_mark_road has length " << ai_mark_road->get_length();
+  //Log::Debug["viewport"] << "Player" << current_player_index << " ai_mark_road has length " << ai_mark_road->get_length();
 
   for (int x_base = x_off; x_base < width + MAP_TILE_WIDTH;
     x_base += MAP_TILE_WIDTH) {

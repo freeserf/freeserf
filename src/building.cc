@@ -220,7 +220,7 @@ Building::increase_mining(int res) {
 
 void
 Building::set_holder_or_first_knight(unsigned int serf_index) {
-  Log::Debug["serf.cc"] << "inside Serf::set_holder_or_first_knight(), provided serf index is " << serf_index;
+  //Log::Debug["serf.cc"] << "inside Serf::set_holder_or_first_knight(), provided serf index is " << serf_index;
 
   // the actual Serf object isn't needed by this function, but it seems wise to catch a nullptr assignment early
   Serf *serf = game->get_serf(serf_index);

@@ -830,7 +830,7 @@ Serf::insert_before(Serf *knight) {
 
 void
 Serf::go_out_from_inventory(unsigned int inventory, MapPos dest, int mode) {
-  Log::Debug["serf.cc"] << "inside Serf::go_out_from_inventory, a serf of type " << get_type() << " is being sent to dest pos " << pos;
+  //Log::Debug["serf.cc"] << "inside Serf::go_out_from_inventory, a serf of type " << get_type() << " is being sent to dest pos " << pos;
   set_state(StateReadyToLeaveInventory);
   // 'mode' seems to be simply the initial Dir that the serf goes as it exists the Inventory Flag, or <1 for special cases maybe?  Such as flagsearch not finding a dest??
   //  this is rabbit hole, not sure I understand it and don't feel like figuring it out 
@@ -1555,7 +1555,7 @@ static const int road_building_slope[] = {
 //  holder to true, before enter_building is called
 void
 Serf::enter_building(int field_B, int join_pos) {
-  Log::Debug["serf.cc"] << "inside Serf::enter_building, setting serf #" << get_index() << " state to StateEnteringBuilding";
+  //Log::Debug["serf.cc"] << "inside Serf::enter_building, setting serf #" << get_index() << " state to StateEnteringBuilding";
   set_state(StateEnteringBuilding);
   //Log::Info["serf"] << "debug: inside enter_building, calling start_walking, join_pos = " << join_pos;
   start_walking(DirectionUpLeft, 32, !join_pos);
@@ -1669,12 +1669,12 @@ Serf::handle_serf_walking_state_dest_reached() {
       //Log::Info["serf"] << "debug: inside handle_serf_walking_state_dest_reached, C";
       animation = 85;
       counter = 0;
-      Log::Debug["serf.cc"] << "inside Serf::handle_serf_walking_state_dest_reached, at least one serf already in this Building pos (blocking?), setting StateReadyToEnter";
+      //Log::Debug["serf.cc"] << "inside Serf::handle_serf_walking_state_dest_reached, at least one serf already in this Building pos (blocking?), setting StateReadyToEnter";
       set_state(StateReadyToEnter);
     } else {
       // otherwise enter the building now
       //Log::Info["serf"] << "debug: inside handle_serf_walking_state_dest_reached, D";
-      Log::Debug["serf.cc"] << "inside Serf::handle_serf_walking_state_dest_reached, no serf currently occupies this Building pos, calling Serf::enter_building with no join_pos";
+      //Log::Debug["serf.cc"] << "inside Serf::handle_serf_walking_state_dest_reached, no serf currently occupies this Building pos, calling Serf::enter_building with no join_pos";
       enter_building(s.walking.dir1, 0);
     }
    //Log::Info["serf"] << "debug: inside handle_serf_walking_state_dest_reached, E";
@@ -2753,7 +2753,7 @@ Serf::handle_serf_leaving_building_state() {
 
 void
 Serf::handle_serf_ready_to_enter_state() {
-  Log::Debug["serf.cc"] << "inside Serf::handle_serf_ready_to_enter_state";
+  //Log::Debug["serf.cc"] << "inside Serf::handle_serf_ready_to_enter_state";
   MapPos new_pos = game->get_map()->move_up_left(pos);
 
   if (game->get_map()->has_serf(new_pos)) {
@@ -2762,7 +2762,7 @@ Serf::handle_serf_ready_to_enter_state() {
     return;
   }
 
-  Log::Debug["serf.cc"] << "inside Serf::handle_serf_ready_to_enter_state, calling Serf::enter_building";
+  //Log::Debug["serf.cc"] << "inside Serf::handle_serf_ready_to_enter_state, calling Serf::enter_building";
   enter_building(s.ready_to_enter.field_B, 0);
 }
 

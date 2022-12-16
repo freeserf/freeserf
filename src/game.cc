@@ -2591,7 +2591,7 @@ Game::update_FogOfWar(MapPos init_pos) {
   // need to redraw terrain for FoW updates to be visible
   set_redraw_frame();
 
-  const int visible_radius_by_type[25] = {0,0,0,0,0,0,0,0,0,0,0,6,0,0,0,0,0,0,0,0,0,10,14,0,16};
+  const int visible_radius_by_type[25] = {0,0,0,0,0,0,0,0,0,0,0,10,0,0,0,0,0,0,0,0,0,15,19,0,21};
   int reveal_beyond = 6;  // added to visible_radius when setting
   // _spiral_dist / AI::spiral_dist ONLY GOES UP TO 25!!  DO NOT ALLOW REVEAL RADIUS TO BE LARGER!
   // copied from AI::spiral_dist, MAKE THIS GLOBAL!
@@ -2602,13 +2602,15 @@ const int _spiral_dist[49] = { 1, 7, 19, 37, 61, 91, 127, 169, 217, 271, 331, 39
 
   // IDEA - another possible way to handle FoW is to have a counter for each pos (for each player)
   //  that indicates how many player-buildings currently contribute to the visibility of that pos
-  //  and inrement/decrement as buildings occupied/lost and draw based on a nonzero value
+  //  and increment/decrement as buildings occupied/lost and draw based on a nonzero value
   //  this would avoid having to check the influence of nearby buildings and so may be much faster?
 
   // clear the visibility bit for all players for all pos within the influence_radius
   // along the way, note all other buildings in the area that can view tiles in this area
   //  so that their visibility can be set again after the area is wiped
-  int influence_radius = 33;  // THIS MUST BE AT LEAST *TWICE* LARGE AS THE LARGEST POSSIBLE visible_radius (castle's)
+  // NO! only unset_all_visible for the influence radius of the largest visible_radius_by_type (castle)
+  //  but look for other influential buildings at DOUBLE that radius
+  int influence_radius = visible_radius_by_type[Building::TypeCastle] * 2 + 1;  // THIS MUST BE AT LEAST *TWICE* LARGE AS THE LARGEST POSSIBLE visible_radius (castle's)
   MapPosVector influential_buildings = {};
   // NOTE - if the building at init_pos exists and is occupied, it will be found here and its visible and revealed radius will be set
   //   if the building at init_pos was destroyed/lost, it will *not* be found here and so it will correctly lose visibilty
@@ -2618,7 +2620,10 @@ const int _spiral_dist[49] = { 1, 7, 19, 37, 61, 91, 127, 169, 217, 271, 331, 39
     // TEMP DEBUG
     //set_debug_mark_pos(pos, "cyan");
 
-    map->unset_all_visible(pos);
+    // trying this, I think this is solution to a bug
+    if (i < _spiral_dist[visible_radius_by_type[Building::TypeCastle]]){
+      map->unset_all_visible(pos);
+    }
 
     // look for buildings that can see this pos, for restoration
     if (map->get_obj(pos) >= Map::ObjectSmallBuilding && map->get_obj(pos) <= Map::ObjectCastle) {

@@ -593,6 +593,7 @@ DataSourceDOS::SpriteDosSolid::SpriteDosSolid(PBuffer _data, ColorDOS *palette, 
     //   if both enabled
     //if (option_FogOfWar && res == Data::AssetMapGround){
     if (darken){
+      // using "200 means black" for shrouding doesn't work easily, instead it just won't even call draw at all!
       //if (sprite_index == 200){
       //  // the not-revealed shrouded state is indicated by sprite index 200, no need for more than one
       //  color.r = 0;  // black
