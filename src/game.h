@@ -120,6 +120,8 @@ class Game {
   std::string mutex_message;  // used for logging why mutex being locked/unlocked
   clock_t mutex_timer_start;  // used for logging how much time spent with mutex lock
   bool must_redraw;  // part of hack for option_FogOfWar to allow Serf/Building to trigger frame redraw
+  // I think this has to be defined here and not in Game constructor because the getter is being called before Game constructor?? not sure
+  MapPos desired_cursor_pos = bad_map_pos;  // to allow Game to set the Interface/Viewport player cursor pos (during Interface::update)
 
  public:
   Game();
@@ -183,6 +185,22 @@ class Game {
   void unset_redraw_frame();
   bool get_redraw_frame() {return must_redraw;}
 
+  // allow the Game to change the map clicked cursor pos
+  //  Because the Game object cannot access the Interface or Viewport
+  //  it is not possible to directly set any aspect of those, instead
+  //  they make decisions based on Game state. So, new functions created
+  //  to allow the Game to indicate to the Interface that it desires the
+  //  player cursor/click pos to be set, and the Interface can do it here
+  MapPos get_update_viewport_cursor_pos(){ 
+    //Log::Debug["game.h"] << "inside Game::get_update_viewport_cursor_pos, returning pos " << desired_cursor_pos;
+    return desired_cursor_pos;
+  }
+  void set_update_viewport_cursor_pos(MapPos pos){
+    //Log::Debug["game.h"] << "inside Game::set_update_viewport_cursor_pos, old pos was " << desired_cursor_pos << ", setting new pos " << pos;
+    desired_cursor_pos = pos;
+  }
+  void unset_update_viewport_cursor_pos(){ desired_cursor_pos = bad_map_pos;}
+
   void prepare_ground_analysis(MapPos pos, int estimates[5]);
   bool send_geologist(Flag *dest);
 
@@ -223,6 +241,7 @@ class Game {
   /* Internal interface */
   void init_land_ownership();
   void update_land_ownership(MapPos pos);
+  void init_FogOfWar();  // option_FogOfWar
   void update_FogOfWar(MapPos pos);  // option_FogOfWar
   void occupy_enemy_building(Building *building, int player);
 
@@ -300,6 +319,9 @@ class Game {
   bool demolish_building_(MapPos pos);
   void surrender_land(MapPos pos);
   void demolish_flag_and_roads(MapPos pos);
+
+  MapPos auto_place_castle(Player *player);
+  bool place_castle(MapPos center_pos, int player_index, unsigned int distance, unsigned int desperation);
 
  public:
   friend SaveReaderBinary&

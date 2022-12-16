@@ -168,6 +168,18 @@ Interface::open_popup(int box) {
     options_pos_x -= 72;
     popup->move_to(options_pos_x, options_pos_y);
   }
+  /* this doesn't work here, not exactly clear why
+  if (box == PopupBox::TypeMap){
+    // for option_FogOfWar
+    //Minimap *minimap = popup->get_minimap();  // this gets invalid conversion error
+    MinimapGame *minimap = popup->get_minimap();  // why does conversion to Minimap work in calling function in popup.cc, but not here?  maybe missing typedef access
+    if (minimap != nullptr) {
+      Log::Debug["panel.cc"] << "inside PanelBar::button_click, opening minimap D";
+      minimap->set_player_index(get_player()->get_index());  // for option_FogOfWar
+      MapPos pos = viewport->get_current_map_pos();
+      minimap->move_to_map_pos(pos);
+    }
+  }*/
   popup->show((PopupBox::Type)box);
   if (panel != nullptr) {
     panel->update();
@@ -950,6 +962,23 @@ Interface::update() {
     //Log::Debug["interface.cc"] << "inside Interface::update(), game->get_redraw_frame is false";
   }
 
+  // allow the Game to change the map clicked cursor pos
+  //  Because the Game object cannot access the Interface or Viewport
+  //  it is not possible to directly set any aspect of those, instead
+  //  they make decisions based on Game state. So, new functions created
+  //  to allow the Game to indicate to the Interface that it desires the
+  //  player cursor/click pos to be set, and the Interface can do it here
+  if (game->get_update_viewport_cursor_pos() != bad_map_pos){
+    Log::Debug["interface.cc"] << "inside Interface::update(), game->get_update_viewport_cursor_pos is not bad_map_pos";
+    if (viewport != nullptr) {
+      Log::Debug["interface.cc"] << "inside Interface::update(), game->get_update_viewport_cursor_pos is true and viewport is not a nullptr, calling viewport->move_to_map_pos() for pos " << game->get_update_viewport_cursor_pos();
+      viewport->move_to_map_pos(game->get_update_viewport_cursor_pos());
+    }
+    game->unset_update_viewport_cursor_pos();
+  }else{
+    //Log::Debug["interface.cc"] << "inside Interface::update(), game->get_update_viewport_cursor_pos is false";
+  }
+
   if (option_FourSeasons){
     // messing with weather/seasons/palette - increase subseason
     // in the game, it takes 100k ticks for a sown field to become harvestable (Seed5,Field0+)
@@ -1208,6 +1237,11 @@ Interface::handle_key_pressed(char key, int modifier) {
     }
 
     case 'j': {
+      //
+      // NOTE - switching players should probably be made to close any open popup
+      //  as the popups are not automatically refreshed and will at best show data
+      //  from the player that opened it, and at worst may crash the game
+      //
       // switch to next player and center view on their castle
       //  if only one player, play error noise but stll center view on castle
       unsigned int current_index = player->get_index();
@@ -1225,20 +1259,32 @@ Interface::handle_key_pressed(char key, int modifier) {
       }
       else {
         set_player(next_index);
-        Log::Info["interface"] << "Switched to player #" << next_index;
+        Log::Info["interface.cc"] << "Switched to player #" << next_index;
       }
       break;
     }
     case 'w':
-      Log::Info["interface"] << "'w' key pressed, toggling FourSeasons";
+      Log::Info["interface.cc"] << "'w' key pressed, toggling FourSeasons";
       if (option_FourSeasons){
         option_FourSeasons = false;
-        Log::Info["interface"] << "Disabling FourSeasons of Weather and clearing image cache";
+        Log::Info["interface.cc"] << "Disabling FourSeasons of Weather and clearing image cache";
       }else{
         option_FourSeasons = true;
-        Log::Info["interface"] << "Enabling FourSeasons of Weather and clearing image cache";
+        Log::Info["interface.cc"] << "Enabling FourSeasons of Weather and clearing image cache";
       }
       clear_custom_graphics_cache();
+      viewport->set_size(width, height);  // this does the magic refresh without affecting popups (as Interface->layout() does)
+      break;
+    case 'f':
+      Log::Info["interface.cc"] << "'f' key pressed, toggling FogOfWar";
+      if (option_FogOfWar){
+        option_FogOfWar = false;
+        Log::Info["interface.cc"] << "Disabling option_FogOfWar clearing terrain tile cache";
+      }else{
+        option_FogOfWar = true;
+        Log::Info["interface.cc"] << "Enabling option_FogOfWar clearing terrain tile cache, initializing FogOfWar for entire map";
+      }
+      game->init_FogOfWar();
       viewport->set_size(width, height);  // this does the magic refresh without affecting popups (as Interface->layout() does)
       break;
     case 'q':

@@ -171,8 +171,10 @@ PanelBar::button_click(int button) {
   switch (panel_btns[button]) {
     case ButtonMap:
     case ButtonMapStarred:
+      //Log::Debug["panel.cc"] << "inside PanelBar::button_click, opening minimap A";
       play_sound(Audio::TypeSfxClick);
       if ((popup != nullptr) && popup->is_displayed()) {
+        //Log::Debug["panel.cc"] << "inside PanelBar::button_click, opening minimap Z, closing popup";
         interface->close_popup();
       } else {
         panel_btns[0] = ButtonBuildInactive;
@@ -181,15 +183,43 @@ PanelBar::button_click(int button) {
         panel_btns[3] = ButtonStatsInactive;
         panel_btns[4] = ButtonSettInactive;
 
+        //Log::Debug["panel.cc"] << "inside PanelBar::button_click, opening minimap B";
         interface->open_popup(PopupBox::TypeMap);
 
         /* Synchronize minimap window with viewport. */
         if (popup != nullptr) {
+          //Log::Debug["panel.cc"] << "inside PanelBar::button_click, opening minimap C";
           Viewport *viewport = interface->get_viewport();
           Minimap *minimap = popup->get_minimap();
           if (minimap != nullptr) {
+            //Log::Debug["panel.cc"] << "inside PanelBar::button_click, opening minimap D";
+            minimap->set_player_index(interface->get_player()->get_index());  // for option_FogOfWar
             MapPos pos = viewport->get_current_map_pos();
             minimap->move_to_map_pos(pos);
+          //}else{
+          //  Log::Debug["panel.cc"] << "inside PanelBar::button_click, opening minimap E, minimap is a nullptr";
+          }
+        }else{
+          //
+          // this works but I don't quite understand why.  I think that when interface->open_popup is called it creates the minimap
+          //  and the subsequent if popup/minmap != nullptr is only for when the minimap is already open and the player
+          //  has clicked on a pos in it?  So if that is not the case (meaning, it was simply opened to view) then the pointer
+          //  is not actually needed here.  However, for reasons I don't understand, I cannot seem to set the minimap player_index
+          //  when the open_popup function runs, so instead it will try again here
+          //
+          //Log::Debug["panel.cc"] << "inside PanelBar::button_click, opening minimap F, popup is a nullptr, trying to get it again";
+          popup = interface->get_popup_box();
+          if (popup != nullptr) {
+            //Log::Debug["panel.cc"] << "inside PanelBar::button_click, opening minimap F-C";
+            Minimap *minimap = popup->get_minimap();
+            if (minimap != nullptr) {
+              //Log::Debug["panel.cc"] << "inside PanelBar::button_click, opening minimap F-D";
+              minimap->set_player_index(interface->get_player()->get_index());  // for option_FogOfWar
+            //}else{
+              //Log::Debug["panel.cc"] << "inside PanelBar::button_click, opening minimap F-E, minimap is a nullptr";
+            }
+          //}else{
+            //Log::Debug["panel.cc"] << "inside PanelBar::button_click, opening minimap F-F, popup is a nullptr still";
           }
         }
       }

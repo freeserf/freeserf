@@ -58,7 +58,7 @@ bool option_PrioritizeUsableResources = true;    // this is forced true to indic
 bool option_LostTransportersClearFaster = false;
 bool option_FourSeasons = false;
 bool option_FishSpawnSlowly = false;
-bool option_FogOfWar = true;  // defaulting to on for development, default to off later
+bool option_FogOfWar = false;
 int season = 1;  // default to Summer
 int last_season = 1;
 int subseason = 0;  // for tree progression
@@ -141,6 +141,7 @@ Game::Game()
   mutex_message = "";
   mutex_timer_start = 0;
   must_redraw = false;  // part of hack for option_FogOfWar
+  MapPos desired_cursor_pos = bad_map_pos;  // to allow Game to set the Interface/Viewport player cursor pos (during Interface::update)
 }
 
 Game::~Game() {
@@ -149,6 +150,7 @@ Game::~Game() {
   buildings.clear();
   flags.clear();
   players.clear();
+  desired_cursor_pos = bad_map_pos; // I think this was causing issues on new game?
 }
 
 /* Clear the serf request bit of all flags and buildings.
@@ -1042,6 +1044,12 @@ Game::update() {
   //  player->update calls spawn_serf which calls Game::create_serf which calls serfs.allocate()
   //  the mutex lock is INSIDE player->update, go look there
   for (Player *player : players) {
+    // for option_FogOfWar, if a human player doesn't have a castle yet, build it for them
+    //  using the same logic as AI uses (copied AI functions to Game, maybe combine them?)
+    if (option_FogOfWar && !player->has_castle() && player->get_face() == 12 || player->get_face() == 13){
+      MapPos built_pos = auto_place_castle(player);
+      set_update_viewport_cursor_pos(built_pos);
+    }
     player->update();
   }
 
@@ -2570,11 +2578,22 @@ Game::update_land_ownership(MapPos init_pos) {
 
 }
 
+// when a new game is started, or a game is loaded, or option_FogOfWar is enabled mid-game
+//  the entire map must be updated at once
+
+void
+Game::init_FogOfWar() {
+  Log::Debug["game.cc"] << "start of Game::init_FogOfWar for all military buildings in entire game";
+  mutex_lock("Game::init_FogOfWar");
+  for (Building *building : buildings) {
+    update_FogOfWar(building->get_position());
+  }
+  mutex_unlock();
+}
+
 void
 Game::update_FogOfWar(MapPos init_pos) {
   Log::Debug["game.cc"] << "start of Game::update_FogOfWar around init_pos " << init_pos;
-
-
 
   /* do not require a building here!  need to update FogOfWar for destroyed buildings also
   // sanity checks
@@ -2695,7 +2714,7 @@ const int _spiral_dist[49] = { 1, 7, 19, 37, 61, 91, 127, 169, 217, 271, 331, 39
     Log::Debug["game.cc"] << "inside of Game::update_FogOfWar, building at init_pos " << init_pos << " of type " << NameBuilding[building->get_type()] << " has reveal_radius " << reveal_radius << ", owned by Player" << player_index;
     for (int i = 0; i < _spiral_dist[reveal_radius]; i++) {
       MapPos pos = map->pos_add_extended_spirally(init_pos, i);
-      Log::Debug["game.cc"] << "inside of Game::update_FogOfWar, calling map->set_revealed() for pos " << pos << ", Player" << player_index;
+      //Log::Debug["game.cc"] << "inside of Game::update_FogOfWar, calling map->set_revealed() for pos " << pos << ", Player" << player_index;
       map->set_revealed(pos, player_index);
     }
   }else{
@@ -3287,6 +3306,7 @@ operator >> (SaveReaderBinary &reader, Game &game) {
   game.game_speed_save = DEFAULT_GAME_SPEED;
 
   game.init_land_ownership();
+  if (option_FogOfWar){game.init_FogOfWar();}
 
   game.gold_total = game.map->get_gold_deposit();
 
@@ -3413,6 +3433,128 @@ Serf *
 Game::get_serf_at_pos(MapPos pos) {
   return serfs[map->get_serf_index(pos)];
 }
+
+
+// basically a copy of AI::do_place_castle
+//  consider combining them somehow
+MapPos
+Game::auto_place_castle(Player *player) {
+  Log::Debug["game.cc"] << "inside Game::auto_place_castle()";
+  if (!player->has_castle()) {
+    Log::Debug["game.cc"] << "inside Game::auto_place_castle(), Player" << player->get_index() << ", does not yet have a castle";
+    // place castle
+    //   improve this so that it is more intelligent about other resources than trees/stones/building_sites
+    //    but have the minimum scores reduced a bit for each area scored so it eventually settles on something
+    //
+    // pick random spots on the map until an acceptable area found, and try building there
+    ///===========================================================================================================
+    int maxtries = 500;  // crash if failed to place castle after this many tries, regardless of desperation
+    int lower_standards_tries = 75;  // reduce standards after this many tries (can happen repeatedly)
+    int desperation = 0;  // current level of lowered standards
+    int x = 0;  // current try
+    while (true) {
+      x++;
+      if (x > maxtries) {
+        Log::Debug["game.cc"] << "inside Game::auto_place_castle(), Player" << player->get_index() << ", unable to place castle after " << x << " tries, maxtries reached!";
+        throw ExceptionFreeserf("inside Game::auto_place_castle(), unable to place castle for a human player with option_FogOfWar after exhausting all tries!");
+      }
+      if (x > lower_standards_tries * (desperation + 1)){
+        desperation++;
+        Log::Debug["game.cc"] << "inside Game::auto_place_castle(), Player" << player->get_index() << ", unable to place castle after " << x << " tries, lowering standards to desperation level " << desperation;
+      }
+      MapPos pos = map->get_rnd_coord(NULL, NULL, get_rand());
+      Log::Debug["game.cc"] << "inside Game::auto_place_castle(), Player" << player->get_index() << ", considering placing castle at random pos " << pos;
+      // first see if it is even possible to build large building here
+      if (!can_build_castle(pos, player)) {
+        Log::Debug["game.cc"] << "inside Game::auto_place_castle(), Player" << player->get_index() << ", cannot build a castle at pos " << pos;
+        continue;
+      }
+      // check if area has acceptable resources + building pos, and if so build there
+      //if (place_castle(pos, spiral_dist(8), desperation)) {
+      if (place_castle(pos, player->get_index(), 217, desperation)) {  // spiral_dist(8) is 217
+        Log::Debug["game.cc"] << "inside Game::auto_place_castle(), Player" << player->get_index() << ", found acceptable place to build castle, at pos: " << pos;
+        mutex_lock("Game::auto_place_castle calling game->build_castle");
+        bool was_built = build_castle(pos, player);
+        mutex_unlock();
+        if (was_built) {
+          Log::Debug["game.cc"] << "inside Game::auto_place_castle(), Player" << player->get_index() << ", built castle at pos: " << pos << " after " << x << " tries";
+          return pos;
+        }
+        Log::Debug["game.cc"] << "inside Game::auto_place_castle(), Player" << player->get_index() << ", failed to build castle at pos: " << pos << ", will keep trying";
+      }
+    }
+  }
+  Log::Error["game.cc"] << "inside Game::auto_place_castle(), Player" << player->get_index() << ", COULD NOT FIND ACCEPTABLE PLACE FOR PLAYER CASTLE!  crashing";
+  throw ExceptionFreeserf("inside Game::auto_place_castle(),COULD NOT FIND ACCEPTABLE PLACE FOR A HUMAN PLAYER CASTLE WITH option_FogOfWar ENABLED!");
+}
+
+
+// score specified area in terms of castle placement
+//   initially this is just ensuring enough wood, stones, and building sites
+//   long term it should also care about resources in the surrounding areas!  including mountains, fishable waters, etc.
+//  desperation is a multiplier
+bool
+Game::place_castle(MapPos center_pos, int player_index, unsigned int distance, unsigned int desperation) {
+  Log::Debug["game.cc"] << "inside Game::place_castle(), Player" << player_index << ", center_pos " << center_pos << ", distance " << distance << ", desperation " << desperation;
+  PMap map = get_map();
+  unsigned int trees = 0;
+  unsigned int stones = 0;
+  unsigned int building_sites = 0;
+
+  // COPIED THESE FROM AI!  maybe make global?
+  static const unsigned int near_building_sites_min = 450;
+  static const unsigned int near_trees_min = 5;
+  static const unsigned int near_stones_min = 5;
+
+  for (unsigned int i = 0; i < distance; i++) {
+    MapPos pos = map->pos_add_extended_spirally(center_pos, i);
+
+    // don't count resouces that are inside enemy territory
+    if (map->get_owner(pos) != player_index && map->has_owner(pos)) {
+      Log::Debug["game.cc"] << "inside Game::place_castle(), Player" << player_index << ", enemy territory at pos " << pos << ", not counting these resouces towards requirements";
+      continue;
+    }
+
+    Map::Object obj = map->get_obj(pos);
+    if (obj >= Map::ObjectTree0 && obj <= Map::ObjectPine7) {
+      trees += 1;
+      //AILogDebug["util_place_castle"] << "adding trees count 1";
+    }
+    if (obj >= Map::ObjectStone0 && obj <= Map::ObjectStone7) {
+      int stonepile_value = 1 + (-1 * (obj - Map::ObjectStone7));
+      stones += stonepile_value;
+      //AILogDebug["util_place_castle"] << "adding stones count " << stonepile_value;
+    }
+    if (can_build_large(pos)) {
+      building_sites += 3;  // large building sites worth 50% more than small ones, but can't use 1.5 and 1.0 because integer
+      //AILogDebug["util_place_castle"] << "adding large building value 3";
+    }
+    else if (can_build_small(pos)) {
+      building_sites += 2;
+      //AILogDebug["util_place_castle"] << "adding small building value 1";
+    }
+  }
+
+  Log::Debug["game.cc"] << "inside Game::place_castle(), Player" << player_index << ", found trees: " << trees << ", stones: " << stones << ", building_sites: " << building_sites << " in area " << center_pos << ". Desperation is " << desperation;
+
+  // if good place for castle cannot be found, lower standards by faking an increased amount of resources
+  if (trees + desperation*4 < near_trees_min * 4) {
+    Log::Debug["game.cc"] << "inside Game::place_castle(), Player" << player_index << ", not enough trees, min is " << near_trees_min * 4 << ", returning false.  Desperation is " << desperation;
+    return false;
+  }
+  if (stones + desperation < near_stones_min) {
+    Log::Debug["game.cc"] << "inside Game::place_castle(), Player" << player_index << ", not enough stones, min is " << near_stones_min << ", returning false.  Desperation is " << desperation;
+    return false;
+  }
+  if (building_sites + desperation*90 < near_building_sites_min) {
+    Log::Debug["game.cc"] << "inside Game::place_castle(), Player" << player_index << ", not enough building_sites, min is " << near_building_sites_min << ", returning false.  Desperation is " << desperation;
+    return false;
+  }
+  Log::Debug["game.cc"] << "inside Game::place_castle(), Player" << player_index << ", center_pos: " << center_pos << " is an acceptable building site for a castle.  Desperation is " << desperation;
+  Log::Debug["game.cc"] << "inside Game::place_castle(), Player" << player_index << ", done Game::place_castle";
+  return true;
+}
+
 
 SaveReaderText&
 operator >> (SaveReaderText &reader, Game &game) {
@@ -3583,6 +3725,7 @@ operator >> (SaveReaderText &reader, Game &game) {
   game.game_speed_save = DEFAULT_GAME_SPEED;
 
   game.init_land_ownership();
+  if (option_FogOfWar){game.init_FogOfWar();}
 
   return reader;
 }

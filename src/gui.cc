@@ -35,7 +35,9 @@ gui_get_slider_click_value(int x) {
 
 void
 GuiObject::layout() {
-  Log::Debug["gui.cc"] << "the useless function GuiObject::layout() has been called";
+  // this function only exists to allow overloading by Viewport and Interface, I think, but it is important for those
+  //  this function cannot be removed, and the upstream call to it cannot be removed either!
+  //Log::Debug["gui.cc"] << "the useless function GuiObject::layout() has been called";
 }
 
 GuiObject *GuiObject::focused_object = nullptr;
@@ -190,11 +192,11 @@ GuiObject::get_position(int *px, int *py) {
 
 void
 GuiObject::set_size(int new_width, int new_height) {
-  Log::Debug["gui.cc"] << "start of GuiObject::set_size";
+  //Log::Debug["gui.cc"] << "start of GuiObject::set_size";
   delete_frame();
   width = new_width;
   height = new_height;
-  layout();  // this does nothing here, is it intended to be overriden?  other classes have a ::layout that does things
+  layout();  // this appears to do nothing for generic GuiObject, but I think it exists because it is overridden by some GuiObject superclasses such as Viewport, Interface, and their layout() is important
   set_redraw();
 }
 

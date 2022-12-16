@@ -467,6 +467,7 @@ Viewport::draw_down_tile_col(MapPos pos, int x_base, int y_base,
 //  view of player Viewport?
 void
 Viewport::layout() {
+  Log::Debug["viewport.cc"] << "inside Viewport::layout(), flushing entire landscape_tiles cache";
   landscape_tiles.clear();
 }
 
