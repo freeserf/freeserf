@@ -4146,52 +4146,58 @@ Viewport::handle_dbl_click(int lx, int ly, Event::Button button) {
         player->temp_index = map->get_obj_index(clk_pos);
       } else { /* Foreign building */
         /* TODO handle coop mode*/
-        player->building_attacked = building->get_index();
 
-        if (building->is_done() &&
-            building->is_military()) {
-          if (!building->is_active() ||
-              building->get_threat_level() != 3) {
-            /* It is not allowed to attack
-               if currently not occupied or
-               is too far from the border. */
-            play_sound(Audio::TypeSfxNotAccepted);
-            return false;
-          }
+        // handle option_FogOfWar
+        if (option_FogOfWar && !map->is_visible(clk_pos, player->get_index())){
+          Log::Debug["viewport.cc"] << "inside Viewport::handle_dbl_click(), enemy building double-clicked on is not currently visible to this player, not opening popup";
+        }else{
+          player->building_attacked = building->get_index();
 
-          int found = 0;
-          for (int i = 257; i >= 0; i--) {
-            MapPos pos = map->pos_add_spirally(building->get_position(),
-                                                       7+257-i);
-            if (map->has_owner(pos)
-                && map->get_owner(pos) == player->get_index()) {
-              found = 1;
-              break;
+          if (building->is_done() &&
+              building->is_military()) {
+            if (!building->is_active() ||
+                building->get_threat_level() != 3) {
+              /* It is not allowed to attack
+                if currently not occupied or
+                is too far from the border. */
+              play_sound(Audio::TypeSfxNotAccepted);
+              return false;
             }
+
+            int found = 0;
+            for (int i = 257; i >= 0; i--) {
+              MapPos pos = map->pos_add_spirally(building->get_position(),
+                                                        7+257-i);
+              if (map->has_owner(pos)
+                  && map->get_owner(pos) == player->get_index()) {
+                found = 1;
+                break;
+              }
+            }
+
+            if (!found) {
+              play_sound(Audio::TypeSfxNotAccepted);
+              return false;
+            }
+
+            /* Action accepted */
+            play_sound(Audio::TypeSfxClick);
+
+            int max_knights = 0;
+            switch (building->get_type()) {
+              case Building::TypeHut: max_knights = 3; break;
+              case Building::TypeTower: max_knights = 6; break;
+              case Building::TypeFortress: max_knights = 12; break;
+              case Building::TypeCastle: max_knights = 20; break;
+              default: NOT_REACHED(); break;
+            }
+
+            int knights =
+                  player->knights_available_for_attack(building->get_position());
+            player->knights_attacking = std::min(knights, max_knights);
+            interface->open_popup(PopupBox::TypeStartAttack);
           }
-
-          if (!found) {
-            play_sound(Audio::TypeSfxNotAccepted);
-            return false;
-          }
-
-          /* Action accepted */
-          play_sound(Audio::TypeSfxClick);
-
-          int max_knights = 0;
-          switch (building->get_type()) {
-            case Building::TypeHut: max_knights = 3; break;
-            case Building::TypeTower: max_knights = 6; break;
-            case Building::TypeFortress: max_knights = 12; break;
-            case Building::TypeCastle: max_knights = 20; break;
-            default: NOT_REACHED(); break;
-          }
-
-          int knights =
-                 player->knights_available_for_attack(building->get_position());
-          player->knights_attacking = std::min(knights, max_knights);
-          interface->open_popup(PopupBox::TypeStartAttack);
-        }
+        } // if option_FogOfWar and not visible
       }
     }
   }
