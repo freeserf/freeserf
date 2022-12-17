@@ -1629,40 +1629,7 @@ Serf::handle_serf_walking_state_dest_reached() {
       return;
     }
 
-    /* this can't be set here, because the borders don't actually update until the 
-        building becomes active once the knight is inside
-    // with option_FogOfWar enabled, need to detect when borders change so that the tile cache can be refreshed to update shroud/FoW
-    if (option_FogOfWar && !building->has_serf() && building->is_military() && get_type() >= Serf::TypeKnight0 && get_type() <= Serf::TypeKnight4){
-      Log::Debug["serf.cc"] << "inside handle_serf_walking_state_dest_reached, option_FogOfWar, a requested knight has arrived to become the first holder of a military building";
-      game->set_redraw_frame();
-    }
-    */
-
     building->requested_serf_reached(this);  // this is the only place in the entire code that this function is called and holder bool is set to true
-
-    /* this does not work, because the demo serf
-         blocks the flag so the knights cannot exit
-      INSTEAD I THINK the knights will just be evicted immediately
-      instead of when demo arrives
-
-    // handle option_AdvancedDemolition
-    if (option_AdvancedDemolition && get_type() == Serf::TypeDigger && building->is_pending_demolition()){
-      // a demo serf has arrived at the building to be demolished
-      Log::Debug["serf.cc"] << "inside handle_serf_walking_state_dest_reached, option_AdvancedDemolition, a demo serf has arrived at the dest flag for a building pending_demolition at pos " << pos;
-      // evict any knights now (a non-military building's holder should have already been evicted
-      //  when the building was marked for demo, long before the demo serf arrives
-      building->evict_holder();
-      // HOW TO WAIT FOR ALL KNIGHTS TO EXIT???
-      // actually, I think the next if-block will handle it
-      //  I think the demo serf wlil be put into StateReadyToEnter
-      //  until any knights are evicted
-      // nope, try forcing it
-      animation = 85;
-      counter = 1000;
-      set_state(StateWaitIdleOnPath);
-      return;
-    }
-    */
 
     if (map->has_serf(map->move_up_left(pos))) {
       // if there is a serf blocking, wait (?)
@@ -2213,6 +2180,12 @@ Serf::handle_serf_entering_building_state() {
     //   sent to a non-Inventory destination, disabling the option before they arrive is causing the crash.
     //   so, I am removing the check for the option here and only using the other reqs so if the option is disabled
     //   a serf should still clear if it was already on its way (even though it violates the option rule)
+    // NOTE - I tried very hard to allow serfs to clear to mines that have miners striking but it was a mess
+    //  the miner has to be defined in map->get_serf_at_pos(pos) to be drawn, and a Lost serf cannot enter
+    //   the pos while the miner is there.  I tried various tricks like faking the pos, but it was a mess so I reverted it all
+    //  somehow Delivering serfs handle this just fine, but I haven't figured out yet how they do it, I don't see any logic
+    //   that allows them to be drawn relatively even if they still hold the flag pos.  Maybe they have a special animation id
+    //   that does it that is not easy to identify, as it is just some modification of the walking animation & sprites
     if ( was_lost
       && (get_type() == Serf::TypeTransporter || get_type() == Serf::TypeGeneric || get_type() == Serf::TypeNone)){
       PMap map = game->get_map();
