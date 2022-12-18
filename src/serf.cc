@@ -654,6 +654,7 @@ Serf::castle_deleted(MapPos castle_pos, bool escape) {
 void
 //Serf::building_deleted(MapPos building_pos, bool transporter) {
 Serf::building_deleted(MapPos building_pos) {
+  Log::Debug["serf.cc"] << "inside Serf::building_deleted, pos " << building_pos << ", serf with index #" << get_index();
   // I think this sets holder of a destroyed Stock or Castle from 
   //  TypeTransporterInventory back to a normal Transporter serf
   //  because TypeTransporterInventory isn't a "real" serf occupation
@@ -668,11 +669,13 @@ Serf::building_deleted(MapPos building_pos) {
   counter = 0;
   // if serf Holder is out working somewhere...
   if (game->get_map()->get_serf_index(pos) == index) {
+    Log::Debug["serf.cc"] << "inside Serf::building_deleted, pos " << building_pos << ", serf with index #" << get_index() << ".  Holder is not home, making him lost wherever he is";
     // ...set him to Lost, he will return to his building flag and then go back to an Inv
     set_state(StateLost);
     s.lost.field_B = 0;
   } else {
     // ...otherwise have him leave building, he will walk to his building flag and then go back to an Inv
+    Log::Debug["serf.cc"] << "inside Serf::building_deleted, pos " << building_pos << ", serf with index #" << get_index() << ".  Occupant being set to StateEscapingbuilding";
     set_state(StateEscapeBuilding);
   }
 }
@@ -1558,6 +1561,9 @@ Serf::enter_building(int field_B, int join_pos) {
   //Log::Debug["serf.cc"] << "inside Serf::enter_building, setting serf #" << get_index() << " state to StateEnteringBuilding";
   set_state(StateEnteringBuilding);
   //Log::Info["serf"] << "debug: inside enter_building, calling start_walking, join_pos = " << join_pos;
+  //
+  // start_walking function is where serf actually takes the new pos!  it is easy to miss
+  //
   start_walking(DirectionUpLeft, 32, !join_pos);
   //Log::Info["serf"] << "debug: inside enter_building, back from start_walking";
   if (join_pos) game->get_map()->set_serf_index(pos, get_index());
@@ -1613,21 +1619,38 @@ Serf::handle_serf_walking_state_dest_reached() {
       return;
     }
 
+/* removing AdvancedDemolition for now, see https://github.com/forkserf/forkserf/issues/180
     // if a requested serf was already dispatched to this building before it was marked for demo
     //  he will arrive at its flag and attempt to enter.  Prevent this (unless it is the demo serf himself!)
-    if (option_AdvancedDemolition && get_type() != Serf::TypeDigger && building->is_pending_demolition()){
-      Log::Debug["serf.cc"] << "inside handle_serf_walking_state_dest_reached, option_AdvancedDemolition, a requested serf OTHER THAN THE demo serf has arrived at the dest flag for a building pending_demolition at pos " << pos << ", setting him to Lost and returning early";
-      /*
-      set_state(Serf::StateLost);
-      //s.lost.field_B = 1;  // not sure what this does, copied from another set Lost segment. It seems to control whether closest or farther away flag is preferred as next dest?
-      s.lost.field_B = 0;  // this seems to be correct for "the building I am about to enter is no longer valid"
-      counter = 0;
-      */
-      set_state(Serf::StateWalking);
-      s.walking.dest = 0;  // with dest 0, handle_serf_walking_state should find a new dest (an Inventory to return to)
-      counter = 0;
-      return;
+    // ALSO, handle knights to be evicted
+    if (option_AdvancedDemolition && building->is_pending_demolition()){
+      if (get_type() == Serf::TypeDigger){
+        // if this *is* the arriving demo serf, need to check to see if this is a military building whose knights need to be 
+        //  evicted.  Because this serf hasn't occupied the building pos yet it can't evict the knights now because this serf
+        //  is blocking the escape/flag pos.  But, once the serf enters the building pos he becomes the holder and the "get next_knight"
+        //  logic will fail when it comes time to evict the knights.  So, as a work-around, save the current holder knight's index
+        //  so that an illegal, temporary situation can be set where the Digger/demo serf is the Holder and the knights inside are 
+        //  usual next_knights.  If a game were saved/loaded in this state it might crash, but it should only last for a single game update
+        if (building->is_military() && building->is_active()){
+          Log::Debug["serf.cc"] << "inside handle_serf_walking_state_dest_reached, option_AdvancedDemolition, demo serf with index #" << get_index() << " has arrived at an occupied military building, trying possibly-illegal setting this serf's s.defending.next_knight as current holder, knight with serf index# " << building->get_holder_or_first_knight();
+          s.defending.next_knight = building->get_holder_or_first_knight();
+        }
+      }else{  
+        // type is NOT Digger/demo serf
+        Log::Debug["serf.cc"] << "inside handle_serf_walking_state_dest_reached, option_AdvancedDemolition, a requested serf OTHER THAN THE demo serf has arrived at the dest flag for a building pending_demolition at pos " << pos << ", setting him to Lost and returning early";
+        
+        //set_state(Serf::StateLost);
+        ////s.lost.field_B = 1;  // not sure what this does, copied from another set Lost segment. It seems to control whether closest or farther away flag is preferred as next dest?
+        //s.lost.field_B = 0;  // this seems to be correct for "the building I am about to enter is no longer valid"
+        //counter = 0;
+        
+        set_state(Serf::StateWalking);
+        s.walking.dest = 0;  // with dest 0, handle_serf_walking_state should find a new dest (an Inventory to return to)
+        counter = 0;
+        return;
+      }
     }
+    */
 
     building->requested_serf_reached(this);  // this is the only place in the entire code that this function is called and holder bool is set to true
 
@@ -1778,7 +1801,7 @@ Serf::handle_serf_walking_state() {
           //was_lost = false;
           r = src->find_nearest_building_for_lost_generic_serf();
         }else{
-          Log::Debug["serf.cc"] << "inside Serf::handle_serf_walking_state(), a serf of type " << get_type() << " is looking for an inventory and was not recently Lost, using normal Inventory clearing function";
+          //Log::Debug["serf.cc"] << "inside Serf::handle_serf_walking_state(), a serf of type " << get_type() << " is looking for an inventory and was not recently Lost, using normal Inventory clearing function";
           r = src->find_nearest_inventory_for_serf();
         }
         if (r < 0) {
@@ -2243,10 +2266,11 @@ Serf::handle_serf_entering_building_state() {
           enter_inventory();
         } else {
           Building *building = game->get_building_at_pos(pos);
-
+          
+          /* removing AdvancedDemolition for now, see https://github.com/forkserf/forkserf/issues/180
           // handle option_AdvancedDemolition
           if (building->is_pending_demolition()){
-            Log::Warn["serf.cc"] << "inside Serf::handle_serf_entering_building_state, building is_pending_demolition";
+            Log::Debug["serf.cc"] << "inside Serf::handle_serf_entering_building_state, building is_pending_demolition";
             // sanity check
             if (building->get_progress() > 1 || !option_AdvancedDemolition){
               Log::Warn["serf.cc"] << "inside Serf::handle_serf_entering_building_state, a Digger about to enter a building is being set to StateLost because the building is not eligible for demo!";
@@ -2255,7 +2279,12 @@ Serf::handle_serf_entering_building_state() {
               break;
             }
 
-            Log::Warn["serf.cc"] << "inside Serf::handle_serf_entering_building_state, building is_pending_demolition, setting this Digger to StateExitBuildingForDemolition";
+            if (building->is_military() && building->is_active()){
+              Log::Debug["serf.cc"] << "inside Serf::handle_serf_entering_building_state, a demo serf has arrived at an active military building at pos " << pos << ", calling evict_knights()";
+              building->evict_knights();
+            }
+
+            Log::Debug["serf.cc"] << "inside Serf::handle_serf_entering_building_state, building is_pending_demolition, setting this Digger to StateExitBuildingForDemolition";
             counter = 0;  // this is the normal starting counter for a serf leaving a building, it is then set by counter += (slope * counter_from_animation[animation]) >> 5;
             tick = game->get_tick();
             int slope;
@@ -2281,6 +2310,7 @@ Serf::handle_serf_entering_building_state() {
           }else{
             Log::Warn["serf.cc"] << "inside Serf::handle_serf_entering_building_state, building IS NOT pending_demolition";
           }
+          */
 
           // handle normal "digging/leveling a new Large building site" behavior
           set_state(StateDigging);
@@ -4513,7 +4543,9 @@ Serf::handle_free_sailing() {
 
 void
 Serf::handle_serf_escape_building_state() {
+  //Log::Debug["serf.cc"] << "inside Serf::handle_serf_escape_building_state(), serf #" << get_index();
   if (!game->get_map()->has_serf(pos)) {
+    //Log::Debug["serf.cc"] << "inside Serf::handle_serf_escape_building_state(), serf #" << get_index() << " game says no serf at this pos?  setting this serf to Lost??";
     game->get_map()->set_serf_index(pos, index);
     animation = 82;
     counter = 0;
@@ -4521,6 +4553,8 @@ Serf::handle_serf_escape_building_state() {
 
     set_state(StateLost);
     s.lost.field_B = 0;
+  //}else{
+    //Log::Debug["serf.cc"] << "inside Serf::handle_serf_escape_building_state(), serf #" << get_index() << " game says serf at this pos, doing nothing";
   }
 }
 
@@ -6382,6 +6416,7 @@ Serf::handle_serf_boat_passenger_state() {
   //  state do not have an attached map pos and so should never be checked for drawing/update?
 }
 
+/* removing AdvancedDemolition for now, see https://github.com/forkserf/forkserf/issues/180
 void
 Serf::handle_serf_exit_building_for_demolition_state() {
   Log::Info["serf.cc"] << "inside Serf::handle_serf_exit_building_for_demolition_state, a serf at pos " << pos << " is in state Serf::StateExitBuildingForDemolition";
@@ -6401,19 +6436,21 @@ Serf::handle_serf_exit_building_for_demolition_state() {
       set_state(Serf::StateLost);
       return;
     }
-    /*
-    slope = 31 - road_building_slope[building->get_type()];
-    PMap map = game->get_map();
-    //// serf is to stop and turn around, facing UpLeft towards the building
-    //animation = get_walking_animation(map->get_height(pos) - map->get_height(map->move_up_left(pos)), Direction::DirectionUpLeft, 0);
-    // it seems there is no good "stopped" diagonal walking animation, instead try DirectionLeft(3)
-    animation = get_walking_animation(map->get_height(pos) - map->get_height(map->move_up_left(pos)), Direction::DirectionLeft, 0);
-    counter += (slope * counter_from_animation[animation]) >> 5;  // original value
-    //counter += 1;
-    //counter += (slope * counter_from_animation[animation]) >> 6;  // this is the counter for the NEXT STATE
-    //counter += counter_from_animation[animation];
-    Log::Info["serf.cc"] << "inside Serf::handle_serf_exit_building_for_demolition_state, animation = " << animation << ", counter = " << counter << ", slope = " << slope;
-    */
+
+    // 
+    // slope = 31 - road_building_slope[building->get_type()];
+    // PMap map = game->get_map();
+    // //// serf is to stop and turn around, facing UpLeft towards the building
+    // //animation = get_walking_animation(map->get_height(pos) - map->get_height(map->move_up_left(pos)), Direction::DirectionUpLeft, 0);
+    // // it seems there is no good "stopped" diagonal walking animation, instead try DirectionLeft(3)
+    // animation = get_walking_animation(map->get_height(pos) - map->get_height(map->move_up_left(pos)), Direction::DirectionLeft, 0);
+    // counter += (slope * counter_from_animation[animation]) >> 5;  // original value
+    // //counter += 1;
+    // //counter += (slope * counter_from_animation[animation]) >> 6;  // this is the counter for the NEXT STATE
+    // //counter += counter_from_animation[animation];
+    // Log::Info["serf.cc"] << "inside Serf::handle_serf_exit_building_for_demolition_state, animation = " << animation << ", counter = " << counter << ", slope = " << slope;
+    // 
+
     // fire it up
     //building->burnup();
     // need to call game->demolish_building, which calls building->burnup() 
@@ -6431,7 +6468,9 @@ Serf::handle_serf_exit_building_for_demolition_state() {
     set_state(Serf::StateObservingDemolition);
   }
 }
+*/
 
+/* removing AdvancedDemolition for now, see https://github.com/forkserf/forkserf/issues/180
 void
 Serf::handle_serf_observing_demolition_state() {
   //
@@ -6476,7 +6515,9 @@ Serf::handle_serf_observing_demolition_state() {
     set_state(Serf::StateCleaningRubble);
   }
 }
+*/
 
+/* removing AdvancedDemolition for now, see https://github.com/forkserf/forkserf/issues/180
 void
 Serf::handle_serf_cleaning_rubble_state() {
   Log::Info["serf.cc"] << "inside Serf::handle_serf_cleaning_rubble_state, a serf at pos " << pos << " is in state Serf::StateCleaningRubble";
@@ -6501,6 +6542,7 @@ Serf::handle_serf_cleaning_rubble_state() {
     set_state(Serf::StateFinishedBuilding); // re-using this state as it has desired effect
   }
 }
+*/
 
 //
 // explanation of how serf animations are handled:
@@ -6792,6 +6834,7 @@ Serf::update() {
   case StateBoatPassenger:
     handle_serf_boat_passenger_state();
     break;
+  /* removing AdvancedDemolition for now, see https://github.com/forkserf/forkserf/issues/180
   case StateExitBuildingForDemolition:
     handle_serf_exit_building_for_demolition_state();
     break;
@@ -6801,6 +6844,7 @@ Serf::update() {
   case StateCleaningRubble:
     handle_serf_cleaning_rubble_state();
     break;
+  */
   default:
     Log::Debug["serf"] << "Serf state " << state << " isn't processed";
     state = StateNull;

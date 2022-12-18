@@ -109,7 +109,7 @@ class Building : public GameObject {
   unsigned int owner;
   /* Building under construction */
   bool constructing;
-  bool pending_demolition; // for option_AdvancedDemolition
+  //bool pending_demolition; // for option_AdvancedDemolition    /* removing AdvancedDemolition for now, see https://github.com/forkserf/forkserf/issues/180*/
   /* Flags */
   size_t threat_level;  // 0 is safest/white flag, 3 is highest threat, thick cross
   bool playing_sfx;
@@ -192,12 +192,18 @@ class Building : public GameObject {
   /* Building is burning. */
   bool is_burning() const { return burning; }
   bool burnup();
+  
+    /* removing AdvancedDemolition for now, see https://github.com/forkserf/forkserf/issues/180
   void call_for_demolition() { pending_demolition = true; }  // for option_AdvancedDemolition
   //void cancel_demolition() { pending_demolition = false; }  // for option_AdvancedDemolition  NOT IMPLEMENTED YET
   bool is_pending_demolition() { return pending_demolition; }  // for option_AdvancedDemolition
+  */
   /* Building has an associated serf. */
   bool has_serf() const { return holder; }
+    /* removing AdvancedDemolition for now, see https://github.com/forkserf/forkserf/issues/180
   void evict_holder(); // used for option_AdvancedDemolition
+  void evict_knights(); // used for option_AdvancedDemolition
+  */
   /* Building has succesfully requested a serf. */
   void serf_request_granted() { serf_requested = true; }
   void requested_serf_lost();

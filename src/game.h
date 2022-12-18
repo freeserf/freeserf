@@ -119,7 +119,7 @@ class Game {
   ColorDotMap debug_mark_pos;  // list of positions for LayerDebug to mark
   std::string mutex_message;  // used for logging why mutex being locked/unlocked
   clock_t mutex_timer_start;  // used for logging how much time spent with mutex lock
-  bool must_redraw;  // part of hack for option_FogOfWar to allow Serf/Building to trigger frame redraw
+  bool must_redraw_frame;  // part of hack for option_FogOfWar to allow Serf/Building to trigger frame redraw
   // I think this has to be defined here and not in Game constructor because the getter is being called before Game constructor?? not sure
   MapPos desired_cursor_pos = bad_map_pos;  // to allow Game to set the Interface/Viewport player cursor pos (during Interface::update)
 
@@ -181,9 +181,9 @@ class Game {
 
   // hack function to allow Serf, Building to trigger game to flush the frame
   //  so for option_FogOfWar so FoW cna be updated only when borders change
-  void set_redraw_frame();
-  void unset_redraw_frame();
-  bool get_redraw_frame() {return must_redraw;}
+  void set_must_redraw_frame() { must_redraw_frame = true; }
+  bool get_must_redraw_frame() { return must_redraw_frame; }
+  void unset_must_redraw_frame() { must_redraw_frame = false; }
 
   // allow the Game to change the map clicked cursor pos
   //  Because the Game object cannot access the Interface or Viewport
@@ -239,6 +239,7 @@ class Game {
 
 
   /* Internal interface */
+
   void init_land_ownership();
   void update_land_ownership(MapPos pos);
   void init_FogOfWar();  // option_FogOfWar

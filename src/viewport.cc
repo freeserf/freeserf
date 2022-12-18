@@ -1135,10 +1135,12 @@ Viewport::draw_ocupation_flag(Building *building, int lx, int ly, float mul) {
     //  must check serf type
     //Serf *holder_serf = interface->get_game->get_serf(building->get_holder_or_first_knight());
     // wait... instead just check to see if it was marked for demo, that's simpler
+    /* disabling this as knights are now NOT immediately evicted
     if (building->is_pending_demolition()){
       // don't draw the occupation_flag
       return;
     }
+    */
     draw_game_sprite(lx, ly -
                      static_cast<int>(mul * building->get_knight_count()),
                      182 + ((interface->get_game()->get_tick() >> 3) & 3) +
@@ -3036,6 +3038,7 @@ draw_serf_row(MapPos pos, int y_base, int cols, int x_base) {
 
       Serf *serf = interface->get_game()->get_serf_at_pos(pos);
 
+/* removing AdvancedDemolition for now, see https://github.com/forkserf/forkserf/issues/180
         // for option_AdvancedDemolition
         //  a demolishing serf must be drawn one pos down-right
         //  of his indicated pos so he can stand outside the
@@ -3046,6 +3049,7 @@ draw_serf_row(MapPos pos, int y_base, int cols, int x_base) {
         draw_active_serf(serf, map->move_down_right(pos), x_base + MAP_TILE_WIDTH / 2, y_base + MAP_TILE_HEIGHT);
         //draw_active_serf(serf, pos, x_base + MAP_TILE_WIDTH / 2, y_base + MAP_TILE_HEIGHT);
       }else{
+        */
         // handle exceptions to normal serf drawing
         if (serf->get_state() == Serf::StateMining &&
           (serf->get_mining_substate() == 3 ||
@@ -3056,6 +3060,7 @@ draw_serf_row(MapPos pos, int y_base, int cols, int x_base) {
           //   because that is drawn in draw_serf_row_behind instead of here
           //do nothing, skip this serf
 
+        /* removing AdvancedDemolition for now, see https://github.com/forkserf/forkserf/issues/180
         } else if (serf->get_state() == Serf::StateCleaningRubble){
           // for option_AdvancedDemolition
           //  to make a "burned building rubble" sprite appear
@@ -3083,13 +3088,13 @@ draw_serf_row(MapPos pos, int y_base, int cols, int x_base) {
 
             int x_dig_offset = serf->get_digging_substate() * 4;
             draw_active_serf(serf, pos, x_base - x_dig_offset, y_base);
-          }
+          }*/
         } else {
           // draw normal active serf
           draw_active_serf(serf, pos, x_base, y_base);
         }
       }
-    }
+    // }  /* removing AdvancedDemolition for now, see https://github.com/forkserf/forkserf/issues/180 */
 
     /* Idle serf */
     if (map->get_idle_serf(pos)) {
@@ -3401,25 +3406,6 @@ Viewport::draw_map_cursor_possible_build() {
     base_pos = map->move_right(base_pos);
   }
 }
-
-// got crash & heap dump once here on linux, though I don't usually leave AI overlay on
-// during long running testing, this was a 4xAI 40 game speed test
-/*
-*** Error in `./Forkserf': double free or corruption (fasttop): 0x00007f5094034e50 ***
-======= Backtrace: =========
-/lib64/libc.so.6(+0x81609)[0x7f510ce38609]
-./Forkserf(_ZN8Viewport15draw_ai_overlayEv+0xd73)[0x4b2183]
-./Forkserf(_ZN8Viewport13internal_drawEv+0x90)[0x4b2dc0]
-./Forkserf(_ZN9GuiObject4drawEP5Frame+0x131)[0x4c8131]
-./Forkserf(_ZN9Interface12handle_eventEPK5Event+0x40)[0x4c27e0]
-./Forkserf(_ZN9EventLoop15notify_handlersEP5Event+0xb2)[0x5e2b22]
-./Forkserf(_ZN9EventLoop11notify_drawEP5Frame+0x21)[0x5e2d31]
-./Forkserf(_ZN12EventLoopSDL3runEv+0x8aa)[0x5e624a]
-./Forkserf(main+0xaf4)[0x441324]
-/lib64/libc.so.6(__libc_start_main+0xf5)[0x7f510cdd9495]
-./Forkserf[0x482f3f]
-*/
-
 
 void
 Viewport::draw_ai_overlay() {

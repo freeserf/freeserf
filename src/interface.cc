@@ -44,11 +44,14 @@
 #include "src/game-options.h"
 
 #include "src/version.h" // for tick_length
+#include<unistd.h>               // for sleep function TEST TESTING
+
 
 
 // Interval between automatic save games
 //#define AUTOSAVE_INTERVAL  (5*60*TICKS_PER_SEC)  // this is reasonable for normal play
 //#define AUTOSAVE_INTERVAL  (1*60*TICKS_PER_SEC)  // much higher frequency, for debugging
+//#define AUTOSAVE_INTERVAL  (1*10*1000/tick_length)  // outageously high, for testing
 #define AUTOSAVE_INTERVAL  (5*60*1000/tick_length)  // this is reasonable for normal play
 
 Interface::Interface()
@@ -90,6 +93,8 @@ Interface::Interface()
   last_const_tick = 0;
   last_autosave_tick = 0;
   last_subseason_tick = 0;  // messing with weather/seasons/palette
+
+  redraw_minimap = false;  // added for FogOfWar and other new options, so that minimap regen can be triggered by closing a gameoption popup";
 
   viewport = nullptr;
   panel = nullptr;
@@ -147,7 +152,9 @@ Interface::get_popup_box() {
 /* Open popup box */
 void
 Interface::open_popup(int box) {
+  //Log::Debug["interface.cc"] << "inside Interface::open_popup(), for popup type " << box;
   if (popup == nullptr) {
+    //Log::Debug["interface.cc"] << "inside Interface::open_popup(), for popup type " << box << ", popup is nullptr, creating new";
     popup = new PopupBox(this);
     add_float(popup, 0, 0);
   }
@@ -169,6 +176,7 @@ Interface::open_popup(int box) {
     popup->move_to(options_pos_x, options_pos_y);
   }
   /* this doesn't work here, not exactly clear why
+    I think because needs to include popup.h to get type, but found alternate solution anyway
   if (box == PopupBox::TypeMap){
     // for option_FogOfWar
     //Minimap *minimap = popup->get_minimap();  // this gets invalid conversion error
@@ -180,8 +188,10 @@ Interface::open_popup(int box) {
       minimap->move_to_map_pos(pos);
     }
   }*/
+  //Log::Debug["interface.cc"] << "inside Interface::open_popup(), for popup type " << box << ", showing popup";
   popup->show((PopupBox::Type)box);
   if (panel != nullptr) {
+    //Log::Debug["interface.cc"] << "inside Interface::open_popup(), for popup type " << box << ", panel is nullptr, calling panel->update()";
     panel->update();
   }
 }
@@ -200,6 +210,48 @@ Interface::close_popup() {
   if (panel != nullptr) {
     panel->update();
   }
+}
+
+// for PleaseWait notifications
+//  normal game popups are not drawn when called for,
+//  they are drawn during the next update.  Closing them
+//  also takes at least one more update.  To bypass all this
+//  simply draw directly to the graphics frame and make it live
+//  as these popups require no user interaction and disappear 
+//  at the next game update (after the slow function completes)
+void
+Interface::draw_transient_popup() {
+  // find the correct base x/y to match normal popups
+  //   because the viewport->get_position call requires providing pointers to ints,
+  //   we must create those ints and pointers and then check them after the call
+  int transient_popup_base_x = 0;
+  int transient_popup_base_y = 0;
+  int *ptransient_popup_base_x = &transient_popup_base_x;
+  int *ptransient_popup_base_y = &transient_popup_base_y;
+  viewport->get_size(ptransient_popup_base_x, ptransient_popup_base_y);
+  transient_popup_base_x = *ptransient_popup_base_x / 2 - 72;
+  transient_popup_base_y = *ptransient_popup_base_y / 2 - 80;
+  //
+  // draw the popup
+  //
+  Graphics &gfx = Graphics::get_instance();
+  Frame *frame = gfx.get_screen_frame();
+  // draw background
+  for (int iy = 0; iy < 144; iy += 16) {
+    for (int ix = 0; ix < 16; ix += 2) {
+      frame->draw_sprite(transient_popup_base_x + (8 * ix + 8), transient_popup_base_y + (iy + 9), Data::AssetIcon, PopupBox::BackgroundPattern::PatternDiagonalGreen);
+    }
+  }
+  // draw borders
+  frame->draw_sprite(transient_popup_base_x + 0, transient_popup_base_y + 0, Data::AssetFramePopup, 0);
+  frame->draw_sprite(transient_popup_base_x + 0, transient_popup_base_y + 153, Data::AssetFramePopup, 1);
+  frame->draw_sprite(transient_popup_base_x + 0, transient_popup_base_y + 9, Data::AssetFramePopup, 2);
+  frame->draw_sprite(transient_popup_base_x + 136, transient_popup_base_y, Data::AssetFramePopup, 3);
+
+  // draw text
+  frame->draw_string(transient_popup_base_x + 26, transient_popup_base_y + 30, "Please Wait", Color::green);
+
+  gfx.swap_buffers();
 }
 
 /* Open box for starting a new game */
@@ -253,6 +305,40 @@ Interface::get_custom_map_generator_options() {
   //  Log::Info["map-generator"] << "inside get_custom_map_generator_options, opt" << x << " = " << custom_map_generator_options.opt[x];
   //}
   return custom_map_generator_options;
+}
+
+// if option_FogOfWar is toggled, any open minimaps must be refreshed
+//  - game-init box has a map preview that must be updated
+//  - in-game map, if open, must be updated
+void
+Interface::reload_any_minimaps(){
+  Log::Debug["panel.cc"] << "inside Interface::reload_any_minimaps()";
+  
+  // game-init box has a map preview that must be updated
+  if (is_game_init_open()){  
+    Log::Debug["popup.cc"] << "inside Interface::reload_any_minimaps(), game-init box is open, triggering generate_map_preview()";
+    get_game_init()->generate_map_preview();
+  }
+
+  // in-game map, if open, must be updated
+  PopupBox *popup = get_popup_box();
+  if (popup != nullptr) {
+    //Log::Debug["panel.cc"] << "inside Interface::reload_any_minimaps(), opening minimap F-C";
+    Minimap *minimap = popup->get_minimap();
+    if (minimap != nullptr) {
+      //Log::Debug["panel.cc"] << "inside Interface::reload_any_minimaps(), opening minimap F-D";
+      minimap->set_player_index(get_player()->get_index());  // for option_FogOfWar
+      // I guess this is still needed also or else the map is centered wrong, sometimes seeming to be all black on a big map
+      //  yes I think map was just not centered, this fixes it
+      Viewport *viewport = get_viewport(); 
+      MapPos pos = viewport->get_current_map_pos();
+      minimap->move_to_map_pos(pos);
+    //}else{
+      //Log::Debug["panel.cc"] << "inside Interface::reload_any_minimaps(), opening minimap F-E, minimap is a nullptr";
+    }
+  //}else{
+    //Log::Debug["panel.cc"] << "inside Interface::reload_any_minimaps(), opening minimap F-F, popup is a nullptr still";
+  }
 }
 
 // Initialize AI for non-human players
@@ -775,6 +861,7 @@ Interface::demolish_object() {
       return;
     }
   
+    /* removing AdvancedDemolition for now, see https://github.com/forkserf/forkserf/issues/180
     //if (false){
     if (option_AdvancedDemolition){
       Log::Debug["interface.cc"] << "inside Interface::demolish_object, option_AdvancedDemolition is on";
@@ -794,13 +881,17 @@ Interface::demolish_object() {
         }
 
         // immediately evict the Holder serf
-        //if (!building->is_military() && building->has_serf()){
-        ///// NO, must evict knights immediately also, as the demo serf blocks the flag
-        /////   knights in military buildings should not abandon their post until the building is actually on fire
-        // buildings with no Holder have nobody to evict
         if (building->has_serf()){
-          Log::Info["interface.cc"] << "inside Interface::demolish_object, option_AdvancedDemolition is on, evicting the Holder of this building";
-          building->evict_holder();
+        ///// NO, must evict knights immediately also, as the demo serf blocks the flag
+        //   knights in military buildings should not abandon their post until the building is actually on fire
+        // buildings with no Holder have nobody to evict
+        //if (building->has_serf()){
+          if (building->is_military()){
+            Log::Info["interface.cc"] << "inside Interface::demolish_object, option_AdvancedDemolition is on, NOT evicting knights from this military building yet";
+          }else{
+            Log::Info["interface.cc"] << "inside Interface::demolish_object, option_AdvancedDemolition is on, evicting the Holder of this building";
+            building->evict_holder();
+          }
         }
 
 
@@ -816,6 +907,7 @@ Interface::demolish_object() {
         return;
       }
     }
+    */
 
     // handle normal demo (either option_AdvancedDemolition is not enabled, or
     //                      the building type or state is not eligible for it)
@@ -903,12 +995,15 @@ Interface::layout() {
   }
 
   if (popup != nullptr) {
+    //Log::Debug["interface.cc"] << "inside Interface::internal_draw(), popup is NOT a nullptr";
     int popup_width = 144;
     int popup_height = 160;
     int popup_x = (width - popup_width) / 2;
     int popup_y = (height - popup_height) / 2;
     popup->move_to(popup_x, popup_y);
     popup->set_size(popup_width, popup_height);
+  //}else{
+    //Log::Debug["interface.cc"] << "inside Interface::internal_draw(), popup is a nullptr!";
   }
 
   if (init_box != nullptr) {
@@ -951,15 +1046,15 @@ Interface::update() {
 
   // hack to trigger redraw for option_FogOfWar
   //  any time borders change
-  if (game->get_redraw_frame()){
-    Log::Debug["interface.cc"] << "inside Interface::update(), game->get_redraw_frame is true";
+  if (game->get_must_redraw_frame()){
+    Log::Debug["interface.cc"] << "inside Interface::update(), game->get_must_redraw_frame is true";
     if (viewport != nullptr) {
-      Log::Debug["interface.cc"] << "inside Interface::update(), game->get_redraw_frame is true and viewport is not a nullptr, calling viewport->set_size";
+      Log::Debug["interface.cc"] << "inside Interface::update(), game->get_must_redraw_frame is true and viewport is not a nullptr, calling viewport->set_size";
       viewport->set_size(width, height);  // this does the magic refresh without affecting popups (as Interface->layout() does)
     }
-    game->unset_redraw_frame();
+    game->unset_must_redraw_frame();
   }else{
-    //Log::Debug["interface.cc"] << "inside Interface::update(), game->get_redraw_frame is false";
+    //Log::Debug["interface.cc"] << "inside Interface::update(), game->get_must_redraw_frame is false";
   }
 
   // allow the Game to change the map clicked cursor pos
@@ -1087,14 +1182,21 @@ Interface::update() {
     }
   }
 
+  // trigger AutoSave on next game update (to allow time for PleaseWait popup to show)
   if (option_EnableAutoSave){
     // auto-save if interval reached
     //  note that this is const tick so should save at regular real time interval not game-tick interval (which increases with game speed)
     if (game->get_const_tick() >= AUTOSAVE_INTERVAL + last_autosave_tick){
       Log::Debug["interface"] << "auto-save interval reached, preparing to auto-save game...";
       game->mutex_lock("Interface::update auto-saving game");
-      std::string savename = "AUTOSAVE.save";
-      Log::Verbose["interface"] << "savegame name is '" << savename << " '";
+      // this name isn't actually used
+      //std::string savename = "AUTOSAVE.save";
+      //Log::Verbose["interface"] << "savegame name is '" << savename << " '";
+
+      // Saving is slow enough to cause brief but noticeable lag
+      //  so show a please wait popup
+      draw_transient_popup();
+      
       if (GameStore::get_instance().quick_save("autosave", game.get())){
         Log::Info["interface"] << "successfully auto-saved game";
       } else {
@@ -1105,9 +1207,9 @@ Interface::update() {
     }
   }
 
-
   viewport->update();
   set_redraw();
+
 }
 
 bool
@@ -1261,6 +1363,7 @@ Interface::handle_key_pressed(char key, int modifier) {
         set_player(next_index);
         Log::Info["interface.cc"] << "Switched to player #" << next_index;
       }
+      reload_any_minimaps();
       break;
     }
     case 'w':
@@ -1280,12 +1383,21 @@ Interface::handle_key_pressed(char key, int modifier) {
       if (option_FogOfWar){
         option_FogOfWar = false;
         Log::Info["interface.cc"] << "Disabling option_FogOfWar clearing terrain tile cache";
+        viewport->set_size(width, height);  // this does the magic refresh without affecting popups (as Interface->layout() does)
       }else{
+        if (!is_game_init_open()){
+          Log::Info["interface.cc"] << "Enabling option_FogOfWar, trying to draw PleaseWait popup";
+          // turning FogOfWar on during a current game may be slow
+          //  so show a please wait popup
+          // if game-init is open, this is *most likely* a new game and so it will be
+          //  done quickly enough to avoid popup, which would look sloppy anyway
+          draw_transient_popup();  // draw PleaseWait popup
+        }
         option_FogOfWar = true;
         Log::Info["interface.cc"] << "Enabling option_FogOfWar clearing terrain tile cache, initializing FogOfWar for entire map";
+        game->init_FogOfWar();
+        reload_any_minimaps();
       }
-      game->init_FogOfWar();
-      viewport->set_size(width, height);  // this does the magic refresh without affecting popups (as Interface->layout() does)
       break;
     case 'q':
       //disabled for now, season is now tied to tick so it works with save/load game

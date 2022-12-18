@@ -101,7 +101,7 @@ EventLoopSDL::run() {
   // note SDL_Timer does not appear to create just a single timer run,
   //  but it initiates a repeating, never-ending Timer!  each Timer expiration
   // triggers an SDL Event that causes the loop to run 
-  Log::Error["event_loop-sdl.cc"] << "tick_length is " << tick_length;
+  //Log::Debug["event_loop-sdl.cc"] << "tick_length is " << tick_length;
   //SDL_TimerID timer_id = SDL_AddTimer(TICK_LENGTH, timer_callback, this);
   // need to detect when tick_interval is changed, and when detected
   //  stop the SDL Timer and replace it with one using the new tick_interval!
@@ -151,7 +151,7 @@ EventLoopSDL::run() {
 
   while (SDL_WaitEvent(&event)) {
 
-    //Log::Error["event_loop-sdl.cc"] << "tick_length is " << tick_length;
+    //Log::Debug["event_loop-sdl.cc"] << "tick_length is " << tick_length;
     // TRIGGER RESET OF Timer here!
     if (tick_length != last_tick_length){
       Log::Debug["event_loop-sdl.cc"] << "tick_length changed from " << last_tick_length << " to " << tick_length << ", resetting SDL Timer";

@@ -34,7 +34,7 @@ Building::Building(Game *game, unsigned int index)
   , stock{} {
   type = TypeNone;
   constructing = true; /* Unfinished building */
-  pending_demolition = false;  // for option_AdvancedDemolition
+  //pending_demolition = false;  // for option_AdvancedDemolition  /* removing AdvancedDemolition for now, see https://github.com/forkserf/forkserf/issues/180*/
   flag = 0;
   playing_sfx = false;
   threat_level = 0;  // 0 is safest/white flag, 3 is highest threat, thick cross
@@ -233,14 +233,6 @@ Building::set_holder_or_first_knight(unsigned int serf_index) {
   /* Test whether building is already occupied by knights */
   if (!active) {
     active = true;
-
-    /* moving this to inside building_captured or update_land_ownership
-    // with option_FogOfWar enabled, need to detect when borders change so that the tile cache can be refreshed to update shroud/FoW
-    if (option_FogOfWar && this->is_military() && serf->get_type() >= Serf::TypeKnight0 && serf->get_type() <= Serf::TypeKnight4){
-      Log::Debug["building.cc"] << "inside set_holder_or_first_knight, option_FogOfWar, a knight has become the first holder of a military building, triggering";
-      game->set_redraw_frame();
-    }
-    */
 
     int mil_type = -1;
     int max_gold = -1;
@@ -629,7 +621,7 @@ Building::knight_occupy() {
   }
 }
 
-
+  /* removing AdvancedDemolition for now, see https://github.com/forkserf/forkserf/issues/180
 // for use with option_AdvancedDemolition
 // send the Holder serf out and have him go back to Inv
 //  or just have him go to his flag and then back to Inv
@@ -654,6 +646,7 @@ Building::evict_holder() {
 
   stop_playing_sfx();
   unsigned int _serf_index = holder_or_first_knight;
+  Log::Debug["building.cc"] << "inside Building::evict_holder(), holder / _serf_index is " << _serf_index;
   holder_or_first_knight = 0;
   holder = false;
   active = false;  // don't set it to inactive yet either, I think this also contributes to "knight arrives after building evicted" bug
@@ -682,12 +675,12 @@ Building::evict_holder() {
   serf->building_deleted(pos);  // this is what actually evicts the serf
 
   // handle eviction of knights upon demo serf arrival
-  /* NO, must evict the knights immediately 
-   because if it does not happen until demo serf arrives
-   the demo serf blocks the flag so knights can't escape
-   It might be possible to allow the knights to pass through
-   the demo serf, but more work than I want to do right now
-   */
+  // NO, must evict the knights immediately 
+  // because if it does not happen until demo serf arrives
+  // the demo serf blocks the flag so knights can't escape
+  // It might be possible to allow the knights to pass through
+  // the demo serf, but more work than I want to do right now
+  
   if (is_military()) {
     Log::Debug["building.cc"] << "inside Building::evict_holder(), this is a military building, evicting the knights";
     // military buildings can have multiple knights, so they must
@@ -695,13 +688,19 @@ Building::evict_holder() {
     // NOTE - the castle is_military building, but if it is burning it
     //  should not have any knights, because they would have died defending it!
     while (_serf_index != 0) {
+      Log::Debug["building.cc"] << "inside Building::evict_holder(), this is a military building, _serf_index is " << _serf_index << ",_serf_index != 0 is true";
+      // I think maybe the issue with the knights dying inside instead of escaping is that when the Digger arrives to demo the building
+      //  he becomes the Holder, but the knights either cease to exist or are not checked/found by the "next serf" logic
+      //  see if it works where the Holder is ignored but the other knights are evicted
       Serf *knight = game->get_serf(_serf_index);
       if (knight == nullptr){
         Log::Error["building.cc"] << "inside Building::evict_holder(), game->get_serf returned nullptr for knight with serf index #" << _serf_index << "!  investigate";
         return;
       }
+      Log::Debug["building.cc"] << "inside Building::evict_holder(), this is a military building, _serf_index is " << _serf_index << ",_serf_index != 0 is true, knight is not a nullptr";
       // get the index of the next knight garrisoned in this building (NOT just next serf index # in the player's Serfs list!)
       _serf_index = knight->get_next();  // this should be called "get_next_defender", because that is what it does
+      Log::Debug["building.cc"] << "inside Building::evict_holder(), this is a military building, _serf_index is " << _serf_index << ",_serf_index != 0 is true, next_knight is serf#" << _serf_index;
       knight->building_deleted(pos);   // this is what actually evicts the serf
     }
   }
@@ -709,6 +708,68 @@ Building::evict_holder() {
   Log::Debug["building.cc"] << "done Building::evict_holder(), successfully evicted holder";
   return;
 }
+*/
+
+
+/* removing AdvancedDemolition for now
+//  see https://github.com/forkserf/forkserf/issues/180
+
+// for use by option_AdvancedDemolition only
+//  when a military building is marked for demolition
+//  the knights should not be evicted immediately, because it prevents
+//  the enemy from being able to capture it fairly as it will generally
+//  be immediately destroyed because of border changes.  Preventing this
+//  cheesy move is the main goal of this option!
+void
+Building::evict_knights() {
+  Log::Debug["building.cc"] << "start of Building::evict_knights";
+
+  //holder_or_first_knight = 0;  // don't do this because the new holder is the demo serf!
+  //holder = false;  // don't do this because the new holder is the demo serf!
+  active = false;  // don't do this yet?
+  //game->update_land_ownership(pos);  // I don't think this is necessary anymore because update_military should handle it?
+
+  if (!is_military()) {
+    Log::Error["building.cc"] << "inside Building::evict_knights(), this is not a military building!  crashing";
+    throw ExceptionFreeserf("inside Building::evict_knights(), his is not a military building!  crashing");
+  }
+
+  // don't evict the demo serf, but need him for his ->get_next value
+  Serf *demo_serf = game->get_serf(holder_or_first_knight);
+  if (demo_serf == nullptr){
+    Log::Error["building.cc"] << "inside Building::evict_knights(), game->get_serf returned nullptr for demo_serf holder_or_first_knight with serf index #" << holder_or_first_knight << "!  investigate";
+    return;
+  }
+
+  // this should give the index of the first knight, which was set in enter_building special logic for option_AdvancedDemolition
+  int _serf_index = demo_serf->get_next();
+  
+  // military buildings can have multiple knights, so they must
+  //  all be sent out one after another
+  // NOTE - the castle is_military building, but if it is burning it
+  //  should not have any knights, because they would have died defending it!
+
+  while (_serf_index != 0) {
+    Log::Debug["building.cc"] << "inside Building::evict_knights(), _serf_index is " << _serf_index << ",_serf_index != 0 is true";
+    // I think maybe the issue with the knights dying inside instead of escaping is that when the Digger arrives to demo the building
+    //  he becomes the Holder, but the knights either cease to exist or are not checked/found by the "next serf" logic
+    //  see if it works where the Holder is ignored but the other knights are evicted
+    Serf *knight = game->get_serf(_serf_index);
+    if (knight == nullptr){
+      Log::Error["building.cc"] << "inside Building::evict_knights(), game->get_serf returned nullptr for knight with serf index #" << _serf_index << "!  investigate";
+      return;
+    }
+    Log::Debug["building.cc"] << "inside Building::evict_knights(), _serf_index is " << _serf_index << ",_serf_index != 0 is true, knight is not a nullptr";
+    // get the index of the next knight garrisoned in this building (NOT just next serf index # in the player's Serfs list!)
+    _serf_index = knight->get_next();  // this should be called "get_next_defender", because that is what it does
+    Log::Debug["building.cc"] << "inside Building::evict_holder(), _serf_index is " << _serf_index << ",_serf_index != 0 is true, next_knight is serf#" << _serf_index;
+    knight->building_deleted(pos);   // this is what actually evicts the serf
+  }
+
+  Log::Debug["building.cc"] << "done Building::evict_knights(), successfully evicted knights";
+  return;
+}
+*/
 
 bool
 Building::burnup() {
@@ -794,6 +855,7 @@ Building::burnup() {
   Player *player = game->get_player(owner);
   player->building_demolished(this);
 
+  /* removing AdvancedDemolition for now, see https://github.com/forkserf/forkserf/issues/180
   // handle option_AdvancedDemolotion
   //  when a building is marked for demolition, the Holder
   //  will be immediately evicted using the new Building::evict_holder function
@@ -820,17 +882,37 @@ Building::burnup() {
             // expected Digger is holder and building is marked for demo, use special logic
             Log::Info["building.cc"] << "inside Building::burnup, option_AdvancedDemolition, the demo Digger serf has arrived, calling special Building::burnup logic";
             planned_demo = true;
+            // for option_AdvancedDemolition
+            //  because in this mode the demo Digger serf occupies the building pos
+            //  when he arrives, if the building has many knights (such as a full Tower or Fortress)
+            //  the building will have completed burning before the knights have cleared the area.  
+            //  this causes the demo Digger serf to suddenly appear and exit the building pos once
+            //  the building flag is clear of fleeing knights.  This looks bad.  A simple work-around
+            //  would be to make Tower and Fortresses burn much longer so the knights have more time to clear
+            //  the flag pos so when the building is done burning and disappears, the demo/Digger will be there
+            //if (option_AdvancedDemolition){
+              if (this->get_type() == Building::TypeTower){
+                Log::Debug["building.cc"] << "inside Building::burnup(), option_AdvancedDemolition is on, this TypeTower is being made to burn longer to give knights time to avoid ugly visual effect";
+                burning_counter = burning_counter * 2.5;
+              }else if (this->get_type() == Building::TypeFortress){
+                Log::Debug["building.cc"] << "inside Building::burnup(), option_AdvancedDemolition is on, this TypeFortress is being made to burn longer to give knights time to avoid ugly visual effect";
+                burning_counter = burning_counter * 4;
+              }
+            //}
           }
         }
+      }else{
+        Log::Debug["building.cc"] << "inside Building::burnup, option_AdvancedDemolition is true and this building is pending_demolition and has NO HOLDER SERF, shouldn't the Digger be the holder??";
       }
     }
   }
+  */
 
   // NOTE - holder can be a specialist/professional serf occupying the building
   //    OR one or more knights garrisoned inside
   //    OR a Builder (or Digger?) that is constructing the building
-  if (holder && !planned_demo) {
-
+  //if (holder && !planned_demo) {/* removing AdvancedDemolition for now, see https://github.com/forkserf/forkserf/issues/180*/
+  if (holder){
     holder = false;
 
     if (!constructing && type == TypeCastle) {
@@ -954,9 +1036,9 @@ Building::requested_serf_lost() {
 void
 Building::requested_serf_reached(Serf *serf) {
   holder = true;  // this is the only place in code where holder bool is set to true (except for initial castle creation)
-  Log::Debug["building.cc"] << "inside Building::requested_serf_reached for this serf with index " << serf->get_index() << ", serf type " << serf->get_type();
+  //Log::Debug["building.cc"] << "inside Building::requested_serf_reached for this serf with index " << serf->get_index() << ", serf type " << serf->get_type();
   if (serf_requested) {
-    Log::Debug["building.cc"] << "inside Building::requested_serf_reached, a serf was requested, holder_or_first_knight being set to this serf with index " << serf->get_index() << ", serf type " << serf->get_type();
+    //Log::Debug["building.cc"] << "inside Building::requested_serf_reached, a serf was requested, holder_or_first_knight being set to this serf with index " << serf->get_index() << ", serf type " << serf->get_type();
     holder_or_first_knight = serf->get_index();
   }
   serf_requested = false;
@@ -1309,6 +1391,7 @@ Building::update() {
       case TypeHut:
       case TypeTower:
       case TypeFortress:
+        /* removing AdvancedDemolition for now, see https://github.com/forkserf/forkserf/issues/180
         // for option_AdvancedDemolition
         //
         // PROBLEM - when a military building is marked for demo
@@ -1320,11 +1403,13 @@ Building::update() {
         //    ah it seems     game->update_land_ownership(pos); does it, and it is tied to the building being 'active'
         //    try making evict_holder keep the building active
         //
-        if (option_AdvancedDemolition && pending_demolition){
-          Log::Debug["building.cc"] << "inside Building::update(), NOT calling update_military on this military building because it is pending_demolition";
-        }else{
+        // disabling this check now that knights are no longer immediately evicted
+        //if (option_AdvancedDemolition && pending_demolition){
+        //  Log::Debug["building.cc"] << "inside Building::update(), NOT calling update_military on this military building because it is pending_demolition";
+        //}else{
+          */
           update_military();
-        }
+        //}
         break;
       case TypeButcher:
         if (holder) {

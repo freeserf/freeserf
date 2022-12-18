@@ -50,7 +50,7 @@ bool option_EnableAutoSave = false;
 //bool option_ImprovedPigFarms = false;  // removing this as it turns out the default behavior for pig farms is to require almost no grain
 bool option_CanTransportSerfsInBoats = false;
 bool option_QuickDemoEmptyBuildSites = false;
-bool option_AdvancedDemolition = false;  // this needs more playtesting
+//bool option_AdvancedDemolition = true;  // this needs more playtesting  */
 bool option_TreesReproduce = false;
 bool option_BabyTreesMatureSlowly = false;
 bool option_ResourceRequestsTimeOut = true;  // this is forced true to indicate that the code to make them optional isn't added yet
@@ -140,7 +140,8 @@ Game::Game()
   ai_threads_remaining = 0;
   mutex_message = "";
   mutex_timer_start = 0;
-  must_redraw = false;  // part of hack for option_FogOfWar
+  must_redraw_frame = false;  // part of hack for option_FogOfWar
+  
   MapPos desired_cursor_pos = bad_map_pos;  // to allow Game to set the Interface/Viewport player cursor pos (during Interface::update)
 }
 
@@ -1152,23 +1153,6 @@ Game::speed_reset() {
   Log::Info["game"] << "Game speed: " << game_speed;
 }
 
-
-// hack function to allow Serf, Building to trigger game to flush the frame
-//  so for option_FogOfWar so FoW can be updated only when borders change
-void
-Game::set_redraw_frame() {
-  Log::Debug["game.cc"] << "inside Game::redraw_frame()";
-  must_redraw = true;
-  //viewport->set_size(width, height);
-}
-
-void
-Game::unset_redraw_frame() {
-  Log::Debug["game.cc"] << "inside Game::unset_redraw_frame()";
-  must_redraw = false;
-  //viewport->set_size(width, height);
-}
-
 /* Generate an estimate of the amount of resources in the ground at map pos.*/
 void
 Game::get_resource_estimate(MapPos pos, int weight, int estimates[5]) {
@@ -2074,14 +2058,6 @@ Game::build_castle(MapPos pos, Player *player) {
 
   update_land_ownership(pos);
 
-  /* moving this to its own function
-  // with option_FogOfWar enabled, need to detect when borders change so that the tile cache can be refreshed to update shroud/FoW
-  if (option_FogOfWar){
-    Log::Debug["game.cc"] << "inside Game::build_castle, option_FogOfWar, Player" << player->get_index() << " has placed their castle at pos " << pos << ", triggering tile frame refresh";
-    set_redraw_frame();
-  }
-  */
-
   player->building_founded(castle);
 
   castle->update_military_flag_state();
@@ -2244,6 +2220,7 @@ Game::demolish_building(MapPos pos, Player *player) {
   return demolish_building_(pos);
 }
 
+  /* removing AdvancedDemolition for now, see https://github.com/forkserf/forkserf/issues/180
 // mark building for demolition
 //  by a Digger serf that is dispatched to it
 //  only used with option_AdvancedDemolition
@@ -2270,6 +2247,7 @@ Game::mark_building_for_demolition(MapPos pos, Player *player) {
   Log::Debug["game.cc"] << "inside Game::mark_building_for_demolition, pending_demolition set for building at pos " << pos << " owned by player #" << player->get_index();
   return true;
 }
+*/
 
 /* Map pos is lost to the owner, demolish everything. */
 void
@@ -2514,22 +2492,10 @@ Game::init_FogOfWar() {
 
 void
 Game::update_FogOfWar(MapPos init_pos) {
-  Log::Debug["game.cc"] << "start of Game::update_FogOfWar around init_pos " << init_pos;
-
-  /* do not require a building here!  need to update FogOfWar for destroyed buildings also
-  // sanity checks
-  if (building == nullptr){
-    Log::Error["game.cc"] << "inside Game::update_FogOfWar, expecting a building at init_pos " << init_pos << ", but get_building_at_pos returned a nullptr! crashing";
-    throw ExceptionFreeserf("inside Game::update_FogOfWar, expecting a building at init_pos but get_building_at_pos returned a nullptr!");
-  }
-  if (!building->is_military()) {
-    Log::Error["game.cc"] << "inside Game::update_FogOfWar, expecting a military building at init_pos " << init_pos << ", but found a non-military building of type " << building->get_type() << "! crashing";
-    throw ExceptionFreeserf("inside Game::update_FogOfWar, expecting a military building at init_pos but found a non-military building!");
-  }
-  */
+  //Log::Debug["game.cc"] << "start of Game::update_FogOfWar around init_pos " << init_pos;
 
   // need to redraw terrain for FoW updates to be visible
-  set_redraw_frame();
+  set_must_redraw_frame();
 
   const int visible_radius_by_type[25] = {0,0,0,0,0,0,0,0,0,0,0,10,0,0,0,0,0,0,0,0,0,15,19,0,21};
   int reveal_beyond = 6;  // added to visible_radius when setting
@@ -2576,13 +2542,15 @@ const int _spiral_dist[49] = { 1, 7, 19, 37, 61, 91, 127, 169, 217, 271, 331, 39
         continue;
       }
       if (building->get_type() != Building::TypeCastle && !building->is_active()){
-        Log::Debug["game.cc"] << "inside of Game::update_FogOfWar, non-castle military building of type " << NameBuilding[building->get_type()] << " is not active, skipping";
+        //Log::Debug["game.cc"] << "inside of Game::update_FogOfWar, non-castle military building of type " << NameBuilding[building->get_type()] << " is not active, skipping";
         continue;
       }
+      /* removing AdvancedDemolition for now, see https://github.com/forkserf/forkserf/issues/180
       if (building->is_burning() || building->is_pending_demolition()){
         Log::Debug["game.cc"] << "inside of Game::update_FogOfWar, military building of type " << NameBuilding[building->get_type()] << " at pos " << pos << " is burning or pending_demolition, skipping";
         continue;
       }
+      */
       /* don't check this, this is bad logic
       int bld_vis_rad = visible_radius_by_type[building->get_type()];
       Log::Debug["game.cc"] << "inside of Game::update_FogOfWar, military building of type " << NameBuilding[building->get_type()] << " at pos " << pos <<  " has visible radius " << bld_vis_rad;
@@ -2591,7 +2559,7 @@ const int _spiral_dist[49] = { 1, 7, 19, 37, 61, 91, 127, 169, 217, 271, 331, 39
         continue;
       }
       */
-      Log::Debug["game.cc"] << "inside of Game::update_FogOfWar, military building of type " << NameBuilding[building->get_type()] << " at pos " << pos << " is within influence radius, adding to list";
+      //Log::Debug["game.cc"] << "inside of Game::update_FogOfWar, military building of type " << NameBuilding[building->get_type()] << " at pos " << pos << " is within influence radius, adding to list";
       influential_buildings.push_back(pos);
     }
   }
@@ -2613,13 +2581,17 @@ const int _spiral_dist[49] = { 1, 7, 19, 37, 61, 91, 127, 169, 217, 271, 331, 39
       throw ExceptionFreeserf("inside Game::update_FogOfWar, expecting bld at bld_pos to be a military building, but it is not!");
       continue;
     }
+    if (!bld->is_active()){
+      // this building is burning or otherwise not occupied
+      continue;
+    }
     unsigned int player_index = bld->get_owner();
     // set the visibility bit for all buildings according to their radius
     // this list should always include the initial building being considered!
-    Log::Debug["game.cc"] << "inside of Game::update_FogOfWar, calling map->set_visible() for all pos within radius " << visible_radius_by_type[bld_type] << " of this building of type " << NameBuilding[bld_type] << " at bld_pos " << bld_pos;
+    //Log::Debug["game.cc"] << "inside of Game::update_FogOfWar, calling map->set_visible() for all pos within radius " << visible_radius_by_type[bld_type] << " of this building of type " << NameBuilding[bld_type] << " at bld_pos " << bld_pos;
     for (int i = 0; i < _spiral_dist[visible_radius_by_type[bld_type]]; i++) {
       MapPos pos = map->pos_add_extended_spirally(bld_pos, i);
-      Log::Debug["game.cc"] << "inside of Game::update_FogOfWar, calling map->set_visible() for pos " << pos << ", Player" << player_index;
+      //Log::Debug["game.cc"] << "inside of Game::update_FogOfWar, calling map->set_visible() for pos " << pos << ", Player" << player_index;
       map->set_visible(pos, player_index);
     }
   }
@@ -2632,14 +2604,14 @@ const int _spiral_dist[49] = { 1, 7, 19, 37, 61, 91, 127, 169, 217, 271, 331, 39
   if (building != nullptr && building->is_military()) {
     unsigned int player_index = building->get_owner();
     int reveal_radius = visible_radius_by_type[building->get_type()] + reveal_beyond;
-    Log::Debug["game.cc"] << "inside of Game::update_FogOfWar, building at init_pos " << init_pos << " of type " << NameBuilding[building->get_type()] << " has reveal_radius " << reveal_radius << ", owned by Player" << player_index;
+    //Log::Debug["game.cc"] << "inside of Game::update_FogOfWar, building at init_pos " << init_pos << " of type " << NameBuilding[building->get_type()] << " has reveal_radius " << reveal_radius << ", owned by Player" << player_index;
     for (int i = 0; i < _spiral_dist[reveal_radius]; i++) {
       MapPos pos = map->pos_add_extended_spirally(init_pos, i);
       //Log::Debug["game.cc"] << "inside of Game::update_FogOfWar, calling map->set_revealed() for pos " << pos << ", Player" << player_index;
       map->set_revealed(pos, player_index);
     }
   }else{
-    Log::Debug["game.cc"] << "inside of Game::update_FogOfWar, no building found at init_pos " << init_pos << ", assuming this was a destroyed/lost building.  Not setting revealed";
+    //Log::Debug["game.cc"] << "inside of Game::update_FogOfWar, no building found at init_pos " << init_pos << ", assuming this was a destroyed/lost building.  Not setting revealed";
   }
 }
 

@@ -175,6 +175,7 @@ GuiObject::set_focused() {
 
 void
 GuiObject::move_to(int px, int py) {
+  //Log::Debug["gui.cc"] << "inside GuiObject::move_to()";
   x = px;
   y = py;
   set_redraw();
@@ -237,6 +238,7 @@ GuiObject::point_inside(int point_x, int point_y) {
 
 void
 GuiObject::add_float(GuiObject *obj, int fx, int fy) {
+  //Log::Debug["gui.cc"] << "inside GuiObject::add_float()";
   obj->set_parent(this);
   floats.push_back(obj);
   obj->move_to(fx, fy);

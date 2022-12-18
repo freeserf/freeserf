@@ -91,6 +91,7 @@ class GameInitBox : public GuiObject {
 
   virtual void internal_draw();
   virtual bool handle_click_left(int x, int y, int modifier);
+  //virtual bool handle_click_right(int x, int y, int modifier);  // newly added, tlongstretch 2022 12 18
 };
 
 #endif  // SRC_GAME_INIT_H_

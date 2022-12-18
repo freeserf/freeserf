@@ -29,6 +29,8 @@
 #include "src/gui.h"
 #include "src/resource.h"
 
+#include "src/minimap.h" // for refreshing minimap when FogOfWar toggled
+
 class Interface;
 class MinimapGame;
 class ListSavedFiles;
@@ -100,7 +102,9 @@ class PopupBox : public GuiObject {
     TypeCtrlsInfo,
     TypeGameOptions,
     TypeGameOptions2,
-    TypeEditMapGenerator
+    TypeEditMapGenerator,
+    TypePleaseWaitSaving,  // added for option_EnableAutoSave
+    TypePleaseWaitFogOfWar // added for option_FogOfWar
   } Type;
 
   typedef enum BackgroundPattern {
@@ -242,6 +246,8 @@ class PopupBox : public GuiObject {
   void draw_building_stock_box();
   void draw_player_faces_box();
   void draw_demolish_box();
+  void draw_please_wait_saving_box();  // added for option_EnableAutoSave
+  void draw_please_wait_FogOfWar_box();  // added for option_FogOfWar
   void draw_save_box();
   void activate_sett_5_6_item(int index);
   void move_sett_5_6_item(int up, int to_end);
