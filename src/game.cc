@@ -3031,7 +3031,7 @@ Game::get_enemy_score(const Player *player) const {
 //  an enemy player
 void
 Game::building_captured(Building *building) {
-  Log::Debug["game.cc"] << "inside Game::building_captured, an empty military building at pos " << building->get_position() << " has been occupied by a knight";
+  //Log::Debug["game.cc"] << "inside Game::building_captured, an empty military building at pos " << building->get_position() << " has been occupied by a knight";
   /* Save amount of land and buildings for each player */
   std::map<int, int> land_before;
   std::map<int, int> buildings_before;

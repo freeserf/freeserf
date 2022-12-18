@@ -484,7 +484,7 @@ Building::requested_resource_delivered(Resource::Type resource) {
         stock[i].requested -= 1;
         if (stock[i].requested < 0) {
           stock[i].requested = 0;
-          Log::Debug["building"] << "inside requested_resource_delivered, res type " << NameResource[resource] << ", building of type " << NameBuilding[type] << " at pos " << get_position() << ", delivered unrequested food";
+          //Log::Debug["building"] << "inside requested_resource_delivered, res type " << NameResource[resource] << ", building of type " << NameBuilding[type] << " at pos " << get_position() << ", delivered unrequested food";
         }
         return true;
     }
