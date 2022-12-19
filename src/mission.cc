@@ -517,6 +517,7 @@ GameInfo::instantiate(CustomMapGeneratorOptions custom_map_generator_options) {
       MapPos pos = game->get_map()->pos(castle_pos.col, castle_pos.row);
       game->build_castle(pos, player);
     }
+
   }
 
   return game;

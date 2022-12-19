@@ -37,6 +37,8 @@ Minimap::Minimap(PMap _map) {
   scale = 1;
 
   draw_grid = false;
+  
+  current_player_index = -1;  // for option_FogOfWar
 
   set_map(_map);
 }
@@ -158,7 +160,26 @@ Minimap::draw_minimap_map() {
   Color *color_data = &minimap[0];
   for (unsigned int row = 0; row < map->get_rows(); row++) {
     for (unsigned int col = 0; col < map->get_cols(); col++) {
+      MapPos pos = map->pos(col, row);
       Color color = *(color_data++);
+
+      // handle FogOfWar
+      if (option_FogOfWar){
+        if (!map->is_revealed(pos, current_player_index)){
+          // draw black dot for non-*revealed* areas
+          draw_minimap_point(col, row, Color::black, scale);
+          continue;
+        }
+        if (!map->is_visible(pos, current_player_index)){
+          // draw a darker version of usual color dot
+          uint8_t r = color.get_red() * 0.6;
+          uint8_t g = color.get_green() * 0.6;
+          uint8_t b = color.get_blue() * 0.6;
+          draw_minimap_point(col, row, Color(r,g,b), scale);
+          continue;
+        }
+      }
+      // normal dot
       draw_minimap_point(col, row, color, scale);
     }
   }
@@ -169,6 +190,10 @@ MinimapGame::draw_minimap_ownership(int density) {
   for (unsigned int row = 0; row < map->get_rows(); row += density) {
     for (unsigned int col = 0; col < map->get_cols(); col += density) {
       MapPos pos = map->pos(col, row);
+      if (option_FogOfWar && !map->is_visible(pos, current_player_index)){
+        // do not draw ownership outside player view
+        continue;
+      }
       if (map->has_owner(pos)) {
         Color color = interface->get_player_color(map->get_owner(pos));
         draw_minimap_point(col, row, color, scale);
@@ -182,6 +207,10 @@ MinimapGame::draw_minimap_roads() {
   for (unsigned int row = 0; row < map->get_rows(); row++) {
     for (unsigned int col = 0; col < map->get_cols(); col++) {
       int pos = map->pos(col, row);
+      if (option_FogOfWar && !map->is_visible(pos, current_player_index)){
+        // do not draw roads outside player view
+        continue;
+      }
       if (map->paths(pos)) {
         draw_minimap_point(col, row, Color::black, scale);
       }
@@ -209,6 +238,10 @@ MinimapGame::draw_minimap_buildings() {
       int pos = map->pos(col, row);
       int obj = map->get_obj(pos);
       if (obj > Map::ObjectFlag && obj <= Map::ObjectCastle) {
+        if (option_FogOfWar && !map->is_visible(pos, current_player_index)){
+          // do not draw buildings outside player view
+          continue;
+        }
         Color color = interface->get_player_color(map->get_owner(pos));
         if (advanced > 0) {
           Building *bld = interface->get_game()->get_building_at_pos(pos);
@@ -228,6 +261,10 @@ MinimapGame::draw_minimap_traffic() {
   for (unsigned int row = 0; row < map->get_rows(); row++) {
     for (unsigned int col = 0; col < map->get_cols(); col++) {
       int pos = map->pos(col, row);
+      if (option_FogOfWar && !map->is_visible(pos, current_player_index)){
+        // do not draw traffic outside player view
+        continue;
+      }
       if (map->get_idle_serf(pos)) {
         Color color = interface->get_player_color(map->get_owner(pos));
         draw_minimap_point(col, row, color, scale);
@@ -253,7 +290,9 @@ void
 Minimap::draw_minimap_rect() {
   int px = width / 2;
   int py = height / 2;
-  frame->draw_sprite(px, py, Data::AssetGameObject, 33, true);
+  //frame->draw_sprite(px, py, Data::AssetGameObject, 33, true);
+  // simply setting the values of default color, progress to avoid needing overloaded functions
+  frame->draw_sprite(px, py, Data::AssetGameObject, 33, true, Color::transparent, 1.f);
 }
 
 void

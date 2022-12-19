@@ -64,7 +64,8 @@ class DataSourceAmiga : public DataSourceLegacy {
   virtual bool check();
   virtual bool load();
 
-  virtual Data::MaskImage get_sprite_parts(Data::Resource res, size_t index);
+  //virtual Data::MaskImage get_sprite_parts(Data::Resource res, size_t index);
+  virtual Data::MaskImage get_sprite_parts(Data::Resource res, size_t index, bool darken = false);
 
   virtual PBuffer get_sound(size_t index);
   virtual Data::MusicFormat get_music_format() { return Data::MusicFormatMod; }

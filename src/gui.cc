@@ -35,6 +35,9 @@ gui_get_slider_click_value(int x) {
 
 void
 GuiObject::layout() {
+  // this function only exists to allow overloading by Viewport and Interface, I think, but it is important for those
+  //  this function cannot be removed, and the upstream call to it cannot be removed either!
+  //Log::Debug["gui.cc"] << "the useless function GuiObject::layout() has been called";
 }
 
 GuiObject *GuiObject::focused_object = nullptr;
@@ -172,6 +175,7 @@ GuiObject::set_focused() {
 
 void
 GuiObject::move_to(int px, int py) {
+  //Log::Debug["gui.cc"] << "inside GuiObject::move_to()";
   x = px;
   y = py;
   set_redraw();
@@ -189,10 +193,11 @@ GuiObject::get_position(int *px, int *py) {
 
 void
 GuiObject::set_size(int new_width, int new_height) {
+  //Log::Debug["gui.cc"] << "start of GuiObject::set_size";
   delete_frame();
   width = new_width;
   height = new_height;
-  layout();
+  layout();  // this appears to do nothing for generic GuiObject, but I think it exists because it is overridden by some GuiObject superclasses such as Viewport, Interface, and their layout() is important
   set_redraw();
 }
 
@@ -233,6 +238,7 @@ GuiObject::point_inside(int point_x, int point_y) {
 
 void
 GuiObject::add_float(GuiObject *obj, int fx, int fy) {
+  //Log::Debug["gui.cc"] << "inside GuiObject::add_float()";
   obj->set_parent(this);
   floats.push_back(obj);
   obj->move_to(fx, fy);

@@ -96,11 +96,11 @@ class DataSourceBase : public Data::Source {
   virtual bool check() = 0;
   virtual bool load() = 0;
 
-  virtual Data::PSprite get_sprite(Data::Resource res, size_t index,
-                                   const Data::Sprite::Color &color);
+  //virtual Data::PSprite get_sprite(Data::Resource res, size_t index, const Data::Sprite::Color &color);
+  virtual Data::PSprite get_sprite(Data::Resource res, size_t index, const Data::Sprite::Color &color, bool darken = false);  // for FogOfWar
 
-  virtual Data::MaskImage get_sprite_parts(Data::Resource res,
-                                           size_t index) = 0;
+  //virtual Data::MaskImage get_sprite_parts(Data::Resource res, size_t index) = 0;
+  virtual Data::MaskImage get_sprite_parts(Data::Resource res, size_t index, bool darken = false) = 0;
 
   virtual size_t get_animation_phase_count(size_t animation);
   virtual Data::Animation get_animation(size_t animation, size_t phase);

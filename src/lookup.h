@@ -65,6 +65,7 @@ const std::string NameTerrain[]{
     "Map::TerrainTundra2",
     "Map::TerrainSnow0",
     "Map::TerrainSnow1"
+    //"Map::TerrainShroud", // new, index 16, map_ground sprite 33, for option_FogOfWar
 };
 
 const std::string NameObject[]{
@@ -473,8 +474,13 @@ typedef std::map<MapPos, std::string> ColorDotMap;
 
 
 // convert distance-from-center to MapPos offset for add_spirally
-const int _spiral_dist[25] = { 1, 7, 19, 37, 61, 91, 127, 169, 217, 271, 331, 397,
-  469, 547, 631, 721, 817, 919, 1027, 1141, 1261, 1387, 1519, 1657, 1801 };
+//const int _spiral_dist[25] = { 1, 7, 19, 37, 61, 91, 127, 169, 217, 271, 331, 397,
+//  469, 547, 631, 721, 817, 919, 1027, 1141, 1261, 1387, 1519, 1657, 1801 };
+const int _spiral_dist[49] = { 1, 7, 19, 37, 61, 91, 127, 169, 217, 271, 331, 397,
+    469, 547, 631, 721, 817, 919, 1027, 1141, 1261, 1387, 1519, 1657, 1801, 1951,
+    2107, 2269, 2437, 2611, 2791, 2977, 3169, 3367, 3571, 3781, 3997, 4219, 4447,
+    4681, 4921, 5167, 5419, 5677, 5941, 6211, 6487, 6769 };
+
 //  one spiral row count equals (6*rows from center) + (previous row's value)
 
 // ***** I don't think any of the specialists_reserve or specialists_max works at all *********
@@ -741,16 +747,5 @@ const std::string NameSeason[] = {
   "SeasonFall",
   "SeasonWinter",
 };
-
-/* moving this to game_options.h because of multiple declaration issues and I don't understand globals
-// the Custom data map_objects offset for tree sprites
-int season_offset[4] = {
-    0, // Summer
-  400, // Fall
-  300, // Winter
-  200, // Spring
-};
-*/
-
 
 #endif  // SRC_LOOKUP_H_

@@ -329,16 +329,16 @@ Data::Sprite::create_id(uint64_t resource, uint64_t index,
   return result;
 }
 
+// NOTE that 'index' is the relative index within the Data::Resource type
+//  and the base resource type starting index is added in get_sprite_parts
+//  when get_object is called to get the "from zero" data object id
 Data::PSprite
-DataSourceBase::get_sprite(Data::Resource res, size_t index,
-                           const Data::Sprite::Color &color) {
-  /* disabling this check to allow Custom graphics with indexes outside the normal range (>200)
-  if (index >= Data::get_resource_count(res)) {
-    Log::Warn["data-source"] << " get_sprite index " << index << " is beyond the Data::get_resource_count max, suggesting index out of bounds, returning nullptr!";
-    return nullptr;
-  }
-  */
-  Data::MaskImage ms = get_sprite_parts(res, index);
+//DataSourceBase::get_sprite(Data::Resource res, size_t index, const Data::Sprite::Color &color) {
+DataSourceBase::get_sprite(Data::Resource res, size_t index, const Data::Sprite::Color &color, bool darken) {
+  //Log::Debug["data-source.cc"] << "inside DataSourceBase::get_sprite, res type " << res << ", sprite index " << index << ", darken bool is " << darken;
+  
+  //Data::MaskImage ms = get_sprite_parts(res, index);
+  Data::MaskImage ms = get_sprite_parts(res, index, darken);
   Data::PSprite mask = std::get<0>(ms);
   Data::PSprite image = std::get<1>(ms);
 

@@ -29,6 +29,8 @@
 #include "src/gui.h"
 #include "src/resource.h"
 
+#include "src/minimap.h" // for refreshing minimap when FogOfWar toggled
+
 class Interface;
 class MinimapGame;
 class ListSavedFiles;
@@ -100,7 +102,9 @@ class PopupBox : public GuiObject {
     TypeCtrlsInfo,
     TypeGameOptions,
     TypeGameOptions2,
-    TypeEditMapGenerator
+    TypeEditMapGenerator,
+    TypePleaseWaitSaving,  // added for option_EnableAutoSave
+    TypePleaseWaitFogOfWar // added for option_FogOfWar
   } Type;
 
   typedef enum BackgroundPattern {
@@ -216,8 +220,8 @@ class PopupBox : public GuiObject {
   void draw_sett_1_box();
   void draw_sett_2_box();
   void draw_sett_3_box();
-  void draw_knight_level_box();
-  void draw_sett_4_box();
+  void draw_knight_level_box();  // knight staffing level min/max based on threat_level (i.e. how close to enemy)
+  void draw_sett_4_box();  // toolmaker build priority sliders
   void draw_popup_resource_stairs(int order[]);
   void draw_sett_5_box();
   void draw_quit_confirm_box();
@@ -233,8 +237,8 @@ class PopupBox : public GuiObject {
   void draw_transport_info_box();
   void draw_castle_serf_box();
   void draw_resdir_box();
-  void draw_sett_8_box();
-  void draw_sett_6_box();
+  void draw_sett_8_box();  // civ<>knight slider, create-knights button, gold-morale %, switch knights, button.  "Knight stomping" icon
+  void draw_sett_6_box();  // "INVENTORY-priority" order for resources, only used in Evacuation mode for Castle/Stocks (very rarely used)
   void draw_bld_1_box();
   void draw_bld_2_box();
   void draw_bld_3_box();
@@ -242,6 +246,8 @@ class PopupBox : public GuiObject {
   void draw_building_stock_box();
   void draw_player_faces_box();
   void draw_demolish_box();
+  void draw_please_wait_saving_box();  // added for option_EnableAutoSave
+  void draw_please_wait_FogOfWar_box();  // added for option_FogOfWar
   void draw_save_box();
   void activate_sett_5_6_item(int index);
   void move_sett_5_6_item(int up, int to_end);

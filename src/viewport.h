@@ -70,6 +70,7 @@ class Viewport : public GuiObject, public Map::Handler {
   virtual ~Viewport();
 
   void switch_layer(Layer layer) { layers ^= layer; }
+  bool layer_active(Layer layer) { return layers & layer; }
 
   void move_to_map_pos(MapPos pos);
   void move_by_pixels(int x, int y);
@@ -79,12 +80,17 @@ class Viewport : public GuiObject, public Map::Handler {
   void map_pix_from_map_coord(MapPos pos, int h, int *mx, int *my);
   void screen_pix_from_map_coord(MapPos pos, int *sx, int *sy);
   MapPos map_pos_from_screen_pix(int x, int y);
+  //MapPos map_pos_from_tile_frame_coord(unsigned int tid, int tc, int tr);
+  MapPos map_pos_from_tile_frame_coord(int tc, int tr);
+  unsigned int tile_id_from_map_pos(MapPos pos);
 
   void redraw_map_pos(MapPos pos);
 
   void update();
 
  protected:
+  Map::Terrain special_terrain_type(MapPos pos, Map::Terrain type);  // convenience function to allow changes to both draw_triangle_up & _down without code duplication
+  int special_terrain_sprite(MapPos pos, int sprite_index);  // convenience function to allow changes to both draw_triangle_up & _down without code duplication
   void draw_triangle_up(int x, int y, int m, int left, int right, MapPos pos,
                         Frame *frame);
   void draw_triangle_down(int x, int y, int m, int left, int right,
@@ -100,8 +106,8 @@ class Viewport : public GuiObject, public Map::Handler {
   void draw_game_sprite(int x, int y, int index);
   void draw_serf(int x, int y, const Color &color, int head, int body);
   // this says shadow and building but it seems to include ANY map object sprite such as trees, stones
-  void draw_shadow_and_building_sprite(int x, int y, int index,
-                                       const Color &color = Color::transparent);
+  void draw_shadow_and_building_sprite(int x, int y, int index, const Color &color = Color::transparent);
+  //void draw_shadow_and_custom_building_sprite(int x, int y, int index, const Color &color = Color::transparent);
   // new function to try messing with weather/seasons/palette
   void draw_map_sprite_special(int x, int y, int index, unsigned int pos, unsigned int obj, const Color &color = Color::transparent);
   void draw_shadow_and_building_unfinished(int x, int y, int index,

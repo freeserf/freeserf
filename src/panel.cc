@@ -100,7 +100,8 @@ PanelBar::draw_panel_frame() {
     if (option_FourSeasons && i == 0){ // if first item in array, which is the desired sprite 006 which is the leftmost shield sprite in the panel bottom
       int custom_sprite_index = 100*season + subseason + 100;  // +100 because the custom graphics START AT 100, 100=spring(0),200=summer(1),300=fall(2),400=winter(3) 
       //Log::Debug["panel.cc"] << "inside PanelBar::draw_panel_frame, custom_sprite_index is " << custom_sprite_index << ", season " << season << ", subseason " << subseason;
-      frame->draw_sprite_special0(layout[i+1], layout[i+2], Data::AssetFrameBottom, custom_sprite_index);
+      //frame->draw_sprite_special0(layout[i+1], layout[i+2], Data::AssetFrameBottom, custom_sprite_index);
+      frame->draw_sprite(layout[i+1], layout[i+2], Data::AssetFrameBottom, custom_sprite_index);
     }else{
       // use normal function
       frame->draw_sprite(layout[i+1], layout[i+2], Data::AssetFrameBottom, layout[i]);
@@ -170,8 +171,10 @@ PanelBar::button_click(int button) {
   switch (panel_btns[button]) {
     case ButtonMap:
     case ButtonMapStarred:
+      //Log::Debug["panel.cc"] << "inside PanelBar::button_click, opening minimap A";
       play_sound(Audio::TypeSfxClick);
       if ((popup != nullptr) && popup->is_displayed()) {
+        //Log::Debug["panel.cc"] << "inside PanelBar::button_click, opening minimap Z, closing popup";
         interface->close_popup();
       } else {
         panel_btns[0] = ButtonBuildInactive;
@@ -180,15 +183,47 @@ PanelBar::button_click(int button) {
         panel_btns[3] = ButtonStatsInactive;
         panel_btns[4] = ButtonSettInactive;
 
+        //Log::Debug["panel.cc"] << "inside PanelBar::button_click, opening minimap B";
         interface->open_popup(PopupBox::TypeMap);
 
         /* Synchronize minimap window with viewport. */
         if (popup != nullptr) {
+          //Log::Debug["panel.cc"] << "inside PanelBar::button_click, opening minimap C";
           Viewport *viewport = interface->get_viewport();
           Minimap *minimap = popup->get_minimap();
           if (minimap != nullptr) {
+            //Log::Debug["panel.cc"] << "inside PanelBar::button_click, opening minimap D";
+            minimap->set_player_index(interface->get_player()->get_index());  // for option_FogOfWar
             MapPos pos = viewport->get_current_map_pos();
             minimap->move_to_map_pos(pos);
+          //}else{
+          //  Log::Debug["panel.cc"] << "inside PanelBar::button_click, opening minimap E, minimap is a nullptr";
+          }
+        }else{
+          //
+          // this works but I don't quite understand why.  I think that when interface->open_popup is called it creates the minimap
+          //  and the subsequent if popup/minmap != nullptr is only for when the minimap is already open and the player
+          //  has clicked on a pos in it?  So if that is not the case (meaning, it was simply opened to view) then the pointer
+          //  is not actually needed here.  However, for reasons I don't understand, I cannot seem to set the minimap player_index
+          //  when the open_popup function runs, so instead it will try again here
+          //
+          //Log::Debug["panel.cc"] << "inside PanelBar::button_click, opening minimap F, popup is a nullptr, trying to get it again";
+          popup = interface->get_popup_box();
+          if (popup != nullptr) {
+            //Log::Debug["panel.cc"] << "inside PanelBar::button_click, opening minimap F-C";
+            Minimap *minimap = popup->get_minimap();
+            if (minimap != nullptr) {
+              //Log::Debug["panel.cc"] << "inside PanelBar::button_click, opening minimap F-D";
+              minimap->set_player_index(interface->get_player()->get_index());  // for option_FogOfWar
+              // I guess this is still needed also or else the map is centered wrong, sometimes seeming to be all black on a big map
+              Viewport *viewport = interface->get_viewport(); 
+              MapPos pos = viewport->get_current_map_pos();
+              minimap->move_to_map_pos(pos);
+            //}else{
+              //Log::Debug["panel.cc"] << "inside PanelBar::button_click, opening minimap F-E, minimap is a nullptr";
+            }
+          //}else{
+            //Log::Debug["panel.cc"] << "inside PanelBar::button_click, opening minimap F-F, popup is a nullptr still";
           }
         }
       }
@@ -281,6 +316,20 @@ PanelBar::button_click(int button) {
           Interface::CursorTypeRemovableFlag) {
         interface->demolish_object();
       } else {
+        // if QuickDemo is enabled skip the "are you sure?" confirmation for *incomplete* buildings
+        if (option_QuickDemoEmptyBuildSites && interface->get_map_cursor_type() == Interface::CursorTypeBuilding) {
+          Building *building = interface->get_game()->get_building_at_pos(interface->get_map_cursor_pos());
+          if (building == nullptr){
+            Log::Warn["panel.cc"] << "inside PanelBar::button_click for ButtonDestroy, building at pos " << interface->get_map_cursor_pos() << "is nullptr!  breaking early";
+            break;
+          }
+          if (!building->is_done()){
+            Log::Debug["panel.cc"] << "inside PanelBar::button_click for ButtonDestroy, option_QuickDemoEmptyBuildSites is true and this is an unfinished building at pos " << interface->get_map_cursor_pos() << ", not showing confirmation popup";
+            interface->demolish_object();
+            break;
+          }
+        }
+        // show "are you sure" confirmation popup
         panel_btns[0] = ButtonBuildInactive;
         panel_btns[1] = ButtonDestroyInactive;
         panel_btns[2] = ButtonMapInactive;

@@ -38,6 +38,7 @@
 #include "src/list.h"
 #include "src/text-input.h"
 #include "src/game-options.h"
+#include "src/game-init.h" // to allow game options update to trigger game-init box to redraw minimap if option changed (ex. FogOfWar)
 
 
 /* Action types that can be fired from
@@ -305,6 +306,8 @@ typedef enum Action {
   ACTION_GAME_OPTIONS_LostTransportersClearFaster,
   ACTION_GAME_OPTIONS_FourSeasons,
   ACTION_GAME_OPTIONS_FishSpawnSlowly,
+  //ACTION_GAME_OPTIONS_AdvancedDemolition,
+  ACTION_GAME_OPTIONS_FogOfWar,
   ACTION_MAPGEN_ADJUST_TREES,
   ACTION_MAPGEN_ADJUST_STONEPILES,
   ACTION_MAPGEN_ADJUST_FISH,
@@ -507,8 +510,9 @@ PopupBox::draw_custom_bld_box(const int sprites[]) {
   while (sprites[0] > 0) {
     int sx = sprites[1];
     int sy = sprites[2];
-    frame->draw_sprite(8 * sx + 8, sy + 9,
-                       Data::AssetMapObject, sprites[0], false);
+    //frame->draw_sprite(8 * sx + 8, sy + 9, Data::AssetMapObject, sprites[0], false);
+    // avoid needing overload functions, false is default anyway
+    frame->draw_sprite(8 * sx + 8, sy + 9, Data::AssetMapObject, sprites[0]);
     sprites += 3;
   }
 }
@@ -2073,11 +2077,11 @@ PopupBox::draw_game_options2_box() {
   draw_green_string(3, 67, "Fish Spawn Very Slowly");
   draw_popup_icon(1, 64, option_FishSpawnSlowly ? 288 : 220);
 
-  //draw_green_string(3, 86, "PlaceHolder3");
-  //draw_popup_icon(1, 83, option_PlaceHolder3 ? 288 : 220);
+  draw_green_string(3, 86, "Fog Of War");
+  draw_popup_icon(1, 83, option_FogOfWar ? 288 : 220);
 
-  //draw_green_string(3, 105, "PlaceHolder4");
-  //draw_popup_icon(1, 102, option_PlaceHolder4 ? 288 : 220);
+  //draw_green_string(3, 105, "placeholder");
+  //draw_popup_icon(1, 102, placeholder ? 288 : 220);
 
   draw_popup_icon(30, 128, 0x3d); // flipbox to previous page
   draw_popup_icon(32, 128, 60); /* exit */
@@ -2471,7 +2475,7 @@ PopupBox::draw_defenders_box() {
   draw_green_string(3, 62, "Defenders:");
 
   /* Draw knights */
-  int next_knight = building->get_first_knight();
+  int next_knight = building->get_holder_or_first_knight();
   for (int i = 0; next_knight != 0; i++) {
     Serf *serf = interface->get_game()->get_serf(next_knight);
     draw_popup_icon(3 + 4*(i%3), 72 + 16*(i/3), 7 + serf->get_type());
@@ -2642,7 +2646,7 @@ PopupBox::draw_resdir_box() {
     draw_custom_icon_box(knights_layout);
 
     /* Follow linked list of knights on duty */
-    int serf_index = building->get_first_knight();
+    int serf_index = building->get_holder_or_first_knight();
     while (serf_index != 0) {
       Serf *serf = interface->get_game()->get_serf(serf_index);
       Serf::Type serf_type = serf->get_type();
@@ -2685,6 +2689,7 @@ PopupBox::draw_resdir_box() {
   }
 }
 
+// civ<>knight slider, create-knights button, gold-morale %, switch knights, button.  "Knight stomping" icon
 void
 PopupBox::draw_sett_8_box() {
   const int layout[] = {
@@ -2737,6 +2742,7 @@ PopupBox::draw_sett_8_box() {
   draw_green_number(12, 40, static_cast<int>(convertible_to_knights));
 }
 
+// "INVENTORY-priority" order for resources, only used in Evacuation mode for Castle/Stocks (very rarely used)
 void
 PopupBox::draw_sett_6_box() {
   const int layout[] = {
@@ -2929,6 +2935,24 @@ PopupBox::draw_demolish_box() {
 }
 
 void
+PopupBox::draw_please_wait_saving_box() {
+  Log::Debug["popup.cc"] << "inside PopupBox::draw_please_wait_saving_box()";
+  draw_box_background(PatternSquaresGreen);
+
+  draw_green_string(0, 10, "  Auto-Saving Game");
+  draw_green_string(0, 30, "    Please Wait");
+}
+
+void
+PopupBox::draw_please_wait_FogOfWar_box() {
+  Log::Debug["popup.cc"] << "inside PopupBox::draw_please_wait_saving_box()";
+  draw_box_background(PatternSquaresGreen);
+
+  draw_green_string(0, 10, " Initializing FogOfWar");
+  draw_green_string(0, 30, "    Please Wait");
+}
+
+void
 PopupBox::draw_save_box() {
   const int layout[] = {
     224, 0, 128,
@@ -2945,6 +2969,7 @@ PopupBox::draw_save_box() {
 
 void
 PopupBox::internal_draw() {
+  Log::Debug["popup.cc"] << "inside PopupBox::internal_draw(), box type is " << box;
   if (box == Type::TypeGameOptions || box == Type::TypeGameOptions2 || box == Type::TypeEditMapGenerator){
     draw_large_popup_box_frame();
   }else{
@@ -3103,6 +3128,12 @@ PopupBox::internal_draw() {
     break;
   case TypeDemolish:
     draw_demolish_box();
+    break;
+  case TypePleaseWaitSaving:
+    draw_please_wait_saving_box();
+    break;
+  case TypePleaseWaitFogOfWar:
+    draw_please_wait_FogOfWar_box();
     break;
   case TypeLoadSave:
     draw_save_box();
@@ -3810,6 +3841,24 @@ PopupBox::handle_action(int action, int x_, int /*y_*/) {
       option_FishSpawnSlowly = true;
     }
     break;
+  /* removing AdvancedDemolition for now, see https://github.com/forkserf/forkserf/issues/180
+  case ACTION_GAME_OPTIONS_AdvancedDemolition:
+    if (option_AdvancedDemolition){
+      option_AdvancedDemolition = false;
+    }else{
+      option_AdvancedDemolition = true;
+    }
+    break;
+    */
+  case ACTION_GAME_OPTIONS_FogOfWar:
+    if (option_FogOfWar){
+      option_FogOfWar = false;
+    }else{
+      option_FogOfWar = true;
+    }
+    interface->reload_any_minimaps();
+    interface->get_viewport()->set_size(width, height);  // this does the magic refresh without affecting popups (as Interface->layout() does)
+    break;
   case ACTION_MAPGEN_ADJUST_TREES:
     Log::Info["popup"] << "ACTION_MAPGEN_ADJUST_TREES x_ = " << x_ << ", gui_get_slider_click_value(x_) = " << gui_get_slider_click_value(x_) << ", unint16_t(gui_get_slider_click_value(x_)) = " << uint16_t(gui_get_slider_click_value(x_));
     interface->set_custom_map_generator_trees(gui_get_slider_click_value(x_));                                         
@@ -4191,8 +4240,9 @@ PopupBox::handle_box_game_options2_clk(int cx, int cy) {
     ACTION_GAME_OPTIONS_LostTransportersClearFaster, 7, 26, 150, 16,
     ACTION_GAME_OPTIONS_FourSeasons, 7, 45, 150, 16,
     ACTION_GAME_OPTIONS_FishSpawnSlowly, 7, 64, 150, 16,
-    //ACTION_GAME_OPTIONS_Placeholder3, 7, 83, 150, 16,
-    //ACTION_GAME_OPTIONS_Placeholder4, 7, 102, 150, 16,
+    ACTION_GAME_OPTIONS_FogOfWar, 7, 83, 150, 16,
+    //ACTION_GAME_OPTIONS_AdvancedDemolition, 7, 83, 150, 16,  /* removing AdvancedDemolition for now, see https://github.com/forkserf/forkserf/issues/180/
+    //ACTION_GAME_OPTIONS_placeholder, 7, 102, 150, 16,
     ACTION_GAME_OPTIONS_PREV_PAGE, 239, 126, 16, 16,  // flip button
     ACTION_GAME_OPTIONS_RETURN_TO_OPTIONS, 255, 126, 16, 16, // exit button
     -1

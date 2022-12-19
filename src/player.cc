@@ -30,6 +30,8 @@
 #include "src/savegame.h"
 #include "src/building.h"
 
+#include "src/version.h"  // for game_ticks_per_update to adjust for time warp game_speeds
+
 Player::Player(Game* game, unsigned int index)
   : GameObject(game, index)
   , tool_prio{}
@@ -125,8 +127,8 @@ Player::Player(Game* game, unsigned int index)
 
   castle_knights_wanted = 3;
   castle_knights = 0;
-  send_knight_delay = 0;
-  send_generic_delay = 0;
+  send_knight_delay = 0;  // game_speed adjusted for time warp speeds
+  send_generic_delay = 0;  // game_speed adjusted for time warp speeds
   serf_index = 0;
 
   /* player->field_1b0 = 0; AI */
@@ -184,6 +186,13 @@ Player::init(unsigned int _intelligence, unsigned int _supplies,
   reproduction_reset = (60 - (size_t)_reproduction) * 50;
   ai_intelligence = (1300 * (size_t)_intelligence) + 13535;
   reproduction_counter = static_cast<int>(reproduction_reset);
+
+  // for option_FogOfWar
+  //  create a player-specific copy of the Map
+  // THIS IS MORE COMPLEX THAN I INITIALLY THOUGHT, NEEDS DEVELOPMENT
+  //  BUT THIS IS THE PLACE TO CREATE THE INITIAL COPY OF THE MAP... maybe?
+  //known_map = game->get_map();
+  
 }
 
 void
@@ -558,7 +567,7 @@ Player::start_attack() {
                                          Serf::TypeKnight4;
       int best_index = -1;
 
-      int knight_index = b->get_first_knight();
+      int knight_index = b->get_holder_or_first_knight();
       while (knight_index != 0) {
         Serf *knight = game->get_serf(knight_index);
         if (send_strongest()) {
@@ -764,11 +773,16 @@ Player::spawn_serf(Serf **serf, Inventory **inventory, bool want_knight) {
   return true;
 }
 
+// NOTE - in original Freeserf code these did not scale with game_speed
+//  meaning on speed 1 the delay was not increased and on speed 3+ the delay was not reduced
+// this should now scale properly with game speed at speeds 1 and 13+ (slow and "time warp" speeds)
 bool
 Player::tick_send_generic_delay() {
-  send_generic_delay -= 1;
+  //send_generic_delay -= 1;  // this is the original value, which is HALF the default tick speed
+  send_generic_delay -= game_ticks_per_update;  // adjust for time warp game_speeds
   if (send_generic_delay < 0) {
-    send_generic_delay = 5;
+    //send_generic_delay = 5;  // remember that normal game_ticks_per_update is 2 but the original value here was 1-per-update...
+    send_generic_delay = 10;  // ... so just double the timer length
     return true;
   }
   return false;
@@ -776,9 +790,11 @@ Player::tick_send_generic_delay() {
 
 bool
 Player::tick_send_knight_delay() {
-  send_knight_delay -= 1;
+  //send_knight_delay -= 1;  // this is the original value, which is HALF the default tick speed
+  send_knight_delay -= game_ticks_per_update;  // adjust for time warp game_speeds
   if (send_knight_delay < 0) {
-    send_knight_delay = 5;
+    //send_knight_delay = 5;  // remember that normal game_ticks_per_update is 2 but the original value here was 1-per-update...
+    send_knight_delay = 10;  // ... so just double the timer length
     return true;
   }
   return false;
@@ -818,7 +834,7 @@ Player::create_initial_castle_serfs(Building *castle) {
   game->get_map()->set_serf_index(serf->get_pos(), serf->get_index());
 
   Building *building_ = game->get_building(building);
-  building_->set_first_knight(serf->get_index());
+  building_->set_holder_or_first_knight(serf->get_index());
 
   /* Spawn generic serfs */
   for (int i = 0; i < 5; i++) {

@@ -240,7 +240,14 @@ Map::get_spiral_pattern() {
 // extended spiral uses alternate method, I don't understand how the first 2 cols of the
 //  original method were determined, so cannot extend it
 std::vector<int> extended_spiral_coord_vector;
-static int extended_spiral_pattern[3268] = { 0 };
+//
+// NOTE that if the spiral_dist radius/shells is increased further, you must figure out how many
+//   mappos are found by checking the extended_spiral_coord_vector.size() and setting the
+//   extended_spiral_pattern[] int array to that size (maybe plus 1?)
+// you can NOT simply double/times-X increase it, it increases exponentially because the shells 
+//  larger the further out you go  24 shells was 3268 pos, 48 shells is 13445 pos 
+//
+static int extended_spiral_pattern[13445] = { 0 };  
 static int extended_spiral_pattern_initialized = 0;
 static int directional_fill_pattern[629] = { 0 };
 static int directional_fill_pattern_initialized = 0;
@@ -253,7 +260,7 @@ init_extended_spiral_pattern() {
   int x = 0;
   int y = 0;
   Map::next_extended_spiral_coord(x, y, &extended_spiral_coord_vector); // add the center pos coords
-  for (int shells = 1; shells < 24; ++shells) {
+  for (int shells = 1; shells < 48; ++shells) {
     for (int i = 0; i < shells; ++i) { Map::next_extended_spiral_coord(++x, y, &extended_spiral_coord_vector); } // RIGHT
     for (int i = 0; i < shells - 1; ++i) { Map::next_extended_spiral_coord(x, --y, &extended_spiral_coord_vector); } // DOWN
     for (int i = 0; i < shells; ++i) { Map::next_extended_spiral_coord(--x, --y, &extended_spiral_coord_vector); } // DOWN-LEFT
@@ -261,6 +268,7 @@ init_extended_spiral_pattern() {
     for (int i = 0; i < shells; ++i) { Map::next_extended_spiral_coord(x, ++y, &extended_spiral_coord_vector); } // UP
     for (int i = 0; i < shells; ++i) { Map::next_extended_spiral_coord(++x, ++y, &extended_spiral_coord_vector); } // UP-RIGHT
   }
+  //Log::Debug["map.cc"] << "inside init_extended_spiral_pattern, extended_spiral_coord_vector.size() is " << extended_spiral_coord_vector.size();
   std::copy(extended_spiral_coord_vector.begin(), extended_spiral_coord_vector.end(), extended_spiral_pattern);
   extended_spiral_pattern_initialized = 1;
   /*
@@ -484,7 +492,12 @@ Map::map_space_from_obj[] = {
 Map::Map(const MapGeometry& geom)
   : geom_(geom)
   , spiral_pos_pattern(new MapPos[295])
-  , extended_spiral_pos_pattern(new MapPos[3268])
+  // NOTE that if the spiral_dist radius/shells is increased further, you must figure out how many
+  //   mappos are found by checking the extended_spiral_coord_vector.size() and setting the
+  //   extended_spiral_pattern[] int array to that size (maybe plus 1?)
+  // you can NOT simply double/times-X increase it, it increases exponentially because the shells 
+  //  larger the further out you go  24 shells was 3268 pos, 48 shells is 13445 pos
+  , extended_spiral_pos_pattern(new MapPos[13445])
   , directional_fill_pos_pattern(new MapPos[313]) {
   // Some code may still assume that map has at least size 3.
   if (geom.size() < 3) {
@@ -573,7 +586,12 @@ Map::init_extended_spiral_pos_pattern() {
 //   *OR* it might actually fix a bug
 
 //  for (int i = 0; i < 1801; i++) {
-    for (int i = 0; i < 1633; i++) {
+// NOTE that if the spiral_dist radius/shells is increased further, you must figure out how many
+//   mappos are found by checking the extended_spiral_coord_vector.size() and setting the
+//   extended_spiral_pattern[] int array to that size (maybe plus 1?)
+// you can NOT simply double/times-X increase it, it increases exponentially because the shells 
+//  larger the further out you go  24 shells was 3268 pos, 48 shells is 13445 pos
+    for (int i = 0; i < 6720; i++) {
     int x = extended_spiral_pattern[2 * i] & geom_.col_mask();
     int y = extended_spiral_pattern[2 * i + 1] & geom_.row_mask();
 

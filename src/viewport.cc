@@ -46,29 +46,134 @@
 #define MAP_TILE_MASKS     81
 
 /* Number of cols,rows in each landscape tile */
-#define MAP_TILE_COLS  16
-#define MAP_TILE_ROWS  16
+//#define MAP_TILE_COLS  16  // this is original value from Freeserf
+//#define MAP_TILE_ROWS  16  // this is original value from Freeserf
+
+// I tried experimenting with changing these
+//  values above 64x64 result in a division error somewhere, didn't investigate further
+//  values above 16x16 up to 64x64 result in modest performance games, got 4-5 more FPS in Debug build on speed 12 (max "physics warp")
+//  values below 8x8 result in modestly worse performance
+// didn't do extensive testing, posible that with Release build these differences are eliminated
+//   possible that the landscape tile drawing is insignificant compared to the active serfs/building being drawn on screen
+// also, at normal game tick speed (game speed 2 or 13+ "time warp") the frame rate is unchanged (stays 50fps)
+// consider that there could be intermittent performance hits when tiles are invalidated?  I tried doing the popups and weather changes
+//  that trigger this, but it didn't seem to have any effect.  Will leave it at 64x64 for some time since it appears to give better perf
+#define MAP_TILE_COLS  64
+#define MAP_TILE_ROWS  64
 
 MapPos debug_overlay_clicked_pos = bad_map_pos;
 
+// this array is used to get the map_ground sprite id for a given
+//  Map::Terrain type (ex. TypeSnow0)  and luminosity level
+// Notice that 32 (water) is all same because it only has one luminosity levle
+//  buy others have varying levels
 static const uint8_t tri_spr[] = {
-  32, 32, 32, 32, 32, 32, 32, 32,
-  32, 32, 32, 32, 32, 32, 32, 32,
-  32, 32, 32, 32, 32, 32, 32, 32,
-  32, 32, 32, 32, 32, 32, 32, 32,
-  0, 1, 2, 3, 4, 5, 6, 7,
-  0, 1, 2, 3, 4, 5, 6, 7,
-  0, 1, 2, 3, 4, 5, 6, 7,
-  0, 1, 2, 3, 4, 5, 6, 7,
-  24, 25, 26, 27, 28, 29, 30, 31,
-  24, 25, 26, 27, 28, 29, 30, 31,
-  24, 25, 26, 27, 28, 29, 30, 31,
-  8, 9, 10, 11, 12, 13, 14, 15,
-  8, 9, 10, 11, 12, 13, 14, 15,
-  8, 9, 10, 11, 12, 13, 14, 15,
-  16, 17, 18, 19, 20, 21, 22, 23,
-  16, 17, 18, 19, 20, 21, 22, 23
+  32, 32, 32, 32, 32, 32, 32, 32,  // water
+  32, 32, 32, 32, 32, 32, 32, 32,  // water
+  32, 32, 32, 32, 32, 32, 32, 32,  // water
+  32, 32, 32, 32, 32, 32, 32, 32,  // water
+  0, 1, 2, 3, 4, 5, 6, 7,          // grass
+  0, 1, 2, 3, 4, 5, 6, 7,          // grass
+  0, 1, 2, 3, 4, 5, 6, 7,          // grass
+  0, 1, 2, 3, 4, 5, 6, 7,          // grass
+  24, 25, 26, 27, 28, 29, 30, 31,  // desert
+  24, 25, 26, 27, 28, 29, 30, 31,  // desert
+  24, 25, 26, 27, 28, 29, 30, 31,  // desert
+  8, 9, 10, 11, 12, 13, 14, 15,    // tundra (brown mountain)
+  8, 9, 10, 11, 12, 13, 14, 15,    // tundra (brown mountain)
+  8, 9, 10, 11, 12, 13, 14, 15,    // tundra (brown mountain)
+  16, 17, 18, 19, 20, 21, 22, 23,  // snow
+  16, 17, 18, 19, 20, 21, 22, 23   // snow
 };
+
+// return the new type (or original type)
+//  as modified by any special new option
+//  logic.  This function exists to avoid
+//  having to constantly sync identical logic
+//  between draw_triangle_up & _down
+Map::Terrain
+Viewport::special_terrain_type(MapPos pos, Map::Terrain type){
+  //Log::Debug["viewport.cc"] << "start of Viewport::special_terrain_type(), pos " << pos << ", orig terrain type " << type;
+  Map::Terrain new_type = type;
+
+  if (option_FourSeasons){
+    // MID-WINTER
+    // make snow cover a bit more of mountains than usual
+    if (season == 3 && subseason >= 3 && subseason <= 14){      
+      if (type >= Map::TerrainTundra2){  // a bit more snow on mountains
+        // do a partial change for one subseason
+        if ((subseason == 3 || subseason == 14) && (pos % 7 == 0 || pos % 11 == 0 || pos % 13 == 0 || pos % 17 == 0 || pos % 19 == 0)){  // sort of "is prime?"
+          // skip every other pos
+        }else{
+          new_type = Map::TerrainSnow0;
+        }
+      }
+    }
+    // MID-SUMMER - a bit less snow on mountains than usual
+    if (season == 1 && subseason >= 3 && subseason <= 14){
+      if (type == Map::TerrainSnow0){    // a bit less snow on mountains
+        // do a partial change for one subseason
+        if ((subseason == 3 || subseason == 14) && (pos % 7 == 0 || pos % 11 == 0 || pos % 13 == 0 || pos % 17 == 0 || pos % 19 == 0)){  // sort of "is prime?"
+          // skip every other pos
+        }else{
+          new_type = Map::TerrainTundra2;
+        }  
+      }
+    }
+    //
+    // other times, normal amount
+    //
+
+    // SNOWSTORM!!!!!
+    //  need to add custom snow-on-buildings and trees for this to look acceptable
+    //if (season == 3 && type > Map::TerrainWater3){
+    //  new_type = Map::TerrainSnow0;
+    //}
+  }
+
+  //Log::Debug["viewport.cc"] << "start of Viewport::special_terrain_type(), pos " << pos << ", orig terrain type " << type << ", new type " << new_type;
+  return new_type;
+}
+
+// return the new sprite id (or original sprite id)
+//  as modified by any special new option
+//  logic.  This function exists to avoid
+//  having to constantly sync identical logic
+//  between draw_triangle_up & _down
+int
+Viewport::special_terrain_sprite(MapPos pos, int sprite_index){
+  Log::Debug["viewport.cc"] << "start of Viewport::special_terrain_sprite(), pos " << pos << ", orig terrain sprite_index " << sprite_index;
+
+  // option_FogOfWar
+  //  draw revealed-but-not-currently-visible areas darker than normal
+  /* no longer using prerendered custom PNG sprites,
+      switching to using mutated sprites derived directly from base sprites
+  if (option_FogOfWar){
+    static const int8_t tri_fog[] = {
+      34, 34, 36,  0,  1,  2,  3,  4,  // grass   (default  0-7)  lower # is darker
+      37, 38, 39,  8,  9, 10, 11, 12,  // tundra  (default  8-15)
+      40, 41, 42, 16, 17, 18, 19, 20,  // snow    (default  16-23)
+      43, 44, 45, 24, 25, 26, 27, 28,  // desert  (default  24-31)
+      46,                              // water   (default has only has one luminosity, sprite 32)
+      33,                              // shroud  (does not exist in default, no luminosity change here. Added for simplicity)
+    };  // 34 values in array ([0-33])
+    if (!map->is_visible(pos, interface->get_player()->get_index())){
+      sprite_index = tri_fog[sprite_index];
+    }
+  }
+  */
+
+  // use 100+base to indicate darker sprites for FogOfWar
+  //  the SpriteDosSolid constructor has added logic to handle it
+  if (option_FogOfWar){
+    if (!map->is_visible(pos, interface->get_player()->get_index())){
+      sprite_index += 100;
+    }
+  }
+
+  Log::Debug["viewport.cc"] << "start of Viewport::special_terrain_sprite(), pos " << pos << ", new sprite_index " << sprite_index;
+  return sprite_index;
+}
 
 void
 Viewport::draw_triangle_up(int lx, int ly, int m, int left, int right,
@@ -83,7 +188,7 @@ Viewport::draw_triangle_up(int lx, int ly, int m, int left, int right,
     -1, -1,  0,  1,  2,  4,  5,  6,  7,
     -1, -1, -1,  0,  1,  2,  5,  6,  7,
     -1, -1, -1, -1,  0,  1,  4,  6,  7
-  };
+  };  // this is a 9x9 array, so 81 values in array ([0-80])
 
   if (((left - m) < -4) || ((left - m) > 4)) {
     throw ExceptionFreeserf("Failed to draw triangle up (1).");
@@ -98,61 +203,56 @@ Viewport::draw_triangle_up(int lx, int ly, int m, int left, int right,
   }
 
   Map::Terrain type = map->type_up(map->move_up(pos));
+  
+  // apply any hack-ish modifications from various game options
+  type = special_terrain_type(pos, Map::Terrain(type));
 
-  // messing with weather/seasons/palette
-  //  by changing the *appearance* of Tundra0/1/2 to Snow, but it still functions as normal Tundra in game
-  //*******************************************************************************************
-  // WHEN CHANGING THESE, DON'T FORGET TO ALSO CHANGE THE OTHER TRIANGLE UP/DOWN FUNCTION!!!!
-  //*******************************************************************************************
-
-  //  *** MAKE THIS GRADUAL, by checking if MapPos is even/odd?  and only doing half at once
-
-  if (option_FourSeasons){
-    // MID-WINTER
-    // make snow cover a bit more of mountains than usual
-    if (season == 3 && subseason >= 3 && subseason <= 14){      
-      if (type >= Map::TerrainTundra2){  // a bit more snow on mountains
-        // do a partial change for one subseason
-        if ((subseason == 3 || subseason == 14) && (pos % 7 == 0 || pos % 11 == 0 || pos % 13 == 0 || pos % 17 == 0 || pos % 19 == 0)){  // sort of "is prime?"
-          // skip every other pos
-        }else{
-          type = Map::TerrainSnow0;
-        }
-      }
-    }
-    // MID-SUMMER - a bit less snow on mountains than usual
-    if (season == 1 && subseason >= 3 && subseason <= 14){
-      if (type == Map::TerrainSnow0){    // a bit less snow on mountains
-        // do a partial change for one subseason
-        if ((subseason == 3 || subseason == 14) && (pos % 7 == 0 || pos % 11 == 0 || pos % 13 == 0 || pos % 17 == 0 || pos % 19 == 0)){  // sort of "is prime?"
-          // skip every other pos
-        }else{
-          type = Map::TerrainTundra2;
-        }  
-      }
-    }
-    //
-    // other times, normal amount
-    //
-
-    // SNOWSTORM!!!!!
-    //  need to add custom snow-on-buildings and trees for this to look acceptable
-    //if (season == 3 && type > Map::TerrainWater3){
-    //  type = Map::TerrainSnow0;
-    //}
-  }
-
-
+  int sprite = -1;
 
   int index = (type << 3) | tri_mask[mask];
   if (index >= 128) {
     throw ExceptionFreeserf("Failed to draw triangle up (4).");
   }
 
-  int sprite = tri_spr[index];
+  // this array is used to get the map_ground sprite id for a given
+  //  Map::Terrain type (ex. TypeSnow0)  and luminosity level
+  // note that there are 15 terrain types but 33 terrain sprites
+  //  because all terrain types except water have varying luminosity
+  //int sprite = tri_spr[index];
+  sprite = tri_spr[index];
 
-  tile->draw_masked_sprite(lx, ly, Data::AssetMapMaskUp, mask,
-                            Data::AssetMapGround, sprite);
+  // apply any hack-ish modifications from various game options
+  //sprite = special_terrain_sprite(pos, sprite);
+
+  bool darken = false;
+  if (option_FogOfWar){
+    //f (false){  // TEMP DISABLED
+    if (!map->is_revealed(pos,interface->get_player()->get_index())){ 
+      //sprite = -1;
+      //sprite = 200;
+      // this doesn't work... try just not drawing the sprite at all!
+      return;
+    } else if (!map->is_visible(pos, interface->get_player()->get_index())){
+      // SPECIAL CATCH TO SMOOTH THE EDGES OF THE TOP-LEFT 
+      //  AND DOWN-RIGHT EDGES OF FOW HEXAGON - DRAW A HALF TRIANGLE
+      //  AT THE EDGE BE CHECKING IF LAST POS WAS DARKENED!
+      //if (false){
+        // NEVERMIND, this works for the initial castle hexagon but breaks down
+        //  once more activity happens, not going to bother with it now
+      //if (map->is_visible(map->move_right(pos), interface->get_player()->get_index())
+      // && !map->is_visible(map->move_up(pos), interface->get_player()->get_index()) 
+      // && !map->is_visible(map->move_down(pos), interface->get_player()->get_index()) ){
+        // !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+        // skip this Up triangle only DO NOT COPY THIS TO draw_triangle_down!!!!
+        // !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+      //}else{
+        darken = true;
+      //}
+    }
+  }
+
+  //tile->draw_masked_sprite(lx, ly, Data::AssetMapMaskUp, mask, Data::AssetMapGround, sprite);
+  tile->draw_masked_sprite(lx, ly, Data::AssetMapMaskUp, mask, Data::AssetMapGround, sprite, darken);
 }
 
 void
@@ -184,58 +284,55 @@ Viewport::draw_triangle_down(int lx, int ly, int m, int left, int right,
 
   int type = map->type_down(map->move_up_left(pos));
 
-  // messing with weather/seasons/palette
-  //  by changing the *appearance* of Tundra0/1/2 to Snow, but it still functions as normal Tundra in game
-  //*******************************************************************************************
-  // WHEN CHANGING THESE, DON'T FORGET TO ALSO CHANGE THE OTHER TRIANGLE UP/DOWN FUNCTION!!!!
-  //*******************************************************************************************
-   //  *** MAKE THIS GRADUAL, by checking if MapPos is even/odd?  and only doing half at once
-
-  if (option_FourSeasons){
-    // MID-WINTER
-    // make snow cover a bit more of mountains than usual
-    if (season == 3 && subseason >= 3 && subseason <= 14){      
-      if (type >= Map::TerrainTundra2){  // a bit more snow on mountains
-        // do a partial change for one subseason
-        if ((subseason == 3 || subseason == 14) && (pos % 7 == 0 || pos % 11 == 0 || pos % 13 == 0 || pos % 17 == 0 || pos % 19 == 0)){  // sort of "is prime?"
-          // skip every other pos
-        }else{
-          type = Map::TerrainSnow0;
-        }
-      }
-    }
-    // MID-SUMMER - a bit less snow on mountains than usual
-    if (season == 1 && subseason >= 3 && subseason <= 14){
-      if (type == Map::TerrainSnow0){    // a bit less snow on mountains
-        // do a partial change for one subseason
-        if ((subseason == 3 || subseason == 14) && (pos % 7 == 0 || pos % 11 == 0 || pos % 13 == 0 || pos % 17 == 0 || pos % 19 == 0)){  // sort of "is prime?"
-          // skip every other pos
-        }else{
-          type = Map::TerrainTundra2;
-        }  
-      }
-    }
-    //
-    // other times, normal amount
-    //
-
-    // SNOWSTORM!!!!!
-    //  need to add custom snow-on-buildings and trees for this to look acceptable
-    //if (season == 3 && type > Map::TerrainWater3){
-    //  type = Map::TerrainSnow0;
-    //}
-  }
+  // apply any hack-ish modifications from various game options
+  type = special_terrain_type(pos, Map::Terrain(type));
   
+  // handle new terrain types (for option_FogOfWar shroud)
+  int sprite = -1;
+
   int index = (type << 3) | tri_mask[mask];
   if (index >= 128) {
-    throw ExceptionFreeserf("Failed to draw triangle down (4).");
+    throw ExceptionFreeserf("Failed to draw triangle up (4).");
   }
 
-  int sprite = tri_spr[index];
+  // this array is used to get the map_ground sprite id for a given
+  //  Map::Terrain type (ex. TypeSnow0)  and luminosity level
+  // note that there are 15 terrain types but 33 terrain sprites
+  //  because all terrain types except water have varying luminosity
+  //int sprite = tri_spr[index];
+  sprite = tri_spr[index];
 
-  tile->draw_masked_sprite(lx, ly + MAP_TILE_HEIGHT,
-                            Data::AssetMapMaskDown, mask,
-                            Data::AssetMapGround, sprite);
+  // apply any hack-ish modifications from various game options
+  //sprite = special_terrain_sprite(pos, sprite);
+
+  bool darken = false;
+  if (option_FogOfWar){
+    //f (false){  // TEMP DISABLED
+    if (!map->is_revealed(pos,interface->get_player()->get_index())){ 
+      //sprite = -1;
+      //sprite = 200;
+      // this doesn't work... try just not drawing the sprite at all!
+      return;
+    }else if (!map->is_visible(pos, interface->get_player()->get_index())){
+      // SPECIAL CATCH TO SMOOTH THE EDGES OF THE TOP-LEFT 
+      //  AND DOWN-RIGHT EDGES OF FOW HEXAGON - DRAW A HALF TRIANGLE
+      //  AT THE EDGE BE CHECKING IF LAST POS WAS DARKENED!
+      //if (false){
+        // NEVERMIND, this works for the initial castle hexagon but breaks down
+        //  once more activity happens, not going to bother with it now
+      //if (map->is_visible(map->move_left(pos), interface->get_player()->get_index())
+      // && !map->is_visible(map->move_up(pos), interface->get_player()->get_index()) 
+      // && !map->is_visible(map->move_down(pos), interface->get_player()->get_index()) ){
+        // !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+        // skip this Down triangle only DO NOT COPY THIS TO draw_triangle_up!!!!
+        // !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+      //}else{
+        darken = true;
+      //}
+    }
+  }
+
+  tile->draw_masked_sprite(lx, ly + MAP_TILE_HEIGHT, Data::AssetMapMaskDown, mask, Data::AssetMapGround, sprite, darken);
 }
 
 /* Draw a column (vertical) of tiles, starting at an up pointing tile. */
@@ -365,13 +462,22 @@ Viewport::draw_down_tile_col(MapPos pos, int x_base, int y_base,
   }
 }
 
+// flush the entire landscape tile cache, 16x16 tiles
+//  will be redrawn and re-cached as they come into
+//  view of player Viewport?
 void
 Viewport::layout() {
+  Log::Debug["viewport.cc"] << "inside Viewport::layout(), flushing entire landscape_tiles cache";
   landscape_tiles.clear();
 }
 
+// flush a single tile, which is 16x16 block of MapPos triangle-pairs
+//  from the tile cache so it will be redrawn by get_tile_frame on next update
 void
 Viewport::redraw_map_pos(MapPos pos) {
+  // changing this to use new function
+  int tid = tile_id_from_map_pos(pos);
+  /*
   int mx, my;
   map_pix_from_map_coord(pos, map->get_height(pos), &mx, &my);
 
@@ -384,36 +490,156 @@ Viewport::redraw_map_pos(MapPos pos) {
   int tc = (mx / tile_width) % horiz_tiles;
   int tr = (my / tile_height) % vert_tiles;
   int tid = tc + horiz_tiles*tr;
-
+  */
   TilesMap::iterator it = landscape_tiles.find(tid);
   if (it != landscape_tiles.end()) {
     landscape_tiles.erase(tid);
   }
 }
 
+// return the MapPos of a get_tile_frame type
+//  coordinate set
+// I think that tc and tr are absolute coordinates that can
+//   directly translate to MapPos
+// NOTE - tid is *derived from* tc and tr, they are not separable
+//  and so the only reason to pass all three is for convient/performance?
+// THIS FUNCTION IS NOT YET USED!!! I created it thinking it would be 
+//  needed, but that was when I misunderstood how the 16x16 tile cache worked
+MapPos
+Viewport::map_pos_from_tile_frame_coord(int tc, int tr) {
+  int col = (tc*MAP_TILE_COLS + (tr*MAP_TILE_ROWS)/2) % map->get_cols();
+  int row = tr*MAP_TILE_ROWS;
+  MapPos pos = map->pos(col, row);
+  return pos;
+}
+
+// return the tile id # (tid) of the
+//  the 16x16 tile that contains the given MapPos
+//  (so it can be fetched from the landscape_tiles cache)
+unsigned int
+Viewport::tile_id_from_map_pos(MapPos pos) {
+  int mx, my;
+  map_pix_from_map_coord(pos, map->get_height(pos), &mx, &my);
+  int horiz_tiles = map->get_cols()/MAP_TILE_COLS;
+  int vert_tiles = map->get_rows()/MAP_TILE_ROWS;
+  int tile_width = MAP_TILE_COLS*MAP_TILE_WIDTH;
+  int tile_height = MAP_TILE_ROWS*MAP_TILE_HEIGHT;
+  int tc = (mx / tile_width) % horiz_tiles;
+  int tr = (my / tile_height) % vert_tiles;
+  int tid = tc + horiz_tiles*tr;
+  return tid;
+}
+
+// this is NOT refreshed constantly
+//  it is only loaded once at the start of a map, and again
+//  when certain popups are open/closed or any time
+//  viewport->set_size(width, height) is called, which is used
+//  as the "magic refresh" by the weather graphics
+// during normal game time, it simply returns the cached landscape_tiles item
+// it seems to load the tile cache in large chunks, I think if any tile is not
+//  found in cache it reloads the entire game-viewport-sized area that contains it
+
+//
+// IMPORTANT - a "tile" appears to be an entire 16x16 block of MapPos as defined
+//  by these defines at the top of viewport.cc.  This value NEVER CHANGES regardless
+//  of map size, screen resolution, window size, etc.  A frame tile is always a group
+//  of 16x16 MapPos, and I believe that thefixed cache works in these units also so it is
+//  not possible to load or flush a single fixedMapPos, only an entire 16x16 pos tile"
+//fixed
+// I HAD ALWAYS ASSUMED a "tile" as referenced in Viewport was a single MapPos
+//  representing pair of up/down equilateral triangles combined into a "skewed-square"
+//  parallelogram, where the actual MapPos coord is one of the triangle corners...
+//                      ____ 
+//    like this:   down \  /\
+//                       \/__\ up
+// 
+//                                ... BUT THIS IS NOT CORRECT!!!!!
+//
+// I wonder what effect changing from 16x16 would have?  It seems the original game
+//  has smaller than 16x16 MapPos shown at once in the low-res VGA mode.  It is nearly 
+//  certain that at any given time the viewport spans multiple tile blocks so I am
+//  thinking the tile size is just a cache unit size chosen for performance reasons
+//  as a middleground between refreshing every single MapPos individually and
+//  refreshing the entire map at once?  I think this is a common video game pattern
+//
+
+//#define MAP_TILE_WIDTH   32
+//#define MAP_TILE_HEIGHT  20
+//
+//#define MAP_TILE_TEXTURES  33
+//#define MAP_TILE_MASKS     81
+//
+///* Number of cols,rows in each landscape tile */
+//#define MAP_TILE_COLS  16                      <-- this
+//#define MAP_TILE_ROWS  16                      <-- this
+//
+
+
+// NOTE - tid is *derived from* tc and tr, they are not separable
+//  and so the only reason to pass all three is for convenience/performance?
 Frame *
 Viewport::get_tile_frame(unsigned int tid, int tc, int tr) {
+  //Log::Debug["viewport.cc"] << "start of Viewport::get_tile_frame()";
+
+  MapPos pos = map_pos_from_tile_frame_coord(tc, tr);
+
+/*
+  //
+  // to implement FogOfWar, create a second tile cache that shows the fogged
+  //  tiles, and choose which to use when returning each tile
+  //
+  Log::Debug["viewport.cc"] << "inside of Viewport::get_tile_frame(), got pos " << pos << " from_tile_frame_coord " << tc << "," << tr;
+  if (map->get_owner(pos) < 0){
+    // return from shrouded FoW cache
+    Log::Debug["viewport.cc"] << "inside of Viewport::get_tile_frame(), pos " << pos << " has no owner, using alternate tile cache";
+    return nullptr;  // FAIL TEST
+  }
+  */
+
+  //
+  // if the requested 16x16 tile is already cached, return the cached tile_frame
+  //
   TilesMap::iterator it = landscape_tiles.find(tid);
   if (it != landscape_tiles.end()) {
+    //Log::Debug["viewport.cc"] << "start of Viewport::get_tile_frame(), tid " << tid << " found in cache, returning from tile cache";
     return it->second.get();
   }
+
+  //
+  // otherwise (re-)load the cache for this entire 16x16 tile?
+  //
+  //Log::Debug["viewport.cc"] << "inside of Viewport::get_tile_frame(), tid " << tid << " not found in cache, INITALIZING CACHE FOR ENTIRE AREA AROUND TILE";
 
   int tile_width = MAP_TILE_COLS*MAP_TILE_WIDTH;
   int tile_height = MAP_TILE_ROWS*MAP_TILE_HEIGHT;
 
+  // create a new frame, fill with black pixels
   std::unique_ptr<Frame> tile_frame(
     Graphics::get_instance().create_frame(tile_width, tile_height));
   tile_frame->fill_rect(0, 0, tile_width, tile_height, Color::black);
 
-  int col = (tc*MAP_TILE_COLS + (tr*MAP_TILE_ROWS)/2) % map->get_cols();
-  int row = tr*MAP_TILE_ROWS;
-  MapPos pos = map->pos(col, row);
+/*
+  // TEST
+  // skip every other 16x16 tile, in a checkerboard pattern
+  if ((tr + tc) % 2 == 0){
+    //return tile_frame.get();
+    landscape_tiles[tid] = std::move(tile_frame);
+    return landscape_tiles[tid].get();
+  }
+  */
+
+
+  // no longer needed if map_pos_from_tile_frame_coord used to set MapPos pos earlier
+  //int col = (tc*MAP_TILE_COLS + (tr*MAP_TILE_ROWS)/2) % map->get_cols();
+  //int row = tr*MAP_TILE_ROWS;
+  //MapPos pos = map->pos(col, row);
 
   int x_base = -(MAP_TILE_WIDTH/2);
 
   /* Draw one extra column as half a column will be outside the
    map tile on both right and left side.. */
   for (int col = 0; col < MAP_TILE_COLS+1; col++) {
+    //Log::Debug["viewport.cc"] << "inside of Viewport::get_tile_frame(), loading tiles for col " << col << ", pos " << pos;
     draw_up_tile_col(pos, x_base, 0, tile_height, tile_frame.get());
     draw_down_tile_col(pos, x_base + MAP_TILE_WIDTH/2, 0, tile_height,
                        tile_frame.get());
@@ -436,10 +662,22 @@ Viewport::get_tile_frame(unsigned int tid, int tc, int tr) {
 
   }
 
-#if 0
+  //DEBUG
   /* Draw a border around the tile for debug. */
-  tile_frame->draw_rect(0, 0, tile_width, tile_height, Color(0xff, 0x00, 0x00));
-#endif
+  //
+  // this is confusing because while it shows the general concept of the tile frame
+  //  well, it is clear that any given 16x16 triangle-pairs are far from straight
+  //  because they can slope up/down for sometimes the entire length of the 16x16 tile!
+  // so the red borders I think don't actually show the exact area of the tile frame?
+  //  or, they overlap significantly to avoid gaps?"
+  // they DO show the exact area of the tile frame it seems, so then
+  //  it must be the case that there is significant overlap.  As a test, if I only draw
+  //  every other tile, there is no "bleed over" where a tile contains terrain
+  //  triangles outside of the rigid rectangle.  It seems like some modest performance
+  //  gain could be made by increasing the tile size to reduce the amount of duplicate
+  //  rendering?  experiment with that
+  //tile_frame->draw_rect(0, 0, tile_width, tile_height, Color(0xff, 0x00, 0x00));
+  //END DEBUG
 
   Log::Verbose["viewport"] << "map: " << map->get_cols()*MAP_TILE_WIDTH << ","
                            << map->get_rows()*MAP_TILE_HEIGHT << ", cols,rows: "
@@ -454,6 +692,7 @@ Viewport::get_tile_frame(unsigned int tid, int tc, int tr) {
 
 void
 Viewport::draw_landscape() {
+  //Log::Debug["viewport.cc"] << "start of Viewport::draw_landscape()";
 
   int horiz_tiles = map->get_cols()/MAP_TILE_COLS;
   int vert_tiles = map->get_rows()/MAP_TILE_ROWS;
@@ -484,6 +723,9 @@ Viewport::draw_landscape() {
       int tr = (my / tile_height) % vert_tiles;
       int tid = tc + horiz_tiles*tr;
 
+      // fetch the 16x16 tile_frame
+      //  from the landscape_tiles cache, or
+      //  if not found draw it and cache it
       Frame *tile_frame = get_tile_frame(tid, tc, tr);
 
       int w = tile_width - tx;
@@ -632,7 +874,9 @@ Viewport::draw_border_segment(int lx, int ly, MapPos pos, Direction dir) {
     sprite += 3;
   }
 
-  frame->draw_sprite(lx, ly, Data::AssetMapBorder, sprite, false);
+  //frame->draw_sprite(lx, ly, Data::AssetMapBorder, sprite, false);
+  // avoid needing overloaded funtions, false is default anyway just omit it
+  frame->draw_sprite(lx, ly, Data::AssetMapBorder, sprite);
 }
 
 MapPos
@@ -665,6 +909,7 @@ Viewport::draw_paths_and_borders() {
   for (int x_base = x_off; x_base < width + MAP_TILE_WIDTH;
        x_base += MAP_TILE_WIDTH) {
     MapPos pos = base_pos;
+
     int y_base = y_off;
     int row = 0;
 
@@ -679,16 +924,23 @@ Viewport::draw_paths_and_borders() {
       int ly = y_base - 4* map->get_height(pos);
       if (ly >= height) break;
 
-      /* For each direction right, down right and down,
-         draw the corresponding paths and borders. */
-      for (Direction d : cycle_directions_cw(DirectionRight, 3)) {
-        MapPos other_pos = map->move(pos, d);
+      // option_FogOfWar
+      //   do not draw paths/borders outside of shroud/FoW
+      if (option_FogOfWar && !map->is_visible(pos, interface->get_player()->get_index())){
+        // don't draw
+      }else{
+        // draw
 
-        if (map->has_path(pos, d)) {
-          draw_path_segment(lx, y_base, pos, d);
-        } else if (map->has_owner(pos) != map->has_owner(other_pos) ||
-                   map->get_owner(pos) != map->get_owner(other_pos)) {
-          draw_border_segment(lx, y_base, pos, d);
+        /* For each direction right, down right and down,
+          draw the corresponding paths and borders. */
+        for (Direction d : cycle_directions_cw(DirectionRight, 3)) {
+          MapPos other_pos = map->move(pos, d);
+          if (map->has_path(pos, d)) {
+            draw_path_segment(lx, y_base, pos, d);
+          } else if (map->has_owner(pos) != map->has_owner(other_pos) ||
+                    map->get_owner(pos) != map->get_owner(other_pos)) {
+            draw_border_segment(lx, y_base, pos, d);
+          }
         }
       }
 #if 0
@@ -741,29 +993,57 @@ Viewport::draw_paths_and_borders() {
 
 void
 Viewport::draw_game_sprite(int lx, int ly, int index) {
-  frame->draw_sprite(lx, ly, Data::AssetGameObject, index-1, true);
+  //frame->draw_sprite(lx, ly, Data::AssetGameObject, index-1, true);
+  // to avoid needing overloaded functions, just specify the defaults for other values
+  frame->draw_sprite(lx, ly, Data::AssetGameObject, index-1, true, Color::transparent, 1.f);
 }
 
 void
 Viewport::draw_serf(int lx, int ly, const Color &color, int head, int body) {
-  frame->draw_sprite(lx, ly, Data::AssetSerfTorso, body, true, color);
-
+  // this is the actual serf_torso sprite # for the torso/body (and possibly head if all-in-one)
+  //frame->draw_sprite(lx, ly, Data::AssetSerfTorso, body, true, color);
+  frame->draw_sprite(lx, ly, Data::AssetSerfTorso, body, true, color, 1.f);
+  //Log::Debug["viewport.cc"] << "inside Viewport::draw_serf, body/base = " << body << ", head = " << head;
+  // if serf has a separate head (some torso sprites include head, such as active working serfs, draw it
   if (head >= 0) {
-    frame->draw_sprite_relatively(lx, ly, Data::AssetSerfHead, head,
-                                  Data::AssetSerfTorso, body);
+    frame->draw_sprite_relatively(lx, ly, Data::AssetSerfHead, head, Data::AssetSerfTorso, body);
   }
 }
 
+// this says shadow and building but it seems to include ANY map object sprite that has a shadow
+//  such as trees, stones, junk objects?
 void
-Viewport::draw_shadow_and_building_sprite(int lx, int ly, int index,
-                                          const Color &color) {
-  // this says shadow and building but it seems to include ANY map object sprite such as trees, stones
+Viewport::draw_shadow_and_building_sprite(int lx, int ly, int index, const Color &color) {
+  
   //Log::Info["viewport"] << "inside Viewport::draw_shadow_and_building_sprite for sprite index " << index;
-  frame->draw_sprite(lx, ly, Data::AssetMapShadow, index, true);  // call Frame::draw_sprite#3
-  frame->draw_sprite(lx, ly, Data::AssetMapObject, index, true, color);  // call Frame::draw_sprite#5
+  //frame->draw_sprite(lx, ly, Data::AssetMapShadow, index, true);  // call Frame::draw_sprite#3
+  frame->draw_sprite(lx, ly, Data::AssetMapShadow, index, true, Color::transparent, 1.f);
+  //frame->draw_sprite(lx, ly, Data::AssetMapObject, index, true, color);  // call Frame::draw_sprite#5
+  frame->draw_sprite(lx, ly, Data::AssetMapObject, index, true, color, 1.f);  // call Frame::draw_sprite#5
 }
 
-// new function to try messing with weather/seasons/palette
+/*
+// to try showing a "rubble" building with option_AdvancedDemolition
+void
+Viewport::draw_shadow_and_custom_building_sprite(int lx, int ly, int index, const Color &color) {
+  // this says shadow and building but it seems to include ANY map object sprite such as trees, stones
+  Log::Info["viewport"] << "inside Viewport::draw_shadow_and_custom_building_sprite for sprite index " << index;
+  //frame->draw_sprite(lx, ly, Data::AssetMapShadow, index, true);  // call Frame::draw_sprite#3
+  // draw the shadow closer so it seems smaller
+  //frame->draw_sprite(lx -2, ly, Data::AssetMapShadow, index, true);  // call Frame::draw_sprite#3
+  // don't draw a shadow
+  
+  // force to rubble image 500
+  index = 500;
+  //frame->draw_sprite(lx, ly, Data::AssetMapObject, index, true, color);  // call Frame::draw_sprite#5
+  frame->draw_sprite_special2(lx, ly, Data::AssetMapObject, index, true, color, bad_map_pos, Map::ObjectNone);
+}
+*/
+
+// this function only exists as a hack to work around the fact that custom PNG shadow transparency
+//  doesn't seem to be working right, needs more investigation
+// ALSO THE ORIGINAL TREE SHADOWS are dynamically animated, they move like the tree does!  
+//  AND THESE CUSTOM TREE SHADOWS ARE STATIC, THIS NEEDS TO BE FIXED!!
 void
 Viewport::draw_map_sprite_special(int lx, int ly, int index, unsigned int pos, unsigned int obj, const Color &color) {
   // this is only used by draw_map_objects_row, added passing of pos and object type to support sprite replacement
@@ -780,18 +1060,20 @@ Viewport::draw_map_sprite_special(int lx, int ly, int index, unsigned int pos, u
   //   test for the existence of the custom data source here.  It might be easy, but this seems like an edge case.  Better to 
   //   simply force disable FourSeasons if the custom tree sprites are missing, OR allow a version that changes the terrain only
   //   to still allow AdvancedFarming?
-  if (index >= 220 && index <= 223){
+  if (index >= 1220 && index <= 1223){
     // use "full" deciduous tree shadow for SPRING Tree2 (the white flowered tree)
-    frame->draw_sprite(lx, ly, Data::AssetMapShadow, 0, true);  // call Frame::draw_sprite#3  
-  }else if (index >= 400 && index <= 499){
+    //frame->draw_sprite(lx, ly, Data::AssetMapShadow, 0, true);  // call Frame::draw_sprite#3  
+    frame->draw_sprite(lx, ly, Data::AssetMapShadow, 0, true, Color::transparent, 1.f);  // call Frame::draw_sprite#3  
+  }else if (index >= 1400 && index <= 1499){
     // FALL trees all have full shadows
-    frame->draw_sprite(lx, ly, Data::AssetMapShadow, 0, true);  // call Frame::draw_sprite#3  
+    frame->draw_sprite(lx, ly, Data::AssetMapShadow, 0, true, Color::transparent, 1.f);  // call Frame::draw_sprite#3  
   }else{
     // use "bare" tree shadow from dead tree index 084 for WINTER and most of FALL
-    frame->draw_sprite(lx, ly, Data::AssetMapShadow, 84, true);  // call Frame::draw_sprite#3  
+    frame->draw_sprite(lx, ly, Data::AssetMapShadow, 84, true, Color::transparent, 1.f);  // call Frame::draw_sprite#3  
   }
 
-  frame->draw_sprite_special2(lx, ly, Data::AssetMapObject, index, true, color, pos, obj);  // call Frame::draw_sprite#5
+  //frame->draw_sprite_special2(lx, ly, Data::AssetMapObject, index, true, color, pos, obj);  // call Frame::draw_sprite#5
+  frame->draw_sprite(lx, ly, Data::AssetMapObject, index, true, color); // pos and obj only needed for debugging
 }
 
 
@@ -800,8 +1082,8 @@ Viewport::draw_shadow_and_building_unfinished(int lx, int ly, int index,
                                               int progress) {
   //Log::Info["viewport"] << "inside Viewport::draw_shadow_and_building_unfinished for sprite index " << index;
   float p = static_cast<float>(progress) / static_cast<float>(0xFFFF);
-  frame->draw_sprite(lx, ly, Data::AssetMapShadow, index, true, p);
-  frame->draw_sprite(lx, ly, Data::AssetMapObject, index, true, p);
+  frame->draw_sprite(lx, ly, Data::AssetMapShadow, index, true, Color::transparent, p);
+  frame->draw_sprite(lx, ly, Data::AssetMapObject, index, true, Color::transparent, p);
 }
 
 static const int map_building_frame_sprite[] = {
@@ -847,7 +1129,18 @@ Viewport::draw_building_unfinished(Building *building, Building::Type bld_type,
 
 void
 Viewport::draw_ocupation_flag(Building *building, int lx, int ly, float mul) {
+  // building->has_knight() doesn't actually check if the holder is a knight type!
   if (building->has_knight()) {
+    //  to avoid drawing the occupation_flag for the demo serf entering building to demo
+    //  must check serf type
+    //Serf *holder_serf = interface->get_game->get_serf(building->get_holder_or_first_knight());
+    // wait... instead just check to see if it was marked for demo, that's simpler
+    /* disabling this as knights are now NOT immediately evicted
+    if (building->is_pending_demolition()){
+      // don't draw the occupation_flag
+      return;
+    }
+    */
     draw_game_sprite(lx, ly -
                      static_cast<int>(mul * building->get_knight_count()),
                      182 + ((interface->get_game()->get_tick() >> 3) & 3) +
@@ -1355,6 +1648,13 @@ Viewport::draw_water_waves_row(MapPos pos, int y_base, int cols,
     if (map->type_up(pos) <= Map::TerrainWater3 ||
         map->type_down(pos) <= Map::TerrainWater3) {
       /*player->water_in_view += 1;*/
+
+      // option_FogOfWar
+      //   do not draw waves outside of shroud/FoW
+      if (option_FogOfWar && !map->is_visible(pos, interface->get_player()->get_index())){
+        continue;
+      }
+
       draw_water_waves(pos, x_base, y_base);
     }
   }
@@ -1426,7 +1726,19 @@ Viewport::draw_map_objects_row(MapPos pos, int y_base, int cols, int x_base, int
   //Log::Debug["viewport.cc"] << "inside draw_map_objects, pos " << pos << ", map height: " << height << ", ly: " << ly << ", center_y: " << center_y << ", top: " << topmost_focus_y << ", bottom: " << lowest_focus_y;
   for (int i = 0; i < cols;
        i++, x_base += MAP_TILE_WIDTH, pos = map->move_right(pos)) {
-    if (map->get_obj(pos) == Map::ObjectNone) continue;  // comment this out if trying to draw red dot overlay to show focus area
+
+    if (map->get_obj(pos) == Map::ObjectNone){continue;}  // comment this out if trying to draw red dot overlay to show focus area
+
+    // option_FogOfWar
+    //   do not draw objects outside of shroud/FoW
+    if ( option_FogOfWar && !map->is_visible(pos, interface->get_player()->get_index()) ){
+      // EXCEPT - always draw any Castle that has been revealed, even if it is not currently visible
+      if ( map->get_obj(pos) != Map::ObjectCastle && map->is_revealed(pos, interface->get_player()->get_index()) ){
+        // draw as usual, do not continue
+      }
+      continue;
+    }
+
     int ly = y_base - 4 * map->get_height(pos);
     bool in_ambient_focus = false;
     if (i >= leftmost_focus_col && i <= rightmost_focus_col && ly >= topmost_focus_y && ly <= lowest_focus_y){
@@ -1502,10 +1814,10 @@ Viewport::draw_map_objects_row(MapPos pos, int y_base, int cols, int x_base, int
         //  animation frames for each is unlimited.  For now I have used a numbering system that limits 
         //  frame count to <=9 but the numbering system could be changed to allow any number of frames per tree type.  
         //
-        // #.. is season_offset (NOT same as 'season' because they are out of order, offset are
-        //    Spring = 200, Summer = 000 (none), Fall = 400, Winter = 300
-        // .#. is Tree#, 0-3 for some, 0-7 for others
-        // ..# is Frame#, 0-3 for some, 0-7 for others
+        // #... is season_sprite_offset (NOT same as 'season' because they are out of order, offset are
+        //          Spring = 1200, Summer = 000 (none), Fall = 1400, Winter = 1300
+        // ..#. is tree#, 0-3 for some, 0-7 for others
+        // ...# is frame#, 0-3 for some, 0-7 for others
         // so for example, Fall Tree#5 with 8 frames of animation is index 450 through 457
 
         int tree = 10*sprite;
@@ -1555,12 +1867,12 @@ Viewport::draw_map_objects_row(MapPos pos, int y_base, int cols, int x_base, int
               }else if (subseason*10 > tree){
                 // use early-spring coloration for this Tree#
                 frame = (sprite & ~7) + (slow_tree_anim & 3);  // spring trees have 8 types, two sets per type, each with 4 frames of animation
-                sprite = season_offset[season] + tree + frame;
+                sprite = season_sprite_offset[season] + tree + frame;
                 use_custom_set = true;
               }else{
                 // use previous (winter) coloration for this Tree#.  It is important that the Tree#s are synced between winter & spring because the trunks need to match!!
                 frame = (sprite & ~7) + (slow_tree_anim & 3);  // winter trees have 8 types, each with 4 frames of animation
-                sprite = season_offset[3] + tree + frame;
+                sprite = season_sprite_offset[3] + tree + frame;
                 use_custom_set = true;
               }
               break;
@@ -1574,12 +1886,12 @@ Viewport::draw_map_objects_row(MapPos pos, int y_base, int cols, int x_base, int
               if (subseason*10 > tree + 80){
                 // use second fall color
                 tree = fall_2nd_colors[tree/10];
-                sprite = season_offset[season] + tree + frame;
+                sprite = season_sprite_offset[season] + tree + frame;
                 use_custom_set = true;
               }else if (subseason*10 > tree){  // if subseason is 0, no tree changes yet
                 // use first fall color
                 tree = fall_1st_colors[tree/10];
-                sprite = season_offset[season] + tree + frame;
+                sprite = season_sprite_offset[season] + tree + frame;
                 use_custom_set = true;
               }else{
                 // continue using normal/summer green for this Tree#, no custom_set
@@ -1591,12 +1903,12 @@ Viewport::draw_map_objects_row(MapPos pos, int y_base, int cols, int x_base, int
               if (subseason*10 > tree){  // if subseason is 0, no tree changes yet.  trees all lose leaves in first half of 16 subseasons
                 // use winter coloration for this Tree#
                 frame = (sprite & ~7) + (slow_tree_anim & 3);  // winter trees have 8 types, each with 4 frames of animation
-                sprite = season_offset[season] + tree + frame;
+                sprite = season_sprite_offset[season] + tree + frame;
               }else{
                 // use previous (fall 2nd set) coloration for this Tree#.  Because the fall trunks are not visible, it doesn't matter if the tree#s are swapped here
                 tree = fall_2nd_colors[tree/10];
                 frame = (sprite & ~7) + (tree_anim & 7);  // fall trees have 8 types, each with 8 frames of animation
-                sprite = season_offset[2] + tree + frame;
+                sprite = season_sprite_offset[2] + tree + frame;
               }
               use_custom_set = true;  // winter always uses custom_set, for winter and fall trees shown
               break;
@@ -1694,7 +2006,7 @@ Viewport::draw_row_serf(int lx, int ly, bool shadow, const Color &color,
     352, 591, 401, 594, 352, 597, 401, 618,
     352, 621, 401, 624, 352, 627, 450, -1,
     192, -1
-  };
+  };  // there are 274 items in this array
 
   const int index2[] = {
     0, 0, 1, 0, 2, 0, 3, 0,
@@ -1734,11 +2046,12 @@ Viewport::draw_row_serf(int lx, int ly, bool shadow, const Color &color,
     56, 0, 57, 0, 58, 0, 59, 0,
     60, 0, 61, 0, 62, 0, 63, 0,
     64, 0
-  };
+  };  // there are 290 items in this array
 
   /* Shadow */
   if (shadow) {
-    frame->draw_sprite(lx, ly, Data::AssetSerfShadow, 0, true);
+    //frame->draw_sprite(lx, ly, Data::AssetSerfShadow, 0, true);
+    frame->draw_sprite(lx, ly, Data::AssetSerfShadow, 0, true, Color::transparent, 1.f);
   }
 
   int hi = ((body >> 8) & 0xff) * 2;
@@ -1746,13 +2059,20 @@ Viewport::draw_row_serf(int lx, int ly, bool shadow, const Color &color,
 
   int base = index1[hi];
   int head = index1[hi+1];
+  //Log::Debug["viewport.cc"] << "inside Viewport::draw_row_serfA, body = " << body << ", head = " << head << ", lo = " << lo << ", hi = " << hi << ", base = " << base;
 
+  // if serf has a separate head (some torso sprites include head, such as active working serfs, look it up
   if (head < 0) {
+    // for "torso only" sprites where head is already included in the torso sprite
+    //  for animations that only one serf type can do (ex. digging, building, harvesting, fishing)
     base += index2[lo];
   } else {
+    // for sprites with separate torso + head (for animations that any serf type can do (ex. walking, carrying)
     base += index2[lo];
     head += index2[lo+1];
   }
+
+  //Log::Debug["viewport.cc"] << "inside Viewport::draw_row_serfB, body = " << body << ", head = " << head << ", lo = " << lo << ", hi = " << hi << ", base = " << base;
 
   draw_serf(lx, ly, color, head, base);
 }
@@ -1793,9 +2113,10 @@ Viewport::serf_get_body(Serf *serf) {
     0x7600, 0x5f00, 0x6000, 0, 0, 0, 0, 0, 0, 0
   };
 
-  Data::Animation animation = data_source->get_animation(serf->get_animation(),
-                                                         serf->get_counter());
-  int t = animation.sprite;
+  Data::Animation animation = data_source->get_animation(serf->get_animation(), serf->get_counter());
+  int t = animation.sprite;  // it seems that the sprite values show in the animation table in FSStudio may be
+                             //  adjusted and are not always literally mapped to the serf_torso sprite # you might expect!
+                             //  The 't' value here is the serf_torso base/body
 
   switch (serf->get_type()) {
   case Serf::TypeTransporter:
@@ -1886,6 +2207,10 @@ Viewport::serf_get_body(Serf *serf) {
       serf->stop_playing_sfx();
       t += 0x380;
     }
+    // note - the 'base' aka 'torso' number for the Digger doing actual digging
+    //  is 1024 through 1031, which are mapped in hi/lo/index1 to become serf_torso sprites #240-247
+    //  and the animation is animation #87 though it doesn't seem to be the right number of steps
+    //  I wonder if the animation # is also offset somewhere and it isn't truly animiation#87 frames
     break;
   case Serf::TypeBuilder:
     if (t < 0x80) {
@@ -2489,6 +2814,7 @@ Viewport::draw_active_serf(Serf *serf, MapPos pos, int x_base, int y_base) {
       //
       // **** draw any normal serf as usual ****
       //
+      //
       draw_row_serf(lx, ly, true, color, body);
     }
 
@@ -2653,7 +2979,8 @@ Viewport::draw_active_serf(Serf *serf, MapPos pos, int x_base, int y_base) {
    Note that idle serfs do not have their serf_t object linked from the map
    so they are drawn seperately from active serfs. */
 void
-Viewport::draw_serf_row(MapPos pos, int y_base, int cols, int x_base) {
+Viewport::
+draw_serf_row(MapPos pos, int y_base, int cols, int x_base) {
   const int arr_1[] = {
     0x240, 0x40, 0x380, 0x140, 0x300, 0x80, 0x180, 0x200,
     0, 0x340, 0x280, 0x100, 0x1c0, 0x2c0, 0x3c0, 0xc0
@@ -2700,21 +3027,78 @@ Viewport::draw_serf_row(MapPos pos, int y_base, int cols, int x_base) {
     }
 #endif
 
+    // option_FogOfWar
+    //   do not draw serfs outside of shroud/FoW
+    if (option_FogOfWar && !map->is_visible(pos, interface->get_player()->get_index())){
+      continue;
+    }
+
     /* Active serf */
     if (map->has_serf(pos)) {
+
       Serf *serf = interface->get_game()->get_serf_at_pos(pos);
 
-      if (serf->get_state() != Serf::StateMining ||
-          (serf->get_mining_substate() != 3 &&
-           serf->get_mining_substate() != 4 &&
-           serf->get_mining_substate() != 9 &&
-           serf->get_mining_substate() != 10)) {
-            draw_active_serf(serf, pos, x_base, y_base);
-         }
-    }
+/* removing AdvancedDemolition for now, see https://github.com/forkserf/forkserf/issues/180
+        // for option_AdvancedDemolition
+        //  a demolishing serf must be drawn one pos down-right
+        //  of his indicated pos so he can stand outside the
+        //  burning building without holding & blocking the flag pos
+      if (serf->get_state() == Serf::StateExitBuildingForDemolition){
+        // draw demo serf down-right one pos from building (i.e. flag pos)
+        Log::Info["viewport.cc"] << "inside Viewport::draw_row_serf, option_AdvancedDemolition related, serf in state StateExitBuildingForDemolition is being drawn one pos down-right";
+        draw_active_serf(serf, map->move_down_right(pos), x_base + MAP_TILE_WIDTH / 2, y_base + MAP_TILE_HEIGHT);
+        //draw_active_serf(serf, pos, x_base + MAP_TILE_WIDTH / 2, y_base + MAP_TILE_HEIGHT);
+      }else{
+        */
+        // handle exceptions to normal serf drawing
+        if (serf->get_state() == Serf::StateMining &&
+          (serf->get_mining_substate() == 3 ||
+           serf->get_mining_substate() == 4 ||
+           serf->get_mining_substate() == 9 ||
+           serf->get_mining_substate() == 10)) {
+          //  this is "any serf that is not walking to his mine elevator"
+          //   because that is drawn in draw_serf_row_behind instead of here
+          //do nothing, skip this serf
+
+        /* removing AdvancedDemolition for now, see https://github.com/forkserf/forkserf/issues/180
+        } else if (serf->get_state() == Serf::StateCleaningRubble){
+          // for option_AdvancedDemolition
+          //  to make a "burned building rubble" sprite appear
+          //  without having to define a new MapObject, simply draw the building sprite
+          //  any time a serf is in StateCleaningRubble
+          Log::Info["viewport.cc"] << "inside Viewport::draw_row_serf, option_AdvancedDemolition related, serf in state StateCleaningRubble, drawing rubble behind the serf";
+          //draw_shadow_and_custom_building_sprite(lx, ly, 500,0,0);
+          // try directly drawing it
+          //  this is such a hack, instead at least try drawing it inside draw_map_objects_row and testing for demo/digger serf there
+          //  I have no idea why the y_base offset needs to be 2.5x map height, I just messed with it until it fit
+          //   it is likely that when building height changes it won't line up anymore, yet another reason to do this inside draw_map_object_row
+
+          //frame->draw_sprite_special2(x_base, y_base - MAP_TILE_HEIGHT * 2.5, Data::AssetMapObject, 500, true, Color::transparent, bad_map_pos, Map::ObjectNone);
+          frame->draw_sprite(x_base, y_base - MAP_TILE_HEIGHT * 2.5, Data::AssetMapObject, 500, true, Color::transparent);
+          if (serf->get_animation() == 87 ) {
+            // for option_AdvancedDemolition, shift the x_base to show the
+            //  serf moving sideways as he digs.  In the original Digger animation
+            //  the serf moves to a real MapPos and digs in the center of it, so
+            //  no base shifting is required, but with this special state the 
+            //  digging animation frames are re-used but the serf must stay in the
+            //  former-building-site's pos
+            // NOTE the if animation==87 check, it only offsets the serf while in the digging
+            //  animation #87 state, not when he switches to #4 walking-right at the end
+            // move four pixels left every dig
+
+            int x_dig_offset = serf->get_digging_substate() * 4;
+            draw_active_serf(serf, pos, x_base - x_dig_offset, y_base);
+          }*/
+        } else {
+          // draw normal active serf
+          draw_active_serf(serf, pos, x_base, y_base);
+        }
+      }
+    // }  /* removing AdvancedDemolition for now, see https://github.com/forkserf/forkserf/issues/180 */
 
     /* Idle serf */
     if (map->get_idle_serf(pos)) {
+      //Log::Debug["viewport.cc"] << "inside Viewport::draw_row_serf, and idle serf is at pos " << pos;
       int lx, ly, body;
       if (map->is_in_water(pos)) { /* Sailor */
         lx = x_base;
@@ -2732,7 +3116,7 @@ Viewport::draw_serf_row(MapPos pos, int y_base, int cols, int x_base) {
       //  which is "nobody".  Not sure of cause, thinking I could just have
       //  get_color return black as default??
       // actually, for now just don't draw this serf it pos has owner of -1
-      if (map->get_owner(pos) == -1){
+      if (!map->has_owner(pos)) {
         Log::Warn["viewport"] << "got owner nobody / -1 for pos " << pos << " inside draw_row_serf call, not drawing this serf to avoid crash on get_color";
       }else{
         Color color = interface->get_player_color(map->get_owner(pos));
@@ -2744,10 +3128,21 @@ Viewport::draw_serf_row(MapPos pos, int y_base, int cols, int x_base) {
 
 /* Draw serfs that should appear behind the building at their
    current position. */
+// it appears that ONLY mining serfs walking to their mine elevator
+//  are drawn here, nothing else
+// the other serfs-working-in-buildings are drawn as building sprites
+//  and not serf_torso sprites
 void
 Viewport::draw_serf_row_behind(MapPos pos, int y_base, int cols, int x_base) {
   for (int i = 0; i < cols;
        i++, x_base += MAP_TILE_WIDTH, pos = map->move_right(pos)) {
+
+    // option_FogOfWar
+    //   do not draw serfs outside of shroud/FoW
+    if (option_FogOfWar && !map->is_visible(pos, interface->get_player()->get_index())){
+      continue;
+    }
+
     /* Active serf */
     if (map->has_serf(pos)) {
       Serf *serf = interface->get_game()->get_serf_at_pos(pos);
@@ -3012,25 +3407,6 @@ Viewport::draw_map_cursor_possible_build() {
   }
 }
 
-// got crash & heap dump once here on linux, though I don't usually leave AI overlay on
-// during long running testing, this was a 4xAI 40 game speed test
-/*
-*** Error in `./Forkserf': double free or corruption (fasttop): 0x00007f5094034e50 ***
-======= Backtrace: =========
-/lib64/libc.so.6(+0x81609)[0x7f510ce38609]
-./Forkserf(_ZN8Viewport15draw_ai_overlayEv+0xd73)[0x4b2183]
-./Forkserf(_ZN8Viewport13internal_drawEv+0x90)[0x4b2dc0]
-./Forkserf(_ZN9GuiObject4drawEP5Frame+0x131)[0x4c8131]
-./Forkserf(_ZN9Interface12handle_eventEPK5Event+0x40)[0x4c27e0]
-./Forkserf(_ZN9EventLoop15notify_handlersEP5Event+0xb2)[0x5e2b22]
-./Forkserf(_ZN9EventLoop11notify_drawEP5Frame+0x21)[0x5e2d31]
-./Forkserf(_ZN12EventLoopSDL3runEv+0x8aa)[0x5e624a]
-./Forkserf(main+0xaf4)[0x441324]
-/lib64/libc.so.6(__libc_start_main+0xf5)[0x7f510cdd9495]
-./Forkserf[0x482f3f]
-*/
-
-
 void
 Viewport::draw_ai_overlay() {
   int x_off = 0;
@@ -3046,7 +3422,7 @@ Viewport::draw_ai_overlay() {
   // got exception here for first time jan04 2022
   ColorDotMap ai_mark_pos = *(ai->get_ai_mark_pos());
   Road *ai_mark_road = ai->get_ai_mark_road();
-  Log::Debug["viewport"] << "Player" << current_player_index << " ai_mark_road has length " << ai_mark_road->get_length();
+  //Log::Debug["viewport"] << "Player" << current_player_index << " ai_mark_road has length " << ai_mark_road->get_length();
 
   for (int x_base = x_off; x_base < width + MAP_TILE_WIDTH;
     x_base += MAP_TILE_WIDTH) {
@@ -3756,52 +4132,58 @@ Viewport::handle_dbl_click(int lx, int ly, Event::Button button) {
         player->temp_index = map->get_obj_index(clk_pos);
       } else { /* Foreign building */
         /* TODO handle coop mode*/
-        player->building_attacked = building->get_index();
 
-        if (building->is_done() &&
-            building->is_military()) {
-          if (!building->is_active() ||
-              building->get_threat_level() != 3) {
-            /* It is not allowed to attack
-               if currently not occupied or
-               is too far from the border. */
-            play_sound(Audio::TypeSfxNotAccepted);
-            return false;
-          }
+        // handle option_FogOfWar
+        if (option_FogOfWar && !map->is_visible(clk_pos, player->get_index())){
+          Log::Debug["viewport.cc"] << "inside Viewport::handle_dbl_click(), enemy building double-clicked on is not currently visible to this player, not opening popup";
+        }else{
+          player->building_attacked = building->get_index();
 
-          int found = 0;
-          for (int i = 257; i >= 0; i--) {
-            MapPos pos = map->pos_add_spirally(building->get_position(),
-                                                       7+257-i);
-            if (map->has_owner(pos)
-                && map->get_owner(pos) == player->get_index()) {
-              found = 1;
-              break;
+          if (building->is_done() &&
+              building->is_military()) {
+            if (!building->is_active() ||
+                building->get_threat_level() != 3) {
+              /* It is not allowed to attack
+                if currently not occupied or
+                is too far from the border. */
+              play_sound(Audio::TypeSfxNotAccepted);
+              return false;
             }
+
+            int found = 0;
+            for (int i = 257; i >= 0; i--) {
+              MapPos pos = map->pos_add_spirally(building->get_position(),
+                                                        7+257-i);
+              if (map->has_owner(pos)
+                  && map->get_owner(pos) == player->get_index()) {
+                found = 1;
+                break;
+              }
+            }
+
+            if (!found) {
+              play_sound(Audio::TypeSfxNotAccepted);
+              return false;
+            }
+
+            /* Action accepted */
+            play_sound(Audio::TypeSfxClick);
+
+            int max_knights = 0;
+            switch (building->get_type()) {
+              case Building::TypeHut: max_knights = 3; break;
+              case Building::TypeTower: max_knights = 6; break;
+              case Building::TypeFortress: max_knights = 12; break;
+              case Building::TypeCastle: max_knights = 20; break;
+              default: NOT_REACHED(); break;
+            }
+
+            int knights =
+                  player->knights_available_for_attack(building->get_position());
+            player->knights_attacking = std::min(knights, max_knights);
+            interface->open_popup(PopupBox::TypeStartAttack);
           }
-
-          if (!found) {
-            play_sound(Audio::TypeSfxNotAccepted);
-            return false;
-          }
-
-          /* Action accepted */
-          play_sound(Audio::TypeSfxClick);
-
-          int max_knights = 0;
-          switch (building->get_type()) {
-            case Building::TypeHut: max_knights = 3; break;
-            case Building::TypeTower: max_knights = 6; break;
-            case Building::TypeFortress: max_knights = 12; break;
-            case Building::TypeCastle: max_knights = 20; break;
-            default: NOT_REACHED(); break;
-          }
-
-          int knights =
-                 player->knights_available_for_attack(building->get_position());
-          player->knights_attacking = std::min(knights, max_knights);
-          interface->open_popup(PopupBox::TypeStartAttack);
-        }
+        } // if option_FogOfWar and not visible
       }
     }
   }

@@ -75,7 +75,15 @@ AudioSDL::AudioSDL() {
     throw ExceptionSDLmixer("Could not init SDL_mixer");
   }
 
-  r = Mix_OpenAudio(44100, MIX_DEFAULT_FORMAT, MIX_DEFAULT_CHANNELS, 512);
+  // this crashes randomly, very often, on startup on Linux for me
+  //  can't figure out why, tried a try/catch block but that
+  //  doesn't prevent it from causing a crash.  will try updating my
+  //  pulseaudio version
+  //try {
+      r = Mix_OpenAudio(44100, MIX_DEFAULT_FORMAT, MIX_DEFAULT_CHANNELS, 512);
+  //} catch (...) {
+  //  throw ExceptionSDLmixer("inside AudioSDL::AudioSDL() constructor, Mix_OpenAudio call failed");
+  //}
   if (r < 0) {
     throw ExceptionSDLmixer("Could not open audio device");
   }

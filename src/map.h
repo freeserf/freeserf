@@ -26,6 +26,7 @@
 #include <memory>
 #include <utility>
 #include <vector>
+#include <bitset>   // TEMP DEBUG, only for printing binary representation of integers
 
 #include "src/map-geometry.h"
 #include "src/misc.h"
@@ -227,6 +228,12 @@ class Map {
     TerrainTundra2,
     TerrainSnow0,  // 14
     TerrainSnow1
+    //TerrainShroud,  // 16  // for option_FogOfWar
+    //TerrainWaterFog,       // for option_FogOfWar   // THERE IS NO DARK WATER TILE, WHAT TO DO?
+    //TerrainGrassFog,       // for option_FogOfWar
+    //TerrainDesertFog,      // for option_FogOfWar
+    //TerrainTundraFog, //20 // for option_FogOfWar
+    //TerrainSnowFog         // for option_FogOfWar
   } Terrain;
 
   class Handler {
@@ -278,7 +285,30 @@ class Map {
  protected:
   typedef struct GameTile {
     unsigned int serf;
-    unsigned int owner;
+    unsigned int owner;  // I believe this is only used to store values -1 (i.e. INTEGER_MAX) for unowned, or 0-3 for Player0 through Player3.
+                         //   Hijacking higher values for option_FogOfWar for various FoW reveal states
+                         // NOTE the *actual* in-memory values of game_tile[#].owner are 0-4 (unowned through Player3) but they
+                         //  are "minus one" when the getter and setter are used, so they fake being values -1 through 3
+                         //  so to avoid stepping on this, skip the 3rd-least-significant bit when it comes to bit-testing for FogOfWar "owner"
+                         //
+                         //    FAKE VALUES as seen by get/set_owner functions
+                         // 11111111 11111111 11111111 11111111 unowned, -1
+                         // 00000000 00000000 00000000 00000000 Player0
+                         // 00000000 00000000 00000000 00000001 Player1
+                         // 00000000 00000000 00000000 00000010 Player2
+                         // 00000000 00000000 00000000 00000011 Player3
+                         //
+                         //    REAL VALUES stored in game_tiles[#].owner variable 
+                         // 00000000 00000000 00000000 00000000 unowned
+                         // 00000000 00000000 00000000 00000001 Player0
+                         // 00000000 00000000 00000000 00000010 Player1
+                         // 00000000 00000000 00000000 00000011 Player2
+                         // 00000000 00000000 00000000 00000100 Player3
+                         // 00000000 00000000 00000xxx xxxx1xxx revealed by Player0
+                         // 00000000 00000000 00000xxx xxx1xxxx  visible by Player0
+                         // 00000000 00000000 00000xxx xx1xxxxx revealed by Player1
+                         //                   ... and so on...
+                         // 00000000 00000000 000001xx xxxxxxxx  visible by Player3
     unsigned int obj_index;
     uint8_t paths;
     bool idle_serf;
@@ -346,8 +376,14 @@ class Map {
     return pos_add(pos_, spiral_pos_pattern[off]); }
 
   MapPos pos_add_extended_spirally(MapPos pos_, unsigned int off) const {
-    if (off > 3268) {
-      Log::Error["map"] << "cannot use pos_add_extended_spirally() beyond 3268 positions (~24 shells)";
+    // NOTE that if the spiral_dist radius/shells is increased further, you must figure out how many
+    //   mappos are found by checking the extended_spiral_coord_vector.size() and setting the
+    //   extended_spiral_pattern[] int array to that size (maybe plus 1?)
+    // you can NOT simply double/times-X increase it, it increases exponentially because the shells 
+    //  larger the further out you go  24 shells was 3268 pos, 48 shells is 13445 pos 
+    if (off > 13445) {
+      Log::Error["map"] << "cannot use pos_add_extended_spirally() beyond 13445 positions (~48 shells)";
+      throw ExceptionFreeserf("cannot use pos_add_extended_spirally() beyond 13445 positions (~48 shells)");
     }
     return pos_add(pos_, extended_spiral_pos_pattern[off]);
   }
@@ -417,19 +453,130 @@ class Map {
     }
     return false;
   }
-  void add_path(MapPos pos, Direction dir) {
-    game_tiles[pos].paths |= BIT(dir); }
-  void del_path(MapPos pos, Direction dir) {
-    game_tiles[pos].paths &= ~BIT(dir); }
+  void add_path(MapPos pos, Direction dir) { game_tiles[pos].paths |= BIT(dir); }
+  void del_path(MapPos pos, Direction dir) { game_tiles[pos].paths &= ~BIT(dir); }
 
-  bool has_owner(MapPos pos) const { return (game_tiles[pos].owner != 0); }
+  //bool has_owner(MapPos pos) const { return (game_tiles[pos].owner != 0); }  // original
+  //bool has_owner(MapPos pos) const { return (game_tiles[pos].owner & 7 != 0); }  // added support for option_FogOfWar
+  bool has_owner(MapPos pos) const {
+    unsigned int tmp = game_tiles[pos].owner;
+    tmp &= 7;
+    bool foo = false;
+    if (tmp != 0){
+      foo = true;
+    }
+    tmp--;
+    //Log::Debug["map.h"] << "inside Map::has_owner, pos " << pos << " has fake owner Player" << tmp << ", real owner " << std::bitset<11>(game_tiles[pos].owner) << ", returning bool " << foo;  // added support for option_FogOfWar
+    //return (game_tiles[pos].owner & 7 != 0);
+    return foo;
+  } 
+  //unsigned int get_owner(MapPos pos) const { return game_tiles[pos].owner - 1; }  // original
+  //unsigned int get_owner(MapPos pos) const { return (game_tiles[pos].owner & 7) - 1;  // added support for option_FogOfWar
   unsigned int get_owner(MapPos pos) const {
-    return game_tiles[pos].owner - 1; }
-  void set_owner(MapPos pos, unsigned int _owner) {
-    game_tiles[pos].owner = _owner + 1; }
-  void del_owner(MapPos pos) { game_tiles[pos].owner = 0; }
-  unsigned int get_height(MapPos pos) const {
-    return landscape_tiles[pos].height; }
+    // seems this is sometimes returning invalid values, saw player #6 (fake player)
+    unsigned int tmp = game_tiles[pos].owner;
+    tmp &= 7;
+    tmp--;
+    //Log::Debug["map.h"] << "inside Map::get_owner, pos " << pos << " has fake owner Player" << tmp  << ", real owner " << std::bitset<11>(game_tiles[pos].owner);  // added support for option_FogOfWar
+    return tmp;
+  }
+  //void set_owner(MapPos pos, unsigned int _owner) { game_tiles[pos].owner = _owner + 1; }  // original
+  void set_owner(MapPos pos, unsigned int _owner) { // added support for option_FogOfWar
+    unsigned int tmp = game_tiles[pos].owner;
+    tmp &= 7;
+    //Log::Debug["map.h"] << "inside Map::set_owner, pos " << pos << " had fake owner Player" << tmp  << ", real owner " << std::bitset<11>(game_tiles[pos].owner);  // added support for option_FogOfWar
+    game_tiles[pos].owner &= -8;  // clear the least-3-bits which hold the Player owner
+    //Log::Debug["map.h"] << "inside Map::set_owner, pos " << pos << " applying AND " << std::bitset<11>(-8) << ", interim real owner " << std::bitset<11>(game_tiles[pos].owner);  // added support for option_FogOfWar
+    //if (_owner > 3 || _owner == -1){
+    //  throw ExceptionFreeserf("_owner Player# >3 or -1 specified to Game::set_owner, invalid");
+    //}
+    game_tiles[pos].owner |= _owner + 1;  // set the least-3-bits to Player owner
+    //Log::Debug["map.h"] << "inside Map::set_owner, pos " << pos << " applying AND " << std::bitset<11>(-8) << ", interim real owner " << std::bitset<11>(game_tiles[pos].owner);  // added support for option_FogOfWar
+    tmp = game_tiles[pos].owner;
+    tmp &= 7;
+    tmp--;
+    //Log::Debug["map.h"] << "inside Map::set_owner, pos " << pos << " now has fake owner Player" << tmp  << ", real owner " << std::bitset<11>(game_tiles[pos].owner);  // added support for option_FogOfWar
+    //Log::Debug["map.h"] << "inside Map::set_owner calling set_visible for pos " << pos << " with fake owner Player" << tmp;
+    set_visible(pos, _owner);  // is this actually needed?
+  } 
+  //void set_revealed(MapPos pos, unsigned int player) { game_tiles[pos].owner |= BIT(3 + player*2); }   // THIS MIGHT BE BROKEN/WRONG
+  void set_revealed(MapPos pos, unsigned int player) {
+    unsigned int tmp = game_tiles[pos].owner;
+    tmp &= 7;
+    tmp--;
+    //Log::Debug["map.h"] << "inside Map::set_revealed, pos " << pos << " had fake owner Player" << tmp << ", real owner " << std::bitset<11>(game_tiles[pos].owner);  // added support for option_FogOfWar
+    game_tiles[pos].owner |= BIT(3 + player*2);
+    tmp = game_tiles[pos].owner;
+    tmp &= 7;
+    tmp--;
+    //Log::Debug["map.h"] << "inside Map::set_revealed, pos " << pos << " now has fake owner Player" << tmp << ", real owner " << std::bitset<11>(game_tiles[pos].owner);  // added support for option_FogOfWar
+  }
+  // void is_revealead
+  void set_visible(MapPos pos, unsigned int player) {
+    unsigned int tmp = game_tiles[pos].owner;
+    tmp &= 7;
+    tmp--;
+    //Log::Debug["map.h"] << "inside Map::set_visible, pos " << pos << " had fake owner Player" << tmp << ", real owner " << std::bitset<11>(game_tiles[pos].owner);  // added support for option_FogOfWar
+    game_tiles[pos].owner |= BIT(3 + player*2 + 1);
+    tmp = game_tiles[pos].owner;
+    tmp &= 7;
+    tmp--;
+    //Log::Debug["map.h"] << "inside Map::set_visible, pos " << pos << " now has fake owner Player" << tmp << ", real owner " << std::bitset<11>(game_tiles[pos].owner);  // added support for option_FogOfWar
+    //set_revealed(pos, player);  // this should be independently set when setting visible now that revealed area is a bit larger than visible area
+  }
+  bool is_revealed(MapPos pos, unsigned int player) {
+    //Log::Debug["map.h"] << "inside Map::is_visible, pos " << pos << " has owner " << std::bitset<11>(game_tiles[pos].owner) << ", returning " << BIT_TEST(game_tiles[pos].owner, 3 + player*2);
+    return BIT_TEST(game_tiles[pos].owner, 3 + player*2);
+  } 
+  bool is_visible(MapPos pos, unsigned int player) {
+    //Log::Debug["map.h"] << "inside Map::is_visible, pos " << pos << " has owner " << std::bitset<11>(game_tiles[pos].owner) << ", returning " << BIT_TEST(game_tiles[pos].owner, 3 + player*2 + 1);
+    return BIT_TEST(game_tiles[pos].owner, 3 + player*2 + 1);
+  } 
+  //bool is_visible(MapPos pos, unsigned int player) {
+  //  Log::Debug["map.h"] << "inside Map::is_visible, pos " << pos << " has owner " << std::bitset<11>(game_tiles[pos].owner);  // added support for option_FogOfWar
+  //  unsigned int tmp = 3 + player + 1;
+  //  return BIT_TEST(game_tiles[pos].owner, tmp);
+  //}
+  /* this might not actually be needed, can always use unset_all_visible?
+  void unset_visible(MapPos pos, unsigned int player) {
+    unsigned int tmp = game_tiles[pos].owner;
+    tmp &= 7;
+    tmp--;
+    Log::Debug["map.h"] << "inside Map::unset_visible, pos " << pos << " had fake owner Player" << tmp << ", real owner " << std::bitset<11>(game_tiles[pos].owner);  // added support for option_FogOfWar
+    Log::Debug["map.h"] << "inside Map::unset_visible, pos " << pos << " had fake owner Player" << tmp << ", BIT is " << std::bitset<11>(~BIT(3 + player*2 + 1));  // added support for option_FogOfWar
+    game_tiles[pos].owner &= ~BIT(3 + player*2 + 1);
+    tmp = game_tiles[pos].owner;
+    tmp &= 7;
+    tmp--;
+    Log::Debug["map.h"] << "inside Map::unset_visible, pos " << pos << " now has fake owner Player" << tmp << ", real owner " << std::bitset<11>(game_tiles[pos].owner);  // added support for option_FogOfWar
+  }
+  */
+  void unset_all_visible(MapPos pos) {
+    // 10101010000 is 1360
+    // inverse is 01010101111 or 687
+    unsigned int tmp = game_tiles[pos].owner;
+    tmp &= 7;
+    tmp--;
+    //Log::Debug["map.h"] << "inside Map::unset_all_visible, pos " << pos << " had fake owner Player" << tmp << ", real owner " << std::bitset<11>(game_tiles[pos].owner);  // added support for option_FogOfWar
+    //Log::Debug["map.h"] << "inside Map::unset_all_visible, pos " << pos << " had fake owner Player" << tmp << ", BIT is " << std::bitset<11>(687);  // added support for option_FogOfWar
+    game_tiles[pos].owner &= 687;
+    tmp = game_tiles[pos].owner;
+    tmp &= 7;
+    tmp--;
+    //Log::Debug["map.h"] << "inside Map::unset_all_visible, pos " << pos << " now has fake owner Player" << tmp << ", real owner " << std::bitset<11>(game_tiles[pos].owner);  // added support for option_FogOfWar
+  }
+  //void del_owner(MapPos pos) { game_tiles[pos].owner = 0; } // original
+  void del_owner(MapPos pos) {
+    int tmp = game_tiles[pos].owner;
+    //Log::Debug["map.h"] << "inside Map::del_owner, pos " << pos << " had fake owner Player" << tmp << ", real owner " << std::bitset<11>(game_tiles[pos].owner);  // added support for option_FogOfWar
+    tmp &= -8;
+    game_tiles[pos].owner = tmp;
+    tmp &= 7;
+    tmp--;
+    //Log::Debug["map.h"] << "inside Map::del_owner, pos " << pos << " now has fake owner Player" << tmp << ", real owner " << std::bitset<11>(game_tiles[pos].owner);  // added support for option_FogOfWar
+  }   // added support for option_FogOfWar
+
+  unsigned int get_height(MapPos pos) const { return landscape_tiles[pos].height; }
 
   Terrain type_up(MapPos pos) const { return landscape_tiles[pos].type_up; }
   Terrain type_down(MapPos pos) const { return landscape_tiles[pos].type_down; }

@@ -722,12 +722,10 @@ flag_search_building_for_lost_generic_serf_search_cb(Flag *flag, void *data) {
   if (flag->has_building()) {
     Building *building = flag->get_building();
     if (building->is_done() && !building->is_burning() &&
-
-      /* try allowing mines now since adding code to ignore active serf at building when Lost transporter arrives
+      // try allowing mines now since adding code to ignore active serf at building when Lost transporter arrives
+      //  Update - NO!!  I tried very hard and couldn't make it work.  Turning this check back on so Mines are disallowed
       // disallow mines because they can deadlock when miner runs out of food and holds the pos
        (building->get_type() < Building::TypeStoneMine || building->get_type() > Building::TypeGoldMine)){
-         */
-        true ){
       *dest_index = building->get_flag_index();
       return true;
     }

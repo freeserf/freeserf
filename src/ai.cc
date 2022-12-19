@@ -62,7 +62,7 @@ AI::AI(PGame current_game, unsigned int _player_index) {
   have_inventory_building = false; // used to quit loop early if AI is essentially defeated (has no Castle or Stocks)
   std::string mutex_message = "";  // used for logging why mutex being locked/unlocked
   clock_t mutex_timer_start = 0;  // used for logging how much time spent with mutex lock
-  longest_road_so_far = {};
+  //longest_road_so_far = {};
   plot_road_closed_cache = {};
   plot_road_open_cache = {};
   use_plot_road_cache = true;   // this is definitely effective, tried comparing w/ cache off vs on
@@ -334,7 +334,7 @@ AI::do_place_castle() {
         bool was_built = game->build_castle(pos, player);
         mutex_unlock();
         if (was_built) {
-          AILogDebug["do_place_castle"] << ": built castle at pos: " << pos << " after " << x << " tries";
+          AILogDebug["do_place_castle"] << "built castle at pos: " << pos << " after " << x << " tries";
           castle_pos = pos;
           castle_flag_pos = map->move_down_right(castle_pos);
           AILogDebug["do_place_castle"] << "castle has position " << castle_pos << ", with castle_flag_pos " << castle_flag_pos;
@@ -1136,6 +1136,11 @@ AI::do_fix_missing_transporters() {
     //    I wonder if any other buildings do also?  warehouses?
     // YES!  I saw other mention such as in path_splited() that at least 
     //  some buildings show up as having a valid path UP-LEFT
+    // YES, it seems *every* building has a path up-left into it from its flag
+    //  and this path is very real in the sense that it is drawn on game map
+    //  if you remove it using code, the building and flag are still drawn
+    //   and serfs will still walk the path in/out of building, but the path itself
+    //   will no longer be drawn
     if (flag->get_position() == castle_flag_pos)
       continue;
     flag_index = flag->get_index();
@@ -1539,12 +1544,14 @@ AI::do_send_geologists() {
       AILogDebug["do_send_geologists"] << inventory_pos << " trying to build flags & send geologists near pos " << corner_pos;
       for (unsigned int i = 0; i < AI::spiral_dist(4); i++) {
         MapPos pos = map->pos_add_extended_spirally(corner_pos, i);
+        AILogDebug["do_send_geologists"] << inventory_pos << " checking terrain type to see if can build flag at pos " << pos;
         if (!AI::has_terrain_type(game, pos, Map::TerrainTundra0, Map::TerrainSnow0))
           continue;
         // build flags for geologists
         bool built_new_flag_for_geologist = false;
+        AILogDebug["do_send_geologists"] << inventory_pos << " checking to see if can build flag at pos " << pos << ". this poas owner " << map->get_owner(pos) << " and my player index is " << player->get_index() << ", has_owner is " << map->has_owner(pos);
         if (game->can_build_flag(pos, player)) {
-          //AILogDebug["do_send_geologists"] << inventory_pos << " can build flag at pos " << pos << ", checking to see if any other flags nearby...";
+          AILogDebug["do_send_geologists"] << inventory_pos << " can build flag at pos " << pos << ", checking to see if any other flags nearby...";
           unsigned int other_flags = 0;
           for (unsigned int i2 = 0; i2 < AI::spiral_dist(5); i2++) {
             MapPos pos2 = map->pos_add_extended_spirally(pos, i2);
@@ -4158,7 +4165,7 @@ AI::do_check_resource_needs(){
   if (inventory_pos == castle_flag_pos){
     for (unsigned int x = 0; x < AI::spiral_dist(12); x++) {
       MapPos pos = map->pos_add_extended_spirally(castle_flag_pos, x);
-      if (map->get_owner(pos) == -1){
+      if (!map->has_owner(pos)){
         if(expand_towards.count("castle_buffer") == 0){
           AILogDebug["do_check_resource_needs"] << inventory_pos << " there is unowned land near the castle, adding castle_buffer to expansion goals";
           expand_towards.insert("castle_buffer");

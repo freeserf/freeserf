@@ -50,6 +50,7 @@ bool option_EnableAutoSave = false;
 //bool option_ImprovedPigFarms = false;  // removing this as it turns out the default behavior for pig farms is to require almost no grain
 bool option_CanTransportSerfsInBoats = false;
 bool option_QuickDemoEmptyBuildSites = false;
+//bool option_AdvancedDemolition = true;  // this needs more playtesting  */
 bool option_TreesReproduce = false;
 bool option_BabyTreesMatureSlowly = false;
 bool option_ResourceRequestsTimeOut = true;  // this is forced true to indicate that the code to make them optional isn't added yet
@@ -57,6 +58,7 @@ bool option_PrioritizeUsableResources = true;    // this is forced true to indic
 bool option_LostTransportersClearFaster = false;
 bool option_FourSeasons = false;
 bool option_FishSpawnSlowly = false;
+bool option_FogOfWar = false;
 int season = 1;  // default to Summer
 int last_season = 1;
 int subseason = 0;  // for tree progression
@@ -68,11 +70,11 @@ typedef enum Season {
   SeasonWinter = 3,
 } Season;
 // the Custom data map_objects offset for tree sprites
-int season_offset[4] = {
-  200, // Spring
-    0, // Summer
-  400, // Fall
-  300, // Winter
+int season_sprite_offset[4] = {
+  1200, // Spring
+     0, // Summer  (use original sprites)
+  1400, // Fall
+  1300, // Winter
 };
 
 
@@ -138,6 +140,9 @@ Game::Game()
   ai_threads_remaining = 0;
   mutex_message = "";
   mutex_timer_start = 0;
+  must_redraw_frame = false;  // part of hack for option_FogOfWar
+  
+  MapPos desired_cursor_pos = bad_map_pos;  // to allow Game to set the Interface/Viewport player cursor pos (during Interface::update)
 }
 
 Game::~Game() {
@@ -146,6 +151,7 @@ Game::~Game() {
   buildings.clear();
   flags.clear();
   players.clear();
+  desired_cursor_pos = bad_map_pos; // I think this was causing issues on new game?
 }
 
 /* Clear the serf request bit of all flags and buildings.
@@ -641,7 +647,7 @@ Game::send_serf_to_flag_search_cb(Flag *flag, void *d) {
     // non-knight specialist serfs
     //
     if (inv->have_serf((Serf::Type)type)) {
-      // ... already in inventory, call out
+      // ... already idle in inventory, call out
       // if an idle serf of this type already exists, or 5+ free serfs
       //  available to be specialized (I guess the intent is to reserve
       //  four to be made available as transporters?  or knights?)
@@ -694,7 +700,11 @@ Game::send_serf_to_flag_search_cb(Flag *flag, void *d) {
 // Dispatch a non-road-transporter serf from the nearest
 //  *capable* inventory to flags/buildings.  Includes both
 //  knights and specialized/professioal serfs that may require
-//  tools.
+//  tools.  
+// Creates a new specialist/professioal serf or knight if necessary,
+//  which will consume tools/weapons
+// Returns true if a serf was sent, false if it could not be sent
+//
 // The "if have tools" check is done here inside the flagsearch call back
 //  send_serf_to_flag_cb, and the tool consumption
 //  happens here
@@ -727,21 +737,26 @@ Game::send_serf_to_flag(Flag *dest, Serf::Type type, Resource::Type res1,
   data.res1 = res1;  // tool1
   data.res2 = res2;  // tool2
 
-  //Log::Debug["game.cc"] << "inside Game::send_serf_to_flag, before flagsearch, data.inventory = " << data.inventory;
+  // this callback returns true if either an existing idle serf can be sent out from an Inv
+  //  or if a new serf can be created (consuming tools or weapons) and sent out from an Inv
   bool r = FlagSearch::single(dest, send_serf_to_flag_search_cb, true, false, &data);
-  //Log::Debug["game.cc"] << "inside Game::send_serf_to_flag, after flagsearch, data.inventory = " << data.inventory;
 
   if (!r) {
-    // cannot send a serf of this type. previous flagsearch could find no reachable, capable inventory
+    // cannot send a serf of this type. previous flagsearch could find no reachable, capable inventory 
+    //  that has either a serf of requested type sitting idle, or tools to create one
     //Log::Info["game"] << "inside send_serf_to_flag, serf type " << NameSerf[type] << ", request no reachable, capable Inventory found to provide this type of serf";
     return false;
   } else if (data.inventory != NULL) {
     // an Inventory was found that can create a new serf of this type (no idle serf of this type available to call)
+    //  NOTE - if an existing idle serf of requested type was found, and a new one does NOT need to be created,
+    //   then data.inventory would be NULL.  It seems that == NULL means "have one" and != NULL means "create one"
     //Log::Debug["game"] << "inside send_serf_to_flag, serf type " << NameSerf[type] << ", an Inventory was found that can create a new serf of this type";}
     Inventory *inventory = data.inventory;
     Serf *serf = inventory->call_out_serf(Serf::TypeGeneric);
     if ((type < 0) && (building != NULL)) {
-      // a knight was requested, with a valid building destination
+      // Serf::Type -1 / TypeNone
+      //  means a knight was requested to a building
+      //  but no knight is available, so create a new one
       building->knight_request_granted();
       serf->set_type(Serf::TypeKnight0);
       serf->go_out_from_inventory(inventory->get_index(), building->get_flag_index(), -1);
@@ -777,6 +792,8 @@ Game::send_serf_to_flag(Flag *dest, Serf::Type type, Resource::Type res1,
       if (res1 != Resource::TypeNone) inventory->pop_resource(res1);
       if (res2 != Resource::TypeNone) inventory->pop_resource(res2);
     }
+    // an existing idle serf/knight of the requested type was dispatched
+    //  a new one was NOT required to be created and so no tools consumed
     return true;
   }
   return true;
@@ -785,8 +802,7 @@ Game::send_serf_to_flag(Flag *dest, Serf::Type type, Resource::Type res1,
 /* Dispatch geologist to flag. */
 bool
 Game::send_geologist(Flag *dest) {
-  return send_serf_to_flag(dest, Serf::TypeGeologist, Resource::TypeHammer,
-                           Resource::TypeNone);
+  return send_serf_to_flag(dest, Serf::TypeGeologist, Resource::TypeHammer, Resource::TypeNone);
 }
 
 /* Update buildings as part of the game progression. */
@@ -972,9 +988,11 @@ Game::update() {
   Log::Info["game"] << "option_BabyTreesMatureSlowly is " << option_BabyTreesMatureSlowly;
   Log::Info["game"] << "option_ResourceRequestsTimeOut is " << option_ResourceRequestsTimeOut;
   //PrioritizeUsableResources
+  //AdvancedDemolition
   Log::Info["game"] << "option_LostTransportersClearFaster is " << option_LostTransportersClearFaster;
   Log::Info["game"] << "option_FourSeasons is " << option_FourSeasons;
   Log::Info["game"] << "option_FishSpawnSlowly is " << option_FishSpawnSlowly;
+  //option_FogOfWar
   */
 
   /* Increment tick counters */
@@ -998,7 +1016,8 @@ Game::update() {
   //   like this, but it sounds possible.
   //  NOTE - in Freeserf there is only "time warp" and the game always runs with SDL_Timer of 20 (20ms between updates)
   //   which results in about 50 "FPS" (i.e. updates per second) maximum.  Adding "cpu warp" is new to Forkserf.
-  int game_ticks_per_update = 2;
+  //int game_ticks_per_update = 2;  // this is a global/extern now
+  game_ticks_per_update = 2;
   if (game_speed == 0){
     game_ticks_per_update = 0;  // paused
   }else if (game_speed == 1){
@@ -1026,6 +1045,12 @@ Game::update() {
   //  player->update calls spawn_serf which calls Game::create_serf which calls serfs.allocate()
   //  the mutex lock is INSIDE player->update, go look there
   for (Player *player : players) {
+    // for option_FogOfWar, if a human player doesn't have a castle yet, build it for them
+    //  using the same logic as AI uses (copied AI functions to Game, maybe combine them?)
+    if (option_FogOfWar && !player->has_castle() && (player->get_face() == 12 || player->get_face() == 13)){
+      MapPos built_pos = auto_place_castle(player);
+      set_update_viewport_cursor_pos(built_pos);
+    }
     player->update();
   }
 
@@ -1522,15 +1547,26 @@ Game::build_flag_split_path(MapPos pos) {
 /* Check whether player can build flag at pos. */
 bool
 Game::can_build_flag(MapPos pos, const Player *player) const {
+  //Log::Debug["game.cc"] << "inside Game::can_build_flag, map->has_owner bool is " << map->has_owner(pos) << ", map->get_owner is " << map->get_owner(pos) << ", player index " << player->get_index();
+
+  //if (!map->has_owner(pos))
+  //  Log::Debug["game.cc"] << "inside Game::can_build_flag, A";
+  //if (map->get_owner(pos) != player->get_index())
+  //  Log::Debug["game.cc"] << "inside Game::can_build_flag, B";
+
   /* Check owner of land */
+  //if (!map->has_owner(pos) || map->get_owner(pos) != player->get_index()) {
   if (!map->has_owner(pos) || map->get_owner(pos) != player->get_index()) {
+    //Log::Debug["game.cc"] << "inside Game::can_build_flag, player index " << player->get_index() << ", ownership check FAILED";
     return false;
   }
+  //Log::Debug["game.cc"] << "inside Game::can_build_flag, player index " << player->get_index() << ", ownership check passed";
 
   /* Check that land is clear */
   if (Map::map_space_from_obj[map->get_obj(pos)] != Map::SpaceOpen) {
     return false;
   }
+  //Log::Debug["game.cc"] << "inside Game::can_build_flag, player index " << player->get_index() << ", clearance check passed";
 
   /* Check whether cursor is in water */
   if (map->type_up(pos) <= Map::TerrainWater3 &&
@@ -1542,12 +1578,15 @@ Game::can_build_flag(MapPos pos, const Player *player) const {
     return false;
   }
 
+  //Log::Debug["game.cc"] << "inside Game::can_build_flag, player index " << player->get_index() << ", water check passed";
+
   /* Check that no flags are nearby */
   for (Direction d : cycle_directions_cw()) {
     if (map->get_obj(map->move(pos, d)) == Map::ObjectFlag) {
       return false;
     }
   }
+  //Log::Debug["game.cc"] << "inside Game::can_build_flag, player index " << player->get_index() << ", flags-neaby check passed";
 
   return true;
 }
@@ -2181,6 +2220,35 @@ Game::demolish_building(MapPos pos, Player *player) {
   return demolish_building_(pos);
 }
 
+  /* removing AdvancedDemolition for now, see https://github.com/forkserf/forkserf/issues/180
+// mark building for demolition
+//  by a Digger serf that is dispatched to it
+//  only used with option_AdvancedDemolition
+bool
+Game::mark_building_for_demolition(MapPos pos, Player *player) {
+  Building *building = buildings[map->get_obj_index(pos)];
+  if (building == nullptr){
+    Log::Warn["game.cc"] << "inside Game::mark_building_for_demolition, building at pos " << pos << " is nullptr!  returning false";
+    return false;
+  }
+  if (building->get_owner() != player->get_index()){
+    Log::Debug["game.cc"] << "inside Game::mark_building_for_demolition, building at pos " << pos << " is not owned by this player!  returning false";
+    return false;
+  }
+  if (building->is_burning()){
+    Log::Debug["game.cc"] << "inside Game::mark_building_for_demolition, building at pos " << pos << " is already on fire!  returning false";
+    return false;
+  }
+  if (building->is_pending_demolition()){
+    Log::Debug["game.cc"] << "inside Game::mark_building_for_demolition, building at pos " << pos << " is already pending demolition!  returning false";
+    return false;
+  }
+  building->call_for_demolition();
+  Log::Debug["game.cc"] << "inside Game::mark_building_for_demolition, pending_demolition set for building at pos " << pos << " owned by player #" << player->get_index();
+  return true;
+}
+*/
+
 /* Map pos is lost to the owner, demolish everything. */
 void
 Game::surrender_land(MapPos pos) {
@@ -2217,6 +2285,7 @@ Game::surrender_land(MapPos pos) {
   if (map->get_obj(pos) == Map::ObjectFlag) {
     demolish_flag_(pos);
   }
+  
 }
 
 /* Initialize land ownership for whole map. */
@@ -2234,6 +2303,8 @@ Game::init_land_ownership() {
 /* Update land ownership around map position. */
 void
 Game::update_land_ownership(MapPos init_pos) {
+  //Log::Debug["game.cc"] << "start of Game::update_land_ownership around pos " << init_pos;
+
   /* Currently the below algorithm will only work when
      both influence_radius and calculate_radius are 8. */
   const int influence_radius = 8;
@@ -2247,6 +2318,8 @@ Game::update_land_ownership(MapPos init_pos) {
   std::unique_ptr<int[]> temp_arr =
     std::unique_ptr<int[]>(new int[temp_arr_size]());
 
+// does this mean that larger military buildings have a stronger
+//  influence on player borders??  I always assumed it was identical!
   const int military_influence[] = {
     0, 1, 2, 4, 7, 12, 18, 29, -1, -1,  /* hut */
     0, 3, 5, 8, 11, 15, 22, 30, -1, -1,  /* tower */
@@ -2275,6 +2348,16 @@ Game::update_land_ownership(MapPos init_pos) {
 
   /* Find influence from buildings in 33*33 square
      around the center. */
+  // tlongstretch - 33x33??? that makes no sense, that is HUGE!
+  //  it is indeed a 33x33 area, confirmed with debug overlay
+  //  I guess because the castle influence area is so large, all
+  //  comparisons must be this large
+  //
+  // FYI - the shape of the "square" as seen on the game map
+  //  is like this  ____    with the building pos being evaluated 
+  //               /   /     at the center of the parallelogram
+  //              /___/
+  //
   for (int i = -(influence_radius+calculate_radius);
        i <= influence_radius+calculate_radius; i++) {
     for (int j = -(influence_radius+calculate_radius);
@@ -2292,6 +2375,7 @@ Game::update_land_ownership(MapPos init_pos) {
           /* Castle has military influence even when not done. */
           mil_type = 2;
         } else if (building->is_done() && building->is_active()) {
+          //Log::Debug["game.cc"] << "start of Game::update_land_ownership around pos " << init_pos << ", a building at pos " << building->get_position() << " is done and active, type is " << building->get_type() << " check if it is military";
           switch (building->get_type()) {
             case Building::TypeHut: mil_type = 0; break;
             case Building::TypeTower: mil_type = 1; break;
@@ -2300,7 +2384,10 @@ Game::update_land_ownership(MapPos init_pos) {
           }
         }
 
+        //Log::Debug["game.cc"] << "start of Game::update_land_ownership around pos " << init_pos << ", mil_type is " << mil_type;
+
         if (mil_type >= 0 && !building->is_burning()) {
+          //Log::Debug["game.cc"] << "start of Game::update_land_ownership around pos " << init_pos << ", mil_type is " << mil_type << ", building is not burning";
           const int *influence = military_influence + 10*mil_type;
           const int *closeness = map_closeness +
                                  influence_diameter*std::max(-i, 0) +
@@ -2346,14 +2433,16 @@ Game::update_land_ownership(MapPos init_pos) {
 
       MapPos pos = map->pos_add(init_pos, j, i);
       int old_player = -1;
-      if (map->has_owner(pos)) old_player = map->get_owner(pos);
+      if (map->has_owner(pos)){
+        old_player = map->get_owner(pos);
+      }
 
       if (old_player >= 0 && player_index != old_player) {
         players[old_player]->decrease_land_area();
         surrender_land(pos);
       }
 
-      if (player_index >= 0) {
+      if (player_index >= 0) { 
         if (player_index != old_player) {
           players[player_index]->increase_land_area();
           map->set_owner(pos, player_index);
@@ -2378,6 +2467,151 @@ Game::update_land_ownership(MapPos init_pos) {
         }
       }
     }
+  }
+
+  if (option_FogOfWar){
+    update_FogOfWar(init_pos);
+  }
+
+  //Log::Debug["game.cc"] << "done Game::update_land_ownership around pos " << init_pos;
+
+}
+
+// when a new game is started, or a game is loaded, or option_FogOfWar is enabled mid-game
+//  the entire map must be updated at once
+
+void
+Game::init_FogOfWar() {
+  Log::Debug["game.cc"] << "start of Game::init_FogOfWar for all military buildings in entire game";
+  mutex_lock("Game::init_FogOfWar");
+  for (Building *building : buildings) {
+    update_FogOfWar(building->get_position());
+  }
+  mutex_unlock();
+}
+
+void
+Game::update_FogOfWar(MapPos init_pos) {
+  //Log::Debug["game.cc"] << "start of Game::update_FogOfWar around init_pos " << init_pos;
+
+  // need to redraw terrain for FoW updates to be visible
+  set_must_redraw_frame();
+
+  const int visible_radius_by_type[25] = {0,0,0,0,0,0,0,0,0,0,0,10,0,0,0,0,0,0,0,0,0,15,19,0,21};
+  int reveal_beyond = 6;  // added to visible_radius when setting
+  // _spiral_dist / AI::spiral_dist ONLY GOES UP TO 25!!  DO NOT ALLOW REVEAL RADIUS TO BE LARGER!
+  // copied from AI::spiral_dist, MAKE THIS GLOBAL!
+const int _spiral_dist[49] = { 1, 7, 19, 37, 61, 91, 127, 169, 217, 271, 331, 397,
+    469, 547, 631, 721, 817, 919, 1027, 1141, 1261, 1387, 1519, 1657, 1801, 1951,
+    2107, 2269, 2437, 2611, 2791, 2977, 3169, 3367, 3571, 3781, 3997, 4219, 4447,
+    4681, 4921, 5167, 5419, 5677, 5941, 6211, 6487, 6769 };
+
+  // IDEA - another possible way to handle FoW is to have a counter for each pos (for each player)
+  //  that indicates how many player-buildings currently contribute to the visibility of that pos
+  //  and increment/decrement as buildings occupied/lost and draw based on a nonzero value
+  //  this would avoid having to check the influence of nearby buildings and so may be much faster?
+
+  // clear the visibility bit for all players for all pos within the influence_radius
+  // along the way, note all other buildings in the area that can view tiles in this area
+  //  so that their visibility can be set again after the area is wiped
+  // NO! only unset_all_visible for the influence radius of the largest visible_radius_by_type (castle)
+  //  but look for other influential buildings at DOUBLE that radius
+  int influence_radius = visible_radius_by_type[Building::TypeCastle] * 2 + 1;  // THIS MUST BE AT LEAST *TWICE* LARGE AS THE LARGEST POSSIBLE visible_radius (castle's)
+  MapPosVector influential_buildings = {};
+  // NOTE - if the building at init_pos exists and is occupied, it will be found here and its visible and revealed radius will be set
+  //   if the building at init_pos was destroyed/lost, it will *not* be found here and so it will correctly lose visibilty
+  for (int i = 0; i < _spiral_dist[influence_radius]; i++) {
+    MapPos pos = map->pos_add_extended_spirally(init_pos, i);
+
+    // TEMP DEBUG
+    //set_debug_mark_pos(pos, "cyan");
+
+    // trying this, I think this is solution to a bug
+    if (i < _spiral_dist[visible_radius_by_type[Building::TypeCastle]]){
+      map->unset_all_visible(pos);
+    }
+
+    // look for buildings that can see this pos, for restoration
+    if (map->get_obj(pos) >= Map::ObjectSmallBuilding && map->get_obj(pos) <= Map::ObjectCastle) {
+      Building *building = get_building_at_pos(pos);
+      if (building == nullptr){
+        Log::Error["game.cc"] << "inside Game::update_FogOfWar, expecting building at pos " << pos << ", but get_building_at_pos returned a nullptr! crashing";
+        throw ExceptionFreeserf("inside Game::update_FogOfWar, expecting building at pos but get_building_at_pos returned a nullptr!");
+      }
+      if (!building->is_military()){
+        continue;
+      }
+      if (building->get_type() != Building::TypeCastle && !building->is_active()){
+        //Log::Debug["game.cc"] << "inside of Game::update_FogOfWar, non-castle military building of type " << NameBuilding[building->get_type()] << " is not active, skipping";
+        continue;
+      }
+      /* removing AdvancedDemolition for now, see https://github.com/forkserf/forkserf/issues/180
+      if (building->is_burning() || building->is_pending_demolition()){
+        Log::Debug["game.cc"] << "inside of Game::update_FogOfWar, military building of type " << NameBuilding[building->get_type()] << " at pos " << pos << " is burning or pending_demolition, skipping";
+        continue;
+      }
+      */
+      /* don't check this, this is bad logic
+      int bld_vis_rad = visible_radius_by_type[building->get_type()];
+      Log::Debug["game.cc"] << "inside of Game::update_FogOfWar, military building of type " << NameBuilding[building->get_type()] << " at pos " << pos <<  " has visible radius " << bld_vis_rad;
+      if (i > _spiral_dist[bld_vis_rad]){
+        Log::Debug["game.cc"] << "inside of Game::update_FogOfWar, military building of type " << NameBuilding[building->get_type()] << " at pos " << pos <<  " is beyond its visual radius, skipping";
+        continue;
+      }
+      */
+      //Log::Debug["game.cc"] << "inside of Game::update_FogOfWar, military building of type " << NameBuilding[building->get_type()] << " at pos " << pos << " is within influence radius, adding to list";
+      influential_buildings.push_back(pos);
+    }
+  }
+  // restore visibility for all building in influence_radius
+  // NOTE this will frequently result in map->set_visible being called on pos
+  //  that are outside the influence_radius, because usually only part of an other_building's
+  //  visibility radius will be within the overall influence_radius being considered here
+  // It might be faster to save the list of MapPos inside the influence_radius to avoid
+  //  calling map->set_visible redundantly, but I suspect that would be slower than just doing it
+  for (MapPos bld_pos : influential_buildings){
+    Building *bld = get_building_at_pos(bld_pos);
+    if (bld == nullptr){
+      Log::Error["game.cc"] << "inside Game::update_FogOfWar, expecting bld at bld_pos " << bld_pos << ", but get_building_at_pos returned a nullptr! crashing";
+      throw ExceptionFreeserf("inside Game::update_FogOfWar, expecting bld at bld_pos but get_building_at_pos returned a nullptr!");
+    }
+    Building::Type bld_type = bld->get_type();
+    if (!bld->is_military()){
+      Log::Error["game.cc"] << "inside Game::update_FogOfWar, expecting bld at bld_pos " << bld_pos << " to be a military building, but instead it is type " << bld_type << "! crashing";
+      throw ExceptionFreeserf("inside Game::update_FogOfWar, expecting bld at bld_pos to be a military building, but it is not!");
+      continue;
+    }
+    if (!bld->is_active()){
+      // this building is burning or otherwise not occupied
+      continue;
+    }
+    unsigned int player_index = bld->get_owner();
+    // set the visibility bit for all buildings according to their radius
+    // this list should always include the initial building being considered!
+    //Log::Debug["game.cc"] << "inside of Game::update_FogOfWar, calling map->set_visible() for all pos within radius " << visible_radius_by_type[bld_type] << " of this building of type " << NameBuilding[bld_type] << " at bld_pos " << bld_pos;
+    for (int i = 0; i < _spiral_dist[visible_radius_by_type[bld_type]]; i++) {
+      MapPos pos = map->pos_add_extended_spirally(bld_pos, i);
+      //Log::Debug["game.cc"] << "inside of Game::update_FogOfWar, calling map->set_visible() for pos " << pos << ", Player" << player_index;
+      map->set_visible(pos, player_index);
+    }
+  }
+  // if there is an occupied building at init_pos,
+  // call set_revealed for the reveal_radius, for this building only
+  //  because this is the only one changing
+  // if this building were destroyed/lost, no change required because
+  //  revealed state can never be lost
+  Building *building = get_building_at_pos(init_pos);
+  if (building != nullptr && building->is_military()) {
+    unsigned int player_index = building->get_owner();
+    int reveal_radius = visible_radius_by_type[building->get_type()] + reveal_beyond;
+    //Log::Debug["game.cc"] << "inside of Game::update_FogOfWar, building at init_pos " << init_pos << " of type " << NameBuilding[building->get_type()] << " has reveal_radius " << reveal_radius << ", owned by Player" << player_index;
+    for (int i = 0; i < _spiral_dist[reveal_radius]; i++) {
+      MapPos pos = map->pos_add_extended_spirally(init_pos, i);
+      //Log::Debug["game.cc"] << "inside of Game::update_FogOfWar, calling map->set_revealed() for pos " << pos << ", Player" << player_index;
+      map->set_revealed(pos, player_index);
+    }
+  }else{
+    //Log::Debug["game.cc"] << "inside of Game::update_FogOfWar, no building found at init_pos " << init_pos << ", assuming this was a destroyed/lost building.  Not setting revealed";
   }
 }
 
@@ -2436,6 +2670,7 @@ Game::occupy_enemy_building(Building *building, int player_num) {
     for (Direction d : cycle_directions_cw()) {
       MapPos pos = map->move(building->get_position(), d);
       map->set_owner(pos, player_num);
+
       if (pos != flag->get_position()) {
         demolish_flag_and_roads(pos);
       }
@@ -2789,8 +3024,14 @@ Game::get_enemy_score(const Player *player) const {
   return enemy_score;
 }
 
+// THE DESCRIPTION IS HIGHLY MISLEADING
+//  this is called any time an empty military building is occupied by a knight
+//  including player-owned buildings.  This means the vast majority of calls
+//  are from a player's own newly-built buildings and not ones captured from
+//  an enemy player
 void
 Game::building_captured(Building *building) {
+  //Log::Debug["game.cc"] << "inside Game::building_captured, an empty military building at pos " << building->get_position() << " has been occupied by a knight";
   /* Save amount of land and buildings for each player */
   std::map<int, int> land_before;
   std::map<int, int> buildings_before;
@@ -2802,7 +3043,7 @@ Game::building_captured(Building *building) {
   /* Update land ownership */
   update_land_ownership(building->get_position());
 
-  /* Create notfications for lost land and buildings */
+  /* Create notifications for lost land and buildings */
   for (Player *player : players) {
     if (buildings_before[player->get_index()] > player->get_building_score()) {
       player->add_notification(Message::TypeLostBuildings,
@@ -2958,6 +3199,7 @@ operator >> (SaveReaderBinary &reader, Game &game) {
   game.game_speed_save = DEFAULT_GAME_SPEED;
 
   game.init_land_ownership();
+  if (option_FogOfWar){game.init_FogOfWar();}
 
   game.gold_total = game.map->get_gold_deposit();
 
@@ -3084,6 +3326,135 @@ Serf *
 Game::get_serf_at_pos(MapPos pos) {
   return serfs[map->get_serf_index(pos)];
 }
+
+
+// basically a copy of AI::do_place_castle
+//  consider combining them somehow
+MapPos
+Game::auto_place_castle(Player *player) {
+  Log::Debug["game.cc"] << "inside Game::auto_place_castle()";
+  if (player == nullptr){
+    Log::Warn["game.cc"] << "inside Game::auto_place_castle(), Player" << player->get_index() << " is nullptr!  cannot check player->has_castle status!";
+    return bad_map_pos;
+  }
+  if (player->has_castle()) {
+    Log::Debug["game.cc"] << "inside Game::auto_place_castle(), Player" << player->get_index() << ", already has a castle, returning early";
+    return bad_map_pos;
+  }else{
+    Log::Debug["game.cc"] << "inside Game::auto_place_castle(), Player" << player->get_index() << ", does not yet have a castle";
+    // place castle
+    //   improve this so that it is more intelligent about other resources than trees/stones/building_sites
+    //    but have the minimum scores reduced a bit for each area scored so it eventually settles on something
+    //
+    // pick random spots on the map until an acceptable area found, and try building there
+    ///===========================================================================================================
+    int maxtries = 500;  // crash if failed to place castle after this many tries, regardless of desperation
+    int lower_standards_tries = 75;  // reduce standards after this many tries (can happen repeatedly)
+    int desperation = 0;  // current level of lowered standards
+    int x = 0;  // current try
+    while (true) {
+      x++;
+      if (x > maxtries) {
+        Log::Debug["game.cc"] << "inside Game::auto_place_castle(), Player" << player->get_index() << ", unable to place castle after " << x << " tries, maxtries reached!";
+        throw ExceptionFreeserf("inside Game::auto_place_castle(), unable to place castle for a human player with option_FogOfWar after exhausting all tries!");
+      }
+      if (x > lower_standards_tries * (desperation + 1)){
+        desperation++;
+        Log::Debug["game.cc"] << "inside Game::auto_place_castle(), Player" << player->get_index() << ", unable to place castle after " << x << " tries, lowering standards to desperation level " << desperation;
+      }
+      MapPos pos = map->get_rnd_coord(NULL, NULL, get_rand());
+      Log::Debug["game.cc"] << "inside Game::auto_place_castle(), Player" << player->get_index() << ", considering placing castle at random pos " << pos;
+      // first see if it is even possible to build large building here
+      if (!can_build_castle(pos, player)) {
+        Log::Debug["game.cc"] << "inside Game::auto_place_castle(), Player" << player->get_index() << ", cannot build a castle at pos " << pos;
+        continue;
+      }
+      // check if area has acceptable resources + building pos, and if so build there
+      //if (place_castle(pos, spiral_dist(8), desperation)) {
+      if (place_castle(pos, player->get_index(), 217, desperation)) {  // spiral_dist(8) is 217
+        Log::Debug["game.cc"] << "inside Game::auto_place_castle(), Player" << player->get_index() << ", found acceptable place to build castle, at pos: " << pos;
+        mutex_lock("Game::auto_place_castle calling game->build_castle");
+        bool was_built = build_castle(pos, player);
+        mutex_unlock();
+        if (was_built) {
+          Log::Debug["game.cc"] << "inside Game::auto_place_castle(), Player" << player->get_index() << ", built castle at pos: " << pos << " after " << x << " tries";
+          return pos;
+        }
+        Log::Debug["game.cc"] << "inside Game::auto_place_castle(), Player" << player->get_index() << ", failed to build castle at pos: " << pos << ", will keep trying";
+      }
+    }
+  }
+  Log::Error["game.cc"] << "inside Game::auto_place_castle(), Player" << player->get_index() << ", COULD NOT FIND ACCEPTABLE PLACE FOR PLAYER CASTLE!  crashing";
+  throw ExceptionFreeserf("inside Game::auto_place_castle(),COULD NOT FIND ACCEPTABLE PLACE FOR A HUMAN PLAYER CASTLE WITH option_FogOfWar ENABLED!");
+}
+
+
+// score specified area in terms of castle placement
+//   initially this is just ensuring enough wood, stones, and building sites
+//   long term it should also care about resources in the surrounding areas!  including mountains, fishable waters, etc.
+//  desperation is a multiplier
+bool
+Game::place_castle(MapPos center_pos, int player_index, unsigned int distance, unsigned int desperation) {
+  Log::Debug["game.cc"] << "inside Game::place_castle(), Player" << player_index << ", center_pos " << center_pos << ", distance " << distance << ", desperation " << desperation;
+  PMap map = get_map();
+  unsigned int trees = 0;
+  unsigned int stones = 0;
+  unsigned int building_sites = 0;
+
+  // COPIED THESE FROM AI!  maybe make global?
+  static const unsigned int near_building_sites_min = 450;
+  static const unsigned int near_trees_min = 5;
+  static const unsigned int near_stones_min = 5;
+
+  for (unsigned int i = 0; i < distance; i++) {
+    MapPos pos = map->pos_add_extended_spirally(center_pos, i);
+
+    // don't count resouces that are inside enemy territory
+    if (map->get_owner(pos) != player_index && map->has_owner(pos)) {
+      Log::Debug["game.cc"] << "inside Game::place_castle(), Player" << player_index << ", enemy territory at pos " << pos << ", not counting these resouces towards requirements";
+      continue;
+    }
+
+    Map::Object obj = map->get_obj(pos);
+    if (obj >= Map::ObjectTree0 && obj <= Map::ObjectPine7) {
+      trees += 1;
+      //AILogDebug["util_place_castle"] << "adding trees count 1";
+    }
+    if (obj >= Map::ObjectStone0 && obj <= Map::ObjectStone7) {
+      int stonepile_value = 1 + (-1 * (obj - Map::ObjectStone7));
+      stones += stonepile_value;
+      //AILogDebug["util_place_castle"] << "adding stones count " << stonepile_value;
+    }
+    if (can_build_large(pos)) {
+      building_sites += 3;  // large building sites worth 50% more than small ones, but can't use 1.5 and 1.0 because integer
+      //AILogDebug["util_place_castle"] << "adding large building value 3";
+    }
+    else if (can_build_small(pos)) {
+      building_sites += 2;
+      //AILogDebug["util_place_castle"] << "adding small building value 1";
+    }
+  }
+
+  Log::Debug["game.cc"] << "inside Game::place_castle(), Player" << player_index << ", found trees: " << trees << ", stones: " << stones << ", building_sites: " << building_sites << " in area " << center_pos << ". Desperation is " << desperation;
+
+  // if good place for castle cannot be found, lower standards by faking an increased amount of resources
+  if (trees + desperation*4 < near_trees_min * 4) {
+    Log::Debug["game.cc"] << "inside Game::place_castle(), Player" << player_index << ", not enough trees, min is " << near_trees_min * 4 << ", returning false.  Desperation is " << desperation;
+    return false;
+  }
+  if (stones + desperation < near_stones_min) {
+    Log::Debug["game.cc"] << "inside Game::place_castle(), Player" << player_index << ", not enough stones, min is " << near_stones_min << ", returning false.  Desperation is " << desperation;
+    return false;
+  }
+  if (building_sites + desperation*90 < near_building_sites_min) {
+    Log::Debug["game.cc"] << "inside Game::place_castle(), Player" << player_index << ", not enough building_sites, min is " << near_building_sites_min << ", returning false.  Desperation is " << desperation;
+    return false;
+  }
+  Log::Debug["game.cc"] << "inside Game::place_castle(), Player" << player_index << ", center_pos: " << center_pos << " is an acceptable building site for a castle.  Desperation is " << desperation;
+  Log::Debug["game.cc"] << "inside Game::place_castle(), Player" << player_index << ", done Game::place_castle";
+  return true;
+}
+
 
 SaveReaderText&
 operator >> (SaveReaderText &reader, Game &game) {
@@ -3254,6 +3625,7 @@ operator >> (SaveReaderText &reader, Game &game) {
   game.game_speed_save = DEFAULT_GAME_SPEED;
 
   game.init_land_ownership();
+  if (option_FogOfWar){game.init_FogOfWar();}
 
   return reader;
 }

@@ -25,6 +25,10 @@
 //extern const char FREESERF_VERSION[];
 extern const char FORKSERF_VERSION[];
 
-extern int tick_length;  // I couldn't figure out how else to get it without redefinitions because of the rat's nest of header includes
+// I couldn't figure where else to put these externs without duplicate/redefinitions because of the rat's nest of header includes
+#define DEFAULT_TICK_LENGTH  20
+extern int tick_length;
+extern int game_ticks_per_update;  
+
 
 #endif  // SRC_VERSION_H_

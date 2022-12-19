@@ -591,6 +591,7 @@ GameInitBox::handle_player_click(unsigned int player_index, int cx, int cy) {
 
 void
 GameInitBox::generate_map_preview() {
+  Log::Debug["game-init.cc"] << "inside GameInitBox::generate_map_preview()";
   map.reset(new Map(MapGeometry(mission->get_map_size())));
   if (game_type == GameMission) {
     ClassicMissionMapGenerator generator(*map, mission->get_random_base());

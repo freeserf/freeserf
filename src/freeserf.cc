@@ -204,7 +204,7 @@ main(int argc, char *argv[]) {
   }
 
   /* Init game loop */
-  Log::Error["freeserf.cc"] << "tick_length is " << tick_length;
+  //Log::Debug["freeserf.cc"] << "tick_length is " << tick_length;
   EventLoop &event_loop = EventLoop::get_instance();
   event_loop.add_handler(&interface);
 

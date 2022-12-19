@@ -39,12 +39,19 @@ class Minimap : public GuiObject {
 
   bool draw_grid;
 
+  int current_player_index;  // for option_FogOfWar
+
   std::vector<Color> minimap;
 
  public:
   explicit Minimap(PMap map);
 
   void set_map(PMap map);
+
+  void set_player_index(int player_index) {
+    Log::Debug["minimap.c"] << "inside Minimap::set_player_index, current_player_index was " << current_player_index << ", now changed to " << player_index;
+     current_player_index = player_index;
+  }  // for option_FogOfWar
 
   int get_scale() const { return scale; }
   void set_scale(int scale);

@@ -119,6 +119,9 @@ class Game {
   ColorDotMap debug_mark_pos;  // list of positions for LayerDebug to mark
   std::string mutex_message;  // used for logging why mutex being locked/unlocked
   clock_t mutex_timer_start;  // used for logging how much time spent with mutex lock
+  bool must_redraw_frame;  // part of hack for option_FogOfWar to allow Serf/Building to trigger frame redraw
+  // I think this has to be defined here and not in Game constructor because the getter is being called before Game constructor?? not sure
+  MapPos desired_cursor_pos = bad_map_pos;  // to allow Game to set the Interface/Viewport player cursor pos (during Interface::update)
 
  public:
   Game();
@@ -152,6 +155,7 @@ class Game {
     debug_mark_pos.erase(pos);
     debug_mark_pos.insert(ColorDot(pos, color));
   }
+  void clear_debug_mark_pos(){ debug_mark_pos.clear(); }
 
   unsigned int get_tick() const { return tick; }
   unsigned int get_const_tick() const { return const_tick; }
@@ -174,6 +178,28 @@ class Game {
   void speed_increase();
   void speed_decrease();
   void speed_reset();
+
+  // hack function to allow Serf, Building to trigger game to flush the frame
+  //  so for option_FogOfWar so FoW cna be updated only when borders change
+  void set_must_redraw_frame() { must_redraw_frame = true; }
+  bool get_must_redraw_frame() { return must_redraw_frame; }
+  void unset_must_redraw_frame() { must_redraw_frame = false; }
+
+  // allow the Game to change the map clicked cursor pos
+  //  Because the Game object cannot access the Interface or Viewport
+  //  it is not possible to directly set any aspect of those, instead
+  //  they make decisions based on Game state. So, new functions created
+  //  to allow the Game to indicate to the Interface that it desires the
+  //  player cursor/click pos to be set, and the Interface can do it here
+  MapPos get_update_viewport_cursor_pos(){ 
+    //Log::Debug["game.h"] << "inside Game::get_update_viewport_cursor_pos, returning pos " << desired_cursor_pos;
+    return desired_cursor_pos;
+  }
+  void set_update_viewport_cursor_pos(MapPos pos){
+    //Log::Debug["game.h"] << "inside Game::set_update_viewport_cursor_pos, old pos was " << desired_cursor_pos << ", setting new pos " << pos;
+    desired_cursor_pos = pos;
+  }
+  void unset_update_viewport_cursor_pos(){ desired_cursor_pos = bad_map_pos;}
 
   void prepare_ground_analysis(MapPos pos, int estimates[5]);
   bool send_geologist(Flag *dest);
@@ -206,14 +232,18 @@ class Game {
   bool demolish_road(MapPos pos, Player *player);
   bool demolish_flag(MapPos pos, Player *player);
   bool demolish_building(MapPos pos, Player *player);
+  bool mark_building_for_demolition(MapPos pos, Player *player);
 
   void set_inventory_resource_mode(Inventory *inventory, int mode);
   void set_inventory_serf_mode(Inventory *inventory, int mode);
 
 
   /* Internal interface */
+
   void init_land_ownership();
   void update_land_ownership(MapPos pos);
+  void init_FogOfWar();  // option_FogOfWar
+  void update_FogOfWar(MapPos pos);  // option_FogOfWar
   void occupy_enemy_building(Building *building, int player);
 
   void cancel_transported_resource(Resource::Type type, unsigned int dest);
@@ -221,8 +251,7 @@ class Game {
 
   uint16_t random_int();
 
-  bool send_serf_to_flag(Flag *dest, Serf::Type type, Resource::Type res1,
-                         Resource::Type res2);
+  bool send_serf_to_flag(Flag *dest, Serf::Type type, Resource::Type res1, Resource::Type res2);
 
   int get_player_history_index(size_t scale) const {
     return player_history_index[scale]; }
@@ -256,6 +285,7 @@ class Game {
 
   Player *get_next_player(const Player *player);
   unsigned int get_enemy_score(const Player *player) const;
+  // not only when captured from enemies, this runs when newly-built friendly military buildings first occupied also
   void building_captured(Building *building);
   void clear_search_id();
   void mutex_lock(const char* message);
@@ -290,6 +320,9 @@ class Game {
   bool demolish_building_(MapPos pos);
   void surrender_land(MapPos pos);
   void demolish_flag_and_roads(MapPos pos);
+
+  MapPos auto_place_castle(Player *player);
+  bool place_castle(MapPos center_pos, int player_index, unsigned int distance, unsigned int desperation);
 
  public:
   friend SaveReaderBinary&
