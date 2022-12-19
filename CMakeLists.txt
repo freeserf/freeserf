@@ -5,7 +5,7 @@ endif()
 cmake_minimum_required(VERSION 2.8 FATAL_ERROR)
 
 project(Forkserf)
-set(PROJECT_VERSION "0.4.0")
+set(PROJECT_VERSION "0.4.4")
 set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 
 list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
