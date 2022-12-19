@@ -1047,32 +1047,20 @@ Viewport::draw_shadow_and_custom_building_sprite(int lx, int ly, int index, cons
 void
 Viewport::draw_map_sprite_special(int lx, int ly, int index, unsigned int pos, unsigned int obj, const Color &color) {
   // this is only used by draw_map_objects_row, added passing of pos and object type to support sprite replacement
-  //Log::Info["viewport"] << "inside Viewport::draw_map_sprite_special for sprite index " << index;
-  // I am thinking that the transparency effect on shadows doens't work right for Custom datasource,
-  //  maybe because PNG settings aren't right?  try testing without all these custom graphics using a vanilla
-  //  copy of Freeserf and export from FSStudio
-  //frame->draw_sprite_special1(lx, ly, Data::AssetMapShadow, index, true, pos, obj);  // call Frame::draw_sprite#3
+  //  THIS FUNCTION MAY NOT BE NEEDED ANYMORE, could integration into normal draw sprite functions?
+  Log::Info["viewport"] << "inside Viewport::draw_map_sprite_special for sprite index " << index;
 
-  // instead, try this hack to use the right shadow
-  // NOTE - if FourSeasons is on but the custom tree sprites are missing, this will result in the wrong shadow type for these trees
-  //   however it should at least avoid crashing because I put a fallback in the tree-sprite function to draw the original tree
-  //   if the custom one is mising, but I am not sure how to fall back to the original shadow here, would need to figure out how to
-  //   test for the existence of the custom data source here.  It might be easy, but this seems like an edge case.  Better to 
-  //   simply force disable FourSeasons if the custom tree sprites are missing, OR allow a version that changes the terrain only
-  //   to still allow AdvancedFarming?
-  if (index >= 1220 && index <= 1223){
-    // use "full" deciduous tree shadow for SPRING Tree2 (the white flowered tree)
-    //frame->draw_sprite(lx, ly, Data::AssetMapShadow, 0, true);  // call Frame::draw_sprite#3  
-    frame->draw_sprite(lx, ly, Data::AssetMapShadow, 0, true, Color::transparent, 1.f);  // call Frame::draw_sprite#3  
-  }else if (index >= 1400 && index <= 1499){
-    // FALL trees all have full shadows
-    frame->draw_sprite(lx, ly, Data::AssetMapShadow, 0, true, Color::transparent, 1.f);  // call Frame::draw_sprite#3  
+  // draw the tree's shadow
+  if ((index >= 1220 && index <= 1223)    // SPRING Tree2 (the white flowered tree)
+   || (index >= 1400 && index <= 1499)) { // FALL trees all have full shadows
+    // use the default "full" deciduous tree shadow for certain custom tree sprites
+    frame->draw_sprite(lx, ly, Data::AssetMapShadow, index % 10, true, Color::transparent, 1.f);
   }else{
-    // use "bare" tree shadow from dead tree index 084 for WINTER and most of FALL
-    frame->draw_sprite(lx, ly, Data::AssetMapShadow, 84, true, Color::transparent, 1.f);  // call Frame::draw_sprite#3  
+    // for other "non-full" trees, use custom shadow, derived from tree sprite using ImageMagick
+    frame->draw_sprite(lx, ly, Data::AssetMapShadow, index, true, Color::transparent, 1.f);
   }
 
-  //frame->draw_sprite_special2(lx, ly, Data::AssetMapObject, index, true, color, pos, obj);  // call Frame::draw_sprite#5
+  // draw the tree itself
   frame->draw_sprite(lx, ly, Data::AssetMapObject, index, true, color); // pos and obj only needed for debugging
 }
 
@@ -1709,6 +1697,7 @@ Viewport::draw_flag_and_res(MapPos pos, int lx, int ly) {
 void
 //Viewport::draw_map_objects_row(MapPos pos, int y_base, int cols, int x_base) {
 Viewport::draw_map_objects_row(MapPos pos, int y_base, int cols, int x_base, int ly) {
+  Log::Debug["viewport.cc"] << "inside Viewport::draw_map_objects_row";
   // for determining "in view" objects for ambient sound generation,
   //  only consider a roughly 640x480px area in the center of the 
   //  viewport, otherwise there are too many ambient sounds and for
@@ -1957,8 +1946,10 @@ Viewport::draw_map_objects_row(MapPos pos, int y_base, int cols, int x_base, int
       */
 
       if (use_custom_set){
+        Log::Debug["viewport.cc"] << "inside Viewport::draw_map_objects_row, calling draw_map_sprite_special()";
         draw_map_sprite_special(x_base, ly, sprite, pos, map->get_obj(pos));
       }else{
+        Log::Debug["viewport.cc"] << "inside Viewport::draw_map_objects_row, calling draw_shadow_and_building_sprite()";
         draw_shadow_and_building_sprite(x_base, ly, sprite);
       }
 

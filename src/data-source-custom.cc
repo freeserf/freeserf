@@ -103,8 +103,9 @@ DataSourceCustom::get_sprite_parts(Data::Resource res, size_t index, bool darken
     if (image->load(info->path + "/" + image_file_name)) {
       image->set_delta(delta_x, delta_y);
       image->set_offset(offset_x, offset_y);
+      Log::Debug["data-source-custom"] << "inside DataSourceCustom::get_sprite_parts with res " << res << ", index " << index << ", image->load succeeded for image " << info->path << "/" << image_file_name;
     } else {
-      Log::Warn["data-source-custom"] << "inside DataSourceCustom::get_sprite_parts with res " << res << ", index " << index << ", image->load failed for image " << info->path << "/" << image_file_name;
+      Log::Warn["data-source-custom"] << "inside DataSourceCustom::get_sprite_parts with res " << res << ", index " << index << ", image->load succeeded for image " << info->path << "/" << image_file_name;
       image = nullptr;
     }
   }
@@ -115,6 +116,7 @@ DataSourceCustom::get_sprite_parts(Data::Resource res, size_t index, bool darken
     if (mask->load(info->path + "/" + mask_file_name)) {
       mask->set_delta(delta_x, delta_y);
       mask->set_offset(offset_x, offset_y);
+      Log::Debug["data-source-custom"] << "inside DataSourceCustom::get_sprite_parts with res " << res << ", index " << index << ", mask->load succeeded for mask " << info->path << "/" << mask_file_name;
     } else {
       Log::Warn["data-source-custom"] << "inside DataSourceCustom::get_sprite_parts with res " << res << ", index " << index << ", mask->load failed for mask " << info->path << "/" << mask_file_name;
       mask = nullptr;

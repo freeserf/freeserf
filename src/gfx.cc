@@ -316,7 +316,7 @@ Frame::draw_sprite(int x, int y, Data::Resource res, unsigned int index, bool us
 //
 void
 Frame::draw_sprite(int x, int y, Data::Resource res, unsigned int index, bool use_off, const Color &color, float progress) {
-  //Log::Info["gfx.cc"] << "inside Frame::draw_sprite  with res " << res << " and index " << index;
+  Log::Info["gfx.cc"] << "inside Frame::draw_sprite  with res " << res << " and index " << index;
   Data::Sprite::Color pc = {color.get_blue(),
                             color.get_green(),
                             color.get_red(),
@@ -361,7 +361,7 @@ Frame::draw_sprite(int x, int y, Data::Resource res, unsigned int index, bool us
               // NOTE - if sprites >#9 are to be modified in the future, this orig_index fallback logic must be modified
               orig_index = index % 10;
             }
-            Log::Warn["gfx.cc"] << "inside Frame::draw_sprite, custom datasource not found for sprite index " << index <<", trying to fall back to default datasource for this sprite, using " << orig_index;
+            Log::Warn["gfx.cc"] << "inside Frame::draw_sprite, custom datasource not found for res type " << res << ", sprite index " << index <<", trying to fall back to default datasource for this sprite, using " << orig_index;
             s = data_source->get_sprite(res, orig_index, pc);
           }else{
             Log::Debug["gfx.cc"] << "inside Frame::draw_sprite, custom datasource successfully loaded for res type " << res << ", sprite index " << index;
