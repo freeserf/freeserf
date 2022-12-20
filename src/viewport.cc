@@ -1055,6 +1055,9 @@ Viewport::draw_map_sprite_special(int lx, int ly, int index, unsigned int pos, u
    || (index >= 1400 && index <= 1499)) { // FALL trees all have full shadows
     // use the default "full" deciduous tree shadow for certain custom tree sprites
     frame->draw_sprite(lx, ly, Data::AssetMapShadow, index % 10, true, Color::transparent, 1.f);
+  }else if (index >= 1120 && index <= 1130
+         || index >= 2120 && index <= 2130){   // dark flowers
+    // flowers have no shadow, do not draw one
   }else{
     // for other "non-full" trees, use custom shadow, derived from tree sprite using ImageMagick
     frame->draw_sprite(lx, ly, Data::AssetMapShadow, index, true, Color::transparent, 1.f);
@@ -1745,9 +1748,10 @@ Viewport::draw_map_objects_row(MapPos pos, int y_base, int cols, int x_base, int
         draw_building(pos, x_base, ly);
       }
     } else {
-      int sprite = map->get_obj(pos) - Map::ObjectTree0;
+      int sprite = map->get_obj(pos) - Map::ObjectTree0;  // THIS IS IMPORTANT - sprite index is always 8 lower (-8) than map_object index!
       bool use_custom_set = false;  // messing with weather/seasons/palette tiles
-      if (sprite < 24) {
+      // if this is some kind of tree...
+      if (sprite < 24) {  // Tree/Pine/Palm/SubmergedTree are sprites <24, these have waving animations
 
         // ambient sound triggers, only consider objects that are in the focus area
         if (in_ambient_focus){
@@ -1917,7 +1921,7 @@ Viewport::draw_map_objects_row(MapPos pos, int y_base, int cols, int x_base, int
           sprite = (sprite & ~3) + (tree_anim & 3);
         }
 
-      } // if sprite < 24 (trees and junk objects)
+      } // if sprite < 24 (various tree types)
 
       /* disabling this, instead modifying the rgb palette color of the original sprites
 
@@ -1942,8 +1946,23 @@ Viewport::draw_map_objects_row(MapPos pos, int y_base, int cols, int x_base, int
         }else{
           Log::Debug["viewport.cc"] << "using original " << sprite << " for non-ObjectSeeds object type #" << sprite;
         }
-      }
+      } 
       */
+
+      // Flowers
+      if ((sprite >= Map::ObjectFlowerGroupA0 - Map::ObjectTree0) && (sprite <= Map::ObjectFlowerGroupA6 - Map::ObjectTree0)){
+        sprite += 1000;
+        Log::Debug["viewport.cc"] << "inside Viewport::draw_map_objects_row, found a flower, using sprite# + 1000, new sprite #" << sprite;
+        // draw flowers darker in the shade (decreasing height from left->right)
+        unsigned int left = map->get_height(pos);
+        unsigned int right = map->get_height(map->move_right(pos));
+        if ( left > right){
+          sprite += 1000;
+          Log::Debug["viewport.cc"] << "inside Viewport::draw_map_objects_row, found a darker flower, using sprite# + 2000, new sprite #" << sprite;
+        }
+        use_custom_set = true;
+      }
+
 
       if (use_custom_set){
         Log::Debug["viewport.cc"] << "inside Viewport::draw_map_objects_row, calling draw_map_sprite_special()";

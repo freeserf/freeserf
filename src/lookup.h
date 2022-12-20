@@ -196,7 +196,14 @@ const std::string NameObject[]{
 "Map::ObjectField3",
 "Map::ObjectField4",
 "Map::ObjectField5",
-"Map::Object127",
+"Map::Object127",  // WTF is this?
+"Map::ObjectFlowerGroupA0",
+"Map::ObjectFlowerGroupA1",
+"Map::ObjectFlowerGroupA2",
+"Map::ObjectFlowerGroupA3",
+"Map::ObjectFlowerGroupA4",
+"Map::ObjectFlowerGroupA5",
+"Map::ObjectFlowerGroupA6",
 };
 
 const std::string NameSerf[]{

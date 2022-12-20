@@ -97,8 +97,10 @@ DataSourceCustom::get_sprite_parts(Data::Resource res, size_t index, bool darken
                                                  "mask_path",
                                                  std::string());
 
+  Log::Debug["data-source-custom"] << "inside DataSourceCustom::get_sprite_parts with res " << res << ", index " << index << ", trying to find sprite file";
   PSpriteFile image;
   if (!image_file_name.empty()) {
+    Log::Debug["data-source-custom"] << "inside DataSourceCustom::get_sprite_parts with res " << res << ", index " << index << ", image file name is " << image_file_name;
     image = std::make_shared<SpriteFile>();
     if (image->load(info->path + "/" + image_file_name)) {
       image->set_delta(delta_x, delta_y);
@@ -108,8 +110,11 @@ DataSourceCustom::get_sprite_parts(Data::Resource res, size_t index, bool darken
       Log::Warn["data-source-custom"] << "inside DataSourceCustom::get_sprite_parts with res " << res << ", index " << index << ", image->load succeeded for image " << info->path << "/" << image_file_name;
       image = nullptr;
     }
+  }else{
+    Log::Debug["data-source-custom"] << "inside DataSourceCustom::get_sprite_parts with res " << res << ", index " << index << ", image_file_name is empty!";
   }
 
+  //Log::Debug["data-source-custom"] << "inside DataSourceCustom::get_sprite_parts with res " << res << ", index " << index << ", trying to find mask file";
   PSpriteFile mask;
   if (!mask_file_name.empty()) {
     mask = std::make_shared<SpriteFile>();
@@ -121,6 +126,8 @@ DataSourceCustom::get_sprite_parts(Data::Resource res, size_t index, bool darken
       Log::Warn["data-source-custom"] << "inside DataSourceCustom::get_sprite_parts with res " << res << ", index " << index << ", mask->load failed for mask " << info->path << "/" << mask_file_name;
       mask = nullptr;
     }
+  //}else{
+   // Log::Debug["data-source-custom"] << "inside DataSourceCustom::get_sprite_parts with res " << res << ", index " << index << ", mask_file_name is empty!";
   }
 
   return std::make_tuple(mask, image);

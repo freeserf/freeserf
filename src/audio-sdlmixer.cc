@@ -69,7 +69,7 @@ AudioSDL::AudioSDL() {
                                << static_cast<int>(mversion->major) << '.'
                                << static_cast<int>(mversion->minor) << '.'
                                << static_cast<int>(mversion->patch);
-
+/* TEMP DISABLING SOUND DURING DEVELOPMENT
   int r = Mix_Init(0);
   if (r != 0) {
     throw ExceptionSDLmixer("Could not init SDL_mixer");
@@ -97,6 +97,7 @@ AudioSDL::AudioSDL() {
 
   sfx_player = std::make_shared<AudioSDL::PlayerSFX>();
   midi_player = std::make_shared<AudioSDL::PlayerMIDI>();
+  */
 
   Log::Info["audio:SDL_mixer"] << "Initialized";
 }

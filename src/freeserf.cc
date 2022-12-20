@@ -132,7 +132,8 @@ main(int argc, char *argv[]) {
   int current_loglevel = Log::get_level();  // start of work-around
   Log::set_level(Log::Level(1));  // part of work-around
 
-  /* TODO move to right place */
+/* turning off audio during development
+  // TODO move to right place //
   //  tlongstretch - I'm not sure what the "right place" is, the above was a note in Freeserf
   Audio &audio = Audio::get_instance();  // 
   Audio::PPlayer player = audio.get_music_player();
@@ -171,6 +172,7 @@ main(int argc, char *argv[]) {
     // DOS MUSIC DOES NOT WORK IN LINUX AT ALL - at least not for me, but Amiga works fine in linux
     //Audio::PTrack t = player->play_track(Audio::TypeMidiTrack0, DataSourceType::DOS);  // 0=Amiga, 1=DOS, 2=Custom
   }
+  */
 
   GameManager &game_manager = GameManager::get_instance();
 

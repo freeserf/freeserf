@@ -130,6 +130,9 @@ class ClassicMapGenerator : public MapGenerator {
                                      int pos_mask, Map::Terrain type_min,
                                      Map::Terrain type_max, int obj_base,
                                      int obj_mask);
+  void create_paired_random_object_clusters(int num_clusters, 
+      int objs_in_cluster1, int spiral_dist1, Map::Terrain type1_min, Map::Terrain type1_max, int obj1_base, int obj1_mask,
+      int objs_in_cluster2, int spiral_dist2, Map::Terrain type2_min, Map::Terrain type2_max, int obj2_base, int obj2_mask);
 
   void expand_mineral_cluster(int iters, MapPos pos, int *index,
                               int amount, Map::Minerals type);

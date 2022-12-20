@@ -380,7 +380,6 @@ Frame::draw_sprite(int x, int y, Data::Resource res, unsigned int index, bool us
         //
         // this is not a typo, updating the 'index' to be the base terrain 
         //index = index % 100; // stripping the first digit results in 0-32 which hold the original map_ground terrain sprites
-        darken = true;
       }else{
         // throw exception
         Log::Error["gfx.cc"] << "inside Frame::draw_sprite, index " << index << " is higher than the last_original_data_index " << last_original_data_index[res] << " for this Data::Resource type " << res << ", but no matching custom rule found, crashing!";

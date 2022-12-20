@@ -1382,6 +1382,7 @@ Interface::handle_key_pressed(char key, int modifier) {
       if (option_FogOfWar){
         option_FogOfWar = false;
         Log::Info["interface.cc"] << "Disabling option_FogOfWar clearing terrain tile cache";
+        reload_any_minimaps();
         viewport->set_size(width, height);  // this does the magic refresh without affecting popups (as Interface->layout() does)
       }else{
         if (!is_game_init_open()){

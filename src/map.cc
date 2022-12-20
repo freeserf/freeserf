@@ -487,6 +487,10 @@ Map::map_space_from_obj[] = {
   SpaceSemipassable,    // ObjectField4, /* 125 */
   SpaceSemipassable,    // ObjectField5,
   SpaceOpen,        // Object127
+
+  SpaceOpen,        // Flower0
+  SpaceOpen,        // Flower1
+  SpaceOpen,        // Flower2
 };
 
 Map::Map(const MapGeometry& geom)
