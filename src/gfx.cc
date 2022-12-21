@@ -315,21 +315,42 @@ Frame::draw_sprite(int x, int y, Data::Resource res, unsigned int index, bool us
 //
 //
 void
-Frame::draw_sprite(int x, int y, Data::Resource res, unsigned int index, bool use_off, const Color &color, float progress) {
-  Log::Info["gfx.cc"] << "inside Frame::draw_sprite  with res " << res << " and index " << index;
+Frame::draw_sprite(int x, int y, Data::Resource res, unsigned int index, bool use_off, const Color &color, float progress, bool darken) {
+  Log::Debug["gfx.cc"] << "inside Frame::draw_sprite  with res " << res << " and index " << index << ", darken bool is " << darken;
   Data::Sprite::Color pc = {color.get_blue(),
                             color.get_green(),
                             color.get_red(),
                             color.get_alpha()};
+  
+  // for darken versions of original game sprites when on downward slopes (left->right)
+  //  The darkened terrain sprites must be cached with alernate sprite indexes
+  //   to allow both the fully-visible and revealed-but-not-currently-visible
+  //   sprites to be drawn at the same time
+  //  To support this, fake the sprite index for the darkened sprites by using +XX
+  //   so that they are cached and retrieved with the higher index but the original
+  //   sprite index is actually passed to the downstream functions to retrieve from
+  //   the SPAx.PA data file, as the darkened sprites don't actually exist anywhere,
+  //   they are built by mutating the original sprite during loading
+  uint64_t id; // image cache key
+  if (darken){
+    // fake high sprite indexes to allow caching both original and mutated
+    if (res == Data::AssetMapObject){
+      // this is pretty arbitrary
+      id = Data::Sprite::create_id(res, index + 3000, 0, 0, pc);
+      Log::Debug["gfx.cc"] << "inside Frame::draw_sprite  with res " << res << " and index " << index << ", darken bool is " << darken << ", caching with fake high id " << index + 3000;
+    } else{
+      throw ExceptionFreeserf("inside Frame::draw_sprite, unexpected Data::Asset type to darken!");      
+    }
+  }else{
+    // original sprite index
+    id = Data::Sprite::create_id(res, index, 0, 0, pc);
+  }
 
-  uint64_t id = Data::Sprite::create_id(res, index, 0, 0, pc);
   Image *image = Image::get_cached_image(id);
   
   // if image not found already cached, fetch it and cache it
   if (image == nullptr) {
     Data::PSprite s;
-
-    bool darken = false; // used for FogOfWar
 
     // handle special sprites, either mutated-originals or totally new Custom sprites
     //  new custom sprites will work for Amiga, but mutated ones will not as the
@@ -339,11 +360,11 @@ Frame::draw_sprite(int x, int y, Data::Resource res, unsigned int index, bool us
 
       unsigned int orig_index = -1;
 
-      // these types, if having beyond-original indexes, are new graphics
-      //  loaded from actual PNG files using the data_source_Custom
       if (res == Data::AssetFrameBottom
        || res == Data::AssetMapObject
        || res == Data::AssetMapShadow){
+        // these types, if having beyond-original indexes, are new graphics
+        //  loaded from actual PN  files using the data_source_Custom
         Data &data = Data::get_instance();
         if (data.get_data_source_Custom() == nullptr){
           // try load the custom sprite
@@ -395,6 +416,7 @@ Frame::draw_sprite(int x, int y, Data::Resource res, unsigned int index, bool us
       //    - option_FourSeasons uses this for seasonal changes to terrain
       //
       //s = data_source->get_sprite(res, index, pc);
+      Log::Debug["gfx.cc"] << "inside Frame::draw_sprite, using original data source, index " << index << ", darken bool is " << darken;
       s = data_source->get_sprite(res, index, pc, darken);
     } // if index beyond original range
 
@@ -562,8 +584,18 @@ Frame::draw_masked_sprite(int x, int y, Data::Resource mask_res,
   //   they are built by mutating the original sprite during loading
   uint64_t id; // image cache key
   if (darken){
-    // fake high sprite index
-    id = Data::Sprite::create_id(res, index + 100, mask_res, mask_index, {0, 0, 0, 0});
+    // fake high sprite indexes to allow caching both original and mutated
+    if (res == Data::AssetMapGround){
+      // orig terrain types are all under 100, + 100
+      id = Data::Sprite::create_id(res, index + 100, mask_res, mask_index, {0, 0, 0, 0});
+      /* this needs to be in draw_masked_sprite not draw_sprite!
+    } else if (res == Data::AssetMapObject){
+      // this is pretty arbitrary
+      id = Data::Sprite::create_id(res, index + 3000, mask_res, mask_index, {0, 0, 0, 0});
+      */
+    } else{
+      throw ExceptionFreeserf("unexpected Data::Asset type to darken!");      
+    }
   }else{
     // original sprite index
     id = Data::Sprite::create_id(res, index, mask_res, mask_index, {0, 0, 0, 0});

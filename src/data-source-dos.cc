@@ -239,10 +239,12 @@ DataSourceDOS::fixup() {
 Data::MaskImage
 //DataSourceDOS::get_sprite_parts(Data::Resource res, size_t index) {
 DataSourceDOS::get_sprite_parts(Data::Resource res, size_t index, bool darken) {
-  //Log::Debug["data-source-dos.cc"] << "inside DataSourceDOS::get_sprite_parts, res type is " << res << ", sprite index is " << index << ", darken bool is " << darken;
+  Log::Debug["data-source-dos.cc"] << "inside DataSourceDOS::get_sprite_parts, res type is " << res << ", sprite index is " << index << ", darken bool is " << darken;
+  
   if (index >= Data::get_resource_count(res)) {
     return std::make_tuple(nullptr, nullptr);
   }
+  Log::Debug["data-source-dos.cc"] << "inside DataSourceDOS::get_sprite_parts, FOO A";
 
   Resource &dos_res = dos_resources[res];
 
@@ -251,6 +253,8 @@ DataSourceDOS::get_sprite_parts(Data::Resource res, size_t index, bool darken) {
   if (palette == nullptr) {
     return std::make_tuple(nullptr, nullptr);  // return null mask/sprite
   }
+
+  Log::Debug["data-source-dos.cc"] << "inside DataSourceDOS::get_sprite_parts, FOO B";
 
   if (res == Data::AssetSerfTorso) {
     PBuffer data = get_object(dos_res.index + index);
@@ -299,6 +303,8 @@ DataSourceDOS::get_sprite_parts(Data::Resource res, size_t index, bool darken) {
                                                                   palette, res, dos_res.index + index),
                            nullptr);  // this returns a mask, but no sprite??
   }
+
+  Log::Debug["data-source-dos.cc"] << "inside DataSourceDOS::get_sprite_parts, FOO C";
   //
   // anything below this point is a "non-masked sprite" as far as this function cares
   //   (even if it is a map_mask_up/down sprite that is itself used as a mask when drawing terrain)
@@ -307,6 +313,8 @@ DataSourceDOS::get_sprite_parts(Data::Resource res, size_t index, bool darken) {
   if (!data) {
     return std::make_tuple(nullptr, nullptr);
   }
+
+  Log::Debug["data-source-dos.cc"] << "inside DataSourceDOS::get_sprite_parts, FOO D";
 
   Data::PSprite sprite;
   switch (dos_res.sprite_type) {
@@ -328,7 +336,9 @@ DataSourceDOS::get_sprite_parts(Data::Resource res, size_t index, bool darken) {
       // map objects such as buildings, flags, rocks that have transparent *backgrounds*
       //  The foreground is entirely solid (alpha is always 100%)
       //sprite = std::make_shared<SpriteDosTransparent>(data, palette);
-      sprite = std::make_shared<SpriteDosTransparent>(data, palette, res, dos_res.index + index);
+      //sprite = std::make_shared<SpriteDosTransparent>(data, palette, res, dos_res.index + index);
+      Log::Debug["data-source-dos.cc"] << "inside DataSourceDOS::get_sprite_parts, FOO E";
+      sprite = std::make_shared<SpriteDosTransparent>(data, palette, res, dos_res.index + index, 0, darken);
       break;
     }
     case SpriteTypeOverlay: {
@@ -367,7 +377,7 @@ DataSourceDOS::get_sprite_parts(Data::Resource res, size_t index, bool darken) {
 //DataSourceDOS::SpriteDosSolid::SpriteDosSolid(PBuffer _data, ColorDOS *palette, Data::Resource res, size_t sprite_index)
 DataSourceDOS::SpriteDosSolid::SpriteDosSolid(PBuffer _data, ColorDOS *palette, Data::Resource res, size_t index, bool darken)
      : SpriteBaseDOS(_data) {
-  //Log::Debug["data-source-dos.cc"] << "inside DataSourceDOS::SpriteDosSolid::SpriteDosSolid, res type " << res << ", index " << index << ", darken bool is " << darken;
+  Log::Debug["data-source-dos.cc"] << "inside DataSourceDOS::SpriteDosSolid::SpriteDosSolid, res type " << res << ", index " << index << ", darken bool is " << darken;
   size_t size = _data->get_size();
   if (size != (width * height + 10)) {
     throw ExceptionFreeserf("Failed to extract DOS solid sprite");
@@ -667,10 +677,13 @@ DataSourceDOS::SpriteDosTransparent::SpriteDosTransparent(PBuffer _data,
                                                           ColorDOS *palette,
                                                           Data::Resource res,
                                                           size_t index,
-                                                          uint8_t color)
+                                                          uint8_t color,
+                                                          bool darken)
   : SpriteBaseDOS(_data) {
 
   PMutableBuffer result = std::make_shared<MutableBuffer>(Buffer::EndianessBig);
+
+  Log::Info["data-source-dos"] << "inside DataSourceDOS::SpriteDosTransparent::SpriteDosTransparent, index is " << index << ", darken bool is " << darken;
 
   //Log::Info["data-source-dos"] << "this transparant sprite has size " << _data->get_size();
 
@@ -683,26 +696,6 @@ DataSourceDOS::SpriteDosTransparent::SpriteDosTransparent(PBuffer _data,
       unsigned int p_index = _data->pop<uint8_t>() + color;  // color_off;
 
       ColorDOS color = palette[p_index];
-
-      /*
-      // FALL
-      if (res == Data::AssetMapObject){
-        // size 500-510 should only be deciduous trees
-        //  CHANGE THIS TO PASS THE object type and add
-        //  match for falling/felled trees also
-        //  maybe just switch to custom sprites instead of palette shifting??  vv
-        if (_data->get_size() > 500 && _data->get_size() < 510){
-          if (color.g > color.r && color.g > color.b){  // is green
-            if (color.g + color.r + color.b > 158){ // is bright
-              color.r += color.g - 20;  // make yellow
-            }else{
-              color.r += 20;
-              color.g += 10;
-            }         
-          }
-        }
-      }
-      */
 
       // testing FourSeasons manipulating Seeds / Field sprites
       //  THESE ARE BEING CACHED EVEN IF option_FourSeasons IS TURNED OFF!!!
@@ -731,6 +724,15 @@ DataSourceDOS::SpriteDosTransparent::SpriteDosTransparent(PBuffer _data,
           }
         }
       }
+
+      if (darken){
+          //color.r = color.r *0.6;  // darker by xx%
+          //color.g = color.g *0.6;  // darker by xx%
+          //color.b = color.b *0.6;  // darker by xx%
+          color.r = color.r * 0.75;
+          color.g = color.g * 0.75;
+          color.b = color.b * 0.75;
+      }    
 
 
       result->push<uint8_t>(color.b);  // Blue

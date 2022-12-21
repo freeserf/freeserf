@@ -1013,13 +1013,14 @@ Viewport::draw_serf(int lx, int ly, const Color &color, int head, int body) {
 // this says shadow and building but it seems to include ANY map object sprite that has a shadow
 //  such as trees, stones, junk objects?
 void
-Viewport::draw_shadow_and_building_sprite(int lx, int ly, int index, const Color &color) {
+Viewport::draw_shadow_and_building_sprite(int lx, int ly, int index, const Color &color, bool darken) {
   
-  //Log::Info["viewport"] << "inside Viewport::draw_shadow_and_building_sprite for sprite index " << index;
-  //frame->draw_sprite(lx, ly, Data::AssetMapShadow, index, true);  // call Frame::draw_sprite#3
+  Log::Info["viewport"] << "inside Viewport::draw_shadow_and_building_sprite for sprite index " << index << ", darken bool is " << darken;
+  //frame->draw_sprite(lx, ly, Data::AssetMapShadow, index, true);
   frame->draw_sprite(lx, ly, Data::AssetMapShadow, index, true, Color::transparent, 1.f);
-  //frame->draw_sprite(lx, ly, Data::AssetMapObject, index, true, color);  // call Frame::draw_sprite#5
-  frame->draw_sprite(lx, ly, Data::AssetMapObject, index, true, color, 1.f);  // call Frame::draw_sprite#5
+  //frame->draw_sprite(lx, ly, Data::AssetMapObject, index, true, color);
+  //frame->draw_sprite(lx, ly, Data::AssetMapObject, index, true, color, 1.f);
+  frame->draw_sprite(lx, ly, Data::AssetMapObject, index, true, color, 1.f, darken);
 }
 
 /*
@@ -1714,6 +1715,13 @@ Viewport::draw_map_objects_row(MapPos pos, int y_base, int cols, int x_base, int
   int center_y = height / 2;
   int topmost_focus_y = center_y - (focus_y_pixels / 2);
   int lowest_focus_y = center_y + (focus_y_pixels / 2);
+
+  bool darken = false;
+  //int total_decline = 0; // for tracking height change to determine darken shadowing of sprites
+  int total_horiz_decline = 0;
+  int total_diag_decline = 0;
+  int last_pos_height = 0;  // for tracking height change to determine darken shadowing of sprites
+
   //Log::Debug["viewport.cc"] << "inside draw_map_objects, pos " << pos << ", cols: " << cols << ", focus_cols: " << focus_cols << ", center_col: " << center_col << ", left: " << leftmost_focus_col << ", right: " << rightmost_focus_col;
   //Log::Debug["viewport.cc"] << "inside draw_map_objects, pos " << pos << ", map height: " << height << ", ly: " << ly << ", center_y: " << center_y << ", top: " << topmost_focus_y << ", bottom: " << lowest_focus_y;
   for (int i = 0; i < cols;
@@ -1949,13 +1957,28 @@ Viewport::draw_map_objects_row(MapPos pos, int y_base, int cols, int x_base, int
       } 
       */
 
+      // track declining left->right slope to determine when to draw "shadowed" darken map_object sprites
+      //  CHANGING TO  Down-Left/Up-Right!
+      int horiz_height_change = last_pos_height - map->get_height(pos);
+      int diag_height_change = map->get_height(map->move_down(pos)) - map->get_height(pos);
+      last_pos_height = map->get_height(pos);
+      total_horiz_decline -= 3;
+      total_diag_decline -= 3;
+      if (total_horiz_decline < 0){ total_horiz_decline = 0;}
+      if (total_diag_decline < 0){ total_diag_decline = 0;}
+      total_horiz_decline += horiz_height_change;
+      total_diag_decline += diag_height_change;
+      // because sun is not totally horizontal, reduce the *effective* decline every pos
+      //  so an flat or increasing height quickly becomes bright again
+
+
       // Flowers
       if ((sprite >= Map::ObjectFlowerGroupA0 - Map::ObjectTree0) && (sprite <= Map::ObjectFlowerGroupA6 - Map::ObjectTree0)){
         sprite += 1000;
         Log::Debug["viewport.cc"] << "inside Viewport::draw_map_objects_row, found a flower, using sprite# + 1000, new sprite #" << sprite;
         // draw flowers darker in the shade (decreasing height from left->right)
-        unsigned int left = map->get_height(pos);
-        unsigned int right = map->get_height(map->move_right(pos));
+        unsigned int left = map->get_height(map->move_left(pos));
+        unsigned int right = map->get_height(pos);
         if ( left > right){
           sprite += 1000;
           Log::Debug["viewport.cc"] << "inside Viewport::draw_map_objects_row, found a darker flower, using sprite# + 2000, new sprite #" << sprite;
@@ -1963,13 +1986,33 @@ Viewport::draw_map_objects_row(MapPos pos, int y_base, int cols, int x_base, int
         use_custom_set = true;
       }
 
+      // existing map objects on downward left->right slopes (darken)
+      darken = false;
+      if ((sprite >= Map::ObjectTree0 - Map::ObjectTree0) && (sprite <= Map::ObjectField5 - Map::ObjectTree0)){
+        if (total_horiz_decline >= 2 && total_diag_decline >= 2){
+          // make sure the next pos ALSO slopes downward significantly, or it will look weird
+          //  because anything sticking up out of this pos would be sunny
+          //if ( map->get_height(map->move_right(pos)) + 0 > map->get_height(pos)
+            //|| map->get_height(map->move_up(pos)) + 0 > map->get_height(pos)){
+          if (map->get_height(map->move_up(pos)) + 0 > map->get_height(pos)){
+            // skip
+          }else{
+            Log::Debug["viewport.cc"] << "inside Viewport::draw_map_objects_row, found existing map objects on downward left->right slopes (darken)";
+            darken = true;
+          }
+        }
+        // DO NOT use_custom_set, these are not custom PNGs but mutated original sprites from SPAx.PA
+      }
+
+
 
       if (use_custom_set){
         Log::Debug["viewport.cc"] << "inside Viewport::draw_map_objects_row, calling draw_map_sprite_special()";
         draw_map_sprite_special(x_base, ly, sprite, pos, map->get_obj(pos));
       }else{
-        Log::Debug["viewport.cc"] << "inside Viewport::draw_map_objects_row, calling draw_shadow_and_building_sprite()";
-        draw_shadow_and_building_sprite(x_base, ly, sprite);
+        Log::Debug["viewport.cc"] << "inside Viewport::draw_map_objects_row, calling draw_shadow_and_building_sprite(), darken bool is " << darken;
+        //draw_shadow_and_building_sprite(x_base, ly, sprite);
+        draw_shadow_and_building_sprite(x_base, ly, sprite, Color::transparent, darken);
       }
 
     } // if not a Tree or junk object
