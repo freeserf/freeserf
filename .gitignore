@@ -40,3 +40,7 @@ xcuserdata
 *.unsuccessfulbuild
 *.VC.db
 *.VC.VC.opendb
+
+# VSCode
+.vscode/
+build/
