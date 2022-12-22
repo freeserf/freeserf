@@ -2069,6 +2069,62 @@ Viewport::draw_map_objects_row(MapPos pos, int y_base, int cols, int x_base, int
       //||  ( sprite >= Map::ObjectFlowerGroupB0 - Map::ObjectTree0 && sprite <= Map::ObjectFlowerGroupB6 - Map::ObjectTree0 ) ){
       if ( ( sprite >= Map::ObjectFlowerGroupA0 - Map::ObjectTree0 && sprite <= Map::ObjectFlowerGroupC6 - Map::ObjectTree0 ) ){
         if (option_FourSeasons && season == 0){
+          Log::Debug["viewport.cc"] << "inside Viewport::draw_map_objects_row, subseason is " << subseason;
+          // gradually introduce flowers as Spring progresses
+          if (subseason == 0){
+            // introduce A & C
+            if (sprite >= Map::ObjectFlowerGroupA0 - Map::ObjectTree0 && sprite <= Map::ObjectFlowerGroupA6 - Map::ObjectTree0 ){
+              sprite = Map::ObjectFlowerGroupA0 - Map::ObjectTree0;
+            }
+            if (sprite >= Map::ObjectFlowerGroupB0 - Map::ObjectTree0 && sprite <= Map::ObjectFlowerGroupB6 - Map::ObjectTree0 ){
+              continue;
+            }
+            if (sprite >= Map::ObjectFlowerGroupC0 - Map::ObjectTree0 && sprite <= Map::ObjectFlowerGroupC6 - Map::ObjectTree0 ){
+              sprite = Map::ObjectFlowerGroupC0 - Map::ObjectTree0;
+            }
+          }else if (subseason == 1){
+            // allow 2nd level of A & C
+            if (sprite >= Map::ObjectFlowerGroupA2 - Map::ObjectTree0 && sprite <= Map::ObjectFlowerGroupA6 - Map::ObjectTree0 ){
+              sprite = Map::ObjectFlowerGroupA1 - Map::ObjectTree0;
+            }
+            if (sprite >= Map::ObjectFlowerGroupB0 - Map::ObjectTree0 && sprite <= Map::ObjectFlowerGroupB6 - Map::ObjectTree0 ){
+              continue;
+            }
+            if (sprite >= Map::ObjectFlowerGroupC2 - Map::ObjectTree0 && sprite <= Map::ObjectFlowerGroupC6 - Map::ObjectTree0 ){
+              sprite = Map::ObjectFlowerGroupC1 - Map::ObjectTree0;
+            }
+          }else if (subseason == 2){
+            // introduce B, allow full range of A & C
+            if (sprite >= Map::ObjectFlowerGroupB0 - Map::ObjectTree0 && sprite <= Map::ObjectFlowerGroupB6 - Map::ObjectTree0 ){
+              sprite = Map::ObjectFlowerGroupB0 - Map::ObjectTree0;
+            }
+          }else if (subseason == 3){
+            // allow 2nd level B, allow full range of A & C
+            if (sprite >= Map::ObjectFlowerGroupB2 - Map::ObjectTree0 && sprite <= Map::ObjectFlowerGroupB6 - Map::ObjectTree0 ){
+              sprite = Map::ObjectFlowerGroupB1 - Map::ObjectTree0;
+            }
+          }
+          // allow full range of all
+          
+          // turn them off in reverse order (because else if)
+          if (subseason >= 12){
+            // turn off all
+            if (sprite >= Map::ObjectFlowerGroupA0 - Map::ObjectTree0 && sprite <= Map::ObjectFlowerGroupC6 - Map::ObjectTree0 ){
+              continue;
+            }
+          }else if (subseason >= 10){
+            // turn off A & C
+            if (sprite >= Map::ObjectFlowerGroupA0 - Map::ObjectTree0 && sprite <= Map::ObjectFlowerGroupA6 - Map::ObjectTree0 
+             || sprite >= Map::ObjectFlowerGroupC0 - Map::ObjectTree0 && sprite <= Map::ObjectFlowerGroupC6 - Map::ObjectTree0 ){
+              continue;
+            }
+          }else if (subseason >= 8){
+            // turn off A
+            if (sprite >= Map::ObjectFlowerGroupA0 - Map::ObjectTree0 && sprite <= Map::ObjectFlowerGroupA6 - Map::ObjectTree0 ){
+              continue;
+            }
+          }
+
           sprite += 1000;
           //Log::Debug["viewport.cc"] << "inside Viewport::draw_map_objects_row, found a flower, using sprite# + 1000, new sprite #" << sprite;
           use_custom_set = true;

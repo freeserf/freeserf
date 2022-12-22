@@ -1282,6 +1282,53 @@ Interface::handle_key_pressed(char key, int modifier) {
       }
       break;
     }
+    // skip to next music track
+    case 't': {
+      Log::Info["interface"] << "'t' key pressed, skipping to next music track";
+      Audio &audio = Audio::get_instance();
+      Audio::PPlayer splayer = audio.get_music_player();
+      if (!splayer) {
+        Log::Warn["interface.cc"] << "audio splayer does not exist, cannot skip track!";
+        break;
+      }
+
+      // check if BOTH Amiga and DOS music available
+      Data &data = Data::get_instance();
+      int have_both = false;
+      if (data.get_data_source_Amiga() != nullptr && data.get_data_source_DOS() != nullptr){
+        have_both = true;
+      }
+
+      // if there are more tracks in current data source, play the next track
+      Log::Debug["interface.cc"] << "audio splayer exists, current source " << splayer->get_current_source() << ", track #" << splayer->get_current_track_id();
+      // this logic should be elsewhere, but for now I just want to get it working
+      int next_track_id = splayer->get_current_track_id() + 1;
+      //if (next_track_id == 3){
+        // DOS track3 is invalid for whatever reason, skip it
+        //  this code could be omitted as it ends up skipping it anyway, but good to note here
+        //next_track_id = 4;
+      //} else if (next_track_id >1 2){
+      if (next_track_id > 2){
+        // only the first two DOS tracks seem to work, I think this may be a freeserf issue, need to compare to original game
+        next_track_id = 0;
+      //} else if (next_track_id > 4){
+        // if at last track, start from beginning
+      //  next_track_id = 0;
+      }
+      // if restarting from first track, switch datasource if both available
+      int next_data_source = splayer->get_current_source();    // 0=Amiga, 1=DOS, 2=Custom
+      if (have_both){
+        // amiga has only a single track, DOS has at least two, maybe four, some issue with later tracks
+        if (splayer->get_current_source() == 0 || (splayer->get_current_source() == 1 && next_track_id == 0)){
+          Log::Debug["interface.cc"] << "audio splayer exists, switching to other data source";
+          next_data_source = !splayer->get_current_source();
+        }
+      }
+
+      Log::Debug["interface.cc"] << "audio splayer exists, next_data_source source " << next_data_source << ", NOW PLAYING TRACK #" << next_track_id;
+      splayer->play_track(next_track_id, next_data_source);
+      break;
+    }
 
     // old Freeserf debug overlay, shows map grid and serf states
     case 'g': {
