@@ -2557,8 +2557,9 @@ PopupBox::draw_transport_info_box() {
     }
   }
 
-  draw_green_string(0, 128, "Index:");
-  draw_green_number(7, 128, static_cast<int>(flag->get_index()));
+  // draw flag index for debugging
+  //draw_green_string(0, 128, "Index:");
+  //draw_green_number(7, 128, static_cast<int>(flag->get_index()));
 }
 
 void
@@ -2887,11 +2888,12 @@ PopupBox::draw_building_stock_box() {
   //
   // DEBUG - find the requested resources destined for this building
   //
-  if (building->get_requested_in_stock(0) > 0){
-    Log::Info["popup"] << "debug: clicked building of type " << NameBuilding[building->get_type()] << " at pos " << building->get_position() << " has stock[0].requested: " << building->get_requested_in_stock(0);
-  }
+  //if (building->get_requested_in_stock(0) > 0){
+  //  Log::Info["popup"] << "debug: clicked building of type " << NameBuilding[building->get_type()] << " at pos " << building->get_position() << " has stock[0].requested: " << building->get_requested_in_stock(0);
+  //}
 
   /* Draw picture of serf present */
+  //  i.e. the holder
   int serf_sprite = 0xdc; /* minus box */
   if (building->has_serf()) {
     serf_sprite = map_building_serf_sprite[building->get_type()];
