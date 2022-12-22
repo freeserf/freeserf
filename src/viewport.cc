@@ -3629,6 +3629,17 @@ Viewport::draw_map_cursor_possible_build() {
       int ly = y_base - 4 * map->get_height(pos);
       if (ly >= height) break;
 
+      // NOTE - these icons are not visible in FSStudio but they exist in SPAx.PA and I assume Amiga too
+      // they are:
+      // <46 nothing
+      //  47 flag
+      //  48 mine
+      //  49 small building
+      //  50 large building
+      //  51 [-->] arrow indicating current pos during roadbuilding
+      //  52 [*] star indicating cannot build anything at cursor pos (ex. while on road too close to another flag)
+      // >53 nothing
+
       /* Draw possible building */
       int sprite = -1;
       if (game->can_build_castle(pos, interface->get_player())) {
@@ -3644,6 +3655,8 @@ Viewport::draw_map_cursor_possible_build() {
           sprite = 50;
         } else if (game->can_build_small(pos)) {
           sprite = 49;
+        } else if (game->can_build_flag(pos, interface->get_player())) {  // freeserf was missing this
+          sprite = 47;
         }
       }
 

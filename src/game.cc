@@ -1677,6 +1677,7 @@ Game::get_leveling_height(MapPos pos) const {
   return h_new;
 }
 
+// this returns true if ONLY the terrain specified is in range
 bool
 Game::map_types_within(MapPos pos, Map::Terrain low, Map::Terrain high) const {
   if ((map->type_up(pos) >= low &&
@@ -1698,8 +1699,15 @@ Game::map_types_within(MapPos pos, Map::Terrain low, Map::Terrain high) const {
 }
 
 /* Checks whether a small building is possible at position.*/
+// NOTE - I think this misleading!  it does not consider
+//  blocking objects nor position ownership
 bool
 Game::can_build_small(MapPos pos) const {
+  // Freeserf was missing the original game check preventing buildings from being placed
+  //  with its flag pos touching edge of water
+  if (!map_types_within(map->move_down_right(pos), Map::TerrainGrass0, Map::TerrainGrass3)){
+    return false;
+  }
   return map_types_within(pos, Map::TerrainGrass0, Map::TerrainGrass3);
 }
 

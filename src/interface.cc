@@ -438,6 +438,9 @@ Interface::close_message() {
 }
 
 /* Return the cursor type and various related values of a MapPos. */
+// THIS IS THE BEST REPRESENTATION OF THE NECESSARY CHECKS TO BE USED
+//  for AI and game to determine what can be built at a pos, the 
+//  simple game->can_build_XXX checks are NOT SUFFICIENT!
 void
 Interface::get_map_cursor_type(const Player *player_, MapPos pos,
                                BuildPossibility *bld_possibility,
