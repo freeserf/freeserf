@@ -936,11 +936,9 @@ ClassicMapGenerator::create_paired_random_object_clusters(int num_clusters,
             break;
           }
           //if (hexagon_types_in_range(pos, type1_min, type1_max) && tiles[pos].obj == Map::ObjectNone) {
-          int wtf = (random_int() & obj1_mask) + obj1_base;
-          // TEMP HACK TO AVOID FLAG SPRITE
-          if (wtf >= 135){ wtf = 134;}
-          tiles[pos].obj = static_cast<Map::Object>( wtf);
-          Log::Debug["map-generator.cc"] << "inside ClassicMapGenerator::create_paired_random_object_clusters, random_int() is " << random_int() << ", rnd_pos base " << rnd_pos << ", creating obj type 1, actual type " << wtf << " at pos " << pos;
+          int actual = (random_int() % obj1_mask) + obj1_base;
+          tiles[pos].obj = static_cast<Map::Object>(actual);
+          Log::Debug["map-generator.cc"] << "inside ClassicMapGenerator::create_paired_random_object_clusters, random_int() is " << random_int() << ", rnd_pos base " << rnd_pos << ", creating obj type 1, actual type " << actual << " at pos " << pos;
           //}
         }
         // second type
@@ -965,9 +963,10 @@ ClassicMapGenerator::create_paired_random_object_clusters(int num_clusters,
           if (rejected){
             break;
           }
-          Log::Debug["map-generator.cc"] << "inside ClassicMapGenerator::create_paired_random_object_clusters, random_int() is " << random_int() << ", rnd_pos base " << rnd_pos << ", creating obj type 2 at pos " << pos;
+          int actual = (random_int() % obj2_mask) + obj2_base;
+          Log::Debug["map-generator.cc"] << "inside ClassicMapGenerator::create_paired_random_object_clusters, random_int() is " << random_int() << ", rnd_pos base " << rnd_pos << ", creating obj type 2, actual type " << actual << " at pos " << pos;
           if (hexagon_types_in_range(pos, type2_min, type2_max) && tiles[pos].obj == Map::ObjectNone) {
-            tiles[pos].obj = static_cast<Map::Object>( (random_int() & obj2_mask) + obj2_base );
+            tiles[pos].obj = static_cast<Map::Object>(actual);
           }
         }
         //break;  DO NOT BREAK!
@@ -1362,9 +1361,18 @@ CustomMapGenerator::create_objects() {
   // do the smaller, denser type first as the second cannot place objects where the first already has
   //
   //  NOTE - I am thinking that the obj_mask cannot be even, possibly related to bitwise operations?
-  //
-  create_paired_random_object_clusters(regions * 8, 1,  7, Map::TerrainGrass1, Map::TerrainGrass2, Map::ObjectFlowerGroupA2, 5,
-                                                    1, 19, Map::TerrainGrass1, Map::TerrainGrass2, Map::ObjectFlowerGroupA0, 1);
+  //     CHANGING HOW THE MASK WORKS NOW!!
+  create_paired_random_object_clusters(regions * 6,  1,  7, Map::TerrainGrass1, Map::TerrainGrass2, Map::ObjectFlowerGroupA2, 5,
+                                                     1, 19, Map::TerrainGrass1, Map::TerrainGrass2, Map::ObjectFlowerGroupA0, 1);
+  create_random_object_clusters(regions, 6, 0x3f, Map::TerrainGrass1, Map::TerrainGrass2, Map::ObjectFlowerGroupA0, 6);
+  
+  create_paired_random_object_clusters(regions * 6,  1,  7, Map::TerrainGrass1, Map::TerrainGrass2, Map::ObjectFlowerGroupC2, 5,
+                                                     1, 19, Map::TerrainGrass1, Map::TerrainGrass2, Map::ObjectFlowerGroupC0, 1);
+  create_random_object_clusters(regions, 6, 0x3f, Map::TerrainGrass1, Map::TerrainGrass2, Map::ObjectFlowerGroupA0, 6);
+
+  create_paired_random_object_clusters(regions *  6, 1,  7, Map::TerrainGrass1, Map::TerrainGrass2, Map::ObjectFlowerGroupB2, 5,
+                                                     1, 19, Map::TerrainGrass1, Map::TerrainGrass2, Map::ObjectFlowerGroupB0, 2);
+  create_random_object_clusters(regions, 6, 0x3f, Map::TerrainGrass1, Map::TerrainGrass2, Map::ObjectFlowerGroupB0, 6);
 }
 
 

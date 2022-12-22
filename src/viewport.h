@@ -99,6 +99,7 @@ class Viewport : public GuiObject, public Map::Handler {
                         Frame *frame);
   void draw_down_tile_col(MapPos pos, int x_base, int y_base, int max_y,
                           Frame *frame);
+  int get_brighter_triangle_luminosity(MapPos pos);  // for drawing shaded map_object sprites on downward slopes (left->right)
   void draw_landscape();
   void draw_path_segment(int x, int y, MapPos pos, Direction dir);
   void draw_border_segment(int x, int y, MapPos pos, Direction dir);

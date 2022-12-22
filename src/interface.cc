@@ -1046,9 +1046,9 @@ Interface::update() {
   // hack to trigger redraw for option_FogOfWar
   //  any time borders change
   if (game->get_must_redraw_frame()){
-    Log::Debug["interface.cc"] << "inside Interface::update(), game->get_must_redraw_frame is true";
+    //Log::Debug["interface.cc"] << "inside Interface::update(), game->get_must_redraw_frame is true";
     if (viewport != nullptr) {
-      Log::Debug["interface.cc"] << "inside Interface::update(), game->get_must_redraw_frame is true and viewport is not a nullptr, calling viewport->set_size";
+      //Log::Debug["interface.cc"] << "inside Interface::update(), game->get_must_redraw_frame is true and viewport is not a nullptr, calling viewport->set_size";
       viewport->set_size(width, height);  // this does the magic refresh without affecting popups (as Interface->layout() does)
     }
     game->unset_must_redraw_frame();

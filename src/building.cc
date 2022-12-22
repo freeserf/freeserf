@@ -1136,7 +1136,7 @@ Building::request_serf_if_needed() {
 
   if (!serf_request_failed && !holder && !serf_requested) {
     if (requests[type].serf_type != Serf::TypeNone) {
-      Log::Debug["building.cc"] << "inside Building::request_serf_if_needed(), found a request of serf_type " << NameSerf[requests[type].serf_type] << ", calling send_serf_to_building to this building of type " << NameBuilding[get_type()] << " at pos " << get_position();
+      //Log::Debug["building.cc"] << "inside Building::request_serf_if_needed(), found a request of serf_type " << NameSerf[requests[type].serf_type] << ", calling send_serf_to_building to this building of type " << NameBuilding[get_type()] << " at pos " << get_position();
       serf_request_failed = !send_serf_to_building(requests[type].serf_type, requests[type].res_type_1, requests[type].res_type_2);
     }
   }

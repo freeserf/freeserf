@@ -204,6 +204,20 @@ const std::string NameObject[]{
 "Map::ObjectFlowerGroupA4",
 "Map::ObjectFlowerGroupA5",
 "Map::ObjectFlowerGroupA6",
+"Map::ObjectFlowerGroupB0",
+"Map::ObjectFlowerGroupB1",
+"Map::ObjectFlowerGroupB2",
+"Map::ObjectFlowerGroupB3",
+"Map::ObjectFlowerGroupB4",
+"Map::ObjectFlowerGroupB5",
+"Map::ObjectFlowerGroupB6",
+"Map::ObjectFlowerGroupC0",
+"Map::ObjectFlowerGroupC1",
+"Map::ObjectFlowerGroupC2",
+"Map::ObjectFlowerGroupC3",
+"Map::ObjectFlowerGroupC4",
+"Map::ObjectFlowerGroupC5",
+"Map::ObjectFlowerGroupC6",
 };
 
 const std::string NameSerf[]{
