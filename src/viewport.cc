@@ -178,6 +178,7 @@ Viewport::special_terrain_sprite(MapPos pos, int sprite_index){
 void
 Viewport::draw_triangle_up(int lx, int ly, int m, int left, int right,
                            MapPos pos, Frame *tile) {
+// NOTE THAT THIS IS NOT THE SAME LUMINOSITY tri_mask AS draw_triangle_down!
   static const int8_t tri_mask[] = {
      0,  1,  3,  6,  7, -1, -1, -1, -1,
      0,  1,  2,  5,  6,  7, -1, -1, -1,
@@ -258,6 +259,7 @@ Viewport::draw_triangle_up(int lx, int ly, int m, int left, int right,
 void
 Viewport::draw_triangle_down(int lx, int ly, int m, int left, int right,
                              MapPos pos, Frame *tile) {
+// NOTE THAT THIS IS NOT THE SAME LUMINOSITY tri_mask AS draw_triangle_up!                               
   static const int8_t tri_mask[] = {
      0,  0,  0,  0,  0, -1, -1, -1, -1,
      1,  1,  1,  1,  1,  0, -1, -1, -1,
@@ -334,6 +336,109 @@ Viewport::draw_triangle_down(int lx, int ly, int m, int left, int right,
 
   tile->draw_masked_sprite(lx, ly + MAP_TILE_HEIGHT, Data::AssetMapMaskDown, mask, Data::AssetMapGround, sprite, darken);
 }
+
+
+// return the 0-7 luminosity value corresponding
+//  to the higher (brighter) triangle (up or down)
+int
+Viewport::get_brighter_triangle_luminosity(MapPos pos) {
+  Log::Debug["viewport.cc"] << "inside Viewport::get_brighter_triangle_luminosity, pos " << pos;
+  // copied from draw_triangle_up
+  static const int8_t up_tri_mask[] = {
+     0,  1,  3,  6,  7, -1, -1, -1, -1,
+     0,  1,  2,  5,  6,  7, -1, -1, -1,
+     0,  1,  2,  3,  5,  6,  7, -1, -1,
+     0,  1,  2,  3,  4,  5,  6,  7, -1,
+     0,  1,  2,  3,  4,  4,  5,  6,  7,
+    -1,  0,  1,  2,  3,  4,  5,  6,  7,
+    -1, -1,  0,  1,  2,  4,  5,  6,  7,
+    -1, -1, -1,  0,  1,  2,  5,  6,  7,
+    -1, -1, -1, -1,  0,  1,  4,  6,  7
+  };  // this is a 9x9 array, so 81 values in array ([0-80])
+  // copied from draw_triangle_up
+  static const int8_t down_tri_mask[] = {
+     0,  0,  0,  0,  0, -1, -1, -1, -1,
+     1,  1,  1,  1,  1,  0, -1, -1, -1,
+     3,  2,  2,  2,  2,  1,  0, -1, -1,
+     6,  5,  3,  3,  3,  2,  1,  0, -1,
+     7,  6,  5,  4,  4,  3,  2,  1,  0,
+    -1,  7,  6,  5,  4,  4,  4,  2,  1,
+    -1, -1,  7,  6,  5,  5,  5,  5,  4,
+    -1, -1, -1,  7,  6,  6,  6,  6,  6,
+    -1, -1, -1, -1,  7,  7,  7,  7,  7
+  };
+
+  // here is how draw_up_tile_col does it
+  /*  starts a col beginning with up pointing triangle
+  int m = map->get_height(pos);
+  int left, right;
+  // Loop until a tile is inside the frame (y >= 0).
+  while (1) {
+    pos = map->move_down(pos);
+    left = map->get_height(pos);
+    right = map->get_height(map->move_right(pos));
+    int t = std::min(left, right);
+    if (y_base + MAP_TILE_HEIGHT - 4*t >= 0) break;
+    y_base += MAP_TILE_HEIGHT;
+    pos = map->move_down_right(pos);
+    m = map->get_height(pos);
+    if (y_base + MAP_TILE_HEIGHT - 4*m >= 0) goto down;
+    y_base += MAP_TILE_HEIGHT;
+  }
+
+  // Loop until a tile is completely outside the frame (y >= max_y). 
+  while (1) {
+    if (y_base - 2*MAP_TILE_HEIGHT - 4*m >= max_y) break;
+    draw_triangle_up(x_base, y_base - 4*m, m, left, right, pos, tile);
+    y_base += MAP_TILE_HEIGHT;
+    pos = map->move_down_right(pos);
+    m = map->get_height(pos);
+    if (y_base - 2*MAP_TILE_HEIGHT - 4*std::max(left, right) >= max_y) break;
+  down:
+    draw_triangle_down(x_base, y_base - 4*m, m, left, right, pos, tile);
+    y_base += MAP_TILE_HEIGHT;
+    pos = map->move_down(pos);
+    left = map->get_height(pos);
+    right = map->get_height(map->move_right(pos));
+  }
+  */
+
+  // the important bits seem to be:
+  // for up triangle on up_col
+  int uptri_m = map->get_height(pos);
+  int uptri_posx = map->move_down(pos);
+  int uptri_left = map->get_height(uptri_posx);
+  int uptri_right = map->get_height(map->move_right(uptri_posx));
+    
+  int up_mask   = 4 +  uptri_m - uptri_left + 9*(4 + uptri_m - uptri_right);
+
+  // for down triangle on up_col
+  int dntri_left = map->get_height(pos);
+  int dntri_right = map->get_height(map->move_right(pos));
+  int dntri_posx = map->move_down_right(pos);
+  int dntri_m = map->get_height(dntri_posx);
+  dntri_posx = map->move_down_right(dntri_posx);
+  dntri_m = map->get_height(dntri_posx);
+
+  int down_mask = 4 +  dntri_left - dntri_m + 9*(4 + dntri_right - dntri_m);
+
+  Log::Debug["viewport.cc"] << "inside Viewport::get_brighter_triangle_luminosity, pos " << pos << ", up_mask " << up_mask << ", down_mask " << down_mask;
+  if (up_tri_mask[up_mask] < 0) {
+    throw ExceptionFreeserf("get_brighter_triangle_luminosity found a up-triangle level below zero!");
+  }
+  if (down_tri_mask[down_mask] < 0) {
+    throw ExceptionFreeserf("get_brighter_triangle_luminosity found a up-triangle level below zero!");
+  }
+  Log::Debug["viewport.cc"] << "inside Viewport::get_brighter_triangle_luminosity, pos " << pos << ", up_mask " << up_mask << ", down_mask " << down_mask << ", up luminosity " << int(up_tri_mask[up_mask]) << ", down luminosity " << int(down_tri_mask[down_mask]);
+  // return the higher value
+  if (up_tri_mask[up_mask] >= down_tri_mask[down_mask]){
+    Log::Debug["viewport.cc"] << "inside Viewport::get_brighter_triangle_luminosity, pos " << pos << ", up_mask " << up_mask << ", down_mask " << down_mask << ", returning up luminosity " << int(up_tri_mask[up_mask]);
+    return up_tri_mask[up_mask];
+  }
+  Log::Debug["viewport.cc"] << "inside Viewport::get_brighter_triangle_luminosity, pos " << pos << ", up_mask " << up_mask << ", down_mask " << down_mask << ", returning down luminosity " << int(down_tri_mask[down_mask]);
+  return down_tri_mask[down_mask];
+}
+
 
 /* Draw a column (vertical) of tiles, starting at an up pointing tile. */
 // NOTE - the visual lighting effect where tiles on the left/west side of
@@ -1013,13 +1118,14 @@ Viewport::draw_serf(int lx, int ly, const Color &color, int head, int body) {
 // this says shadow and building but it seems to include ANY map object sprite that has a shadow
 //  such as trees, stones, junk objects?
 void
-Viewport::draw_shadow_and_building_sprite(int lx, int ly, int index, const Color &color) {
+Viewport::draw_shadow_and_building_sprite(int lx, int ly, int index, const Color &color, bool darken) {
   
-  //Log::Info["viewport"] << "inside Viewport::draw_shadow_and_building_sprite for sprite index " << index;
-  //frame->draw_sprite(lx, ly, Data::AssetMapShadow, index, true);  // call Frame::draw_sprite#3
+  //Log::Info["viewport"] << "inside Viewport::draw_shadow_and_building_sprite for sprite index " << index << ", darken bool is " << darken;
+  //frame->draw_sprite(lx, ly, Data::AssetMapShadow, index, true);
   frame->draw_sprite(lx, ly, Data::AssetMapShadow, index, true, Color::transparent, 1.f);
-  //frame->draw_sprite(lx, ly, Data::AssetMapObject, index, true, color);  // call Frame::draw_sprite#5
-  frame->draw_sprite(lx, ly, Data::AssetMapObject, index, true, color, 1.f);  // call Frame::draw_sprite#5
+  //frame->draw_sprite(lx, ly, Data::AssetMapObject, index, true, color);
+  //frame->draw_sprite(lx, ly, Data::AssetMapObject, index, true, color, 1.f);
+  frame->draw_sprite(lx, ly, Data::AssetMapObject, index, true, color, 1.f, darken);
 }
 
 /*
@@ -1044,35 +1150,27 @@ Viewport::draw_shadow_and_custom_building_sprite(int lx, int ly, int index, cons
 //  doesn't seem to be working right, needs more investigation
 // ALSO THE ORIGINAL TREE SHADOWS are dynamically animated, they move like the tree does!  
 //  AND THESE CUSTOM TREE SHADOWS ARE STATIC, THIS NEEDS TO BE FIXED!!
+// UPDATE - IT HAS BEEN FIXED!  - now get rid of / merge this function
 void
 Viewport::draw_map_sprite_special(int lx, int ly, int index, unsigned int pos, unsigned int obj, const Color &color) {
   // this is only used by draw_map_objects_row, added passing of pos and object type to support sprite replacement
-  //Log::Info["viewport"] << "inside Viewport::draw_map_sprite_special for sprite index " << index;
-  // I am thinking that the transparency effect on shadows doens't work right for Custom datasource,
-  //  maybe because PNG settings aren't right?  try testing without all these custom graphics using a vanilla
-  //  copy of Freeserf and export from FSStudio
-  //frame->draw_sprite_special1(lx, ly, Data::AssetMapShadow, index, true, pos, obj);  // call Frame::draw_sprite#3
+  //  THIS FUNCTION MAY NOT BE NEEDED ANYMORE, could integration into normal draw sprite functions?
+  //Log::Debug["viewport"] << "inside Viewport::draw_map_sprite_special for sprite index " << index;
 
-  // instead, try this hack to use the right shadow
-  // NOTE - if FourSeasons is on but the custom tree sprites are missing, this will result in the wrong shadow type for these trees
-  //   however it should at least avoid crashing because I put a fallback in the tree-sprite function to draw the original tree
-  //   if the custom one is mising, but I am not sure how to fall back to the original shadow here, would need to figure out how to
-  //   test for the existence of the custom data source here.  It might be easy, but this seems like an edge case.  Better to 
-  //   simply force disable FourSeasons if the custom tree sprites are missing, OR allow a version that changes the terrain only
-  //   to still allow AdvancedFarming?
-  if (index >= 1220 && index <= 1223){
-    // use "full" deciduous tree shadow for SPRING Tree2 (the white flowered tree)
-    //frame->draw_sprite(lx, ly, Data::AssetMapShadow, 0, true);  // call Frame::draw_sprite#3  
-    frame->draw_sprite(lx, ly, Data::AssetMapShadow, 0, true, Color::transparent, 1.f);  // call Frame::draw_sprite#3  
-  }else if (index >= 1400 && index <= 1499){
-    // FALL trees all have full shadows
-    frame->draw_sprite(lx, ly, Data::AssetMapShadow, 0, true, Color::transparent, 1.f);  // call Frame::draw_sprite#3  
+  // draw the tree's shadow
+  if ((index >= 1220 && index <= 1223)    // SPRING Tree2 (the white flowered tree)
+   || (index >= 1400 && index <= 1499)) { // FALL trees all have full shadows
+    // use the default "full" deciduous tree shadow for certain custom tree sprites
+    frame->draw_sprite(lx, ly, Data::AssetMapShadow, index % 10, true, Color::transparent, 1.f);
+  }else if (index >= 1120 && index <= 1199
+         || index >= 2120 && index <= 2199){   // dark flowers
+    // flowers have no shadow, do not draw one
   }else{
-    // use "bare" tree shadow from dead tree index 084 for WINTER and most of FALL
-    frame->draw_sprite(lx, ly, Data::AssetMapShadow, 84, true, Color::transparent, 1.f);  // call Frame::draw_sprite#3  
+    // for other "non-full" trees, use custom shadow, derived from tree sprite using ImageMagick
+    frame->draw_sprite(lx, ly, Data::AssetMapShadow, index, true, Color::transparent, 1.f);
   }
 
-  //frame->draw_sprite_special2(lx, ly, Data::AssetMapObject, index, true, color, pos, obj);  // call Frame::draw_sprite#5
+  // draw the tree itself
   frame->draw_sprite(lx, ly, Data::AssetMapObject, index, true, color); // pos and obj only needed for debugging
 }
 
@@ -1709,6 +1807,7 @@ Viewport::draw_flag_and_res(MapPos pos, int lx, int ly) {
 void
 //Viewport::draw_map_objects_row(MapPos pos, int y_base, int cols, int x_base) {
 Viewport::draw_map_objects_row(MapPos pos, int y_base, int cols, int x_base, int ly) {
+  //Log::Debug["viewport.cc"] << "inside Viewport::draw_map_objects_row";
   // for determining "in view" objects for ambient sound generation,
   //  only consider a roughly 640x480px area in the center of the 
   //  viewport, otherwise there are too many ambient sounds and for
@@ -1722,6 +1821,9 @@ Viewport::draw_map_objects_row(MapPos pos, int y_base, int cols, int x_base, int
   int center_y = height / 2;
   int topmost_focus_y = center_y - (focus_y_pixels / 2);
   int lowest_focus_y = center_y + (focus_y_pixels / 2);
+
+  bool darken = false;
+
   //Log::Debug["viewport.cc"] << "inside draw_map_objects, pos " << pos << ", cols: " << cols << ", focus_cols: " << focus_cols << ", center_col: " << center_col << ", left: " << leftmost_focus_col << ", right: " << rightmost_focus_col;
   //Log::Debug["viewport.cc"] << "inside draw_map_objects, pos " << pos << ", map height: " << height << ", ly: " << ly << ", center_y: " << center_y << ", top: " << topmost_focus_y << ", bottom: " << lowest_focus_y;
   for (int i = 0; i < cols;
@@ -1756,9 +1858,10 @@ Viewport::draw_map_objects_row(MapPos pos, int y_base, int cols, int x_base, int
         draw_building(pos, x_base, ly);
       }
     } else {
-      int sprite = map->get_obj(pos) - Map::ObjectTree0;
+      int sprite = map->get_obj(pos) - Map::ObjectTree0;  // THIS IS IMPORTANT - sprite index is always 8 lower (-8) than map_object index!
       bool use_custom_set = false;  // messing with weather/seasons/palette tiles
-      if (sprite < 24) {
+      // if this is some kind of tree...
+      if (sprite < 24) {  // Tree/Pine/Palm/SubmergedTree are sprites <24, these have waving animations
 
         // ambient sound triggers, only consider objects that are in the focus area
         if (in_ambient_focus){
@@ -1928,7 +2031,7 @@ Viewport::draw_map_objects_row(MapPos pos, int y_base, int cols, int x_base, int
           sprite = (sprite & ~3) + (tree_anim & 3);
         }
 
-      } // if sprite < 24 (trees and junk objects)
+      } // if sprite < 24 (various tree types)
 
       /* disabling this, instead modifying the rgb palette color of the original sprites
 
@@ -1953,13 +2056,168 @@ Viewport::draw_map_objects_row(MapPos pos, int y_base, int cols, int x_base, int
         }else{
           Log::Debug["viewport.cc"] << "using original " << sprite << " for non-ObjectSeeds object type #" << sprite;
         }
-      }
+      } 
       */
 
+      //int pos_luminosity = 0;
+      //int pos_luminosity = get_brighter_triangle_luminosity(pos);
+      //Log::Debug["viewport.cc"] << "inside Viewport::draw_map_objects_row, pos " << pos << ", obj type " << map->get_obj(pos) << ", pos_luminosity is " << pos_luminosity; 
+
+      // normal bright Flowers
+      bool flower = false;  // dumb work-around to avoid being foild by sprite += 1000
+      //if (( sprite >= Map::ObjectFlowerGroupA0 - Map::ObjectTree0 && sprite <= Map::ObjectFlowerGroupA6 - Map::ObjectTree0 )
+      //||  ( sprite >= Map::ObjectFlowerGroupB0 - Map::ObjectTree0 && sprite <= Map::ObjectFlowerGroupB6 - Map::ObjectTree0 ) ){
+      if ( ( sprite >= Map::ObjectFlowerGroupA0 - Map::ObjectTree0 && sprite <= Map::ObjectFlowerGroupC6 - Map::ObjectTree0 ) ){
+        if (option_FourSeasons && season == 0){
+          Log::Debug["viewport.cc"] << "inside Viewport::draw_map_objects_row, subseason is " << subseason;
+          // gradually introduce flowers as Spring progresses
+          if (subseason == 0){
+            // introduce A & C
+            if (sprite >= Map::ObjectFlowerGroupA0 - Map::ObjectTree0 && sprite <= Map::ObjectFlowerGroupA6 - Map::ObjectTree0 ){
+              sprite = Map::ObjectFlowerGroupA0 - Map::ObjectTree0;
+            }
+            if (sprite >= Map::ObjectFlowerGroupB0 - Map::ObjectTree0 && sprite <= Map::ObjectFlowerGroupB6 - Map::ObjectTree0 ){
+              continue;
+            }
+            if (sprite >= Map::ObjectFlowerGroupC0 - Map::ObjectTree0 && sprite <= Map::ObjectFlowerGroupC6 - Map::ObjectTree0 ){
+              sprite = Map::ObjectFlowerGroupC0 - Map::ObjectTree0;
+            }
+          }else if (subseason == 1){
+            // allow 2nd level of A & C
+            if (sprite >= Map::ObjectFlowerGroupA2 - Map::ObjectTree0 && sprite <= Map::ObjectFlowerGroupA6 - Map::ObjectTree0 ){
+              sprite = Map::ObjectFlowerGroupA1 - Map::ObjectTree0;
+            }
+            if (sprite >= Map::ObjectFlowerGroupB0 - Map::ObjectTree0 && sprite <= Map::ObjectFlowerGroupB6 - Map::ObjectTree0 ){
+              continue;
+            }
+            if (sprite >= Map::ObjectFlowerGroupC2 - Map::ObjectTree0 && sprite <= Map::ObjectFlowerGroupC6 - Map::ObjectTree0 ){
+              sprite = Map::ObjectFlowerGroupC1 - Map::ObjectTree0;
+            }
+          }else if (subseason == 2){
+            // introduce B, allow full range of A & C
+            if (sprite >= Map::ObjectFlowerGroupB0 - Map::ObjectTree0 && sprite <= Map::ObjectFlowerGroupB6 - Map::ObjectTree0 ){
+              sprite = Map::ObjectFlowerGroupB0 - Map::ObjectTree0;
+            }
+          }else if (subseason == 3){
+            // allow 2nd level B, allow full range of A & C
+            if (sprite >= Map::ObjectFlowerGroupB2 - Map::ObjectTree0 && sprite <= Map::ObjectFlowerGroupB6 - Map::ObjectTree0 ){
+              sprite = Map::ObjectFlowerGroupB1 - Map::ObjectTree0;
+            }
+          }
+          // allow full range of all
+          
+          // turn them off in reverse order (because else if)
+          if (subseason >= 12){
+            // turn off all
+            if (sprite >= Map::ObjectFlowerGroupA0 - Map::ObjectTree0 && sprite <= Map::ObjectFlowerGroupC6 - Map::ObjectTree0 ){
+              continue;
+            }
+          }else if (subseason >= 10){
+            // turn off A & C
+            if (sprite >= Map::ObjectFlowerGroupA0 - Map::ObjectTree0 && sprite <= Map::ObjectFlowerGroupA6 - Map::ObjectTree0 
+             || sprite >= Map::ObjectFlowerGroupC0 - Map::ObjectTree0 && sprite <= Map::ObjectFlowerGroupC6 - Map::ObjectTree0 ){
+              continue;
+            }
+          }else if (subseason >= 8){
+            // turn off A
+            if (sprite >= Map::ObjectFlowerGroupA0 - Map::ObjectTree0 && sprite <= Map::ObjectFlowerGroupA6 - Map::ObjectTree0 ){
+              continue;
+            }
+          }
+
+          sprite += 1000;
+          //Log::Debug["viewport.cc"] << "inside Viewport::draw_map_objects_row, found a flower, using sprite# + 1000, new sprite #" << sprite;
+          use_custom_set = true;
+          flower = true;
+        }else{
+          continue;
+        }
+      }
+
+      // check pos two left and one right
+      int left2  = map->get_height(map->move_left(map->move_left(pos)));
+      //Log::Debug["viewport.cc"] << "inside Viewport::draw_map_objects_row, checking terr height, left2 with pos " << map->move_left(map->move_left(pos)) << " has height " << left2;
+      int left1  = map->get_height(map->move_left(pos));
+      //Log::Debug["viewport.cc"] << "inside Viewport::draw_map_objects_row, checking terr height, left1 with pos " << map->move_left(pos) << " has height " << left1;
+      int here   = map->get_height(pos);
+      //Log::Debug["viewport.cc"] << "inside Viewport::draw_map_objects_row, checking terr height, cur pos " << pos << " has height " << map->get_height(pos);
+      int right1 = map->get_height(map->move_right(pos));
+      //Log::Debug["viewport.cc"] << "inside Viewport::draw_map_objects_row, checking terr height, right1 with pos " << map->move_right(pos) << " has height " << right1;
+      int downleft1 = map->get_height(map->move_down(pos));
+      //Log::Debug["viewport.cc"] << "inside Viewport::draw_map_objects_row, checking terr height, downleft1 with pos " << map->move_down(pos) << " has height " << downleft1;
+
+      // I have categorized all sprites into Short or Tall based on their appearance
+      //  short sprites have lower requirements to become shaded
+      //  taller sprites have higher requirement to be shaded
+      //  Currently, short == 0 and tall == 1
+      int obj_sprite_height = Map::obj_height_for_slope_darken[map->get_obj(pos)];
+      //Log::Debug["viewport.cc"] << "inside Viewport::draw_map_objects_row, pos " << pos << ", obj type " << map->get_obj(pos) << ", obj_sprite_height for sprite #" << sprite << " is " << obj_sprite_height; 
+
+
+      bool shaded = false;
+
+      while (true){
+        if (right1 > here){
+          //Log::Debug["viewport.cc"] << "inside Viewport::draw_map_objects_row, checking terr height, cur pos " << pos << ", rejected because right1-here is higher than here";
+          break;
+        }
+        if (downleft1 < here){
+          //Log::Debug["viewport.cc"] << "inside Viewport::draw_map_objects_row, checking terr height, cur pos " << pos << ", rejected because downleft1-here is lower than here";
+          break;
+        }
+        if (left1 < here){
+          //Log::Debug["viewport.cc"] << "inside Viewport::draw_map_objects_row, checking terr height, cur pos " << pos << ", rejected because left1 is lower than here";
+          break;
+        }
+        if (left1 - here > obj_sprite_height){
+          //Log::Debug["viewport.cc"] << "inside Viewport::draw_map_objects_row, checking terr height, cur pos " << pos << ", accepted because left1-here is > obj_sprite_height";
+          shaded = true;
+          break;
+        }
+        if ( (left2 - left1) / 3   // pos left2 has reduced contribution to accumulated decline
+           +  left1 - here         // pos left has full contribution
+                > obj_sprite_height ){
+          //Log::Debug["viewport.cc"] << "inside Viewport::draw_map_objects_row, checking terr height, cur pos " << pos << ", accepted because acumulated height over threshold";
+          shaded = true;
+          break;
+        }
+        //Log::Debug["viewport.cc"] << "inside Viewport::draw_map_objects_row, checking terr height, cur pos " << pos << ", no conditions were true. leaving shaded at " << shaded;
+        break;
+      }
+
+      darken = false;
+  
+      if (shaded){
+
+        //Log::Debug["viewport.cc"] << "inside Viewport::draw_map_objects_row, shaded is true";
+        
+        // shaded Flowers    // can't use MapObject at this point because it was earlier set to +1000 for flowers
+        //if (( sprite >= Map::ObjectFlowerGroupA0 - Map::ObjectTree0 && sprite <= Map::ObjectFlowerGroupA6 - Map::ObjectTree0 )
+        //||  ( sprite >= Map::ObjectFlowerGroupB0 - Map::ObjectTree0 && sprite <= Map::ObjectFlowerGroupB6 - Map::ObjectTree0 ) ){
+        if (flower){
+          sprite += 1000;
+          //Log::Debug["viewport.cc"] << "inside Viewport::draw_map_objects_row, found a darker flower, using sprite# + 2000, new sprite #" << sprite;
+          use_custom_set = true;
+        //}else{
+          //Log::Debug["viewport.cc"] << "inside Viewport::draw_map_objects_row, not a flower";
+        }
+
+        // shaded existing map objects
+        if ((sprite >= Map::ObjectTree0 - Map::ObjectTree0) && (sprite <= Map::ObjectField5 - Map::ObjectTree0)){
+          //Log::Debug["viewport.cc"] << "inside Viewport::draw_map_objects_row, found existing map objects on downward left->right slopes (darken)";
+          // DO NOT use_custom_set, these are not custom PNGs but mutated original sprites from SPAx.PA
+          darken = true;
+        }
+
+      }
+
       if (use_custom_set){
+        //Log::Debug["viewport.cc"] << "inside Viewport::draw_map_objects_row, calling draw_map_sprite_special()";
         draw_map_sprite_special(x_base, ly, sprite, pos, map->get_obj(pos));
       }else{
-        draw_shadow_and_building_sprite(x_base, ly, sprite);
+        //Log::Debug["viewport.cc"] << "inside Viewport::draw_map_objects_row, calling draw_shadow_and_building_sprite(), darken bool is " << darken;
+        //draw_shadow_and_building_sprite(x_base, ly, sprite);
+        draw_shadow_and_building_sprite(x_base, ly, sprite, Color::transparent, darken);
       }
 
     } // if not a Tree or junk object
@@ -3201,7 +3459,7 @@ Viewport::draw_game_objects(int layers_) {
     }
     if (draw_serfs) {
       draw_serf_row(pos, ly, short_row_len, lx);
-    }
+    } 
 
     ly += MAP_TILE_HEIGHT;
     if (ly >= height + 6*MAP_TILE_HEIGHT) break;

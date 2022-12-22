@@ -69,7 +69,6 @@ AudioSDL::AudioSDL() {
                                << static_cast<int>(mversion->major) << '.'
                                << static_cast<int>(mversion->minor) << '.'
                                << static_cast<int>(mversion->patch);
-
   int r = Mix_Init(0);
   if (r != 0) {
     throw ExceptionSDLmixer("Could not init SDL_mixer");
@@ -199,6 +198,8 @@ AudioSDL::PlayerSFX::create_track(int track_id, int source_type) {
   if (chunk == nullptr) {
     Log::Error["audio:SDL_mixer"] << "Mix_LoadWAV_RW: " << Mix_GetError();
     return nullptr;
+  //}else{
+    //Log::Debug["audio-sldmixer.cc"] << "inside AudioSDL::PlayerSFX::create_track, successfully loaded WAV for source " << source_type << ", track #" << track_id;
   }
 
   return std::make_shared<AudioSDL::TrackSFX>(chunk);
@@ -214,10 +215,18 @@ AudioSDL::PlayerSFX::enable(bool enable) {
   }
 }
 
+// change stop to pause and halt to stop
+
 void
 AudioSDL::PlayerSFX::stop() {
   //Mix_HaltChannel(-1);
   Mix_Pause(-1);
+}
+
+void
+AudioSDL::PlayerSFX::halt() {
+  Mix_HaltChannel(-1);
+  //Mix_Pause(-1);
 }
 
 void
@@ -345,27 +354,39 @@ AudioSDL::PlayerMIDI::create_track(int track_id, int source_type) {
   return std::make_shared<AudioSDL::TrackMIDI>(midi, music);
 }
 
+// this function should be called play_next_track
 Audio::PTrack
 //AudioSDL::PlayerMIDI::play_track(int track_id) {
 AudioSDL::PlayerMIDI::play_track(int track_id, int source_type) {
+  //Log::Debug["audio-sdlmixer.cc"] << "start of AudioSDL::PlayerMIDI::play_track, track_id " << track_id << ", source " << source_type;
   Audio::PTrack track;
   bool have_track = false;
   while (!track) {
+    //Log::Debug["audio-sdlmixer.cc"] << "start of AudioSDL::PlayerMIDI::play_track, start of while !track loop";
     if ((track_id <= TypeMidiNone) || (track_id > TypeMidiTrackLast)) {
+      //Log::Debug["audio-sdlmixer.cc"] << "start of AudioSDL::PlayerMIDI::play_track, track is not valid range";
       if (!have_track) {
+        //Log::Debug["audio-sdlmixer.cc"] << "start of AudioSDL::PlayerMIDI::play_track, track is not valid range, !have_track";
         break;
       }
+      //Log::Debug["audio-sdlmixer.cc"] << "start of AudioSDL::PlayerMIDI::play_track, track is not valid range, setting track_id to TypeMidiTrack0";
       track_id = TypeMidiTrack0;
     }
     current_track = static_cast<TypeMidi>(track_id);
+    current_track_id = track_id;
     current_source = source_type;
-    Log::Info["audio:SDL_mixer"] << "Playing MIDI track: " << current_track;
+    //Log::Debug["audio-sdlmixer.cc"] << "inside AudioSDL::PlayerMIDI::play_track, Playing MIDI track: " << current_track;
     //track = Audio::Player::play_track(track_id);
     track = Audio::Player::play_track(track_id, source_type);
     if (track) {
+      //Log::Debug["audio-sdlmixer.cc"] << "inside AudioSDL::PlayerMIDI::play_track, have_track is true";
       have_track = true;
     }
     track_id++;
+    // keep playing music from the start after last track ends
+    if (track_id > TypeMidiTrack3){
+      track_id = 0;
+    }
   }
   return track;
 }
@@ -380,10 +401,42 @@ AudioSDL::PlayerMIDI::enable(bool enable) {
   }
 }
 
+int
+AudioSDL::PlayerMIDI::get_current_track_id(){
+  Log::Debug["audio-sdlmixer.cc"] << "inside AudioSDL::PlayerMIDI::get_current_track(), returning current_track " << current_track;
+  return current_track_id;
+}
+    
+//void
+//AudioSDL::PlayerMIDI::set_current_track_id(Audio::TypeMidi tracknum){
+//  Log::Debug["audio-sdlmixer.cc"] << "inside AudioSDL::PlayerMIDI::set_current_track(), tracknum " << tracknum;
+//  current_track = tracknum;
+//}
+
+int
+AudioSDL::PlayerMIDI::get_current_source(){
+  Log::Debug["audio-sdlmixer.cc"] << "inside AudioSDL::PlayerMIDI::get_current_source(), returning current_source " << current_source;
+  return current_source;
+}
+
+void
+AudioSDL::PlayerMIDI::set_current_source(int sourcenum){
+  Log::Debug["audio-sdlmixer.cc"] << "inside AudioSDL::PlayerMIDI::set_current_source(), sourcenum " << sourcenum;
+  current_source = sourcenum;
+}
+
+// change the code so stop becomes pause and halt becomes stop
+
 void
 AudioSDL::PlayerMIDI::stop() {
   //Mix_HaltMusic();
   Mix_PauseMusic();
+}
+
+void
+AudioSDL::PlayerMIDI::halt() {
+  Mix_HaltMusic();
+  //Mix_PauseMusic();
 }
 
 void

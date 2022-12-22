@@ -82,12 +82,22 @@ class MapGenerator;
 //    the new tile data into the Map.
 class Map {
  public:
-  typedef enum Object {
-    ObjectNone = 0,
+  typedef enum Object {     // NOTE, the map_objects sprite index is always minus 8 from the object number
+    ObjectNone = 0,         //     shown in code as Object# - Map::ObjectTree0
     ObjectFlag,
-    ObjectSmallBuilding,
-    ObjectLargeBuilding,
-    ObjectCastle,
+    ObjectSmallBuilding,    // NOTE, even though this enum ends around 126 (sprite #118) the last farmer Field, 
+    ObjectLargeBuilding,    //     starting at 136 (sprite #128) begins Flag sprites, followed by Building sprites
+    ObjectCastle,           //     these do not exist in the enum Map::Object because the Map does not store the
+                            //     actual building type only indicates Flag/SmallBuilding/LargeBuilding/Castle, the
+                            //     game has the actual building type.  When drawing game objects, if the map->get_obj
+                            //     call returns 'XXXBuilding', game->get_building_at_pos is called to get the actual
+                            //     building type so the correct sprite can be drawn
+                            //     SO, what this means is that arbitrary new Map::Object types can be added here
+                            //     to support new graphics & map features, BUT they cannot be allowed to map directly
+                            //     to sprite indexes using the normal sprite# = obj# + 8 because there are only 7 free
+                            //     slots before hitting the start of the Flag sprites.  To add more than 7 new objects
+                            //     with their own graphics, the map object index must be caught by special logic and
+                            //     resolve to a higher sprite index beyond the original range (max 193)
 
     ObjectTree0 = 8,
     ObjectTree1,
@@ -180,14 +190,36 @@ class Map {
 
     ObjectSignEmpty, /* 120 */
 
-    ObjectField0,
-    ObjectField1,
-    ObjectField2,
+    ObjectField0, // 121, sprite 113   // NOTE there is no visual difference between Field0-5, they all contain a copy of the same sprite
+    ObjectField1,                      //   the reason there are six types is to easily track the progression from Seeds to Field to FieldExpired
+    ObjectField2,                      //   fully inside the Map object (and outside the Game object) 
     ObjectField3,
-    ObjectField4, /* 125 */
-    ObjectField5,
-    Object127
-  } Object;
+    ObjectField4, 
+    ObjectField5, // 126, sprite 118
+    Object127,    // what is this?  I am thinking it is a spillover value so that a Field5 can still be advanced and will be set to FieldExpired if detected?
+    
+    ObjectFlowerGroupA0,  // 128, sprite 120
+    ObjectFlowerGroupA1,  //   IMPORTANT - because sprite 128 (corresponding to undefined MapObject 136) is the start of Flag sprites
+    ObjectFlowerGroupA2,  //     there are only 8 empty sprite indexes that could be used for new objects!  Unless, this enum could be extended all the way out
+    ObjectFlowerGroupA3,  //     to the full 193 sprites (object 185) which would allow adding new objects 186+ without running into issues with objects that 
+    ObjectFlowerGroupA4,  //     cannot be "resolved" in enum (which might not even matter at all?)
+    ObjectFlowerGroupA5,  // 133, sprite 125
+    ObjectFlowerGroupA6,  // 134, sprite 126
+    ObjectFlowerGroupB0,  // 135, sprite 127
+    ObjectFlowerGroupB1,  // 136, sprite 128 <-- start of Flag sprites!
+    ObjectFlowerGroupB2,  // 137, sprite 129
+    ObjectFlowerGroupB3,  // 138, sprite 130
+    ObjectFlowerGroupB4,  // 139, sprite 131
+    ObjectFlowerGroupB5,  // 140, sprite 132
+    ObjectFlowerGroupB6,  // 141, sprite 133
+    ObjectFlowerGroupC0,  // 142, sprite 135
+    ObjectFlowerGroupC1,  // 143, sprite 136
+    ObjectFlowerGroupC2,  // 144, sprite 137
+    ObjectFlowerGroupC3,  // 145, sprite 138
+    ObjectFlowerGroupC4,  // 146, sprite 139
+    ObjectFlowerGroupC5,  // 147, sprite 140
+    ObjectFlowerGroupC6,  // 148, sprite 141
+  } Object;  // NOTE, the map_objects sprite index is always minus 8 from the object number
 
   typedef enum Minerals {
     MineralsNone = 0,   // fish???
@@ -679,7 +711,9 @@ class Map {
 
 
   /* Mapping from Object to Space. */
-  static const Space map_space_from_obj[128];
+  //static const Space map_space_from_obj[128];
+  static const Space map_space_from_obj[131];  // added Flowers   
+  static const uint8_t obj_height_for_slope_darken[148];  // added Flowers0
 
   void set_height(MapPos pos, int height);
   void set_height_no_refresh(MapPos pos, int height);

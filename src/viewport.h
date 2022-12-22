@@ -99,6 +99,7 @@ class Viewport : public GuiObject, public Map::Handler {
                         Frame *frame);
   void draw_down_tile_col(MapPos pos, int x_base, int y_base, int max_y,
                           Frame *frame);
+  int get_brighter_triangle_luminosity(MapPos pos);  // for drawing shaded map_object sprites on downward slopes (left->right)
   void draw_landscape();
   void draw_path_segment(int x, int y, MapPos pos, Direction dir);
   void draw_border_segment(int x, int y, MapPos pos, Direction dir);
@@ -106,7 +107,8 @@ class Viewport : public GuiObject, public Map::Handler {
   void draw_game_sprite(int x, int y, int index);
   void draw_serf(int x, int y, const Color &color, int head, int body);
   // this says shadow and building but it seems to include ANY map object sprite such as trees, stones
-  void draw_shadow_and_building_sprite(int x, int y, int index, const Color &color = Color::transparent);
+  //void draw_shadow_and_building_sprite(int x, int y, int index, const Color &color = Color::transparent);
+  void draw_shadow_and_building_sprite(int x, int y, int index, const Color &color = Color::transparent, bool darken = false);
   //void draw_shadow_and_custom_building_sprite(int x, int y, int index, const Color &color = Color::transparent);
   // new function to try messing with weather/seasons/palette
   void draw_map_sprite_special(int x, int y, int index, unsigned int pos, unsigned int obj, const Color &color = Color::transparent);

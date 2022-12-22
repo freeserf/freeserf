@@ -487,7 +487,168 @@ Map::map_space_from_obj[] = {
   SpaceSemipassable,    // ObjectField4, /* 125 */
   SpaceSemipassable,    // ObjectField5,
   SpaceOpen,        // Object127
+
+  SpaceOpen,        // Flower0
+  SpaceOpen,        // Flower1
+  SpaceOpen,        // Flower2
+  // I guess these extra entries don't matter
 };
+
+
+// used for drawing shaded objects on downward slopes (left->right)
+const uint8_t
+Map::obj_height_for_slope_darken[] = {
+  0,  //ObjectNone = 0,         
+  2,   //ObjectFlag,
+  5,   //ObjectSmallBuilding,    
+  5,   //ObjectLargeBuilding,    
+  9,   //ObjectCastle,  
+  0,  // nothing at all here // 5
+  0,  // nothing at all here
+  0,  // nothing at all here // 7
+  4,   //ObjectTree0 = 8,
+  4,   //ObjectTree1,
+  4,   //ObjectTree2, /* 10 */
+  4,   //ObjectTree3,
+  4,   //ObjectTree4,
+  4,   //ObjectTree5,
+  4,   //ObjectTree6,
+  4,   //ObjectTree7, /* 15 */
+  4,   //ObjectPine0,
+  4,   //ObjectPine1,
+  4,   //ObjectPine2,
+  4,   //ObjectPine3,
+  4,   //ObjectPine4, /* 20 */
+  4,   //ObjectPine5,
+  4,   //ObjectPine6,
+  4,   //ObjectPine7,
+  4,   //ObjectPalm0,
+  4,   //ObjectPalm1, /* 25 */
+  4,   //ObjectPalm2,
+  4,   //ObjectPalm3,
+  3,   //ObjectWaterTree0,
+  3,   //ObjectWaterTree1,
+  3,   //ObjectWaterTree2, /* 30 */
+  3,   //ObjectWaterTree3, // 31
+  0,  // nothing at all here //32
+  0,  // nothing at all here
+  0,  // nothing at all here
+  0,  // nothing at all here // 35
+  0,  // nothing at all here
+  0,  // nothing at all here
+  0,  // nothing at all here
+  0,  // nothing at all here
+  0,  // nothing at all here // 40
+  0,  // nothing at all here
+  0,  // nothing at all here
+  0,  // nothing at all here
+  0,  // nothing at all here
+  0,  // nothing at all here // 45
+  0,  // nothing at all here
+  0,  // nothing at all here
+  0,  // nothing at all here
+  0,  // nothing at all here
+  0,  // nothing at all here // 50
+  0,  // nothing at all here
+  0,  // nothing at all here
+  0,  // nothing at all here
+  0,  // nothing at all here
+  0,  // nothing at all here // 55
+  0,  // nothing at all here
+  0,  // nothing at all here
+  0,  // nothing at all here
+  0,  // nothing at all here
+  0,  // nothing at all here // 60
+  0,  // nothing at all here
+  0,  // nothing at all here
+  0,  // nothing at all here
+  0,  // nothing at all here
+  0,  // nothing at all here // 65
+  0,  // nothing at all here
+  0,  // nothing at all here
+  0,  // nothing at all here
+  0,  // nothing at all here
+  0,  // nothing at all here // 70
+  0,  // nothing at all here //71
+  4,   //ObjectStone0 = 72,
+  4,   //ObjectStone1,
+  4,   //ObjectStone2,
+  4,   //ObjectStone3, /* 75 */
+  3,   //ObjectStone4,
+  3,   //ObjectStone5,
+  3,   //ObjectStone6,
+  3,   //ObjectStone7,
+  5,   //ObjectSandstone0, /* 80 */
+  2,   //ObjectSandstone1,
+  2,   //ObjectCross,
+  1,  //ObjectStub,
+  0,  //ObjectStone,
+  1,  //ObjectSandstone3, /* 85 */
+  0,  //ObjectCadaver0,
+  0,  //ObjectCadaver1,
+  0,  //ObjectWaterStone0,
+  0,  //ObjectWaterStone1,
+  3,   //ObjectCactus0, /* 90 */
+  3,   //ObjectCactus1,
+  3,   //ObjectDeadTree,
+  4,   //ObjectFelledPine0,
+  2,   //ObjectFelledPine1,
+  2,   //ObjectFelledPine2, /* 95 */
+  1,   //ObjectFelledPine3,
+  1,   //ObjectFelledPine4,
+  4,   //ObjectFelledTree0,
+  3,   //ObjectFelledTree1,
+  3,   //ObjectFelledTree2, /* 100 */
+  1,   //ObjectFelledTree3,
+  1,   //ObjectFelledTree4,
+  1,  //ObjectNewPine,
+  1,  //ObjectNewTree,
+  0,  //ObjectSeeds0, /* 105 */
+  0,  //ObjectSeeds1,
+  0,  //ObjectSeeds2,
+  0,  //ObjectSeeds3,
+  1,  //ObjectSeeds4,
+  1,  //ObjectSeeds5, /* 110 */
+  0,  //ObjectFieldExpired,
+  2,  //ObjectSignLargeGold,
+  2,  //ObjectSignSmallGold,
+  2,  //ObjectSignLargeIron,
+  2,  //ObjectSignSmallIron, /* 115 */
+  2,  //ObjectSignLargeCoal,
+  2,  //ObjectSignSmallCoal,
+  2,  //ObjectSignLargeStone,
+  2,  //ObjectSignSmallStone,
+  2,  //ObjectSignEmpty, /* 120 */
+  2,  //ObjectField0, // 121, sprite 113   // NOTE there is no visual difference between Field0-5, they all contain a copy of the same sprite
+  2,  //ObjectField1,                      //   the reason there are six types is to easily track the progression from Seeds to Field to FieldExpired
+  2,  //ObjectField2,                      //   fully inside the Map object (and outside the Game object) 
+  2,  //ObjectField3,
+  2,  //ObjectField4, 
+  2,  //ObjectField5, // 126, sprite 118
+  0,  //Object127,    // what is this?  I am thinking it is a spillover value so that a Field5 can still be advanced and will be set to FieldExpired if detected?
+  0,  //ObjectFlowerGroupA0,  // 128, sprite 120
+  0,  //ObjectFlowerGroupA1,  //   IMPORTANT - because sprite 128 (corresponding to undefined MapObject 136) is the start of Flag sprites
+  0,  //ObjectFlowerGroupA2,  //     there are only 8 empty sprite indexes that could be used for new objects!  Unless, this enum could be extended all the way out
+  0,  //ObjectFlowerGroupA3,  //     to the full 193 sprites (object 185) which would allow adding new objects 186+ without running into issues with objects that 
+  0,  //ObjectFlowerGroupA4,  //     cannot be "resolved" in enum (which might not even matter at all?)
+  0,  //ObjectFlowerGroupA5,  // 133, sprite 125
+  0,  //ObjectFlowerGroupA6,  // 134, sprite 126
+  0,  //ObjectFlowerGroupB0,  // 135, sprite 127
+  0,  //ObjectFlowerGroupB1,  // 136, sprite 128 <-- start of Flag sprites!
+  0,  //ObjectFlowerGroupB2,  // 137, sprite 129
+  1,  //ObjectFlowerGroupB3,  // 138, sprite 130
+  1,  //ObjectFlowerGroupB4,  // 139, sprite 131
+  1,  //ObjectFlowerGroupB5,  // 140, sprite 132
+  1,  //ObjectFlowerGroupB6,  // 141, sprite 133
+  0,  //ObjectFlowerGroupC1,  // 142, sprite 134
+  0,  //ObjectFlowerGroupC2,  // 143, sprite 135
+  0,  //ObjectFlowerGroupC3,  // 144, sprite 136
+  0,  //ObjectFlowerGroupC4,  // 145, sprite 137
+  0,  //ObjectFlowerGroupC5,  // 146, sprite 138
+  0,  //ObjectFlowerGroupC6,  // 147, sprite 139
+  
+};
+
 
 Map::Map(const MapGeometry& geom)
   : geom_(geom)

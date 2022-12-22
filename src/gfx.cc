@@ -181,58 +181,6 @@ Graphics::get_instance() {
   return graphics;
 }
 
-/* Draw the opaque sprite with data file index of
-   sprite at x, y in dest frame. */
-//void
-//Frame::draw_sprite(int x, int y, Data::Resource res, unsigned int index) {
-//  //Log::Info["gfx"] << "inside Frame::draw_sprite#1  with res " << res << " and index " << index;
-//  throw ExceptionFreeserf("called deprecated draw_sprite #1 function");
-//  //draw_sprite(x, y, res, index, false, Color::transparent, 1.f);
-//}
-
-/*
-// copy of draw_sprite #! but allowing custom datasource (for frame_bottom weather dial graphics)
-void
-Frame::draw_sprite_special0(int x, int y, Data::Resource res, unsigned int index) {
-  //Log::Info["gfx.cc"] << "inside Frame::draw_sprite_special0  with res " << res << " and index " << index;
-  //draw_sprite_special0x(x, y, res, index, false, Color::transparent, 1.f);
-  //draw_sprite(x, y, res, index, false, Color::transparent, 1.f);
-}
-*/
-
-/* this is the original draw_sprite #2
-// #2
-void
-Frame::draw_sprite(int x, int y, Data::Resource res, unsigned int index, bool use_off, const Color &color, float progress) {
-  //Log::Info["gfx"] << "inside Frame::draw_sprite#2  with res " << res << " and index " << index;
-  Data::Sprite::Color pc = {color.get_blue(),
-                            color.get_green(),
-                            color.get_red(),
-                            color.get_alpha()};
-
-  uint64_t id = Data::Sprite::create_id(res, index, 0, 0, pc);
-  Image *image = Image::get_cached_image(id);
-  if (image == nullptr) {
-    Data::PSprite s = data_source->get_sprite(res, index, pc);
-    if (!s) {
-      Log::Warn["graphics"] << "Failed to decode sprite #"
-                            << Data::get_resource_name(res) << ":" << index;
-      return;
-    }
-    image = new Image(video, s);
-    Image::cache_image(id, image);
-  }
-
-  if (use_off) {
-    x += image->get_offset_x();
-    y += image->get_offset_y();
-  }
-  int y_off = image->get_height() - static_cast<int>(image->get_height() *
-                                                     progress);
-  video->draw_image(image->get_video_image(), x, y, y_off, video_frame);
-}
-*/
-
 //
 // EXPLANATION OF CUSTOM GRAPHICS:
 //
@@ -315,41 +263,64 @@ Frame::draw_sprite(int x, int y, Data::Resource res, unsigned int index, bool us
 //
 //
 void
-Frame::draw_sprite(int x, int y, Data::Resource res, unsigned int index, bool use_off, const Color &color, float progress) {
-  //Log::Info["gfx.cc"] << "inside Frame::draw_sprite  with res " << res << " and index " << index;
+Frame::draw_sprite(int x, int y, Data::Resource res, unsigned int index, bool use_off, const Color &color, float progress, bool darken) {
+  //Log::Debug["gfx.cc"] << "inside Frame::draw_sprite  with res " << res << " and index " << index << ", darken bool is " << darken;
   Data::Sprite::Color pc = {color.get_blue(),
                             color.get_green(),
                             color.get_red(),
                             color.get_alpha()};
+  
+  // for darken versions of original game sprites when on downward slopes (left->right)
+  //  The darkened terrain sprites must be cached with alernate sprite indexes
+  //   to allow both the fully-visible and revealed-but-not-currently-visible
+  //   sprites to be drawn at the same time
+  //  To support this, fake the sprite index for the darkened sprites by using +XX
+  //   so that they are cached and retrieved with the higher index but the original
+  //   sprite index is actually passed to the downstream functions to retrieve from
+  //   the SPAx.PA data file, as the darkened sprites don't actually exist anywhere,
+  //   they are built by mutating the original sprite during loading
+  uint64_t id; // image cache key
+  if (darken){
+    // fake high sprite indexes to allow caching both original and mutated
+    if (res == Data::AssetMapObject){
+      // this is pretty arbitrary
+      id = Data::Sprite::create_id(res, index + 3000, 0, 0, pc);
+      //Log::Debug["gfx.cc"] << "inside Frame::draw_sprite  with res " << res << " and index " << index << ", darken bool is " << darken << ", caching with fake high id " << index + 3000;
+    } else{
+      throw ExceptionFreeserf("inside Frame::draw_sprite, unexpected Data::Asset type to darken!");      
+    }
+  }else{
+    // original sprite index
+    id = Data::Sprite::create_id(res, index, 0, 0, pc);
+  }
 
-  uint64_t id = Data::Sprite::create_id(res, index, 0, 0, pc);
   Image *image = Image::get_cached_image(id);
   
   // if image not found already cached, fetch it and cache it
   if (image == nullptr) {
     Data::PSprite s;
 
-    bool darken = false; // used for FogOfWar
-
     // handle special sprites, either mutated-originals or totally new Custom sprites
     //  new custom sprites will work for Amiga, but mutated ones will not as the
     //  mutation happens within the DOS data loading functions
     if (index > last_original_data_index[res]){
-      Log::Debug["gfx.cc"] << "inside Frame::draw_sprite, sprite index " << index << " is higher than the last_original_data_index " << last_original_data_index[res] << " for this Data::Resource type " << res << ", assuming it is a special sprite";
+      //Log::Debug["gfx.cc"] << "inside Frame::draw_sprite, sprite index " << index << " is higher than the last_original_data_index " << last_original_data_index[res] << " for this Data::Resource type " << res << ", assuming it is a special sprite";
 
       unsigned int orig_index = -1;
 
-      // these types, if having beyond-original indexes, are new graphics
-      //  loaded from actual PNG files using the data_source_Custom
       if (res == Data::AssetFrameBottom
        || res == Data::AssetMapObject
        || res == Data::AssetMapShadow){
+        // these types, if having beyond-original indexes, are new graphics
+        //  loaded from actual PN  files using the data_source_Custom
+        //Log::Debug["gfx.cc"] << "inside Frame::draw_sprite, sprite index " << index << " trying to load custom data source";
         Data &data = Data::get_instance();
         if (data.get_data_source_Custom() == nullptr){
           // try load the custom sprite
           Log::Warn["gfx.cc"] << "inside Frame::draw_sprite, custom datasource not available at all, cannot even attempt to load sprite index " << index << ", trying to fall back to default datasource for this sprite, using " << orig_index;
           s = data_source->get_sprite(res, orig_index, pc);
         }else{
+          //Log::Debug["gfx.cc"] << "inside Frame::draw_sprite, sprite index " << index << " about to call data_source_Custom->get_sprite";
           s = data.get_data_source_Custom()->get_sprite(res, index, pc);
           if (s == nullptr){
             // try falling back to original sprite if custom sprite couldn't be loaded
@@ -361,13 +332,14 @@ Frame::draw_sprite(int x, int y, Data::Resource res, unsigned int index, bool us
               // NOTE - if sprites >#9 are to be modified in the future, this orig_index fallback logic must be modified
               orig_index = index % 10;
             }
-            Log::Warn["gfx.cc"] << "inside Frame::draw_sprite, custom datasource not found for sprite index " << index <<", trying to fall back to default datasource for this sprite, using " << orig_index;
+            Log::Warn["gfx.cc"] << "inside Frame::draw_sprite, custom datasource not found for res type " << res << ", sprite index " << index <<", trying to fall back to default datasource for this sprite, using " << orig_index;
             s = data_source->get_sprite(res, orig_index, pc);
-          }else{
-            Log::Debug["gfx.cc"] << "inside Frame::draw_sprite, custom datasource successfully loaded for res type " << res << ", sprite index " << index;
+          //}else{
+            //Log::Debug["gfx.cc"] << "inside Frame::draw_sprite, custom datasource successfully loaded for res type " << res << ", sprite index " << index;
           }
         }
       }else if (res == Data::AssetMapGround){
+        //Log::Debug["gfx.cc"] << "inside Frame::draw_sprite, sprite index " << index << "terrain sprite, nothing to do here";
         // for option_FogOfWar
         //  call get_sprite for the BASE terrain sprite index to be mutated
         //
@@ -380,7 +352,6 @@ Frame::draw_sprite(int x, int y, Data::Resource res, unsigned int index, bool us
         //
         // this is not a typo, updating the 'index' to be the base terrain 
         //index = index % 100; // stripping the first digit results in 0-32 which hold the original map_ground terrain sprites
-        darken = true;
       }else{
         // throw exception
         Log::Error["gfx.cc"] << "inside Frame::draw_sprite, index " << index << " is higher than the last_original_data_index " << last_original_data_index[res] << " for this Data::Resource type " << res << ", but no matching custom rule found, crashing!";
@@ -396,6 +367,7 @@ Frame::draw_sprite(int x, int y, Data::Resource res, unsigned int index, bool us
       //    - option_FourSeasons uses this for seasonal changes to terrain
       //
       //s = data_source->get_sprite(res, index, pc);
+      //Log::Debug["gfx.cc"] << "inside Frame::draw_sprite, using original data source, index " << index << ", darken bool is " << darken;
       s = data_source->get_sprite(res, index, pc, darken);
     } // if index beyond original range
 
@@ -563,8 +535,18 @@ Frame::draw_masked_sprite(int x, int y, Data::Resource mask_res,
   //   they are built by mutating the original sprite during loading
   uint64_t id; // image cache key
   if (darken){
-    // fake high sprite index
-    id = Data::Sprite::create_id(res, index + 100, mask_res, mask_index, {0, 0, 0, 0});
+    // fake high sprite indexes to allow caching both original and mutated
+    if (res == Data::AssetMapGround){
+      // orig terrain types are all under 100, + 100
+      id = Data::Sprite::create_id(res, index + 100, mask_res, mask_index, {0, 0, 0, 0});
+      /* this needs to be in draw_masked_sprite not draw_sprite!
+    } else if (res == Data::AssetMapObject){
+      // this is pretty arbitrary
+      id = Data::Sprite::create_id(res, index + 3000, mask_res, mask_index, {0, 0, 0, 0});
+      */
+    } else{
+      throw ExceptionFreeserf("unexpected Data::Asset type to darken!");      
+    }
   }else{
     // original sprite index
     id = Data::Sprite::create_id(res, index, mask_res, mask_index, {0, 0, 0, 0});

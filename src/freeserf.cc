@@ -132,7 +132,7 @@ main(int argc, char *argv[]) {
   int current_loglevel = Log::get_level();  // start of work-around
   Log::set_level(Log::Level(1));  // part of work-around
 
-  /* TODO move to right place */
+  // TODO move to right place //
   //  tlongstretch - I'm not sure what the "right place" is, the above was a note in Freeserf
   Audio &audio = Audio::get_instance();  // 
   Audio::PPlayer player = audio.get_music_player();
@@ -140,7 +140,9 @@ main(int argc, char *argv[]) {
   Log::set_level(Log::Level(current_loglevel));  // end of work-around
 
   // NOTE - it seems Amiga has a single long track, 
-  //  while DOS has three or four similar tracks that play one after another
+  //  while DOS has three or four similar tracks that play one after another?
+  //  on further inspection it seems that DOS only has two working tracks, not sure if this is a
+  //  freeserf issue or original game only had two
   if (player) {
     Log::Debug["freeserf.cc"] << "inside freeserf main(), starting audio midi music, about to call player->play_track";
     //Audio::PTrack t = player->play_track(Audio::TypeMidiTrack0);

@@ -128,6 +128,13 @@ class Audio {
     virtual void enable(bool enable) = 0;
     virtual bool is_enabled() const { return enabled; }
     virtual PVolumeController get_volume_controller() = 0;
+    virtual int get_current_track_id() { return 0; } // no-op, overloaded
+    virtual int get_current_source() { return 0; } // no-op, overloaded
+
+    // this is the wrong way, should be = 0 but I don't care yet
+    //virtual void set_current_track(Audio::TypeMidi tracknum) { false; } // no-op, overloaded
+    virtual void set_current_source(int sourcenum) { false; } // no-op, overloaded
+    virtual void halt() { false; } // no-op, overloaded
 
    protected:
     //virtual PTrack create_track(int track_id) = 0;
