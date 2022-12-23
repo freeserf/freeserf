@@ -12,7 +12,7 @@ Current Release
 ===============
 
 
-version 0.4.4 released Dec22 2022
+version 0.4.5 released Dec23 2022
 
 Bugs
 ----
