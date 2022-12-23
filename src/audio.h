@@ -72,7 +72,7 @@ class Audio {
     TypeSfxFishingRodReel = 54,  // the DOS sample repeats 4x times, while Amiga is a single non-repeating sound (very similar sound though)
     TypeSfxUnknown21 = 58,  // sounds like "hup"  or hopping-over-something quick grunt sound
     TypeSfxPigOink = 60,
-    TypeSfxGoldBoils = 62,  // the DOS vs Amiga sounds are very different, I think Amiga is better. Also, in Freeserf the DOS sound #62 is buggy (pop, static)
+    TypeSfxGoldBoils = 62,  // note this is Steel AND Gold sound, the DOS vs Amiga sounds are very different, I think Amiga is better. Also, in Freeserf the DOS sound #62 is buggy (pop, static)
     TypeSfxRowing = 64,     // the DOS vs Amiga sounds are very different, I think DOS is better
     TypeSfxUnknown25 = 66,  // sounds like a fainter burning sound, could be an alternate building burn sound?  the DOS vs Amiga sounds are very different, Amiga sounds like a motor
     TypeSfxSerfDying = 69,  

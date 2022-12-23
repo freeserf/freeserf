@@ -272,6 +272,7 @@ void
 GuiObject::play_sound(int sound, int source_type) {
   Audio &audio = Audio::get_instance();
   Audio::PPlayer player = audio.get_sound_player();
+
   if (player) {
     Data &data = Data::get_instance();
     if (data.get_data_source_DOS() == nullptr){
@@ -284,4 +285,5 @@ GuiObject::play_sound(int sound, int source_type) {
     }
     Audio::PTrack t = player->play_track(sound, source_type);
   }
+
 }
