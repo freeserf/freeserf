@@ -4328,14 +4328,23 @@ Viewport::handle_click_left(int lx, int ly, int modifier) {
 
 bool
 Viewport::handle_dbl_click(int lx, int ly, Event::Button button) {
-  if (button != Event::ButtonLeft) return 0;
+  //Log::Debug["viewport.cc"] << "inside Viewport::handle_dbl_click, button " << button;
+  // for now, this does nothing except call special-click function
+  if (button != Event::ButtonLeft){
+    return false;
+  }
+  handle_special_click(lx, ly);
+}
 
+bool
+Viewport::handle_special_click(int lx, int ly) {
+  //Log::Debug["viewport.cc"] << "inside Viewport::handle_special_click()";
   set_redraw();
 
   Player *player = interface->get_player();
 
   if (interface->get_popup_box() != nullptr){
-    // a popup is currently open, ignore double-clicks as
+    // a popup is currently open, ignore special-clicks as
     //  they only interfere
     return false;
   }
@@ -4413,7 +4422,7 @@ Viewport::handle_dbl_click(int lx, int ly, Event::Button button) {
 
         // handle option_FogOfWar
         if (option_FogOfWar && !map->is_visible(clk_pos, player->get_index())){
-          Log::Debug["viewport.cc"] << "inside Viewport::handle_dbl_click(), enemy building double-clicked on is not currently visible to this player, not opening popup";
+          Log::Debug["viewport.cc"] << "inside Viewport::handle_special_click(), enemy building special-clicked on is not currently visible to this player, not opening popup";
         }else{
           player->building_attacked = building->get_index();
 
@@ -4468,6 +4477,7 @@ Viewport::handle_dbl_click(int lx, int ly, Event::Button button) {
 
   return false;
 }
+
 
 bool
 Viewport::handle_drag(int lx, int ly) {

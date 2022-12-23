@@ -40,6 +40,9 @@ class EventLoopSDL : public EventLoop {
   float zoom_factor;
   float screen_factor_x;
   float screen_factor_y;
+  bool button_left_down = false;
+  bool button_middle_down = false;  // this is wheel-button
+  bool button_right_down = false;
   Uint32 eventUserTypeStep;
 
  public:

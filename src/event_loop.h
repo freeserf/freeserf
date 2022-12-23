@@ -30,6 +30,8 @@ class Event {
   typedef enum Type {
     TypeClick,
     TypeDoubleClick,
+    TypeMiddleClick,
+    TypeSpecialClick,
     TypeDrag,
     TypeKeyPressed,
     TypeResize,
@@ -114,6 +116,8 @@ class EventLoop {
 
   bool notify_click(int x, int y, unsigned char modifier, Event::Button button);
   bool notify_dbl_click(int x, int y, Event::Button button);
+  bool notify_middle_click(int x, int y); //, Event::Button button);
+  bool notify_special_click(int x, int y); //, Event::Button button);
   bool notify_drag(int x, int y, int dx, int dy, Event::Button button);
   bool notify_key_pressed(unsigned char key, unsigned char modifier);
   bool notify_resize(unsigned int width, unsigned int height);

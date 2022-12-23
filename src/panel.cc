@@ -370,8 +370,25 @@ PanelBar::button_click(int button) {
   }
 }
 
+
+/* Handle a click on the panel buttons. */
+void
+PanelBar::button_special_click(int button) {
+  //Log::Debug["panel.cc"] << "inside PanelBar::button_special_click()";
+  if (panel_btns[button] == ButtonBuildInactive){
+    //Log::Debug["panel.cc"] << "inside PanelBar::button_special_click(), clicked ButtonBuildInactive";
+    Viewport *viewport = interface->get_viewport();
+    if (viewport == nullptr){
+      throw ExceptionFreeserf("inside PanelBar::button_special_click, viewport is nullptr!");
+    }
+    viewport->switch_layer(Viewport::LayerBuilds);
+  }
+}
+
+
 bool
 PanelBar::handle_click_left(int cx, int cy, int modifier) {
+  //Log::Debug["panel.cc"] << "inside PanelBar::handle_click_left(), cx " << cx << ", cy " << cy;
   set_redraw();
 
   if (cx >= 41 && cx < 53) {
@@ -422,6 +439,45 @@ PanelBar::handle_click_left(int cx, int cy, int modifier) {
       cx -= 48;
     }
     button_click(button);
+  }
+
+  return true;
+}
+
+bool
+PanelBar::handle_dbl_click(int lx, int ly, Event::Button button) {
+  //Log::Debug["panel.cc"] << "inside PanelBar::handle_dbl_click, button " << button;
+  // for now, this does nothing except call special-click function
+  if (button != Event::ButtonLeft){
+    return false;
+  }
+  handle_special_click(lx, ly);
+}
+
+bool
+PanelBar::handle_special_click(int cx, int cy) {
+  //Log::Debug["panel.cc"] << "inside PanelBar::handle_special_click(), cx " << cx << ", cy " << cy;
+  set_redraw();
+
+  if (cy >= 4 && cy < 36 && cx >= 64) {
+    cx -= 64;
+
+    /* Figure out what panel button was clicked */
+    int button = 0;
+    while (1) {
+      if (cx < 32) {
+        if (button < 5) {
+          break;
+        } else {
+          return false;
+        }
+      }
+      button += 1;
+      if (cx < 48) return false;
+      cx -= 48;
+    }
+    //Log::Debug["panel.cc"] << "inside PanelBar::handle_special_click(), calling button_special_click for button " << button;
+    button_special_click(button);
   }
 
   return true;

@@ -102,8 +102,11 @@ GuiObject::handle_event(const Event *event) {
   int event_y = event->y;
   if (event->type == Event::TypeClick ||
       event->type == Event::TypeDoubleClick ||
+      event->type == Event::TypeMiddleClick ||
+      event->type == Event::TypeSpecialClick ||
       event->type == Event::TypeDrag) {
-    event_x = event->x - x;
+    // I think this is adjusting by the offset of the GUI object's starting pos 0,0 (top-left) for popup, panelbar, etc.
+    event_x = event->x - x;  
     event_y = event->y - y;
     if (event_x < 0 || event_y < 0 || event_x > width || event_y > height) {
       return false;
@@ -138,7 +141,14 @@ GuiObject::handle_event(const Event *event) {
       result = handle_drag(event->dx, event->dy);
       break;
     case Event::TypeDoubleClick:
-      result = handle_dbl_click(event->x, event->y, event->button);
+      //result = handle_dbl_click(event->x, event->y, event->button);  // shouldn't this be event_x/y (the offset kind)
+      result = handle_dbl_click(event_x, event_y, event->button);
+      break;
+    case Event::TypeMiddleClick:
+      result = handle_special_click(event_x, event_y);
+      break;
+    case Event::TypeSpecialClick:
+      result = handle_special_click(event_x, event_y);
       break;
     case Event::TypeKeyPressed:
       result = handle_key_pressed(event->dx, event->dy);

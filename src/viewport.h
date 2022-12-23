@@ -148,6 +148,7 @@ class Viewport : public GuiObject, public Map::Handler {
   virtual void layout();
   virtual bool handle_click_left(int x, int y, int modifier);
   virtual bool handle_dbl_click(int x, int y, Event::Button button);
+  virtual bool handle_special_click(int x, int y);//, Event::Button button);
   virtual bool handle_drag(int x, int y);
 
   Frame *get_tile_frame(unsigned int tid, int tc, int tr);
