@@ -573,6 +573,7 @@ Interface::update_interface() {
   Log::Info["interface"] << "option_FourSeasons is " << option_FourSeasons;
   Log::Info["interface"] << "option_FishSpawnSlowly is " << option_FishSpawnSlowly;
   //option_FogOfWar
+  option_InvertMouse
   */
 
 

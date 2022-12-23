@@ -308,6 +308,7 @@ typedef enum Action {
   ACTION_GAME_OPTIONS_FishSpawnSlowly,
   //ACTION_GAME_OPTIONS_AdvancedDemolition,
   ACTION_GAME_OPTIONS_FogOfWar,
+  ACTION_GAME_OPTIONS_InvertMouse,
   ACTION_MAPGEN_ADJUST_TREES,
   ACTION_MAPGEN_ADJUST_STONEPILES,
   ACTION_MAPGEN_ADJUST_FISH,
@@ -2080,8 +2081,8 @@ PopupBox::draw_game_options2_box() {
   draw_green_string(3, 86, "Fog Of War");
   draw_popup_icon(1, 83, option_FogOfWar ? 288 : 220);
 
-  //draw_green_string(3, 105, "placeholder");
-  //draw_popup_icon(1, 102, placeholder ? 288 : 220);
+  draw_green_string(3, 105, "Invert Mouse");
+  draw_popup_icon(1, 102, option_InvertMouse ? 288 : 220);
 
   draw_popup_icon(30, 128, 0x3d); // flipbox to previous page
   draw_popup_icon(32, 128, 60); /* exit */
@@ -2482,8 +2483,9 @@ PopupBox::draw_defenders_box() {
     next_knight = serf->get_next();
   }
 
-  draw_green_string(0, 128, "State:");
-  draw_green_number(7, 128, static_cast<int>(building->get_threat_level()));
+  // debug, draw threat level
+  //draw_green_string(0, 128, "State:");
+  //draw_green_number(7, 128, static_cast<int>(building->get_threat_level()));
 
   draw_popup_icon(14, 128, 0x3c); /* Exit box */
 }
@@ -3858,6 +3860,13 @@ PopupBox::handle_action(int action, int x_, int /*y_*/) {
     }else{
       option_FogOfWar = true;
     }
+  case ACTION_GAME_OPTIONS_InvertMouse:
+    if (option_InvertMouse){
+      option_InvertMouse = false;
+    } else{
+      option_InvertMouse = true;
+    }
+    break;
     interface->reload_any_minimaps();
     interface->get_viewport()->set_size(width, height);  // this does the magic refresh without affecting popups (as Interface->layout() does)
     break;
@@ -4244,7 +4253,7 @@ PopupBox::handle_box_game_options2_clk(int cx, int cy) {
     ACTION_GAME_OPTIONS_FishSpawnSlowly, 7, 64, 150, 16,
     ACTION_GAME_OPTIONS_FogOfWar, 7, 83, 150, 16,
     //ACTION_GAME_OPTIONS_AdvancedDemolition, 7, 83, 150, 16,  /* removing AdvancedDemolition for now, see https://github.com/forkserf/forkserf/issues/180/
-    //ACTION_GAME_OPTIONS_placeholder, 7, 102, 150, 16,
+    ACTION_GAME_OPTIONS_InvertMouse, 7, 102, 150, 16,
     ACTION_GAME_OPTIONS_PREV_PAGE, 239, 126, 16, 16,  // flip button
     ACTION_GAME_OPTIONS_RETURN_TO_OPTIONS, 255, 126, 16, 16, // exit button
     -1

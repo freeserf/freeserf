@@ -60,6 +60,7 @@ bool option_FourSeasons = false;
 bool option_FishSpawnSlowly = false;
 bool option_FogOfWar = false;
 //bool option_EastSlopesShadeObjects = true;   // make this an option, maybe
+bool option_InvertMouse = false;
 int season = 1;  // default to Summer
 int last_season = 1;  // four seasons
 int subseason = 0;  // 1/16th of a season
@@ -994,6 +995,7 @@ Game::update() {
   Log::Info["game"] << "option_FourSeasons is " << option_FourSeasons;
   Log::Info["game"] << "option_FishSpawnSlowly is " << option_FishSpawnSlowly;
   //option_FogOfWar
+  //option_InvertMouse
   */
 
   /* Increment tick counters */

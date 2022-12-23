@@ -18,6 +18,7 @@ extern bool option_LostTransportersClearFaster;
 extern bool option_FourSeasons;
 extern bool option_FishSpawnSlowly;
 extern bool option_FogOfWar;
+extern bool option_InvertMouse;
 extern int season;
 extern int last_season;
 extern int subseason;

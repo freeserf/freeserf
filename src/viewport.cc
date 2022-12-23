@@ -1678,7 +1678,8 @@ Viewport::draw_burning_building(Building *building, int lx, int ly) {
   if (((building->get_burning_counter() >> 3) & 3) == 3 &&
       !building->is_playing_sfx()) {
     building->start_playing_sfx();
-    play_sound(Audio::TypeSfxBurning);
+    //play_sound(Audio::TypeSfxBurning);  //this sounds kind of weird, try amiga
+    play_sound(Audio::TypeSfxBurning, DataSourceType::Amiga);
   } else {
     building->stop_playing_sfx();
   }

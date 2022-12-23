@@ -219,9 +219,11 @@ EventLoopSDL::run() {
             int y = static_cast<int>(static_cast<float>(drag_y) *
                                      zoom_factor * screen_factor_y);
 
-            notify_drag(x, y,
-                        event.motion.x - drag_x, event.motion.y - drag_y,
-                        (Event::Button)drag_button);
+            if (option_InvertMouse){
+              notify_drag(x, y, event.motion.x - drag_x, (event.motion.y - drag_y) * -1, (Event::Button)drag_button);
+            }else{
+              notify_drag(x, y, event.motion.x - drag_x, event.motion.y - drag_y, (Event::Button)drag_button);
+            }
 
             SDL_WarpMouseInWindow(nullptr, drag_x, drag_y);
 
