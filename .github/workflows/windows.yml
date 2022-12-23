@@ -67,7 +67,7 @@ jobs:
       - name: Upload artifact
         uses: actions/upload-artifact@v3
         with:
-          name: Forkserf-0.4.4-Win64.zip
+          name: Forkserf-0.4.5-Win64.zip
           path: D:\a\forkserf\forkserf\package\*
 
 
