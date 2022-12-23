@@ -232,11 +232,12 @@ EventLoopSDL::run() {
         }
         break;
       case SDL_MOUSEWHEEL: {
-        SDL_Keymod mod = SDL_GetModState();
-        if ((mod & KMOD_CTRL) != 0) {
+        // no longer requiring CTRL to zoom, just mouse wheel
+        //SDL_Keymod mod = SDL_GetModState();
+        //if ((mod & KMOD_CTRL) != 0) {
           // the wheel zoom is backwards unless reversed
           zoom(0.2f * static_cast<float>((event.wheel.y * -1)));
-        }
+        //}
         break;
       }
       case SDL_KEYDOWN: {
@@ -323,6 +324,11 @@ EventLoopSDL::run() {
           unsigned int height = event.window.data2;
           gfx.set_resolution(width, height, gfx.is_fullscreen());
           gfx.get_screen_factor(&screen_factor_x, &screen_factor_y);
+          // there seems to be a bug where after resize any increased zoom level is not shown
+          //  though it is remembered in terms of the relative zoom, so changing zoom adjusts
+          //  to the expected new level as if the bug was not there
+          // FIXED by below zoom(0); call
+          zoom(0); // this calls zoom but does not adjust
           notify_resize(width, height);
         }
         break;

@@ -1512,7 +1512,11 @@ bool
 Interface::handle_event(const Event *event) {
   switch (event->type) {
     case Event::TypeResize:
+      // there seems to be a bug where after resize any increased zoom level is not shown
+      //  though it is remembered in terms of the relative zoom, so changing zoom adjusts
+      //  to the expected new level as if the bug was not there
       set_size(event->dx, event->dy);
+      //zoom(0.2f * static_cast<float>((event.wheel.y * -1)));
       break;
     case Event::TypeUpdate:
       update();
