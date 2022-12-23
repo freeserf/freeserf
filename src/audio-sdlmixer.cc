@@ -206,7 +206,7 @@ AudioSDL::PlayerSFX::create_track(int track_id, int source_type) {
   //  reduce their volume by 30%
   if (track_id == Audio::TypeSfxGoldBoils){
     int current_boil_volume = Mix_VolumeChunk(chunk, -1);  // -1 means query current volume
-    Mix_VolumeChunk(chunk, current_boil_volume * 0.7f); 
+    Mix_VolumeChunk(chunk, current_boil_volume * 0.7f);  // set new volume, only affects this track/chunk/sound
   }
 
 

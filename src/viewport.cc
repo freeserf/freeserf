@@ -4333,6 +4333,12 @@ Viewport::handle_dbl_click(int lx, int ly, Event::Button button) {
 
   Player *player = interface->get_player();
 
+  if (interface->get_popup_box() != nullptr){
+    // a popup is currently open, ignore double-clicks as
+    //  they only interfere
+    return false;
+  }
+
   MapPos clk_pos = map_pos_from_screen_pix(lx, ly);
 
   if (interface->is_building_road()) {
