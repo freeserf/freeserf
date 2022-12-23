@@ -82,6 +82,26 @@ EventLoop::notify_dbl_click(int x, int y, Event::Button button) {
 }
 
 bool
+EventLoop::notify_middle_click(int x, int y){ //,Event::Button button) {
+  Event event;
+  event.type = Event::TypeMiddleClick;
+  event.x = x;
+  event.y = y;
+  //event.button = button;
+  return notify_handlers(&event);
+}
+
+bool
+EventLoop::notify_special_click(int x, int y){ //,Event::Button button) {
+  Event event;
+  event.type = Event::TypeSpecialClick;
+  event.x = x;
+  event.y = y;
+  //event.button = button;
+  return notify_handlers(&event);
+}
+
+bool
 EventLoop::notify_drag(int x, int y, int dx, int dy, Event::Button button) {
   Event event;
   event.type = Event::TypeDrag;

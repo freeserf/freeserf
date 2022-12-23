@@ -202,6 +202,15 @@ AudioSDL::PlayerSFX::create_track(int track_id, int source_type) {
     //Log::Debug["audio-sldmixer.cc"] << "inside AudioSDL::PlayerSFX::create_track, successfully loaded WAV for source " << source_type << ", track #" << track_id;
   }
 
+  // the boiling sounds from SteelSmelter and GoldSmelter are obnoxious
+  //  reduce their volume by 30%
+  if (track_id == Audio::TypeSfxGoldBoils){
+    int current_boil_volume = Mix_VolumeChunk(chunk, -1);  // -1 means query current volume
+    Mix_VolumeChunk(chunk, current_boil_volume * 0.65f);  // set new volume, only affects this track/chunk/sound
+  }
+
+
+
   return std::make_shared<AudioSDL::TrackSFX>(chunk);
 }
 

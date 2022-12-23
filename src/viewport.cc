@@ -1678,7 +1678,8 @@ Viewport::draw_burning_building(Building *building, int lx, int ly) {
   if (((building->get_burning_counter() >> 3) & 3) == 3 &&
       !building->is_playing_sfx()) {
     building->start_playing_sfx();
-    play_sound(Audio::TypeSfxBurning);
+    //play_sound(Audio::TypeSfxBurning);  //this sounds kind of weird, try amiga
+    play_sound(Audio::TypeSfxBurning, DataSourceType::Amiga);
   } else {
     building->stop_playing_sfx();
   }
@@ -3629,6 +3630,17 @@ Viewport::draw_map_cursor_possible_build() {
       int ly = y_base - 4 * map->get_height(pos);
       if (ly >= height) break;
 
+      // NOTE - these icons are not visible in FSStudio but they exist in SPAx.PA and I assume Amiga too
+      // they are:
+      // <46 nothing
+      //  47 flag
+      //  48 mine
+      //  49 small building
+      //  50 large building
+      //  51 [-->] arrow indicating current pos during roadbuilding
+      //  52 [*] star indicating cannot build anything at cursor pos (ex. while on road too close to another flag)
+      // >53 nothing
+
       /* Draw possible building */
       int sprite = -1;
       if (game->can_build_castle(pos, interface->get_player())) {
@@ -3644,6 +3656,8 @@ Viewport::draw_map_cursor_possible_build() {
           sprite = 50;
         } else if (game->can_build_small(pos)) {
           sprite = 49;
+        } else if (game->can_build_flag(pos, interface->get_player())) {  // freeserf was missing this
+          sprite = 47;
         }
       }
 
@@ -4314,11 +4328,26 @@ Viewport::handle_click_left(int lx, int ly, int modifier) {
 
 bool
 Viewport::handle_dbl_click(int lx, int ly, Event::Button button) {
-  if (button != Event::ButtonLeft) return 0;
+  //Log::Debug["viewport.cc"] << "inside Viewport::handle_dbl_click, button " << button;
+  // for now, this does nothing except call special-click function
+  if (button != Event::ButtonLeft){
+    return false;
+  }
+  handle_special_click(lx, ly);
+}
 
+bool
+Viewport::handle_special_click(int lx, int ly) {
+  //Log::Debug["viewport.cc"] << "inside Viewport::handle_special_click()";
   set_redraw();
 
   Player *player = interface->get_player();
+
+  if (interface->get_popup_box() != nullptr){
+    // a popup is currently open, ignore special-clicks as
+    //  they only interfere
+    return false;
+  }
 
   MapPos clk_pos = map_pos_from_screen_pix(lx, ly);
 
@@ -4393,7 +4422,7 @@ Viewport::handle_dbl_click(int lx, int ly, Event::Button button) {
 
         // handle option_FogOfWar
         if (option_FogOfWar && !map->is_visible(clk_pos, player->get_index())){
-          Log::Debug["viewport.cc"] << "inside Viewport::handle_dbl_click(), enemy building double-clicked on is not currently visible to this player, not opening popup";
+          Log::Debug["viewport.cc"] << "inside Viewport::handle_special_click(), enemy building special-clicked on is not currently visible to this player, not opening popup";
         }else{
           player->building_attacked = building->get_index();
 
@@ -4448,6 +4477,7 @@ Viewport::handle_dbl_click(int lx, int ly, Event::Button button) {
 
   return false;
 }
+
 
 bool
 Viewport::handle_drag(int lx, int ly) {

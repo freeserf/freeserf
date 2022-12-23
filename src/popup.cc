@@ -308,6 +308,11 @@ typedef enum Action {
   ACTION_GAME_OPTIONS_FishSpawnSlowly,
   //ACTION_GAME_OPTIONS_AdvancedDemolition,
   ACTION_GAME_OPTIONS_FogOfWar,
+  ACTION_GAME_OPTIONS_InvertMouse,
+  ACTION_GAME_OPTIONS_InvertWheelZoom,
+  ACTION_GAME_OPTIONS_SpecialClickBoth,
+  ACTION_GAME_OPTIONS_SpecialClickMiddle,
+  ACTION_GAME_OPTIONS_SpecialClickDouble,
   ACTION_MAPGEN_ADJUST_TREES,
   ACTION_MAPGEN_ADJUST_STONEPILES,
   ACTION_MAPGEN_ADJUST_FISH,
@@ -1983,8 +1988,12 @@ PopupBox::draw_no_save_quit_confirm_box() {
 
 void
 PopupBox::draw_options_box() {
-  draw_box_background(PatternDiagonalGreen);
+  //draw_box_background(PatternDiagonalGreen);
+  draw_large_box_background(PatternDiagonalGreen);
 
+  //
+  // left column
+  //
   draw_green_string(1, 14, "Music");
   draw_green_string(1, 30, "Sound");
   draw_green_string(1, 39, "effects");
@@ -2009,11 +2018,8 @@ PopupBox::draw_options_box() {
   str << static_cast<int>(volume);
   draw_green_string(8, 54, str.str());
 
-  draw_green_string(1, 70, "Fullscreen");
-  draw_green_string(1, 79, "video");
-
-  draw_popup_icon(13, 70,   /* Fullscreen mode */
-                  Graphics::get_instance().is_fullscreen() ? 288 : 220);
+  draw_green_string(1, 73, "Fullscreen");
+  draw_popup_icon(13, 70, Graphics::get_instance().is_fullscreen() ? 288 : 220);
 
   const char *value = "All";
   if (!interface->get_config(3)) {
@@ -2025,14 +2031,37 @@ PopupBox::draw_options_box() {
       }
     }
   }
-  draw_green_string(1, 94, "Messages");
-  draw_green_string(11, 94, value);
+  draw_green_string(1, 110, "Messages");
+  draw_green_string(11, 110, value);
 
-  draw_green_string(1, 109, "Game");
-  draw_green_string(1, 118, "Options");
-  draw_popup_icon(13, 109, 0x3d); /* flipbox to game options */
+//  draw_green_string(1, 109, "Game");
+//  draw_green_string(1, 118, "Options");
 
-  draw_popup_icon(14, 128, 60); /* exit */
+  //
+  // right column
+  // 
+
+  draw_green_string(18, 13, "Invert Mouse");
+  draw_popup_icon(31, 10, option_InvertMouse ? 288 : 220);
+
+  draw_green_string(19, 33, "Invert Zoom");
+  draw_popup_icon(31, 30, option_InvertWheelZoom ? 288 : 220);
+ 
+  draw_green_string(18, 56,  "Special Click");
+  draw_green_string(21, 66,  "Triggers");
+  draw_green_string(16, 80,  "Left and Right");
+  draw_popup_icon(31, 77, option_SpecialClickBoth ? 288 : 220);
+  draw_green_string(17, 96,  "Middle Button");
+  draw_popup_icon(31, 93, option_SpecialClickMiddle ? 288 : 220);
+  draw_green_string(19, 111, "DoubleClick");
+  draw_popup_icon(31, 108, option_SpecialClickDouble ? 288 : 220);
+
+
+  //draw_popup_icon(13, 109, 0x3d); /* flipbox to game options */
+  //draw_popup_icon(14, 128, 60); /* exit */
+  draw_green_string(18, 131, "Page 1 of 3");
+  draw_popup_icon(30, 128, 0x3d); // flipbox to next page
+  draw_popup_icon(32, 128, 60); /* exit */
 }
 
 void
@@ -2058,6 +2087,7 @@ PopupBox::draw_game_options_box() {
   draw_green_string(3, 105, "Baby Trees Mature Slowly");
   draw_popup_icon(1, 102, option_BabyTreesMatureSlowly ? 288 : 220);
 
+  draw_green_string(18, 131, "Page 2 of 3");
   draw_popup_icon(30, 128, 0x3d); // flipbox to next page
   draw_popup_icon(32, 128, 60); /* exit */
 }
@@ -2080,9 +2110,10 @@ PopupBox::draw_game_options2_box() {
   draw_green_string(3, 86, "Fog Of War");
   draw_popup_icon(1, 83, option_FogOfWar ? 288 : 220);
 
-  //draw_green_string(3, 105, "placeholder");
-  //draw_popup_icon(1, 102, placeholder ? 288 : 220);
+  //draw_green_string(3, 105, "Invert Mouse");    // moved to page1
+  //draw_popup_icon(1, 102, option_InvertMouse ? 288 : 220);   // moved to page1
 
+  draw_green_string(18, 131, "Page 3 of 3");
   draw_popup_icon(30, 128, 0x3d); // flipbox to previous page
   draw_popup_icon(32, 128, 60); /* exit */
 }
@@ -2482,8 +2513,9 @@ PopupBox::draw_defenders_box() {
     next_knight = serf->get_next();
   }
 
-  draw_green_string(0, 128, "State:");
-  draw_green_number(7, 128, static_cast<int>(building->get_threat_level()));
+  // debug, draw threat level
+  //draw_green_string(0, 128, "State:");
+  //draw_green_number(7, 128, static_cast<int>(building->get_threat_level()));
 
   draw_popup_icon(14, 128, 0x3c); /* Exit box */
 }
@@ -2557,8 +2589,9 @@ PopupBox::draw_transport_info_box() {
     }
   }
 
-  draw_green_string(0, 128, "Index:");
-  draw_green_number(7, 128, static_cast<int>(flag->get_index()));
+  // draw flag index for debugging
+  //draw_green_string(0, 128, "Index:");
+  //draw_green_number(7, 128, static_cast<int>(flag->get_index()));
 }
 
 void
@@ -2887,11 +2920,12 @@ PopupBox::draw_building_stock_box() {
   //
   // DEBUG - find the requested resources destined for this building
   //
-  if (building->get_requested_in_stock(0) > 0){
-    Log::Info["popup"] << "debug: clicked building of type " << NameBuilding[building->get_type()] << " at pos " << building->get_position() << " has stock[0].requested: " << building->get_requested_in_stock(0);
-  }
+  //if (building->get_requested_in_stock(0) > 0){
+  //  Log::Info["popup"] << "debug: clicked building of type " << NameBuilding[building->get_type()] << " at pos " << building->get_position() << " has stock[0].requested: " << building->get_requested_in_stock(0);
+  //}
 
   /* Draw picture of serf present */
+  //  i.e. the holder
   int serf_sprite = 0xdc; /* minus box */
   if (building->has_serf()) {
     serf_sprite = map_building_serf_sprite[building->get_type()];
@@ -2970,7 +3004,8 @@ PopupBox::draw_save_box() {
 void
 PopupBox::internal_draw() {
   Log::Debug["popup.cc"] << "inside PopupBox::internal_draw(), box type is " << box;
-  if (box == Type::TypeGameOptions || box == Type::TypeGameOptions2 || box == Type::TypeEditMapGenerator){
+  //if (box == Type::TypeGameOptions || box == Type::TypeGameOptions2 || box == Type::TypeEditMapGenerator){
+  if (box == Type::TypeOptions || box == Type::TypeGameOptions || box == Type::TypeGameOptions2 || box == Type::TypeEditMapGenerator){
     draw_large_popup_box_frame();
   }else{
     draw_popup_box_frame();
@@ -3859,6 +3894,56 @@ PopupBox::handle_action(int action, int x_, int /*y_*/) {
     interface->reload_any_minimaps();
     interface->get_viewport()->set_size(width, height);  // this does the magic refresh without affecting popups (as Interface->layout() does)
     break;
+  case ACTION_GAME_OPTIONS_InvertMouse:
+    if (option_InvertMouse){
+      option_InvertMouse = false;
+    } else{
+      option_InvertMouse = true;
+    }
+    break;
+  case ACTION_GAME_OPTIONS_InvertWheelZoom:
+    if (option_InvertWheelZoom){
+      option_InvertWheelZoom = false;
+    } else{
+      option_InvertWheelZoom = true;
+    }
+    break;
+  case ACTION_GAME_OPTIONS_SpecialClickBoth:
+    if (option_SpecialClickBoth){
+      if (!option_SpecialClickMiddle && !option_SpecialClickDouble){
+        // cannot disable all methods, must leave one
+        play_sound(Audio::TypeSfxNotAccepted);
+      }else{
+        option_SpecialClickBoth = false;
+      }
+    } else{
+      option_SpecialClickBoth = true;
+    }
+    break;
+  case ACTION_GAME_OPTIONS_SpecialClickMiddle:
+    if (option_SpecialClickMiddle){
+      if (!option_SpecialClickBoth && !option_SpecialClickDouble){
+        // cannot disable all methods, must leave one
+        play_sound(Audio::TypeSfxNotAccepted);
+      }else{
+        option_SpecialClickMiddle = false;
+      }
+    } else{
+      option_SpecialClickMiddle = true;
+    }
+    break;
+  case ACTION_GAME_OPTIONS_SpecialClickDouble:
+    if (option_SpecialClickDouble){
+      if (!option_SpecialClickMiddle && !option_SpecialClickBoth){
+        // cannot disable all methods, must leave one
+        play_sound(Audio::TypeSfxNotAccepted);
+      }else{
+        option_SpecialClickDouble = false;
+      }
+    } else{
+      option_SpecialClickDouble = true;
+    }
+    break;
   case ACTION_MAPGEN_ADJUST_TREES:
     Log::Info["popup"] << "ACTION_MAPGEN_ADJUST_TREES x_ = " << x_ << ", gui_get_slider_click_value(x_) = " << gui_get_slider_click_value(x_) << ", unint16_t(gui_get_slider_click_value(x_)) = " << uint16_t(gui_get_slider_click_value(x_));
     interface->set_custom_map_generator_trees(gui_get_slider_click_value(x_));                                         
@@ -4201,14 +4286,23 @@ PopupBox::handle_box_close_clk(int cx, int cy) {
 void
 PopupBox::handle_box_options_clk(int cx, int cy) {
   const int clkmap[] = {
+    // left column
     ACTION_OPTIONS_MUSIC, 106, 10, 16, 16,
     ACTION_OPTIONS_SFX, 106, 30, 16, 16,
     ACTION_OPTIONS_VOLUME_MINUS, 90, 50, 16, 16,
     ACTION_OPTIONS_VOLUME_PLUS, 106, 50, 16, 16,
     ACTION_OPTIONS_FULLSCREEN, 106, 70, 16, 16,
     ACTION_OPTIONS_MESSAGE_COUNT_1, 90, 90, 32, 16,
-    ACTION_OPTIONS_FLIP_TO_GAME_OPTIONS, 106, 110, 16, 16,
-    ACTION_CLOSE_OPTIONS, 112, 126, 16, 16,
+
+    // right column
+    ACTION_GAME_OPTIONS_InvertMouse, 247, 10, 16, 16,
+    ACTION_GAME_OPTIONS_InvertWheelZoom, 247, 30, 16, 16,
+    ACTION_GAME_OPTIONS_SpecialClickBoth, 247, 77, 16, 16,
+    ACTION_GAME_OPTIONS_SpecialClickMiddle, 247, 93, 16, 16,
+    ACTION_GAME_OPTIONS_SpecialClickDouble, 247,109, 16, 16,
+
+    ACTION_OPTIONS_FLIP_TO_GAME_OPTIONS, 239, 126, 16, 16,  // flip button
+    ACTION_CLOSE_OPTIONS, 255, 126, 16, 16, // exit button
     -1
   };
   handle_clickmap(cx, cy, clkmap);
@@ -4226,7 +4320,7 @@ PopupBox::handle_box_game_options_clk(int cx, int cy) {
     ACTION_GAME_OPTIONS_TREES_REPRODUCE, 7, 83, 150, 16,
     ACTION_GAME_OPTIONS_BABY_TREES_MATURE_SLOWLY, 7, 102, 150, 16,
     ACTION_GAME_OPTIONS_NEXT_PAGE, 239, 126, 16, 16,  // flip button
-    ACTION_GAME_OPTIONS_RETURN_TO_OPTIONS, 255, 126, 16, 16, // exit button
+    ACTION_CLOSE_OPTIONS, 255, 126, 16, 16, // exit button
     -1
   };
   handle_clickmap(cx, cy, clkmap);
@@ -4242,9 +4336,9 @@ PopupBox::handle_box_game_options2_clk(int cx, int cy) {
     ACTION_GAME_OPTIONS_FishSpawnSlowly, 7, 64, 150, 16,
     ACTION_GAME_OPTIONS_FogOfWar, 7, 83, 150, 16,
     //ACTION_GAME_OPTIONS_AdvancedDemolition, 7, 83, 150, 16,  /* removing AdvancedDemolition for now, see https://github.com/forkserf/forkserf/issues/180/
-    //ACTION_GAME_OPTIONS_placeholder, 7, 102, 150, 16,
-    ACTION_GAME_OPTIONS_PREV_PAGE, 239, 126, 16, 16,  // flip button
-    ACTION_GAME_OPTIONS_RETURN_TO_OPTIONS, 255, 126, 16, 16, // exit button
+    ACTION_GAME_OPTIONS_InvertMouse, 7, 102, 150, 16,
+    ActionShowOptions, 239, 126, 16, 16,  // flip button
+    ACTION_CLOSE_OPTIONS, 255, 126, 16, 16, // exit button
     -1
   };
   handle_clickmap(cx, cy, clkmap);

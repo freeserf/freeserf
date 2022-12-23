@@ -207,13 +207,13 @@ class Game {
   int get_leveling_height(MapPos pos) const;
 
   bool can_build_military(MapPos pos) const;
-  bool can_build_small(MapPos pos) const;
-  bool can_build_mine(MapPos pos) const;
-  bool can_build_large(MapPos pos) const;
-  bool can_build_building(MapPos pos, Building::Type type,
+  bool can_build_small(MapPos pos) const;  // NOTE - I think this misleading!  it does not consider blocking objects nor position ownership
+  bool can_build_mine(MapPos pos) const;    // this too I bet
+  bool can_build_large(MapPos pos) const;   // this too I bet
+  bool can_build_building(MapPos pos, Building::Type type,  // this too I bet
                           const Player *player) const;
   bool can_build_castle(MapPos pos, const Player *player) const;
-  bool can_build_flag(MapPos pos, const Player *player) const;
+  bool can_build_flag(MapPos pos, const Player *player) const;   // this too I bet
   bool can_player_build(MapPos pos, const Player *player) const;
   bool can_build_field(MapPos pos) const;  // added to shorten FourSeasons/AdvancedFarming code
 

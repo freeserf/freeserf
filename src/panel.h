@@ -73,10 +73,13 @@ class PanelBar : public GuiObject, public Timer::Handler {
   void draw_return_arrow();
   void draw_panel_buttons();
   void button_click(int button);
+  void button_special_click(int button);
   Button button_type_with_build_possibility(int build_possibility);
 
   virtual void internal_draw();
   virtual bool handle_click_left(int x, int y, int modifier);
+  virtual bool handle_dbl_click(int lx, int ly, Event::Button button);
+  virtual bool handle_special_click(int x, int y);
   virtual bool handle_key_pressed(char key, int modifier);
 
   // timer_handler_t

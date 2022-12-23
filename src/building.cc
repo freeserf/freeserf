@@ -975,6 +975,9 @@ Building::update_military_flag_state() {
   // As you can see in the following screenshot only certain 
   // positions are beeing checked which can lead to a white 
   // flag even near an enemy building." 
+  //
+  // I put a screenshot showing the pos checked here:
+  //    https://github.com/forkserf/forkserf/wiki/%22Sparse-Spiral%22-Positions-Checked-for-Determining-Threat-Level
   // 
   // it seems it would be easy to fix this by changing to spirally check
   //  that considers every pos in range
@@ -1001,6 +1004,7 @@ Building::update_military_flag_state() {
     int offset;
     while ((offset = border_check_offsets[k++]) >= 0) {
       MapPos check_pos = map->pos_add_spirally(get_position(), offset);
+      //game->set_debug_mark_pos(check_pos, "white");
       if (map->has_owner(check_pos) && map->get_owner(check_pos) != owner) {
         threat_level = f;
         return;

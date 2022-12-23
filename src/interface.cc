@@ -158,7 +158,8 @@ Interface::open_popup(int box) {
     add_float(popup, 0, 0);
   }
   layout();
-  if (box == PopupBox::TypeGameOptions || box == PopupBox::TypeGameOptions2 || box == PopupBox::TypeEditMapGenerator){
+  //if (box == PopupBox::TypeGameOptions || box == PopupBox::TypeGameOptions2 || box == PopupBox::TypeEditMapGenerator){
+  if (box == PopupBox::TypeOptions || box == PopupBox::TypeGameOptions || box == PopupBox::TypeGameOptions2 || box == PopupBox::TypeEditMapGenerator){
     // double wide, normal height
     popup->set_size(288, 160);
     // recenter the popup
@@ -438,6 +439,9 @@ Interface::close_message() {
 }
 
 /* Return the cursor type and various related values of a MapPos. */
+// THIS IS THE BEST REPRESENTATION OF THE NECESSARY CHECKS TO BE USED
+//  for AI and game to determine what can be built at a pos, the 
+//  simple game->can_build_XXX checks are NOT SUFFICIENT!
 void
 Interface::get_map_cursor_type(const Player *player_, MapPos pos,
                                BuildPossibility *bld_possibility,
@@ -570,6 +574,7 @@ Interface::update_interface() {
   Log::Info["interface"] << "option_FourSeasons is " << option_FourSeasons;
   Log::Info["interface"] << "option_FishSpawnSlowly is " << option_FishSpawnSlowly;
   //option_FogOfWar
+  option_InvertMouse
   */
 
 

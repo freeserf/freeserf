@@ -60,6 +60,11 @@ bool option_FourSeasons = false;
 bool option_FishSpawnSlowly = false;
 bool option_FogOfWar = false;
 //bool option_EastSlopesShadeObjects = true;   // make this an option, maybe
+bool option_InvertMouse = false;
+bool option_InvertWheelZoom = false;
+bool option_SpecialClickBoth = true;
+bool option_SpecialClickMiddle = true;
+bool option_SpecialClickDouble = true;
 int season = 1;  // default to Summer
 int last_season = 1;  // four seasons
 int subseason = 0;  // 1/16th of a season
@@ -994,6 +999,7 @@ Game::update() {
   Log::Info["game"] << "option_FourSeasons is " << option_FourSeasons;
   Log::Info["game"] << "option_FishSpawnSlowly is " << option_FishSpawnSlowly;
   //option_FogOfWar
+  //option_InvertMouse
   */
 
   /* Increment tick counters */
@@ -1677,6 +1683,7 @@ Game::get_leveling_height(MapPos pos) const {
   return h_new;
 }
 
+// this returns true if ONLY the terrain specified is in range
 bool
 Game::map_types_within(MapPos pos, Map::Terrain low, Map::Terrain high) const {
   if ((map->type_up(pos) >= low &&
@@ -1698,8 +1705,15 @@ Game::map_types_within(MapPos pos, Map::Terrain low, Map::Terrain high) const {
 }
 
 /* Checks whether a small building is possible at position.*/
+// NOTE - I think this misleading!  it does not consider
+//  blocking objects nor position ownership
 bool
 Game::can_build_small(MapPos pos) const {
+  // Freeserf was missing the original game check preventing buildings from being placed
+  //  with its flag pos touching edge of water
+  if (!map_types_within(map->move_down_right(pos), Map::TerrainGrass0, Map::TerrainGrass3)){
+    return false;
+  }
   return map_types_within(pos, Map::TerrainGrass0, Map::TerrainGrass3);
 }
 

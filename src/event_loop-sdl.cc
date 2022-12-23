@@ -151,6 +151,26 @@ EventLoopSDL::run() {
 
   while (SDL_WaitEvent(&event)) {
 
+  /*
+        if (button_left_down) {
+          Log::Debug["event_loop-sdl.cc"] << "inside EventLoopSDL::run(), DEBUG button_left_down";
+        }else{
+          Log::Debug["event_loop-sdl.cc"] << "inside EventLoopSDL::run(), DEBUG button_left_up";
+        }
+        // NOTE - SDL shows middle/wheel mouse button as button2, not button3 as you might expect
+        if (button_middle_down) {
+          Log::Debug["event_loop-sdl.cc"] << "inside EventLoopSDL::run(), DEBUG button_middle_down";
+        }else{
+          Log::Debug["event_loop-sdl.cc"] << "inside EventLoopSDL::run(), DEBUG button_middle_up";
+        }
+        // NOTE - SDL shows right mouse button as button3, not button2 as you might expect
+        if (button_right_down) {
+          Log::Debug["event_loop-sdl.cc"] << "inside EventLoopSDL::run(), DEBUG button_right_down";
+        }else{
+          Log::Debug["event_loop-sdl.cc"] << "inside EventLoopSDL::run(), DEBUG button_right_up";
+        }
+  */
+
     //Log::Debug["event_loop-sdl.cc"] << "tick_length is " << tick_length;
     // TRIGGER RESET OF Timer here!
     if (tick_length != last_tick_length){
@@ -187,23 +207,54 @@ EventLoopSDL::run() {
                                    zoom_factor * screen_factor_x);
           int y = static_cast<int>(static_cast<float>(event.button.y) *
                                    zoom_factor * screen_factor_y);
-          notify_click(x, y, mod, (Event::Button)event.button.button);
+          if (button_middle_down || event.button.button == 2){
+            if (option_SpecialClickMiddle){
+              notify_middle_click(x, y);  // this simply executes special click function
+            }
+          }else if (button_left_down && button_right_down){
+            if (option_SpecialClickBoth){
+              notify_special_click(x, y);
+            }
+          }else{
+            notify_click(x, y, mod, (Event::Button)event.button.button);
+          }
 
-          if (current_ticks - last_click[event.button.button] <
-                MOUSE_TIME_SENSITIVITY &&
-              event.button.x >= (last_click_x - MOUSE_MOVE_SENSITIVITY) &&
-              event.button.x <= (last_click_x + MOUSE_MOVE_SENSITIVITY) &&
-              event.button.y >= (last_click_y - MOUSE_MOVE_SENSITIVITY) &&
-              event.button.y <= (last_click_y + MOUSE_MOVE_SENSITIVITY)) {
-            notify_dbl_click(x, y, (Event::Button)event.button.button);
+          if (option_SpecialClickDouble){
+            if (current_ticks - last_click[event.button.button] <
+                  MOUSE_TIME_SENSITIVITY &&
+                event.button.x >= (last_click_x - MOUSE_MOVE_SENSITIVITY) &&
+                event.button.x <= (last_click_x + MOUSE_MOVE_SENSITIVITY) &&
+                event.button.y >= (last_click_y - MOUSE_MOVE_SENSITIVITY) &&
+                event.button.y <= (last_click_y + MOUSE_MOVE_SENSITIVITY)) {
+              notify_dbl_click(x, y, (Event::Button)event.button.button);
+            }
           }
 
           last_click[event.button.button] = current_ticks;
           last_click_x = event.button.x;
           last_click_y = event.button.y;
         }
+
+        button_left_down = false;
+        button_middle_down = false;
+        button_right_down = false;
         break;
       case SDL_MOUSEBUTTONDOWN:
+        // IT SEEMS PRESSING KEYBOARD KEYS ALSO SOMEHOW SETS THESE TO TRUE??
+        if (event.button.button <= 3) {
+          // track which buttons down for detect special-click (both left and right buttons)
+          if (event.button.button == 1) {
+            button_left_down = true;
+          }
+          // NOTE - SDL shows middle/wheel mouse button as button2, not button3 as you might expect
+          if (event.button.button == 2) {
+            button_middle_down = true;
+          }
+          // NOTE - SDL shows right mouse button as button3, not button2 as you might expect
+          if (event.button.button == 3) {
+            button_right_down = true;
+          }
+        }
         break;
       case SDL_MOUSEMOTION:
         for (int button = 1; button <= 3; button++) {
@@ -219,9 +270,11 @@ EventLoopSDL::run() {
             int y = static_cast<int>(static_cast<float>(drag_y) *
                                      zoom_factor * screen_factor_y);
 
-            notify_drag(x, y,
-                        event.motion.x - drag_x, event.motion.y - drag_y,
-                        (Event::Button)drag_button);
+            if (option_InvertMouse){
+              notify_drag(x, y, event.motion.x - drag_x, (event.motion.y - drag_y) * -1, (Event::Button)drag_button);
+            }else{
+              notify_drag(x, y, event.motion.x - drag_x, event.motion.y - drag_y, (Event::Button)drag_button);
+            }
 
             SDL_WarpMouseInWindow(nullptr, drag_x, drag_y);
 
@@ -230,11 +283,17 @@ EventLoopSDL::run() {
         }
         break;
       case SDL_MOUSEWHEEL: {
-        SDL_Keymod mod = SDL_GetModState();
-        if ((mod & KMOD_CTRL) != 0) {
+        // no longer requiring CTRL to zoom, just mouse wheel
+        //SDL_Keymod mod = SDL_GetModState();
+        //if ((mod & KMOD_CTRL) != 0) {
           // the wheel zoom is backwards unless reversed
-          zoom(0.2f * static_cast<float>((event.wheel.y * -1)));
-        }
+          //  it seems Mac users may expect reversed zoom?
+          if (option_InvertWheelZoom){
+            zoom(0.2f * static_cast<float>(event.wheel.y));
+          }else{
+            zoom(0.2f * static_cast<float>((event.wheel.y * -1)));
+          }
+        //}
         break;
       }
       case SDL_KEYDOWN: {
@@ -321,6 +380,7 @@ EventLoopSDL::run() {
           unsigned int height = event.window.data2;
           gfx.set_resolution(width, height, gfx.is_fullscreen());
           gfx.get_screen_factor(&screen_factor_x, &screen_factor_y);
+          zoom(0); // this re-applies any existing zoom but does not adjust
           notify_resize(width, height);
         }
         break;
@@ -434,3 +494,4 @@ Timer::create(unsigned int _id, unsigned int _interval,
               Timer::Handler *_handler) {
   return new TimerSDL(_id, _interval, _handler);
 }
+
