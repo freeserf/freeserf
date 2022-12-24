@@ -202,7 +202,31 @@ GameInitBox::internal_draw() {
       break;
     }
     case GameCustom: {
-      draw_box_icon(5, 0, 263);  // Game type
+      //draw_box_icon(5, 0, 263);  // Game type    // this is human vs human, which isn't even supported
+
+      // update icon drawn to match current plays assigned
+      int players_icon_sprite = 262; // default to "single human w/ thumbs up" sprite
+      bool has_human = false;
+      int ai_count = 0;
+      for (int player_index; player_index < mission->get_player_count(); player_index++){
+        if (mission->get_player(player_index)->get_face() == 12 || mission->get_player(player_index)->get_face() == 13){
+          has_human = true;
+        }else{
+          ai_count++;
+        }
+      }
+      if (has_human && ai_count > 0){
+        players_icon_sprite = 1262;  // custom human vs AI sprite
+      }else if (ai_count >= 2){
+        players_icon_sprite = 264;   // built-in computer-vs-computer aka 'demo' sprite
+      }else if (ai_count == 1){
+        players_icon_sprite = 1264;  // custom single-AI-only sprite
+      }else{
+        // only human player[s], leave original "single human w/ thumbs up sprite".
+        // NOTE that if there are only multiple human players allocated, because multi-seat and network-multiplayer not implemented
+        //  only a single human is really controlling the players, so leave the single-human graphic
+      }
+      draw_box_icon(5, 0, players_icon_sprite);  // human vs AI
 
       std::stringstream str_map_size;
       str_map_size << mission->get_map_size();
@@ -337,6 +361,12 @@ GameInitBox::handle_action(int action) {
     }
     case ActionToggleGameType:
       game_type++;
+
+      // missions don't work right, simply disable them for now
+      if (game_type == GameMission){
+        game_type++;
+      }
+
       if (game_type > GameLoad) {
         game_type = GameCustom;
       }
@@ -377,8 +407,7 @@ GameInitBox::handle_action(int action) {
           mission = GameInfo::get_mission(game_mission);
           break;
         case GameCustom:
-          custom_mission->set_map_size(std::min(10u,
-                                           custom_mission->get_map_size() + 1));
+          custom_mission->set_map_size(std::min(10u, custom_mission->get_map_size() + 1));
           break;
       }
       generate_map_preview();
@@ -390,8 +419,7 @@ GameInitBox::handle_action(int action) {
           mission = GameInfo::get_mission(game_mission);
           break;
         case GameCustom:
-          custom_mission->set_map_size(std::max(3u,
-                                           custom_mission->get_map_size() - 1));
+          custom_mission->set_map_size(std::max(3u, custom_mission->get_map_size() - 1));
           break;
       }
       generate_map_preview();
@@ -402,7 +430,7 @@ GameInitBox::handle_action(int action) {
     case ActionGenRandom: {
       random_input->set_random(Random());
       set_redraw();
-      break;
+      // break;  // now generating a new random seed immediately applies it!
     }
     case ActionApplyRandom: {
       std::string str = random_input->get_text();

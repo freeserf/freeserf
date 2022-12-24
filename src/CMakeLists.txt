@@ -263,6 +263,10 @@ add_custom_command(TARGET Forkserf POST_BUILD
 add_custom_command(TARGET Forkserf POST_BUILD
                    COMMAND ${CMAKE_COMMAND} -E copy_directory
                        ${CMAKE_SOURCE_DIR}/custom_graphics/frame_bottom $<TARGET_FILE_DIR:Forkserf>/frame_bottom)
+# custom game-init icons for human vs AI
+add_custom_command(TARGET Forkserf POST_BUILD
+                   COMMAND ${CMAKE_COMMAND} -E copy_directory
+                       ${CMAKE_SOURCE_DIR}/custom_graphics/icon $<TARGET_FILE_DIR:Forkserf>/icon)
 
 
 # Profiler executable

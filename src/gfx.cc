@@ -304,13 +304,14 @@ Frame::draw_sprite(int x, int y, Data::Resource res, unsigned int index, bool us
     //  new custom sprites will work for Amiga, but mutated ones will not as the
     //  mutation happens within the DOS data loading functions
     if (index > last_original_data_index[res]){
-      //Log::Debug["gfx.cc"] << "inside Frame::draw_sprite, sprite index " << index << " is higher than the last_original_data_index " << last_original_data_index[res] << " for this Data::Resource type " << res << ", assuming it is a special sprite";
+      Log::Debug["gfx.cc"] << "inside Frame::draw_sprite, sprite index " << index << " is higher than the last_original_data_index " << last_original_data_index[res] << " for this Data::Resource type " << res << ", assuming it is a special sprite";
 
       unsigned int orig_index = -1;
 
-      if (res == Data::AssetFrameBottom
-       || res == Data::AssetMapObject
-       || res == Data::AssetMapShadow){
+      if (res == Data::AssetFrameBottom // four seasons season dial in panelbar
+       || res == Data::AssetMapObject  // new custom trees, flowers
+       || res == Data::AssetMapShadow  // shadows for new custom trees
+       || res == Data::AssetIcon){   // for game-init icons
         // these types, if having beyond-original indexes, are new graphics
         //  loaded from actual PN  files using the data_source_Custom
         //Log::Debug["gfx.cc"] << "inside Frame::draw_sprite, sprite index " << index << " trying to load custom data source";
