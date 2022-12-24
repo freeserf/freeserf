@@ -4235,7 +4235,7 @@ Viewport::internal_draw() {
 }
 
 bool
-Viewport::handle_click_left(int lx, int ly, int modifier) {
+Viewport::handle_left_click(int lx, int ly, int modifier) {
   set_redraw();
   MapPos clk_pos = map_pos_from_screen_pix(lx, ly);
 

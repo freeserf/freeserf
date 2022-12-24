@@ -146,7 +146,8 @@ class Viewport : public GuiObject, public Map::Handler {
 
   virtual void internal_draw();
   virtual void layout();
-  virtual bool handle_click_left(int x, int y, int modifier);
+  virtual bool handle_left_click(int x, int y, int modifier);
+  //virtual bool handle_right_click(int x, int y);
   virtual bool handle_dbl_click(int x, int y, Event::Button button);
   virtual bool handle_special_click(int x, int y);//, Event::Button button);
   virtual bool handle_drag(int x, int y);

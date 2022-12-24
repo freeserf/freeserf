@@ -904,13 +904,13 @@ void
 ClassicMapGenerator::create_paired_random_object_clusters(int num_clusters,
     int objs_in_cluster1, int spiral_dist1, Map::Terrain type1_min, Map::Terrain type1_max, int obj1_base, int obj1_mask,
     int objs_in_cluster2, int spiral_dist2, Map::Terrain type2_min, Map::Terrain type2_max, int obj2_base, int obj2_mask) {
-  Log::Debug["map-generator.cc"] << "inside ClassicMapGenerator::create_paired_random_object_clusters, num_clusters " << num_clusters;
+  //Log::Debug["map-generator.cc"] << "inside ClassicMapGenerator::create_paired_random_object_clusters, num_clusters " << num_clusters;
   for (int i = 0; i < num_clusters; i++) {
-    Log::Debug["map-generator.cc"] << "inside ClassicMapGenerator::create_paired_random_object_clusters, on cluster number " << i;
+    //Log::Debug["map-generator.cc"] << "inside ClassicMapGenerator::create_paired_random_object_clusters, on cluster number " << i;
     //for (int try_ = 0; try_ < 100; try_++) {
       MapPos rnd_pos = map.get_rnd_coord(NULL, NULL, &rnd);
       if (hexagon_types_in_range(rnd_pos, type1_min, type1_max)) {
-        Log::Debug["map-generator.cc"] << "inside ClassicMapGenerator::create_paired_random_object_clusters,  random_int() is " << random_int() << ",rnd_pos base " << rnd_pos << ", NOT rejecting rnd_pos as nearby terrain types ARE in range";
+        //Log::Debug["map-generator.cc"] << "inside ClassicMapGenerator::create_paired_random_object_clusters,  random_int() is " << random_int() << ",rnd_pos base " << rnd_pos << ", NOT rejecting rnd_pos as nearby terrain types ARE in range";
         // first type
         for (int j = 0; j < spiral_dist1; j++) {
           //MapPos pos_ = pos_add_spirally_random(rnd_pos, pos_mask1);
@@ -922,12 +922,12 @@ ClassicMapGenerator::create_paired_random_object_clusters(int num_clusters,
             continue;
           }
           // because the flowers spill out of their pos, check adjacent pos also
-          Log::Debug["map-generator.cc"] << "inside ClassicMapGenerator::create_paired_random_object_clusters, checking nearby terrain to pos " << pos;
+          //Log::Debug["map-generator.cc"] << "inside ClassicMapGenerator::create_paired_random_object_clusters, checking nearby terrain to pos " << pos;
           bool rejected = false;
           for (int x = 0; x < 7; x++) {
             MapPos xpos = map.pos_add_extended_spirally(pos, x);
             if (!hexagon_types_in_range(xpos, type1_min, type1_max)){
-              Log::Debug["map-generator.cc"] << "inside ClassicMapGenerator::create_paired_random_object_clusters, found unacceptable terrain nearby, skipping pos" << pos;
+              //Log::Debug["map-generator.cc"] << "inside ClassicMapGenerator::create_paired_random_object_clusters, found unacceptable terrain nearby, skipping pos" << pos;
               rejected = true;
               break;
             }
@@ -950,12 +950,12 @@ ClassicMapGenerator::create_paired_random_object_clusters(int num_clusters,
             continue;
           }
           // because the flowers spill out of their pos, check adjacent pos also
-          Log::Debug["map-generator.cc"] << "inside ClassicMapGenerator::create_paired_random_object_clusters, checking nearby terrain to pos " << pos;
+          //Log::Debug["map-generator.cc"] << "inside ClassicMapGenerator::create_paired_random_object_clusters, checking nearby terrain to pos " << pos;
           bool rejected = false;
           for (int x = 0; x < 7; x++) {
             MapPos xpos = map.pos_add_extended_spirally(pos, x);
             if (!hexagon_types_in_range(xpos, type2_min, type2_max)){
-              Log::Debug["map-generator.cc"] << "inside ClassicMapGenerator::create_paired_random_object_clusters, found unacceptable terrain nearby, skipping pos" << pos;
+              //Log::Debug["map-generator.cc"] << "inside ClassicMapGenerator::create_paired_random_object_clusters, found unacceptable terrain nearby, skipping pos" << pos;
               rejected = true;
               break;
             }
@@ -964,14 +964,14 @@ ClassicMapGenerator::create_paired_random_object_clusters(int num_clusters,
             break;
           }
           int actual = (random_int() % obj2_mask) + obj2_base;
-          Log::Debug["map-generator.cc"] << "inside ClassicMapGenerator::create_paired_random_object_clusters, random_int() is " << random_int() << ", rnd_pos base " << rnd_pos << ", creating obj type 2, actual type " << actual << " at pos " << pos;
+          //Log::Debug["map-generator.cc"] << "inside ClassicMapGenerator::create_paired_random_object_clusters, random_int() is " << random_int() << ", rnd_pos base " << rnd_pos << ", creating obj type 2, actual type " << actual << " at pos " << pos;
           if (hexagon_types_in_range(pos, type2_min, type2_max) && tiles[pos].obj == Map::ObjectNone) {
             tiles[pos].obj = static_cast<Map::Object>(actual);
           }
         }
         //break;  DO NOT BREAK!
       }else{
-        Log::Debug["map-generator.cc"] << "inside ClassicMapGenerator::create_paired_random_object_clusters, random_int() is " << random_int() << ", rnd_pos base " << rnd_pos << ", rejecting rnd_pos as nearby terrain types not in range";
+        //Log::Debug["map-generator.cc"] << "inside ClassicMapGenerator::create_paired_random_object_clusters, random_int() is " << random_int() << ", rnd_pos base " << rnd_pos << ", rejecting rnd_pos as nearby terrain types not in range";
       }
     //}
   }

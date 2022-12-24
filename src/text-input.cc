@@ -64,7 +64,7 @@ TextInput::internal_draw() {
 }
 
 bool
-  TextInput::handle_click_left(int x, int y, int modifier) {
+  TextInput::handle_left_click(int x, int y, int modifier) {
   set_focused();
   return true;
 }

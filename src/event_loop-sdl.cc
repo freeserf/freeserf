@@ -215,8 +215,10 @@ EventLoopSDL::run() {
             if (option_SpecialClickBoth){
               notify_special_click(x, y);
             }
-          }else{
-            notify_click(x, y, mod, (Event::Button)event.button.button);
+          }else if (event.button.button == 1){
+            notify_left_click(x, y, mod, (Event::Button)event.button.button);
+          }else if (event.button.button == 3){
+            notify_right_click(x, y);
           }
 
           if (option_SpecialClickDouble){
@@ -240,7 +242,6 @@ EventLoopSDL::run() {
         button_right_down = false;
         break;
       case SDL_MOUSEBUTTONDOWN:
-        // IT SEEMS PRESSING KEYBOARD KEYS ALSO SOMEHOW SETS THESE TO TRUE??
         if (event.button.button <= 3) {
           // track which buttons down for detect special-click (both left and right buttons)
           if (event.button.button == 1) {

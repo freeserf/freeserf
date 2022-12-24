@@ -71,8 +71,8 @@ class RandomInput : public TextInput {
     return true;
   }
 
-  virtual bool handle_click_left(int cx, int cy, int modifier) {
-    TextInput::handle_click_left(cx, cy, modifier);
+  virtual bool handle_left_click(int cx, int cy, int modifier) {
+    TextInput::handle_left_click(cx, cy, modifier);
     saved_text = text;
     text.clear();
     return true;
@@ -453,7 +453,7 @@ GameInitBox::handle_action(int action) {
 }
 
 bool
-  GameInitBox::handle_click_left(int cx, int cy, int modifier) {
+  GameInitBox::handle_left_click(int cx, int cy, int modifier) {
   const int clickmap_mission[] = {
     ActionStartGame,        20,  16, 32, 32,
     ActionToggleGameType,   60,  16, 32, 32,

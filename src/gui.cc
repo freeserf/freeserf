@@ -100,7 +100,8 @@ GuiObject::handle_event(const Event *event) {
 
   int event_x = event->x;
   int event_y = event->y;
-  if (event->type == Event::TypeClick ||
+  if (event->type == Event::TypeLeftClick ||
+      event->type == Event::TypeRightClick ||
       event->type == Event::TypeDoubleClick ||
       event->type == Event::TypeMiddleClick ||
       event->type == Event::TypeSpecialClick ||
@@ -132,15 +133,16 @@ GuiObject::handle_event(const Event *event) {
 
   bool result = false;
   switch (event->type) {
-    case Event::TypeClick:
+    case Event::TypeLeftClick:
       if (event->button == Event::ButtonLeft) {
-        result = handle_click_left(event_x, event_y, event->dy);
-      }else if (event->button == Event::ButtonRight) {
-        result = handle_click_right(event_x, event_y);
+        result = handle_left_click(event_x, event_y, event->dy);
       }
       break;
     case Event::TypeDrag:
       result = handle_drag(event->dx, event->dy);
+      break;
+    case Event::TypeRightClick:
+      result = handle_click_right(event_x, event_y);
       break;
     case Event::TypeDoubleClick:
       //result = handle_dbl_click(event->x, event->y, event->button);  // shouldn't this be event_x/y (the offset kind)

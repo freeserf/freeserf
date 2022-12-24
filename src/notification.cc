@@ -224,7 +224,7 @@ NotificationBox::internal_draw() {
 }
 
 bool
-NotificationBox::handle_click_left(int x, int y, int modifier) {
+NotificationBox::handle_left_click(int x, int y, int modifier) {
   set_displayed(0);
   return true;
 }

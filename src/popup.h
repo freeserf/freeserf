@@ -315,8 +315,8 @@ class PopupBox : public GuiObject {
   uint16_t slider_mineral_double_to_uint16(double val){ return uint16_t(val * 7278); }
 
   virtual void internal_draw();
-  //virtual bool handle_click_left(int x, int y);
-  virtual bool handle_click_left(int x, int y, int modifier);
+  //virtual bool handle_left_click(int x, int y);
+  virtual bool handle_left_click(int x, int y, int modifier);
 };
 
 #endif  // SRC_POPUP_H_

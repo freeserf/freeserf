@@ -28,7 +28,8 @@
 class Event {
  public:
   typedef enum Type {
-    TypeClick,
+    TypeLeftClick,
+    TypeRightClick,
     TypeDoubleClick,
     TypeMiddleClick,
     TypeSpecialClick,
@@ -114,7 +115,8 @@ class EventLoop {
 
   bool notify_handlers(Event *event);
 
-  bool notify_click(int x, int y, unsigned char modifier, Event::Button button);
+  bool notify_left_click(int x, int y, unsigned char modifier, Event::Button button);
+  bool notify_right_click(int x, int y);
   bool notify_dbl_click(int x, int y, Event::Button button);
   bool notify_middle_click(int x, int y); //, Event::Button button);
   bool notify_special_click(int x, int y); //, Event::Button button);

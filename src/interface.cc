@@ -1235,9 +1235,9 @@ Interface::handle_key_pressed(char key, int modifier) {
     }
     */
 
-    // what is this?   backspace or escape maybe? to cancel popup?
+    // escape key
     case 27: {
-      Log::Debug["interface"] << "BACKSPACE key pressed, closing any open popup / road build";
+      Log::Debug["interface.cc"] << "ESCAPE key pressed, closing any open popup / road build";
       if ((notification_box != nullptr) && notification_box->is_displayed()) {
         close_message();
       } else if ((popup != nullptr) && popup->is_displayed()) {
@@ -1483,19 +1483,19 @@ Interface::handle_key_pressed(char key, int modifier) {
       */
       break;
     case 'z':
-      Log::Info["interface"] << "'z' key pressed, quick-saving game'";
+      Log::Info["interface"] << "'z' key pressed, quick-saving game";
       if (modifier & 1) {
         GameStore::get_instance().quick_save("quicksave", game.get());
       }
       break;
     case 'n':
-      Log::Info["interface"] << "'n' key pressed, opening new-game-init popup'";
+      Log::Info["interface"] << "'n' key pressed, opening new-game-init popup";
       if (modifier & 1) {
         open_game_init();
       }
       break;
     case 'c':
-      Log::Info["interface"] << "'c' key pressed, confirming quit'";
+      Log::Info["interface"] << "'c' key pressed, confirming quit";
       // ALLOW ENTER KEY TO DO THIS!
       if (modifier & 1) {
         open_popup(PopupBox::TypeQuitConfirm);
@@ -1521,7 +1521,23 @@ Interface::handle_event(const Event *event) {
     case Event::TypeDraw:
       draw(reinterpret_cast<Frame*>(event->object));
       break;
-
+    case Event::TypeRightClick:
+      Log::Info["interface.cc"] << "inside Interface::handle_event(), TypeRightClick";
+      // the game init box uses right click for player cycling
+      if (init_box != nullptr && init_box->is_displayed()){
+        GuiObject::handle_event(event);
+      }else{
+        Log::Info["interface.cc"] << "inside Interface::handle_event(), TypeRightClick, closing popups/notifications/canceling road";
+        // for all other cases, trigger "close-popup/cancel-action"
+        if ((notification_box != nullptr) && notification_box->is_displayed()) {
+          close_message();
+        } else if ((popup != nullptr) && popup->is_displayed()) {
+          close_popup();
+        } else if (building_road.is_valid()) {
+          build_road_end();
+        }
+      }
+      break;
     default:
       return GuiObject::handle_event(event);
       break;

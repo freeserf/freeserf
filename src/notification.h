@@ -58,7 +58,7 @@ class NotificationBox : public GuiObject {
   void draw_player_face(int x, int y, int player);
 
   virtual void internal_draw();
-  virtual bool handle_click_left(int x, int y, int modifier);
+  virtual bool handle_left_click(int x, int y, int modifier);
 };
 
 #endif  // SRC_NOTIFICATION_H_

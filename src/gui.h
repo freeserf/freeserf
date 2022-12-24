@@ -46,7 +46,7 @@ class GuiObject : public EventLoop::Handler {
   virtual void internal_draw() = 0;
   virtual void layout();
 
-  virtual bool handle_click_left(int x, int y, int modifier) { return false; }
+  virtual bool handle_left_click(int x, int y, int modifier) { return false; }
   virtual bool handle_click_right(int x, int y) { return false; }
   virtual bool handle_dbl_click(int x, int y, Event::Button button) { return false; }
   virtual bool handle_special_click(int x, int y) { return false; }  // noop, overloaded
