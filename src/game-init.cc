@@ -291,7 +291,12 @@ GameInitBox::draw_player_box(unsigned int player, int bx, int by) {
   draw_box_icon(bx+5, by, 282);
   if (game_type == GameCustom) {
     draw_box_icon(bx+4, by, 308);
-    draw_box_icon(bx+5, by, (face == 0) ? 287 : 259);
+    // draw mouse icon for human players, circle icon for AI players
+    if (face == 12 || face == 13){
+      draw_box_icon(bx+5, by, (face == 0) ? 287 : 256);  // icon #256 is mouse
+    }else{   // icon #287 is "unselected/off" empty circle
+      draw_box_icon(bx+5, by, (face == 0) ? 287 : 259);  // icon #259 is "selected/on" empty circle
+    }
   }
 
   if (player < mission->get_player_count()) {
