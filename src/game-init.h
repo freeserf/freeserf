@@ -84,6 +84,7 @@ class GameInitBox : public GuiObject {
   void handle_action(int action);
   bool handle_player_click(unsigned int player, int x, int y);
   unsigned int get_next_character(unsigned int player);
+  unsigned int get_prev_character(unsigned int player);
   void apply_random(Random rnd);
   // moving to public so Interface can call init_box->generate_map_preview() to 
   //  refresh the map after EditCustomMapGenerator popup is closed
@@ -91,7 +92,7 @@ class GameInitBox : public GuiObject {
 
   virtual void internal_draw();
   virtual bool handle_click_left(int x, int y, int modifier);
-  //virtual bool handle_click_right(int x, int y, int modifier);  // newly added, tlongstretch 2022 12 18
+  virtual bool handle_click_right(int x, int y);
 };
 
 #endif  // SRC_GAME_INIT_H_

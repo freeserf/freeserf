@@ -531,6 +531,47 @@ bool
   return true;
 }
 
+// right click is only used here to reverse-cycle through
+//  player face/character
+bool
+GameInitBox::handle_click_right(int cx, int cy) {
+  //Log::Debug["game-init.cc"] << "inside GameInitBox::handle_click_right()";
+
+  if (game_type != GameCustom){
+    return false;
+  }
+ 
+  /* Check player area */
+  int lx = 0;
+  int ly = 0;
+  for (int i = 0; i < GAME_MAX_PLAYER_COUNT; i++) {
+    int px = 20 + lx * 80;
+    int py = 56 + ly * 80;
+    if ((cx > px) && (cx < px + 80) && (cy > py) && (cy < py + 80)) {
+      PPlayerInfo player = mission->get_player(i);
+      player->set_character(get_prev_character(i));
+      // tlongstretch - hack to work around missing color for players 2+
+      Player::Color def_color[] = {
+        {0x00, 0xe3, 0xe3},
+        {0xcf, 0x63, 0x63},
+        {0xdf, 0x7f, 0xef},
+        {0xef, 0xef, 0x8f},
+        {0x00, 0x00, 0x00}
+      };
+      player->set_color(def_color[i]);
+      set_redraw();
+      break;
+    }
+    lx++;
+    if (i == 1) {
+      ly++;
+      lx = 0;
+    }
+  }
+
+  return true;
+}
+
 unsigned int
 GameInitBox::get_next_character(unsigned int player_index) {
   bool in_use = false;
@@ -539,6 +580,31 @@ GameInitBox::get_next_character(unsigned int player_index) {
   do {
     next = (next + 1) % 14;
     next = std::max(1u, next);
+    /* Check that face is not already in use by another player */
+    in_use = 0;
+    for (size_t i = 0; i < mission->get_player_count(); i++) {
+      if (player_index != i && mission->get_player(i)->get_face() == next) {
+        in_use = true;
+        break;
+      }
+    }
+  } while (in_use);
+
+  return next;
+}
+
+unsigned int
+GameInitBox::get_prev_character(unsigned int player_index) {
+  //Log::Debug["game-init.cc"] << "inside GameInitBox::get_prev_character for player_index " << player_index;
+  bool in_use = false;
+  PPlayerInfo player = mission->get_player(player_index);
+  unsigned int next = player->get_face();
+  do {
+    if (next == 1){  // face 0 is "no player", first face is #1 (lady something)
+      next = 13;
+    }else{
+      next--;
+    }
     /* Check that face is not already in use by another player */
     in_use = 0;
     for (size_t i = 0; i < mission->get_player_count(); i++) {
