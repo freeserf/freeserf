@@ -3643,21 +3643,21 @@ Viewport::draw_map_cursor_possible_build() {
 
       /* Draw possible building */
       int sprite = -1;
+      if (game->can_build_flag(pos, interface->get_player())) {  // freeserf was missing this
+        sprite = 47;  // this will be overridden below if a building can be built here
+      }
       if (game->can_build_castle(pos, interface->get_player())) {
         sprite = 50;
-      } else if (game->can_player_build(pos, interface->get_player()) &&
-                 Map::map_space_from_obj[map->get_obj(pos)] == Map::SpaceOpen &&
-                 (game->can_build_flag(map->move_down_right(pos),
-                                       interface->get_player()) ||
-                 map->has_flag(map->move_down_right(pos)))) {
+      } else if (game->can_player_build(pos, interface->get_player())
+              && Map::map_space_from_obj[map->get_obj(pos)] == Map::SpaceOpen
+              && ( game->can_build_flag(map->move_down_right(pos), interface->get_player())
+                    || map->has_flag(map->move_down_right(pos))) ) {
         if (game->can_build_mine(pos)) {
           sprite = 48;
         } else if (game->can_build_large(pos)) {
           sprite = 50;
         } else if (game->can_build_small(pos)) {
           sprite = 49;
-        } else if (game->can_build_flag(pos, interface->get_player())) {  // freeserf was missing this
-          sprite = 47;
         }
       }
 

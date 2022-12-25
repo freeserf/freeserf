@@ -722,6 +722,7 @@ GameStore::find_regular() {
 
 bool
 GameStore::load(const std::string &path, Game *game) {
+  Log::Debug["savegame.cc"] << "inside GameStore::load(), path " << path;
   std::ifstream file;
   file.open(path.c_str());
 
@@ -731,6 +732,7 @@ GameStore::load(const std::string &path, Game *game) {
   }
 
   try {
+    Log::Info["savegame.cc"] << "inside GameStore::load(), loading game " << path;
     SaveReaderTextFile reader_text(&file);
     reader_text >> *game;
   } catch (ExceptionFreeserf& e) {

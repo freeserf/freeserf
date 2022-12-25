@@ -1556,7 +1556,7 @@ Game::build_flag_split_path(MapPos pos) {
 /* Check whether player can build flag at pos. */
 bool
 Game::can_build_flag(MapPos pos, const Player *player) const {
-  //Log::Debug["game.cc"] << "inside Game::can_build_flag, map->has_owner bool is " << map->has_owner(pos) << ", map->get_owner is " << map->get_owner(pos) << ", player index " << player->get_index();
+  Log::Debug["game.cc"] << "inside Game::can_build_flag, pos " << pos << ", map->has_owner bool is " << map->has_owner(pos) << ", map->get_owner is " << map->get_owner(pos) << ", player index " << player->get_index();
 
   //if (!map->has_owner(pos))
   //  Log::Debug["game.cc"] << "inside Game::can_build_flag, A";
@@ -1575,7 +1575,7 @@ Game::can_build_flag(MapPos pos, const Player *player) const {
   if (Map::map_space_from_obj[map->get_obj(pos)] != Map::SpaceOpen) {
     return false;
   }
-  //Log::Debug["game.cc"] << "inside Game::can_build_flag, player index " << player->get_index() << ", clearance check passed";
+  Log::Debug["game.cc"] << "inside Game::can_build_flag, pos " << pos << ", player index " << player->get_index() << ", clearance check passed";
 
   /* Check whether cursor is in water */
   if (map->type_up(pos) <= Map::TerrainWater3 &&
@@ -1587,7 +1587,7 @@ Game::can_build_flag(MapPos pos, const Player *player) const {
     return false;
   }
 
-  //Log::Debug["game.cc"] << "inside Game::can_build_flag, player index " << player->get_index() << ", water check passed";
+  Log::Debug["game.cc"] << "inside Game::can_build_flag, pos " << pos << ", player index " << player->get_index() << ", water check passed";
 
   /* Check that no flags are nearby */
   for (Direction d : cycle_directions_cw()) {
@@ -1595,7 +1595,7 @@ Game::can_build_flag(MapPos pos, const Player *player) const {
       return false;
     }
   }
-  //Log::Debug["game.cc"] << "inside Game::can_build_flag, player index " << player->get_index() << ", flags-neaby check passed";
+  Log::Debug["game.cc"] << "inside Game::can_build_flag, pos " << pos << ", player index " << player->get_index() << ", flags-neaby check passed";
 
   return true;
 }

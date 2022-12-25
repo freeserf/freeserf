@@ -46,6 +46,11 @@ void
 ListSavedFiles::internal_draw() {
   frame->fill_rect(0, 0, width, height, color_background);
 
+  if (selected_item != -1){
+    Log::Debug["list.cc"] << "inside ListSavedFiles::internal_draw(), foo0";
+    set_focused();
+  }
+
   if (focused) {
     frame->draw_rect(0, 0, width, height, color_focus);
   }
@@ -77,7 +82,6 @@ ListSavedFiles::internal_draw() {
 bool
 ListSavedFiles::handle_left_click(int /*cx*/, int cy, int modifier) {
   set_focused();
-  is_list_in_focus = true; // used to tell SDL Event Loop to use mousewheel for scroll instead of zoom here
   cy -= 3;
   if (cy >= 0) {
     cy = first_visible_item + (cy / 9);

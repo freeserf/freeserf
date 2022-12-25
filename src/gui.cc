@@ -188,6 +188,7 @@ GuiObject::set_focused() {
     }
     focused = true;
     focused_object = this;
+    is_list_in_focus = true;
     set_redraw();
   }
 }

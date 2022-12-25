@@ -64,10 +64,10 @@ class PopupBox : public GuiObject {
     TypeStartAttackRedraw,
     TypeGroundAnalysis,
     TypeLoadArchive,  // I don't think this is used
-    TypeLoadSave,
+    TypeLoadSave,    // this is tied to the SettSelect popup
     Type25,
     TypeDiskMsg,
-    TypeSettSelect,  // this is the save game popup, NOT TypeLoadSave
+    TypeSettSelect,  // this is tied to the save game popup LoadSave
     TypeSett1,
     TypeSett2,
     TypeSett3,
