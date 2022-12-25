@@ -146,9 +146,9 @@ EventLoop::notify_arrow_key_pressed(uint8_t key) {
 }
 
 bool
-EventLoop::notify_scroll(int y){
+EventLoop::notify_list_scroll(int y){
   Event event;
-  event.type = Event::TypeScroll;
+  event.type = Event::TypeListScroll;
   event.x = 0;
   event.y = 0;
   event.dx = y; // this is where the y value is passed

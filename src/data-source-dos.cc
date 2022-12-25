@@ -446,6 +446,7 @@ DataSourceDOS::SpriteDosSolid::SpriteDosSolid(PBuffer _data, ColorDOS *palette, 
         }
         // REDUCE IMPACT OF WINTER's reduce greens saturation and shift blue slightly
         else if (color.g > color.r && color.g > color.b) {   // is green
+          /*
           if ((color.r + color.g + color.b) / 3 > avg_brightness + 2) {    // is bright
             if (subseason == 1){  // fade from winter to spring
               color.r +=  3;
@@ -457,6 +458,7 @@ DataSourceDOS::SpriteDosSolid::SpriteDosSolid(PBuffer _data, ColorDOS *palette, 
               color.b += 16;
             }
           }else{
+            */
             // is not bright
             if (subseason == 1){  // fade from winter to spring
               color.r += 10;
@@ -467,7 +469,7 @@ DataSourceDOS::SpriteDosSolid::SpriteDosSolid(PBuffer _data, ColorDOS *palette, 
               color.g -= 14;
               color.b += 24;
             }
-          }
+          //}
         }
         // REDUCE IMPACT OF WINTER's slightly reduce blues saturation
         else if (color.b > color.r && color.b > color.g    // is blue
@@ -545,6 +547,10 @@ DataSourceDOS::SpriteDosSolid::SpriteDosSolid(PBuffer _data, ColorDOS *palette, 
         }
         // reduce greens saturation and shift blue slightly
         else if (color.g > color.r && color.g > color.b) {   // is green
+          /*
+          //
+          // I don't like this, it elminates the grass highlights and makes it look too flat
+          //
           if ((color.r + color.g + color.b) / 3 > avg_brightness + 2) {    // is bright
             if (subseason == 0){  // fade from fall to winter
               color.r +=  3;
@@ -560,6 +566,7 @@ DataSourceDOS::SpriteDosSolid::SpriteDosSolid(PBuffer _data, ColorDOS *palette, 
               color.b += 25;
             }
           }else{
+            */
             // is not bright
             if (subseason == 0){  // fade from fall to winter
               color.r += 10;
@@ -574,7 +581,7 @@ DataSourceDOS::SpriteDosSolid::SpriteDosSolid(PBuffer _data, ColorDOS *palette, 
               color.g -= 20;
               color.b += 35;
             }
-          }
+          //}
         }
         // slightly reduce blues saturation
         else if (color.b > color.r && color.b > color.g    // is blue
@@ -683,9 +690,49 @@ DataSourceDOS::SpriteDosTransparent::SpriteDosTransparent(PBuffer _data,
 
   PMutableBuffer result = std::make_shared<MutableBuffer>(Buffer::EndianessBig);
 
-  //Log::Info["data-source-dos"] << "inside DataSourceDOS::SpriteDosTransparent::SpriteDosTransparent, index is " << index << ", darken bool is " << darken;
+  Log::Info["data-source-dos"] << "inside DataSourceDOS::SpriteDosTransparent::SpriteDosTransparent, index is " << index << ", darken bool is " << darken;
 
   //Log::Info["data-source-dos"] << "this transparant sprite has size " << _data->get_size();
+
+   // find the average brightness so the brightest/highlight pixels
+  //  can be identified
+  // don't really need to check the whole sprite, a small sample
+  // should be representative for map tiles
+  // NOTE - this avg_brightness has NOTHING TO DO WITH FogOfWar.
+  //  It is used for identifying high/lowlights within a given sprite
+  //  to enhance contrast/manipulate colors
+  int avg_brightness = 0;
+  if (option_FourSeasons && season == 3){
+    //while (_data->readable()) {
+    for (int i=0; i < 30; i++){
+
+      ColorDOS color = palette[_data->pop<uint8_t>()];
+      avg_brightness += color.r + color.g + color.b;
+      //Log::Info["data-source-dos"] << "this pixel has brightness " << (color.r + color.g + color.b) / 3;
+    }
+
+    // because I do not know how to make a copy of this data, and
+    //  the pop function increments this read counter to track its
+    //  place in the buffer, I added this reset_read function to try
+    //  resetting to zero to hope that it will allow normal iteration
+    //  over it again from the usual pixel loading function below
+    _data->reset_read();
+    // now advance past the metadata at the beginning
+    //  which is a total of ten 8-bit segments (8,8,16,16,16,16)
+    /*delta_x = _data->pop<int8_t>();
+    delta_y = _data->pop<int8_t>();
+    width = _data->pop<uint16_t>();
+    height = _data->pop<uint16_t>();
+    offset_x = _data->pop<int16_t>();
+    offset_y = _data->pop<int16_t>();*/
+    for (int i=0; i < 10; i++){
+      _data->pop<int8_t>();
+    }
+
+    avg_brightness = avg_brightness / 90; // 30 samples x3 colors each
+    //Log::Info["data-source-dos"] << "the avg_brightness of this map tile is " << avg_brightness;
+  }
+  
 
   while (_data->readable()) {
     size_t drop = _data->pop<uint8_t>();
@@ -698,8 +745,6 @@ DataSourceDOS::SpriteDosTransparent::SpriteDosTransparent(PBuffer _data,
       ColorDOS color = palette[p_index];
 
       // testing FourSeasons manipulating Seeds / Field sprites
-      //  THESE ARE BEING CACHED EVEN IF option_FourSeasons IS TURNED OFF!!!
-      /// NEED TO FIGURE OUT HOW TO FLUSH THE CACHE!
       if (option_FourSeasons && season == 3){
         if (res == Data::AssetMapObject){
           // I haven't bothered to check how the sprite indexes are numbered, there must be some offset
@@ -732,13 +777,94 @@ DataSourceDOS::SpriteDosTransparent::SpriteDosTransparent(PBuffer _data,
           color.r = color.r * 0.75;
           color.g = color.g * 0.75;
           color.b = color.b * 0.75;
-      }    
+      }
+
+      //if (dull){
+      if (option_FourSeasons && season == 3){
+        //Log::Debug["data-source-dos.cc"] << "inside DataSourceDOS::SpriteDosTransparent(), it is Winter";
+        // WINTER
+
+        // darken rocks (gray colors)
+        if ((color.r + color.g + color.b) / 3 > avg_brightness + 2      // is bright
+         && (color.r == color.g && color.g == color.b )) {   // is grayscale (colors all balanced)
+          color.r -= 30;
+          color.g -= 30;
+          color.b -= 30;
+        // slightly reduce reds saturation
+        }else if (color.r > color.g && color.r > color.b    // is red
+              && color.r > 50){
+          if (subseason == 0){  // fade from fall to winter
+            color.r -=  2;
+            color.g +=  3;
+            color.b +=  3;
+          }else if (subseason == 1){  // fade from fall to winter
+            color.r -=  5;
+            color.g +=  6;
+            color.b +=  6;
+          }else{
+            color.r -=  5;
+            color.g += 10;
+            color.b += 10;
+          }
+        }
+        // reduce greens saturation and shift blue slightly
+        else if (color.g > color.r && color.g > color.b) {   // is green
+          if ((color.r + color.g + color.b) / 3 > avg_brightness + 2) {    // is bright
+            if (subseason == 0){  // fade from fall to winter
+              color.r +=  3;
+              color.g -= 10;
+              color.b +=  8;
+            }else if (subseason == 1){  // fade from fall to winter
+              color.r +=  6;
+              color.g -= 20;
+              color.b += 16;
+            }else{
+              color.r += 10;
+              color.g -= 30;
+              color.b += 25;
+            }
+          }else{
+            // is not bright
+            if (subseason == 0){  // fade from fall to winter
+              color.r += 10;
+              color.g -=  7;
+              color.b += 12;
+            }else if (subseason == 1){  // fade from fall to winter
+              color.r += 20;
+              color.g -= 14;
+              color.b += 24;
+            }else{
+              color.r += 30;
+              color.g -= 20;
+              color.b += 35;
+            }
+          }
+        }
+        // slightly reduce blues saturation
+        else if (color.b > color.r && color.b > color.g    // is blue
+              && color.b > 60){
+          if (subseason == 0){  // fade from fall to winter
+            color.r +=  3;
+            color.g +=  3;
+            color.b -= 13;
+          }else if (subseason == 1){  // fade from fall to winter
+            color.r +=  6;
+            color.g +=  6;
+            color.b -= 27;
+          }else{
+            color.r += 10;
+            color.g += 10;
+            color.b -= 40;
+          }
+        }
+      }       
 
 
       result->push<uint8_t>(color.b);  // Blue
       result->push<uint8_t>(color.g);  // Green
       result->push<uint8_t>(color.r);  // Red
       result->push<uint8_t>(0xFF);     // Alpha
+    //}
     }
   }
 

@@ -36,8 +36,14 @@ ListSavedFiles::ListSavedFiles()
 std::string
 ListSavedFiles::get_selected() const {
   if (items.size() == 0) {
+    //Log::Debug["list.cc"] << "inside ListSavedFiles::get_selected(), list size is zero, returning empty string";
     return std::string();
   }
+  if (selected_item < 0){
+    //Log::Debug["list.cc"] << "inside ListSavedFiles::get_selected(), there is no selected)item, returning empty string";
+    return std::string();
+  }
+  //Log::Debug["list.cc"] << "inside ListSavedFiles::get_selected(), list size is nonzero, returning selected item #" << selected_item;
   std::string file_path = items[selected_item].path;
   return file_path;
 }
@@ -46,8 +52,10 @@ void
 ListSavedFiles::internal_draw() {
   frame->fill_rect(0, 0, width, height, color_background);
 
+  //Log::Debug["list.cc"] << "inside ListSavedFiles::internal_draw(), items.size() = " << items.size();
+
   if (selected_item != -1){
-    Log::Debug["list.cc"] << "inside ListSavedFiles::internal_draw(), foo0";
+    //Log::Debug["list.cc"] << "inside ListSavedFiles::internal_draw(), foo0";
     set_focused();
   }
 
@@ -58,11 +66,11 @@ ListSavedFiles::internal_draw() {
   unsigned int last_visible_item = first_visible_item + 16;
   if (selected_item > -1){
     if (selected_item > last_visible_item){
-      Log::Debug["list.cc"] << "inside ListSavedFiles::internal_draw(), fooA";
+      //Log::Debug["list.cc"] << "inside ListSavedFiles::internal_draw(), fooA";
       first_visible_item = selected_item - 15;
       last_visible_item = selected_item;
     }else if (selected_item < first_visible_item){
-      Log::Debug["list.cc"] << "inside ListSavedFiles::internal_draw(), fooB";
+      //Log::Debug["list.cc"] << "inside ListSavedFiles::internal_draw(), fooB";
       first_visible_item = selected_item;
       last_visible_item = selected_item + 16;
     }
@@ -81,6 +89,7 @@ ListSavedFiles::internal_draw() {
 
 bool
 ListSavedFiles::handle_left_click(int /*cx*/, int cy, int modifier) {
+  //Log::Debug["text-input.cc"] << "inside ListSavedFiles::handle_left_click(), cy pos " << cy;
   set_focused();
   cy -= 3;
   if (cy >= 0) {
@@ -141,18 +150,20 @@ ListSavedFiles::handle_arrow_key_pressed(uint8_t key) {
   return true;
 }
 
-// this is only int return type to avoid conflict with Minimap::handle_scroll
-int
-ListSavedFiles::handle_scroll(int y) {
-  //Log::Debug["list.cc"] << "inside ListSavedFiles::handle_scroll, y=" << y << " selected item was " << selected_item;
+bool
+ListSavedFiles::handle_list_scroll(int y) {
+  //Log::Debug["list.cc"] << "inside ListSavedFiles::handle_list_scroll, y=" << y << " selected item was " << selected_item;
   // scroll 4 lines at time
-  selected_item = selected_item + y*4 * -1; // the wheel y values seem inversed
+  //  NEVERMIND, this is nice when a lot of files but causes problems when few
+  //  maybe let it accelerate?  or implement pgup/pgdown, or an actual drag scrollbar
+  //selected_item = selected_item + y*4 * -1; // the wheel y values seem inversed
+  selected_item = selected_item + y * -1; // the wheel y values seem inversed
   if (selected_item < 1){
     selected_item = 0;
   } else if (selected_item > items.size()){
     selected_item = items.size();
   }
-  //Log::Debug["list.cc"] << "inside ListSavedFiles::handle_scroll, y=" << y << " selected item is now " << selected_item;
+  //Log::Debug["list.cc"] << "inside ListSavedFiles::handle_list_scroll, y=" << y << " selected item is now " << selected_item;
   set_redraw();
   return true;
 }

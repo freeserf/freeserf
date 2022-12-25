@@ -157,16 +157,16 @@ GuiObject::handle_event(const Event *event) {
     case Event::TypeArrowKeyPressed:
       result = handle_arrow_key_pressed(event->dx);
       break;
-    case Event::TypeScroll:
-      result = handle_scroll(event->dx);
+    case Event::TypeListScroll:
+      result = handle_list_scroll(event->dx);
       break;
     default:
       break;
   }
 
-  //Log::Debug["gui.cc"] << "inside GuiObject::handle_event(), trigged event->type " << event->type << ", result was " << result;
+  Log::Debug["gui.cc"] << "inside GuiObject::handle_event(), focus, trigged event->type " << event->type << ", result was " << result;
   if (result && (focused_object != this)) {
-    //Log::Debug["gui.cc"] << "inside GuiObject::handle_event(), triggering focus_loose, result was " << result;
+    Log::Debug["gui.cc"] << "inside GuiObject::handle_event(), focus, triggering focus_loose, result was " << result;
     if (focused_object != nullptr) {
       focused_object->focused = false;
       focused_object->handle_focus_loose();
@@ -188,7 +188,6 @@ GuiObject::set_focused() {
     }
     focused = true;
     focused_object = this;
-    is_list_in_focus = true;
     set_redraw();
   }
 }

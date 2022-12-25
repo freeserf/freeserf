@@ -348,12 +348,19 @@ void
 GameInitBox::handle_action(int action) {
   switch (action) {
     case ActionStartGame: {
+      is_list_in_focus = false;  // another hack, to restore normal zoom once game starts
       if (game_type == GameLoad) {
         std::string path = file_list->get_selected();
+        if (path == ""){
+          play_sound(Audio::TypeSfxNotAccepted);
+          return;
+        }
+        play_sound(Audio::TypeSfxAccepted);
         if (!GameManager::get_instance().load_game(path)) {
           return;
         }
       } else {
+        play_sound(Audio::TypeSfxAccepted);
         if (!GameManager::get_instance().start_game(mission, interface->get_custom_map_generator_options())) {
           return;
         }
@@ -428,6 +435,7 @@ GameInitBox::handle_action(int action) {
       generate_map_preview();
       break;
     case ActionClose:
+      is_list_in_focus = false;  // another hack, to restore normal zoom
       interface->close_game_init();
       break;
     case ActionGenRandom: {

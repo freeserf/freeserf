@@ -603,8 +603,14 @@ GameStore::update() {
       if ((info.st_mode & S_IFDIR) != S_IFDIR) {
         SaveInfo info;
         info.name = name_from_file(file_name);
+        // it seems possible to accidentally or because of bug create a save named only '.save' which is confusing at least
+        if (info.name == ""){
+          Log::Warn["savegame.cc"] << "inside GameStore::update(), found a savegame file with bogus name simply '.save', ignoring.  You should delete it";
+          continue;
+        }
         info.path = file_path;
         info.type = SaveInfo::Regular;
+        Log::Debug["savegame.cc"] << "inside GameStore::update(), found a savegame file with name " << info.name;
         saved_games.push_back(info);
       }
     }

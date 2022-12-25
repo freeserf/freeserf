@@ -1599,6 +1599,7 @@ Interface::clear_custom_graphics_cache() {
     }
   }
   // custom shadows not being used yet because the transparency isn't working, add those to purge list once that is fixed
+  //  wait CUSTOM SHADOWS DO WORK NOW!  does this now require purging?? 
   // for (xxx)
   //   to_purge.insert( Data::Sprite::create_id(Data::AssetMapShadow, i + xxx, 0, 0, {0,0,0,0}) );
   //
@@ -1626,10 +1627,17 @@ Interface::clear_custom_graphics_cache() {
   //   so sprite for Seeds0 which is index 105 is actually sprite index 97 because 105-8=97
   //for (int unknown_index=Map::ObjectSeeds0 - 8; unknown_index <= Map::ObjectSeeds2 - 8; unknown_index++){
   //for (int unknown_index=Map::ObjectSeeds0 - 8; unknown_index <= Map::ObjectField5 - 8; unknown_index++){
-    for (int unknown_index=Map::ObjectSeeds0 - 8; unknown_index <= Map::ObjectFieldExpired - 8; unknown_index++){
+  for (int unknown_index=Map::ObjectSeeds0 - 8; unknown_index <= Map::ObjectFieldExpired - 8; unknown_index++){
     to_purge.insert( Data::Sprite::create_id(Data::AssetMapObject, unknown_index, Data::AssetNone, 0, {0,0,0,0}) );
   }
-    
+
+  // dull winter colors, purge ALMOST ALL objects!
+  if (option_FourSeasons && (season == 3 || season == 0)){  // can't forget to purge again on next season! spring
+    for (int unknown_index=Map::ObjectTree0 - 8; unknown_index <= Map::ObjectField5 - 8; unknown_index++){
+      to_purge.insert( Data::Sprite::create_id(Data::AssetMapObject, unknown_index, Data::AssetNone, 0, {0,0,0,0}) );
+    }
+  }
+
   //for (uint64_t id : to_purge){
   //  Log::Debug["interface"] << "to_purge contains id " << id;
   //}

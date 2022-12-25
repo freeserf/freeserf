@@ -5,7 +5,7 @@
  *
  * This file is part of freeserf.
  *
- * freeserf is free software: you can redistribute it and/or modify
+ * freeserf is free software: you can redistribute it anLoadd/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
@@ -4269,12 +4269,17 @@ PopupBox::handle_action(int action, int x_, int /*y_*/) {
         file_ext.clear();
       }
     }
+    if (file_name == ""){
+      Log::Warn["popup.cc"] << "inside PopUpBox::handle_action(), user attempted to save with empty filename, disallowing";
+      play_sound(Audio::TypeSfxNotAccepted);
+      break;
+    }
     if (file_ext.empty()) {
       file_name += ".save";
     }
     std::string file_path = file_list->get_folder_path() + "/" + file_name;
-    if (GameStore::get_instance().save(file_path,
-                                       interface->get_game().get())) {
+    if (GameStore::get_instance().save(file_path, interface->get_game().get())) {
+      play_sound(Audio::TypeSfxAccepted);
       interface->close_popup();
     }
     break;
@@ -4957,7 +4962,7 @@ void
 PopupBox::handle_save_clk(int cx, int cy) {
   const int clkmap[] = {
     ACTION_SAVE, 0, 128, 32, 64,
-    ACTION_CLOSE_BOX, 112, 128, 16, 16,
+    ACTION_CLOSE_BOX, 260, 128, 16, 16,
     -1
   };
 

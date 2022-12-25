@@ -287,8 +287,10 @@ EventLoopSDL::run() {
           // the mousewheel is used to scroll the load game box, when in focus, otherwise it does game zoom
           //  this is a global extern bool in game-options.h, set in list.cc, the load game box functions
           if (is_list_in_focus){
-            notify_scroll(event.wheel.y);
+            Log::Debug["event_loop-sdl.cc"] << "inside EventLoopSDL::run(), is_list_in_focus is true, using SCROLL";
+            notify_list_scroll(event.wheel.y);
           }else{
+            Log::Debug["event_loop-sdl.cc"] << "inside EventLoopSDL::run(), is_list_in_focus is false, using ZOOM";
             if (option_InvertWheelZoom){
               // the wheel zoom is backwards unless reversed
               //  it seems Mac users may expect reversed zoom?
