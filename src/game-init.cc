@@ -118,14 +118,17 @@ GameInitBox::GameInitBox(Interface *interface)
   random_input->set_displayed(true);
   add_float(random_input.get(), 19 + 31*8, 15);
 
-  file_list->set_size(160, 160);
+  //file_list->set_size(160, 160);
+  file_list->set_size(320, 160);  // this covers the minimap, but it is acceptable tradeoff I think
   file_list->set_displayed(false);
   file_list->set_selection_handler([this](const std::string &item) {
+    /* disabling this for now as the minimap is covered by the file list
     Game game;
     if (GameStore::get_instance().load(item, &game)) {
       this->map = game.get_map();
       this->minimap->set_map(map);
     }
+    */
   });
   add_float(file_list.get(), 20, 55);
 }

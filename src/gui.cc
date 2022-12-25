@@ -134,9 +134,7 @@ GuiObject::handle_event(const Event *event) {
   bool result = false;
   switch (event->type) {
     case Event::TypeLeftClick:
-      if (event->button == Event::ButtonLeft) {
-        result = handle_left_click(event_x, event_y, event->dy);
-      }
+      result = handle_left_click(event_x, event_y, event->dy);
       break;
     case Event::TypeDrag:
       result = handle_drag(event->dx, event->dy);
@@ -145,7 +143,6 @@ GuiObject::handle_event(const Event *event) {
       result = handle_click_right(event_x, event_y);
       break;
     case Event::TypeDoubleClick:
-      //result = handle_dbl_click(event->x, event->y, event->button);  // shouldn't this be event_x/y (the offset kind)
       result = handle_dbl_click(event_x, event_y, event->button);
       break;
     case Event::TypeMiddleClick:
@@ -157,11 +154,19 @@ GuiObject::handle_event(const Event *event) {
     case Event::TypeKeyPressed:
       result = handle_key_pressed(event->dx, event->dy);
       break;
+    case Event::TypeArrowKeyPressed:
+      result = handle_arrow_key_pressed(event->dx);
+      break;
+    case Event::TypeScroll:
+      result = handle_scroll(event->dx);
+      break;
     default:
       break;
   }
 
+  //Log::Debug["gui.cc"] << "inside GuiObject::handle_event(), trigged event->type " << event->type << ", result was " << result;
   if (result && (focused_object != this)) {
+    //Log::Debug["gui.cc"] << "inside GuiObject::handle_event(), triggering focus_loose, result was " << result;
     if (focused_object != nullptr) {
       focused_object->focused = false;
       focused_object->handle_focus_loose();

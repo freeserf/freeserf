@@ -134,6 +134,27 @@ EventLoop::notify_key_pressed(unsigned char key, unsigned char modifier) {
   return notify_handlers(&event);
 }
 
+// 0=up, 1=down, 3=left, 4=right
+bool
+EventLoop::notify_arrow_key_pressed(uint8_t key) {
+  Event event;
+  event.type = Event::TypeArrowKeyPressed;
+  event.x = 0;
+  event.y = 0;
+  event.dx = key; // this is where the key value is passed
+  return notify_handlers(&event);
+}
+
+bool
+EventLoop::notify_scroll(int y){
+  Event event;
+  event.type = Event::TypeScroll;
+  event.x = 0;
+  event.y = 0;
+  event.dx = y; // this is where the y value is passed
+  return notify_handlers(&event);
+}
+
 bool
 EventLoop::notify_resize(unsigned int width, unsigned int height) {
   Event event;

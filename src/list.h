@@ -56,6 +56,8 @@ class ListSavedFiles : public GuiObject {
   virtual bool handle_left_click(int x, int y, int modifier);
   virtual bool handle_drag(int dx, int dy);
   virtual bool handle_key_pressed(char key, int modifier);
+  virtual bool handle_arrow_key_pressed(uint8_t key);
+  virtual int handle_scroll(int y);
   virtual bool handle_focus_loose();
 };
 

@@ -69,6 +69,7 @@ int season = 1;  // default to Summer
 int last_season = 1;  // four seasons
 int subseason = 0;  // 1/16th of a season
 int last_subseason = 0;
+bool is_list_in_focus = false;
 typedef enum Season {
   SeasonSpring = 0,
   SeasonSummer = 1,

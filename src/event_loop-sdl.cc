@@ -284,15 +284,18 @@ EventLoopSDL::run() {
         }
         break;
       case SDL_MOUSEWHEEL: {
-        // no longer requiring CTRL to zoom, just mouse wheel
-        //SDL_Keymod mod = SDL_GetModState();
-        //if ((mod & KMOD_CTRL) != 0) {
-          // the wheel zoom is backwards unless reversed
-          //  it seems Mac users may expect reversed zoom?
-          if (option_InvertWheelZoom){
-            zoom(0.2f * static_cast<float>(event.wheel.y));
+          // the mousewheel is used to scroll the load game box, when in focus, otherwise it does game zoom
+          //  this is a global extern bool in game-options.h, set in list.cc, the load game box functions
+          if (is_list_in_focus){
+            notify_scroll(event.wheel.y);
           }else{
-            zoom(0.2f * static_cast<float>((event.wheel.y * -1)));
+            if (option_InvertWheelZoom){
+              // the wheel zoom is backwards unless reversed
+              //  it seems Mac users may expect reversed zoom?
+              zoom(0.2f * static_cast<float>(event.wheel.y));
+            }else{
+              zoom(0.2f * static_cast<float>((event.wheel.y * -1)));
+            }
           }
         //}
         break;
@@ -316,21 +319,34 @@ EventLoopSDL::run() {
         }
 
         switch (event.key.keysym.sym) {
-          // Map scroll
+          // Map scroll AND Load-game box scroll
+          //  I think it may be okay to submit the event to both? assuming map won't scroll while game-init box open
+          //  NO! it almost works, but notify_drag causes a focus_loose event which messes up the load game scrolling focus
+          //  must exclude it when not in list scrolling mode
           case SDLK_UP: {
-            notify_drag(0, 0, 0, -32, Event::ButtonLeft);
+            if (!is_list_in_focus){
+              notify_drag(0, 0, 0, -32, Event::ButtonLeft);  // hack for map scrolling
+            }
+            notify_arrow_key_pressed(0);  // for load game scrolling  //0=up,1=down,2=left,3=right
             break;
           }
           case SDLK_DOWN: {
-            notify_drag(0, 0, 0, 32, Event::ButtonLeft);
+            if (!is_list_in_focus){
+              notify_drag(0, 0, 0, 32, Event::ButtonLeft); // hack for map scrolling
+            }
+            notify_arrow_key_pressed(1);  // for load game scrolling //0=up,1=down,2=left,3=right
             break;
           }
           case SDLK_LEFT: {
-            notify_drag(0, 0, -32, 0, Event::ButtonLeft);
+            if (!is_list_in_focus){
+              notify_drag(0, 0, -32, 0, Event::ButtonLeft); // hack for map scrolling
+            }
             break;
           }
           case SDLK_RIGHT: {
-            notify_drag(0, 0, 32, 0, Event::ButtonLeft);
+            if (!is_list_in_focus){
+              notify_drag(0, 0, 32, 0, Event::ButtonLeft); // hack for map scrolling
+            }
             break;
           }
 

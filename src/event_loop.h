@@ -35,6 +35,8 @@ class Event {
     TypeSpecialClick,
     TypeDrag,
     TypeKeyPressed,
+    TypeArrowKeyPressed,
+    TypeScroll,
     TypeResize,
     TypeUpdate,
     TypeDraw,
@@ -122,6 +124,8 @@ class EventLoop {
   bool notify_special_click(int x, int y); //, Event::Button button);
   bool notify_drag(int x, int y, int dx, int dy, Event::Button button);
   bool notify_key_pressed(unsigned char key, unsigned char modifier);
+  bool notify_arrow_key_pressed(uint8_t key);  //0=up,1=down,2=left,3=right
+  bool notify_scroll(int y);
   bool notify_resize(unsigned int width, unsigned int height);
   bool notify_update();
   bool notify_draw(Frame *frame);

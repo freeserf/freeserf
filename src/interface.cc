@@ -1237,7 +1237,7 @@ Interface::handle_key_pressed(char key, int modifier) {
 
     // escape key
     case 27: {
-      Log::Debug["interface.cc"] << "ESCAPE key pressed, closing any open popup / road build";
+      //Log::Debug["interface.cc"] << "ESCAPE key pressed, closing any open popup / road build";
       if ((notification_box != nullptr) && notification_box->is_displayed()) {
         close_message();
       } else if ((popup != nullptr) && popup->is_displayed()) {

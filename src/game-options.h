@@ -28,5 +28,9 @@ extern int last_season;
 extern int subseason;
 extern int last_subseason;
 extern int season_sprite_offset[4];
+// because SDL Event Loop can only notify game/interface but cannot query it
+//  this is needed to determine mousewheel behavior, so it can either zoom the viewport
+//  or scroll the load games window
+extern bool is_list_in_focus;
 
 #endif  // SRC_GAME_OPTIONS_H_

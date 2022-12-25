@@ -50,6 +50,18 @@ ListSavedFiles::internal_draw() {
     frame->draw_rect(0, 0, width, height, color_focus);
   }
 
+  unsigned int last_visible_item = first_visible_item + 16;
+  if (selected_item > -1){
+    if (selected_item > last_visible_item){
+      Log::Debug["list.cc"] << "inside ListSavedFiles::internal_draw(), fooA";
+      first_visible_item = selected_item - 15;
+      last_visible_item = selected_item;
+    }else if (selected_item < first_visible_item){
+      Log::Debug["list.cc"] << "inside ListSavedFiles::internal_draw(), fooB";
+      first_visible_item = selected_item;
+      last_visible_item = selected_item + 16;
+    }
+  }
   unsigned int item = first_visible_item;
   for (int ly = 0; (ly < (height - 6)) && (item < items.size()); ly += 9) {
     Color tc = color_text;
@@ -65,6 +77,7 @@ ListSavedFiles::internal_draw() {
 bool
 ListSavedFiles::handle_left_click(int /*cx*/, int cy, int modifier) {
   set_focused();
+  is_list_in_focus = true; // used to tell SDL Event Loop to use mousewheel for scroll instead of zoom here
   cy -= 3;
   if (cy >= 0) {
     cy = first_visible_item + (cy / 9);
@@ -106,9 +119,46 @@ ListSavedFiles::handle_key_pressed(char key, int modifier) {
   return true;
 }
 
+//0=up,1=down,2=left,3=right
+bool
+ListSavedFiles::handle_arrow_key_pressed(uint8_t key) {
+  //Log::Debug["list.cc"] << "inside ListSavedFiles::handle_arrow_key_pressed, key=" << key;
+  set_focused();
+  if (key == 0){
+    if (selected_item < 1){
+      selected_item = 0;
+    }else{
+      selected_item--;
+    }
+  }else if (key == 1 && selected_item < items.size()){
+    selected_item++;
+  }
+  set_redraw();
+  return true;
+}
+
+// this is only int return type to avoid conflict with Minimap::handle_scroll
+int
+ListSavedFiles::handle_scroll(int y) {
+  //Log::Debug["list.cc"] << "inside ListSavedFiles::handle_scroll, y=" << y << " selected item was " << selected_item;
+  // scroll 4 lines at time
+  selected_item = selected_item + y*4 * -1; // the wheel y values seem inversed
+  if (selected_item < 1){
+    selected_item = 0;
+  } else if (selected_item > items.size()){
+    selected_item = items.size();
+  }
+  //Log::Debug["list.cc"] << "inside ListSavedFiles::handle_scroll, y=" << y << " selected item is now " << selected_item;
+  set_redraw();
+  return true;
+}
+
+
 bool
 ListSavedFiles::handle_focus_loose() {
+  //Log::Debug["list.cc"] << "inside ListSavedFiles::handle_focus_loose";
   focused = false;
+  is_list_in_focus = false;
   set_redraw();
   return true;
 }
