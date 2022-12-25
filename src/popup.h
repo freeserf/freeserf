@@ -63,11 +63,11 @@ class PopupBox : public GuiObject {
     TypeStartAttack,
     TypeStartAttackRedraw,
     TypeGroundAnalysis,
-    TypeLoadArchive,
+    TypeLoadArchive,  // I don't think this is used
     TypeLoadSave,
     Type25,
     TypeDiskMsg,
-    TypeSettSelect,
+    TypeSettSelect,  // this is the save game popup, NOT TypeLoadSave
     TypeSett1,
     TypeSett2,
     TypeSett3,
@@ -171,7 +171,7 @@ class PopupBox : public GuiObject {
           (key == '-' || key == '.'))) {
       return false;
     }
-    if (text_input->get_text().length() > 13) {
+    if (text_input->get_text().length() > 30) {
       return false;
     }
     return true;

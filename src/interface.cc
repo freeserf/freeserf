@@ -151,15 +151,20 @@ Interface::get_popup_box() {
 /* Open popup box */
 void
 Interface::open_popup(int box) {
-  //Log::Debug["interface.cc"] << "inside Interface::open_popup(), for popup type " << box;
+  Log::Debug["interface.cc"] << "inside Interface::open_popup(), for popup type " << box;
   if (popup == nullptr) {
     //Log::Debug["interface.cc"] << "inside Interface::open_popup(), for popup type " << box << ", popup is nullptr, creating new";
     popup = new PopupBox(this);
     add_float(popup, 0, 0);
   }
   layout();
-  //if (box == PopupBox::TypeGameOptions || box == PopupBox::TypeGameOptions2 || box == PopupBox::TypeEditMapGenerator){
-  if (box == PopupBox::TypeOptions || box == PopupBox::TypeGameOptions || box == PopupBox::TypeGameOptions2 || box == PopupBox::TypeEditMapGenerator){
+  // something odd, it seems that some popup objects may be re-used?  it seems that TypeSettSelect and
+  //  TypeLoadSave save a popup window size, and in order to make the LoadSave popup double-wide it must
+  //  be referred to as SettSelect here, which makes SettSelect off-center because it is not actually
+  //  double-wide but is offset as if it were.  Attempting to fix by simply reverting the offset for this
+  if (box == PopupBox::TypeOptions || box == PopupBox::TypeGameOptions || box == PopupBox::TypeGameOptions2
+   || box == PopupBox::TypeEditMapGenerator || box == PopupBox::TypeSettSelect){
+     Log::Debug["interface.cc"] << "inside Interface::open_popup(), for popup type " << box << ", drawing double-wide";
     // double wide, normal height
     popup->set_size(288, 160);
     // recenter the popup
@@ -171,8 +176,11 @@ Interface::open_popup(int box) {
     int *ptoptions_pos_y = &options_pos_y;
     popup->get_position(ptoptions_pos_x, ptoptions_pos_y);
     options_pos_x = *ptoptions_pos_x;
-    // shift left half of one "normal width", keep same height
-    options_pos_x -= 72;
+    // see notes above, this one is weird
+    if (box != PopupBox::TypeSettSelect){
+      // shift left half of one "normal width", keep same height
+      options_pos_x -= 72;
+    }
     popup->move_to(options_pos_x, options_pos_y);
   }
   /* this doesn't work here, not exactly clear why

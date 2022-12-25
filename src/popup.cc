@@ -345,18 +345,20 @@ PopupBox::PopupBox(Interface *_interface)
   minimap->set_size(128, 128);
   add_float(minimap.get(), 8, 9);
 
-  file_list->set_size(120, 100);
+  //file_list->set_size(120, 100);  // this is the save game file list, NOT the load game file list (which is in game-init.cc)
+  file_list->set_size(260, 100);
   file_list->set_displayed(false);
 
   file_list->set_selection_handler([this](const std::string &item) {
     size_t p = item.find_last_of("/\\");
     std::string file_name = item.substr(p+1, item.size());
     this->file_field->set_text(file_name);
-    //this->file_field->set_filter(savegame_text_input_filter);
+    //this->file_field->set_filter(savegame_text_input_filter);  // not here, lower
   });
   add_float(file_list.get(), 12, 22);
 
-  file_field->set_size(120, 10);
+  //file_field->set_size(120, 10);
+  file_field->set_size(260, 10);
   file_field->set_displayed(false);
   file_field->set_filter(savegame_text_input_filter);
   add_float(file_field.get(), 12, 124);
@@ -377,6 +379,7 @@ PopupBox::draw_popup_box_frame() {
 /* Draw larger frame used for extra options screen */
 void
 PopupBox::draw_large_popup_box_frame() {
+  //Log::Debug["popup.cc"] << "inside PopupBox::draw_large_popup_box_frame()";
   //sprite index 0: top bar, decorated (~2 pixels thicker than the others!)
   //sprite index 1: bottom bar, plain
   //sprite index 2: left bar, plain
@@ -2996,20 +2999,35 @@ PopupBox::draw_save_box() {
     -1
   };
 
-  draw_box_background(PatternDiagonalGreen);
+  draw_large_box_background(PatternDiagonalGreen);
   draw_custom_icon_box(layout);
 
-  draw_green_string(3, 2, "Save  Game");
+  draw_green_string(12, 2, "Save  Game");
 
-  draw_popup_icon(14, 128, 60); /* Exit */
+  draw_popup_icon(32, 128, 60); /* Exit */
 }
 
 void
 PopupBox::internal_draw() {
-  Log::Debug["popup.cc"] << "inside PopupBox::internal_draw(), box type is " << box;
-  //if (box == Type::TypeGameOptions || box == Type::TypeGameOptions2 || box == Type::TypeEditMapGenerator){
-  if (box == Type::TypeOptions || box == Type::TypeGameOptions || box == Type::TypeGameOptions2 || box == Type::TypeEditMapGenerator){
+  //Log::Debug["popup.cc"] << "inside PopupBox::internal_draw(), box type is " << box;
+  if (box == Type::TypeOptions || box == Type::TypeGameOptions || box == Type::TypeGameOptions2
+   || box == Type::TypeEditMapGenerator || box == Type::TypeLoadSave){
     draw_large_popup_box_frame();
+      // work-around for joining of SettSelect and LoadSave popups, but only LoadSave doubled
+      if (box == Type::TypeLoadSave){
+        int loadsave_pos_x = 0;
+        int loadsave_pos_y = 0;
+        int *ptloadsave_pos_x = &loadsave_pos_x;
+        int *ptloadsave_pos_y = &loadsave_pos_y;
+        //this->get_position(ptloadsave_pos_x, ptloadsave_pos_y);
+        // cannot offset based on current popup position because it results in
+        //  the popup being shifted every time it is redrawn!
+        // Instead, center position relative to viewport which is absolute
+        interface->get_viewport()->get_size(ptloadsave_pos_x, ptloadsave_pos_y);
+        loadsave_pos_x = *ptloadsave_pos_x / 2 - 144;
+        loadsave_pos_y = *ptloadsave_pos_y / 2 - 80;
+        this->move_to(loadsave_pos_x, loadsave_pos_y);
+      }
   }else{
     draw_popup_box_frame();
   }
