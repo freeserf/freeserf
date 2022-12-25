@@ -141,12 +141,12 @@ class Frame {
 
   /* Sprite functions */
   //void draw_sprite(int x, int y, Data::Resource res, unsigned int index, bool use_off = false, const Color &color = Color::transparent, float progress = 1.f);
-  void draw_sprite(int x, int y, Data::Resource res, unsigned int index, bool use_off = false, const Color &color = Color::transparent, float progress = 1.f, bool darken = false);
+  void draw_sprite(int x, int y, Data::Resource res, unsigned int index, bool use_off = false, const Color &color = Color::transparent, float progress = 1.f, int mutate = 0);
   void draw_sprite_relatively(int x, int y, Data::Resource res,
                               unsigned int index,
                               Data::Resource relative_to_res,
                               unsigned int relative_to_index);
-  void draw_masked_sprite(int x, int y, Data::Resource mask_res, unsigned int mask_index, Data::Resource res, unsigned int index, bool darken = false);  // for option_FogOfWar
+  void draw_masked_sprite(int x, int y, Data::Resource mask_res, unsigned int mask_index, Data::Resource res, unsigned int index, int mutate = 0);  // for option_FogOfWar
   void draw_waves_sprite(int x, int y, Data::Resource mask_res,
                          unsigned int mask_index, Data::Resource res,
                          unsigned int index);

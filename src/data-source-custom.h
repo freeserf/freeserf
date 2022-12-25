@@ -55,7 +55,7 @@ class DataSourceCustom : public DataSourceBase {
                         // assuming another datasouce exists to fall back to
 
   //virtual Data::MaskImage get_sprite_parts(Data::Resource res, size_t index);
-  virtual Data::MaskImage get_sprite_parts(Data::Resource res, size_t index, bool darken = false);
+  virtual Data::MaskImage get_sprite_parts(Data::Resource res, size_t index, int mutate = 0);
 
   virtual PBuffer get_sound(size_t index);
   virtual PBuffer get_music(size_t index);

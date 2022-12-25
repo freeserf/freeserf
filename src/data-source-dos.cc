@@ -238,8 +238,8 @@ DataSourceDOS::fixup() {
 //  when get_object is called to get the "from zero" data object id
 Data::MaskImage
 //DataSourceDOS::get_sprite_parts(Data::Resource res, size_t index) {
-DataSourceDOS::get_sprite_parts(Data::Resource res, size_t index, bool darken) {
-  //Log::Debug["data-source-dos.cc"] << "inside DataSourceDOS::get_sprite_parts, res type is " << res << ", sprite index is " << index << ", darken bool is " << darken;
+DataSourceDOS::get_sprite_parts(Data::Resource res, size_t index, int mutate) {
+  Log::Debug["data-source-dos.cc"] << "inside DataSourceDOS::get_sprite_parts, res type is " << res << ", sprite index is " << index << ", mutate int is " << mutate;
   
   if (index >= Data::get_resource_count(res)) {
     return std::make_tuple(nullptr, nullptr);
@@ -328,8 +328,8 @@ DataSourceDOS::get_sprite_parts(Data::Resource res, size_t index, bool darken) {
       //sprite = std::make_shared<SpriteDosSolid>(data, palette);
       //sprite = std::make_shared<SpriteDosSolid>(data, palette, res);  // FourSeasons needs the resource type
       //sprite = std::make_shared<SpriteDosSolid>(data, palette, res, dos_res.index + index);  // FogOfWar needs the resource type AND the sprite index (or some kind of bool I guess)
-      //Log::Debug["data-source-dos.cc"] << "inside DataSourceDOS::get_sprite_parts, res type is " << res << ", sprite index is " << index << ", darken bool is " << darken << ", about to call SpriteDosSolid constructor";
-      sprite = std::make_shared<SpriteDosSolid>(data, palette, res, dos_res.index + index, darken);  // using a bool for FogOfWar, previous way wouldn't work)
+      //Log::Debug["data-source-dos.cc"] << "inside DataSourceDOS::get_sprite_parts, res type is " << res << ", sprite index is " << index << ", mutate int is " << mutate << ", about to call SpriteDosSolid constructor";
+      sprite = std::make_shared<SpriteDosSolid>(data, palette, res, dos_res.index + index, mutate);  // using a bool for FogOfWar, previous way wouldn't work)
       break;
     }
     case SpriteTypeTransparent: {
@@ -338,7 +338,7 @@ DataSourceDOS::get_sprite_parts(Data::Resource res, size_t index, bool darken) {
       //sprite = std::make_shared<SpriteDosTransparent>(data, palette);
       //sprite = std::make_shared<SpriteDosTransparent>(data, palette, res, dos_res.index + index);
       //Log::Debug["data-source-dos.cc"] << "inside DataSourceDOS::get_sprite_parts, FOO E";
-      sprite = std::make_shared<SpriteDosTransparent>(data, palette, res, dos_res.index + index, 0, darken);
+      sprite = std::make_shared<SpriteDosTransparent>(data, palette, res, dos_res.index + index, 0, mutate);
       break;
     }
     case SpriteTypeOverlay: {
@@ -375,9 +375,9 @@ DataSourceDOS::get_sprite_parts(Data::Resource res, size_t index, bool darken) {
 // added passing of resource type to assist with weather/seasons/palette messing
 //DataSourceDOS::SpriteDosSolid::SpriteDosSolid(PBuffer _data, ColorDOS *palette, Data::Resource res)
 //DataSourceDOS::SpriteDosSolid::SpriteDosSolid(PBuffer _data, ColorDOS *palette, Data::Resource res, size_t sprite_index)
-DataSourceDOS::SpriteDosSolid::SpriteDosSolid(PBuffer _data, ColorDOS *palette, Data::Resource res, size_t index, bool darken)
+DataSourceDOS::SpriteDosSolid::SpriteDosSolid(PBuffer _data, ColorDOS *palette, Data::Resource res, size_t index, int mutate)
      : SpriteBaseDOS(_data) {
-  //Log::Debug["data-source-dos.cc"] << "inside DataSourceDOS::SpriteDosSolid::SpriteDosSolid, res type " << res << ", index " << index << ", darken bool is " << darken;
+  //Log::Debug["data-source-dos.cc"] << "inside DataSourceDOS::SpriteDosSolid::SpriteDosSolid, res type " << res << ", index " << index << ", mutate int is " << mutate;
   size_t size = _data->get_size();
   if (size != (width * height + 10)) {
     throw ExceptionFreeserf("Failed to extract DOS solid sprite");
@@ -609,7 +609,7 @@ DataSourceDOS::SpriteDosSolid::SpriteDosSolid(PBuffer _data, ColorDOS *palette, 
     //  FourSeasons so it can modify the FourSeasons-adjusted files
     //   if both enabled
     //if (option_FogOfWar && res == Data::AssetMapGround){
-    if (darken){
+    if (mutate == 1){
       // using "200 means black" for shrouding doesn't work easily, instead it just won't even call draw at all!
       //if (sprite_index == 200){
       //  // the not-revealed shrouded state is indicated by sprite index 200, no need for more than one
@@ -623,7 +623,32 @@ DataSourceDOS::SpriteDosSolid::SpriteDosSolid(PBuffer _data, ColorDOS *palette, 
         color.b = color.b *0.6;  // darker by xx%
       //}
       // otherwise, this is a currently-visible sprite, so draw it normally
-    }    
+    }
+    
+    if (mutate >= 10){
+      //Log::Debug["data-source-dos.cc"] << "inside DataSourceDOS::SpriteDosSolid, mutate is >= 10";
+      if (mutate == 10){
+        // Water0 - deepest
+        //color.r -= 20;
+        //color.g -= 20;
+        color.b -= 20;
+      //
+      // NOTE Water1 is default, no change
+      //
+      }else if (mutate == 11){
+        // Water2
+        color.r += 20;
+        color.g += 20;
+        color.b += 20;
+      }else if (mutate == 12){
+        // Water3 - shallowest
+        
+        color.r += 30;
+        color.g += 40;
+        color.b += 30;
+      }
+    }  
+
 
 
     //Log::Info["data-source-dos"] << "ColorDOS new color.b " << std::to_string(color.b) << ", color.g " << std::to_string(color.g) << ", color.r " << std::to_string(color.r);
@@ -685,12 +710,12 @@ DataSourceDOS::SpriteDosTransparent::SpriteDosTransparent(PBuffer _data,
                                                           Data::Resource res,
                                                           size_t index,
                                                           uint8_t color,
-                                                          bool darken)
+                                                          int mutate)
   : SpriteBaseDOS(_data) {
 
   PMutableBuffer result = std::make_shared<MutableBuffer>(Buffer::EndianessBig);
 
-  Log::Info["data-source-dos"] << "inside DataSourceDOS::SpriteDosTransparent::SpriteDosTransparent, index is " << index << ", darken bool is " << darken;
+  Log::Info["data-source-dos"] << "inside DataSourceDOS::SpriteDosTransparent::SpriteDosTransparent, index is " << index << ", mutate int is " << mutate;
 
   //Log::Info["data-source-dos"] << "this transparant sprite has size " << _data->get_size();
 
@@ -770,7 +795,7 @@ DataSourceDOS::SpriteDosTransparent::SpriteDosTransparent(PBuffer _data,
         }
       }
 
-      if (darken){
+      if (mutate == 1){
           //color.r = color.r *0.6;  // darker by xx%
           //color.g = color.g *0.6;  // darker by xx%
           //color.b = color.b *0.6;  // darker by xx%
@@ -784,7 +809,7 @@ DataSourceDOS::SpriteDosTransparent::SpriteDosTransparent(PBuffer _data,
         //Log::Debug["data-source-dos.cc"] << "inside DataSourceDOS::SpriteDosTransparent(), it is Winter";
         // WINTER
 
-        // darken rocks (gray colors)
+        // mutate rocks (gray colors)
         if ((color.r + color.g + color.b) / 3 > avg_brightness + 2      // is bright
          && (color.r == color.g && color.g == color.b )) {   // is grayscale (colors all balanced)
           color.r -= 30;
@@ -857,8 +882,7 @@ DataSourceDOS::SpriteDosTransparent::SpriteDosTransparent(PBuffer _data,
             color.b -= 40;
           }
         }
-      }       
-
+      }
 
       result->push<uint8_t>(color.b);  // Blue
       result->push<uint8_t>(color.g);  // Green

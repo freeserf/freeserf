@@ -140,15 +140,15 @@ class Data {
     virtual bool load() = 0;
 
     //
-    // TODO - find a cleaner way to implement darken bool without having to change every single
+    // TODO - find a cleaner way to implement mutate int without having to change every single
     //   function even for Amiga, Legacy, etc.  
     //
 
     //virtual PSprite get_sprite(Resource res, size_t index, const Sprite::Color &color) = 0;
-    virtual PSprite get_sprite(Resource res, size_t index, const Sprite::Color &color, bool darken = false) = 0;
+    virtual PSprite get_sprite(Resource res, size_t index, const Sprite::Color &color, int mutate = 0) = 0;
 
     //virtual MaskImage get_sprite_parts(Resource res, size_t index) = 0;
-    virtual MaskImage get_sprite_parts(Resource res, size_t index, bool darken = false) = 0;
+    virtual MaskImage get_sprite_parts(Resource res, size_t index, int mutate = 0) = 0;
 
     virtual size_t get_animation_phase_count(size_t animation) = 0;
     virtual Animation get_animation(size_t animation, size_t phase) = 0;

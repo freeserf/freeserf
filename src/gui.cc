@@ -164,9 +164,9 @@ GuiObject::handle_event(const Event *event) {
       break;
   }
 
-  Log::Debug["gui.cc"] << "inside GuiObject::handle_event(), focus, trigged event->type " << event->type << ", result was " << result;
+  //Log::Debug["gui.cc"] << "inside GuiObject::handle_event(), focus, trigged event->type " << event->type << ", result was " << result;
   if (result && (focused_object != this)) {
-    Log::Debug["gui.cc"] << "inside GuiObject::handle_event(), focus, triggering focus_loose, result was " << result;
+    //Log::Debug["gui.cc"] << "inside GuiObject::handle_event(), focus, triggering focus_loose, result was " << result;
     if (focused_object != nullptr) {
       focused_object->focused = false;
       focused_object->handle_focus_loose();

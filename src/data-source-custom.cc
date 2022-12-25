@@ -75,7 +75,7 @@ DataSourceCustom::load() {
 // using DataSourceCustom graphics requires SDL2_Image included in build or it will fail!
 Data::MaskImage
 //DataSourceCustom::get_sprite_parts(Data::Resource res, size_t index) {
-DataSourceCustom::get_sprite_parts(Data::Resource res, size_t index, bool darken) {
+DataSourceCustom::get_sprite_parts(Data::Resource res, size_t index, int mutate) {
   //Log::Info["data-source-custom"] << "inside DataSourceCustom::get_sprite_parts with res " << res << ", index " << index;
   ResInfo *info = get_info(res);
   if (info == nullptr) {

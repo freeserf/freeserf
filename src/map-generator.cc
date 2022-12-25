@@ -938,7 +938,7 @@ ClassicMapGenerator::create_paired_random_object_clusters(int num_clusters,
           //if (hexagon_types_in_range(pos, type1_min, type1_max) && tiles[pos].obj == Map::ObjectNone) {
           int actual = (random_int() % obj1_mask) + obj1_base;
           tiles[pos].obj = static_cast<Map::Object>(actual);
-          Log::Debug["map-generator.cc"] << "inside ClassicMapGenerator::create_paired_random_object_clusters, random_int() is " << random_int() << ", rnd_pos base " << rnd_pos << ", creating obj type 1, actual type " << actual << " at pos " << pos;
+          //Log::Debug["map-generator.cc"] << "inside ClassicMapGenerator::create_paired_random_object_clusters, random_int() is " << random_int() << ", rnd_pos base " << rnd_pos << ", creating obj type 1, actual type " << actual << " at pos " << pos;
           //}
         }
         // second type

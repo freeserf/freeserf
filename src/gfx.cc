@@ -263,31 +263,31 @@ Graphics::get_instance() {
 //
 //
 void
-Frame::draw_sprite(int x, int y, Data::Resource res, unsigned int index, bool use_off, const Color &color, float progress, bool darken) {
-  //Log::Debug["gfx.cc"] << "inside Frame::draw_sprite  with res " << res << " and index " << index << ", darken bool is " << darken;
+Frame::draw_sprite(int x, int y, Data::Resource res, unsigned int index, bool use_off, const Color &color, float progress, int mutate) {
+  //Log::Debug["gfx.cc"] << "inside Frame::draw_sprite  with res " << res << " and index " << index << ", mutate int is " << mutate;
   Data::Sprite::Color pc = {color.get_blue(),
                             color.get_green(),
                             color.get_red(),
                             color.get_alpha()};
   
-  // for darken versions of original game sprites when on downward slopes (left->right)
-  //  The darkened terrain sprites must be cached with alernate sprite indexes
+  // for mutate versions of original game sprites when on downward slopes (left->right)
+  //  The mutated terrain sprites must be cached with alernate sprite indexes
   //   to allow both the fully-visible and revealed-but-not-currently-visible
   //   sprites to be drawn at the same time
-  //  To support this, fake the sprite index for the darkened sprites by using +XX
+  //  To support this, fake the sprite index for the mutated sprites by using +XX
   //   so that they are cached and retrieved with the higher index but the original
   //   sprite index is actually passed to the downstream functions to retrieve from
-  //   the SPAx.PA data file, as the darkened sprites don't actually exist anywhere,
+  //   the SPAx.PA data file, as the mutated sprites don't actually exist anywhere,
   //   they are built by mutating the original sprite during loading
   uint64_t id; // image cache key
-  if (darken){
+  if (mutate == 1){
     // fake high sprite indexes to allow caching both original and mutated
     if (res == Data::AssetMapObject){
       // this is pretty arbitrary
       id = Data::Sprite::create_id(res, index + 3000, 0, 0, pc);
-      //Log::Debug["gfx.cc"] << "inside Frame::draw_sprite  with res " << res << " and index " << index << ", darken bool is " << darken << ", caching with fake high id " << index + 3000;
+      //Log::Debug["gfx.cc"] << "inside Frame::draw_sprite  with res " << res << " and index " << index << ", mutate int is " << mutate << ", caching with fake high id " << index + 3000;
     } else{
-      throw ExceptionFreeserf("inside Frame::draw_sprite, unexpected Data::Asset type to darken!");      
+      throw ExceptionFreeserf("inside Frame::draw_sprite, unexpected Data::Asset type to mutate!");      
     }
   }else{
     // original sprite index
@@ -340,12 +340,15 @@ Frame::draw_sprite(int x, int y, Data::Resource res, unsigned int index, bool us
           }
         }
       }else if (res == Data::AssetMapGround){
-        //Log::Debug["gfx.cc"] << "inside Frame::draw_sprite, sprite index " << index << "terrain sprite, nothing to do here";
+        //
+        //  REMOVE THIS WHOLE SECTION, I think
+        //
+        Log::Debug["gfx.cc"] << "inside Frame::draw_sprite, sprite index " << index << "terrain sprite, nothing to do here";
         // for option_FogOfWar
         //  call get_sprite for the BASE terrain sprite index to be mutated
         //
         // logic inside the downstream SpriteDosSolid/Transparent/Overlay constructor
-        //   will apply necessary mutation when it sees darken bool set
+        //   will apply necessary mutation when it sees mutate int set
         //
         // this mutated sprite will be cached with its new higher-than-original index
         //  so it will be loaded from cache on subsequent draw_sprite calls without
@@ -368,8 +371,8 @@ Frame::draw_sprite(int x, int y, Data::Resource res, unsigned int index, bool us
       //    - option_FourSeasons uses this for seasonal changes to terrain
       //
       //s = data_source->get_sprite(res, index, pc);
-      //Log::Debug["gfx.cc"] << "inside Frame::draw_sprite, using original data source, index " << index << ", darken bool is " << darken;
-      s = data_source->get_sprite(res, index, pc, darken);
+      //Log::Debug["gfx.cc"] << "inside Frame::draw_sprite, using original data source, index " << index << ", mutate int is " << mutate;
+      s = data_source->get_sprite(res, index, pc, mutate);
     } // if index beyond original range
 
     if (!s) {
@@ -522,20 +525,20 @@ Frame::draw_sprite_relatively(int x, int y, Data::Resource res,
 void
 Frame::draw_masked_sprite(int x, int y, Data::Resource mask_res,
                           unsigned int mask_index, Data::Resource res,
-                          unsigned int index, bool darken) {
-  //Log::Debug["gfx.cc"] << "inside Frame::draw_masked_sprite  with res " << res;
+                          unsigned int index, int mutate) {
+  //Log::Debug["gfx.cc"] << "inside Frame::draw_masked_sprite  with res " << res << ", index " << index << ", mutate " << mutate;
 
   // for option_FogOfWar
-  //  The darkened terrain sprites must be cached with alernate sprite indexes
+  //  The mutated terrain sprites must be cached with alernate sprite indexes
   //   to allow both the fully-visible and revealed-but-not-currently-visible
   //   sprites to be drawn at the same time
-  //  To support this, fake the sprite index for the darkened sprites by using +100
+  //  To support this, fake the sprite index for the mutated sprites by using +100
   //   so that they are cached and retrieved with the higher index but the original
   //   sprite index is actually passed to the downstream functions to retrieve from
-  //   the SPAx.PA data file, as the darkened sprites don't actually exist anywhere,
+  //   the SPAx.PA data file, as the mutated sprites don't actually exist anywhere,
   //   they are built by mutating the original sprite during loading
   uint64_t id; // image cache key
-  if (darken){
+  if (mutate == 1){
     // fake high sprite indexes to allow caching both original and mutated
     if (res == Data::AssetMapGround){
       // orig terrain types are all under 100, + 100
@@ -546,7 +549,33 @@ Frame::draw_masked_sprite(int x, int y, Data::Resource mask_res,
       id = Data::Sprite::create_id(res, index + 3000, mask_res, mask_index, {0, 0, 0, 0});
       */
     } else{
-      throw ExceptionFreeserf("unexpected Data::Asset type to darken!");      
+      throw ExceptionFreeserf("unexpected Data::Asset type to mutate!");      
+    }
+  }else if (index >= 40 && index <= 42){  // special water luminosity by depth
+    //Log::Debug["gfx.cc"] << "inside Frame::draw_masked_sprite  with res " << res << ", mutate is >1";
+
+    // fake high sprite indexes to allow caching both original and mutated
+    //  this needs to be the non-32 index!
+    id = Data::Sprite::create_id(res, index + 100, mask_res, mask_index, {0, 0, 0, 0});
+
+    // UPDATE - using integer mutate instead of bool darken to allow more mutations
+    // for water, create different luminosity/colors for Water0 through Water3
+    if (index == 40){
+      // Water0
+      index = 32;
+      mutate = 10;
+    }
+    //
+    // NOTE Water1 is unchanged
+    //
+      else if (index == 41){
+      // Water2
+      index = 32;
+      mutate = 11;
+    }else if (index == 42){
+      // Water 3
+      index = 32;
+      mutate = 12;
     }
   }else{
     // original sprite index
@@ -561,8 +590,8 @@ Frame::draw_masked_sprite(int x, int y, Data::Resource mask_res,
     Data::PSprite s;
     //
     // fetch the base sprite, MASK IS NOT APPLIED YET
-    //   darken if specified
-    s = data_source->get_sprite(res, index, {0, 0, 0, 0}, darken);
+    //   mutate if specified
+    s = data_source->get_sprite(res, index, {0, 0, 0, 0}, mutate);
     
     if (!s) {
       Log::Warn["graphics"] << "Failed to decode sprite #"
@@ -573,9 +602,9 @@ Frame::draw_masked_sprite(int x, int y, Data::Resource mask_res,
     //
     // fetch the mask sprite as if it were a normal sprite
     //
-    // darken bool is false is default, but listing explicitly here to avoid confusion
+    // mutate int is false is default, but listing explicitly here to avoid confusion
     //   The mask is not modified, only the base terrain sprite is
-    Data::PSprite m = data_source->get_sprite(mask_res, mask_index,{0, 0, 0, 0}, darken = false);
+    Data::PSprite m = data_source->get_sprite(mask_res, mask_index,{0, 0, 0, 0}, mutate = 0);
                                               
     if (!m) {
       Log::Warn["graphics"] << "Failed to decode sprite #"

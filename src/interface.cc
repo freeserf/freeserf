@@ -1530,12 +1530,12 @@ Interface::handle_event(const Event *event) {
       draw(reinterpret_cast<Frame*>(event->object));
       break;
     case Event::TypeRightClick:
-      Log::Info["interface.cc"] << "inside Interface::handle_event(), TypeRightClick";
+      //Log::Info["interface.cc"] << "inside Interface::handle_event(), TypeRightClick";
       // the game init box uses right click for player cycling
       if (init_box != nullptr && init_box->is_displayed()){
         GuiObject::handle_event(event);
       }else{
-        Log::Info["interface.cc"] << "inside Interface::handle_event(), TypeRightClick, closing popups/notifications/canceling road";
+        //Log::Info["interface.cc"] << "inside Interface::handle_event(), TypeRightClick, closing popups/notifications/canceling road";
         // for all other cases, trigger "close-popup/cancel-action"
         if ((notification_box != nullptr) && notification_box->is_displayed()) {
           close_message();
@@ -1613,7 +1613,7 @@ Interface::clear_custom_graphics_cache() {
       to_purge.insert( Data::Sprite::create_id(Data::AssetMapGround, map_ground_index, Data::AssetMapMaskUp, mask_index, {0,0,0,0}) );
       to_purge.insert( Data::Sprite::create_id(Data::AssetMapGround, map_ground_index, Data::AssetMapMaskDown, mask_index, {0,0,0,0}) );
     }
-    // clear the option_FogOfWar darkened sprites also, as they stil change with the seasons
+    // clear the option_FogOfWar mutated sprites also, as they stil change with the seasons
     for (int map_ground_index=100; map_ground_index<133; map_ground_index++){
       to_purge.insert( Data::Sprite::create_id(Data::AssetMapGround, map_ground_index, Data::AssetMapMaskUp, mask_index, {0,0,0,0}) );
       to_purge.insert( Data::Sprite::create_id(Data::AssetMapGround, map_ground_index, Data::AssetMapMaskDown, mask_index, {0,0,0,0}) );
