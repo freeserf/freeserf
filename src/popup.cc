@@ -347,15 +347,18 @@ PopupBox::PopupBox(Interface *_interface)
 
   file_list->set_size(120, 100);
   file_list->set_displayed(false);
+
   file_list->set_selection_handler([this](const std::string &item) {
     size_t p = item.find_last_of("/\\");
     std::string file_name = item.substr(p+1, item.size());
     this->file_field->set_text(file_name);
+    //this->file_field->set_filter(savegame_text_input_filter);
   });
   add_float(file_list.get(), 12, 22);
 
   file_field->set_size(120, 10);
   file_field->set_displayed(false);
+  file_field->set_filter(savegame_text_input_filter);
   add_float(file_field.get(), 12, 124);
 }
 

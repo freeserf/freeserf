@@ -30,6 +30,7 @@
 #include "src/resource.h"
 
 #include "src/minimap.h" // for refreshing minimap when FogOfWar toggled
+#include "src/text-input.h" // for TextInput text_input_filter for filtering bad chars from savegame name
 
 class Interface;
 class MinimapGame;
@@ -159,6 +160,22 @@ class PopupBox : public GuiObject {
   int current_sett_6_item;
   int current_stat_7_item;
   int current_stat_8_mode;
+
+  // function-as-parameter style copied from RandomText::TextInput in game-init.cc
+  static bool savegame_text_input_filter(const char key, TextInput *text_input) {
+    // allow only a-z, 0-9, dash, and dot. 
+    // there is no uppercase, it seems all letters are evaluated as lowercase
+    // there are also sprites for german special chars, %, and :, but these are bad in filenames and so excluded
+    if (!((key >= 'a' && key <= 'z') ||
+          (key >= '0' && key <= '9') ||
+          (key == '-' || key == '.'))) {
+      return false;
+    }
+    if (text_input->get_text().length() > 13) {
+      return false;
+    }
+    return true;
+  }
 
  public:
   explicit PopupBox(Interface *interface);
