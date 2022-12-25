@@ -65,6 +65,7 @@ bool option_InvertWheelZoom = false;
 bool option_SpecialClickBoth = true;
 bool option_SpecialClickMiddle = true;
 bool option_SpecialClickDouble = true;
+bool option_SailorsMoveFaster = false;
 int season = 1;  // default to Summer
 int last_season = 1;  // four seasons
 int subseason = 0;  // 1/16th of a season

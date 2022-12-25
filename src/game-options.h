@@ -23,6 +23,7 @@ extern bool option_InvertWheelZoom;
 extern bool option_SpecialClickBoth;
 extern bool option_SpecialClickMiddle;
 extern bool option_SpecialClickDouble;
+extern bool option_SailorsMoveFaster;
 extern int season;
 extern int last_season;
 extern int subseason;

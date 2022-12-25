@@ -313,6 +313,7 @@ typedef enum Action {
   ACTION_GAME_OPTIONS_SpecialClickBoth,
   ACTION_GAME_OPTIONS_SpecialClickMiddle,
   ACTION_GAME_OPTIONS_SpecialClickDouble,
+  ACTION_GAME_OPTIONS_SailorsMoveFaster,
   ACTION_MAPGEN_ADJUST_TREES,
   ACTION_MAPGEN_ADJUST_STONEPILES,
   ACTION_MAPGEN_ADJUST_FISH,
@@ -2116,8 +2117,8 @@ PopupBox::draw_game_options2_box() {
   draw_green_string(3, 86, "Fog Of War");
   draw_popup_icon(1, 83, option_FogOfWar ? 288 : 220);
 
-  //draw_green_string(3, 105, "Invert Mouse");    // moved to page1
-  //draw_popup_icon(1, 102, option_InvertMouse ? 288 : 220);   // moved to page1
+  draw_green_string(3, 105, "Sailors Move Faster");
+  draw_popup_icon(1, 102, option_SailorsMoveFaster ? 288 : 220);
 
   draw_green_string(18, 131, "Page 3 of 3");
   draw_popup_icon(30, 128, 0x3d); // flipbox to previous page
@@ -3965,6 +3966,13 @@ PopupBox::handle_action(int action, int x_, int /*y_*/) {
       option_SpecialClickDouble = true;
     }
     break;
+  case ACTION_GAME_OPTIONS_SailorsMoveFaster:
+    if (option_SailorsMoveFaster){
+      option_SailorsMoveFaster = false;
+    } else{
+      option_SailorsMoveFaster = true;
+    }
+    break;
   case ACTION_MAPGEN_ADJUST_TREES:
     Log::Info["popup"] << "ACTION_MAPGEN_ADJUST_TREES x_ = " << x_ << ", gui_get_slider_click_value(x_) = " << gui_get_slider_click_value(x_) << ", unint16_t(gui_get_slider_click_value(x_)) = " << uint16_t(gui_get_slider_click_value(x_));
     interface->set_custom_map_generator_trees(gui_get_slider_click_value(x_));                                         
@@ -4357,7 +4365,7 @@ PopupBox::handle_box_game_options2_clk(int cx, int cy) {
     ACTION_GAME_OPTIONS_FishSpawnSlowly, 7, 64, 150, 16,
     ACTION_GAME_OPTIONS_FogOfWar, 7, 83, 150, 16,
     //ACTION_GAME_OPTIONS_AdvancedDemolition, 7, 83, 150, 16,  /* removing AdvancedDemolition for now, see https://github.com/forkserf/forkserf/issues/180/
-    ACTION_GAME_OPTIONS_InvertMouse, 7, 102, 150, 16,
+    ACTION_GAME_OPTIONS_SailorsMoveFaster, 7, 102, 150, 16,
     ActionShowOptions, 239, 126, 16, 16,  // flip button
     ACTION_CLOSE_OPTIONS, 255, 126, 16, 16, // exit button
     -1
