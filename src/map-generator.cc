@@ -656,6 +656,7 @@ ClassicMapGenerator::change_shore_water_type() {
 //
 // Change type from TerrainGrass1 to TerrainGrass0 where the tiles are
 // adjacent to water.
+//  NOTE this may be useful for detecting coastal tiles!
 void
 ClassicMapGenerator::change_shore_grass_type() {
   seed_terrain_type(
@@ -797,6 +798,46 @@ ClassicMapGenerator::create_deserts() {
     Map::TerrainGrass1, Map::TerrainDesert0, Map::TerrainGrass3);
 }
 
+
+// Create areas of shallow water (Water3)
+//  for visual effect
+void
+ClassicMapGenerator::create_water_shallows() {
+  //Log::Debug["map-generator.cc"] << "inside ClassicMapGenerator::create_water_shallows()";
+  // Initialize random areas of shallow water based on spiral pattern.
+  // Only TerrainWater0 triangles will be converted to Water3
+  for (unsigned int i = 0; i < map.get_region_count() * 3; i++) {
+    for (int try_ = 0; try_ < 200; try_++) {
+      MapPos rnd_pos = map.get_rnd_coord(NULL, NULL, &rnd);
+
+      if (tiles[rnd_pos].type_up == Map::TerrainGrass0 || tiles[rnd_pos].type_down == Map::TerrainGrass0) {
+        //Log::Debug["map-generator.cc"] << "inside ClassicMapGenerator::create_water_shallows(), is grass0";
+        //for (int index = 255; index >= 0; index--) {
+        for (int index = random_int() / 255 / 2; index >= 0; index--) {
+          MapPos pos = map.pos_add_spirally(rnd_pos, index);
+
+          if (is_water_tile(pos)) {
+            //Log::Debug["map-generator.cc"] << "inside ClassicMapGenerator::create_water_shallows(), is water tile";
+            tiles[pos].type_up = Map::TerrainWater3;
+            tiles[pos].type_down = Map::TerrainWater3;
+          }
+
+        }
+        break;
+      }
+      //Log::Debug["map-generator.cc"] << "inside ClassicMapGenerator::create_water_shallows(), rnd_pos was rejected for terrain type";
+    }
+  }
+
+  // restore gradual transition to depth
+  //  this isn't quite right, but it gets close enought that a subsequent call to
+  //  create_shore_types fixes it
+  seed_terrain_type(Map::TerrainWater3, Map::TerrainWater0, Map::TerrainWater2);
+  seed_terrain_type(Map::TerrainWater3, Map::TerrainWater1, Map::TerrainWater2);
+  seed_terrain_type(Map::TerrainWater2, Map::TerrainWater0, Map::TerrainWater1);
+
+}
+
 /* Put crosses on top of mountains. */
 void
 ClassicMapGenerator::create_crosses() {
@@ -870,12 +911,10 @@ ClassicMapGenerator::is_coastal(MapPos pos_) {
   for (int i = 0; i < 19; i++) {  //const int _spiral_dist[49] = { 1, 7, 19, 37, 61, 91, 127, 169, 217, 271, 331, 397,
     if (i == 1){ i = 16; }
     MapPos pos = map.pos_add_spirally(pos_, i);
-    /*
     if (tiles[pos].type_up == Map::TerrainWater3 || tiles[pos].type_up == Map::TerrainWater2
      || tiles[pos].type_down == Map::TerrainWater3 || tiles[pos].type_down == Map::TerrainWater2){
       return true;
     }
-    */
    return true;
   }
  
@@ -1072,6 +1111,10 @@ ClassicMapGenerator::create_objects() {
 
   create_crosses();
 
+  //
+  // NOTE - shouldn't junk objects be proportional to the amount of eligible terrain?  i.e. desert, water?
+  //
+
   // Add either tree or pine.
   create_random_object_clusters(regions * 8, 10, 0xff, Map::TerrainGrass1, Map::TerrainGrass2, Map::ObjectTree0, 0xf);
   // Add only trees.
@@ -1089,6 +1132,7 @@ ClassicMapGenerator::create_objects() {
   // Create sandstone boulders.
   create_random_object_clusters(regions, 6, 0xff, Map::TerrainGrass1, Map::TerrainGrass2, Map::ObjectSandstone0, 0x1);
   // Create trees submerged in water.
+  //  THESE WERE BROKEN IN THE ORIGINAL MAPGEN!  and there's too many now that it is fixed
   create_random_object_clusters(regions, 50, 0x7f, Map::TerrainWater2, Map::TerrainWater3, Map::ObjectWaterTree0, 0x3);
   // Create tree stubs.
   create_random_object_clusters(regions, 5, 0xff, Map::TerrainGrass1, Map::TerrainGrass2, Map::ObjectStub, 0);
@@ -1099,6 +1143,7 @@ ClassicMapGenerator::create_objects() {
   // Create cacti in desert.
   create_random_object_clusters(regions, 6, 0x7f, Map::TerrainDesert0, Map::TerrainDesert2, Map::ObjectCactus0, 0x1);
   // Create boulders submerged in water.
+  //  THESE WERE BROKEN IN THE ORIGINAL MAPGEN!  and there's too many now that it is fixed
   create_random_object_clusters(regions, 8, 0x7f, Map::TerrainWater0, Map::TerrainWater2, Map::ObjectWaterStone0, 0x1);
   // Create palm trees in desert.
   create_random_object_clusters(regions, 6, 0x3f, Map::TerrainDesert2, Map::TerrainDesert2, Map::ObjectPalm0, 0x3);
@@ -1272,6 +1317,9 @@ const int ClassicMapGenerator::default_terrain_spikyness = 0x9999;
   // Adjust terrain types on shores
   change_shore_water_type();
   change_shore_grass_type();
+  create_water_shallows();
+  change_shore_water_type();  // need to do this a second time to smooth after creating shallows
+
 
   // Create deserts
   CustomMapGenerator::create_deserts();  // allows adjustment of desert count  I DONT THINK THIS IS WORKING
@@ -1433,7 +1481,9 @@ CustomMapGenerator::create_objects() {
   // Create trees submerged in water.
   //   increasing this drastically doesn't seem to change anything, I don't think it works
   // also... it seems like these are always placed in an up-left corner of the lake... probably a bug inside the original generator logic
-  create_random_object_clusters(regions, 50 * custom_map_generator_options.opt[CustomMapGeneratorOption::JunkWaterSubmergedTrees], 0x7f, Map::TerrainWater2, Map::TerrainWater3, Map::ObjectWaterTree0, 0x3);
+  // YES IT WAS ORIGINAL GAME LOGIC BUG.  IT IS NOW FIXED AND THEY APPEAR NORMALLY!
+  //create_random_object_clusters(regions, 50 * custom_map_generator_options.opt[CustomMapGeneratorOption::JunkWaterSubmergedTrees], 0x7f, Map::TerrainWater2, Map::TerrainWater3, Map::ObjectWaterTree0, 0x3);
+  create_random_object_clusters(regions, 6 * custom_map_generator_options.opt[CustomMapGeneratorOption::JunkWaterSubmergedTrees], 0x7f, Map::TerrainWater2, Map::TerrainWater3, Map::ObjectWaterTree0, 0x3);
   // Create tree stubs.
   create_random_object_clusters(regions, 5 * custom_map_generator_options.opt[CustomMapGeneratorOption::JunkGrassStubTrees], 0xff, Map::TerrainGrass1, Map::TerrainGrass2, Map::ObjectStub, 0);
   // Create small boulders.
@@ -1444,7 +1494,8 @@ CustomMapGenerator::create_objects() {
   create_random_object_clusters(regions, 6 * custom_map_generator_options.opt[CustomMapGeneratorOption::JunkDesertCacti], 0x7f, Map::TerrainDesert0, Map::TerrainDesert2, Map::ObjectCactus0, 0x1);
   // Create boulders submerged in water.
   //  do these actually work?  I can't remember if I've ever seen a boulder in water.  I tried increaqsing it from 8 to 50 and still don't see any
-  create_random_object_clusters(regions, 8 * custom_map_generator_options.opt[CustomMapGeneratorOption::JunkWaterSubmergedBoulders], 0x7f, Map::TerrainWater0, Map::TerrainWater2, Map::ObjectWaterStone0, 0x1);
+  // THIS IS NOW FIXED AND THEY APPEAR NORMALLY
+  create_random_object_clusters(regions, 1 * custom_map_generator_options.opt[CustomMapGeneratorOption::JunkWaterSubmergedBoulders], 0x7f, Map::TerrainWater0, Map::TerrainWater2, Map::ObjectWaterStone0, 0x1);
   // Create palm trees in desert.
   create_random_object_clusters(regions, 6 * custom_map_generator_options.opt[CustomMapGeneratorOption::JunkDesertPalmTrees], 0x3f, Map::TerrainDesert2, Map::TerrainDesert2, Map::ObjectPalm0, 0x3);
 
