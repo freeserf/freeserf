@@ -212,13 +212,14 @@ class Map {
     ObjectFlowerGroupB4,  // 139, sprite 131
     ObjectFlowerGroupB5,  // 140, sprite 132
     ObjectFlowerGroupB6,  // 141, sprite 133
-    ObjectFlowerGroupC0,  // 142, sprite 135
-    ObjectFlowerGroupC1,  // 143, sprite 136
-    ObjectFlowerGroupC2,  // 144, sprite 137
-    ObjectFlowerGroupC3,  // 145, sprite 138
-    ObjectFlowerGroupC4,  // 146, sprite 139
-    ObjectFlowerGroupC5,  // 147, sprite 140
-    ObjectFlowerGroupC6,  // 148, sprite 141
+    ObjectFlowerGroupC0,  // 142, sprite 134
+    ObjectFlowerGroupC1,  // 143, sprite 135
+    ObjectFlowerGroupC2,  // 144, sprite 136
+    ObjectFlowerGroupC3,  // 145, sprite 137
+    ObjectFlowerGroupC4,  // 146, sprite 138
+    ObjectFlowerGroupC5,  // 147, sprite 139
+    ObjectFlowerGroupC6,  // 148, sprite 140
+    ObjectCattail0,       // 149, sprite 141
   } Object;  // NOTE, the map_objects sprite index is always minus 8 from the object number
 
   typedef enum Minerals {
@@ -713,7 +714,7 @@ class Map {
   /* Mapping from Object to Space. */
   //static const Space map_space_from_obj[128];
   static const Space map_space_from_obj[131];  // added Flowers   
-  static const uint8_t obj_height_for_slope_darken[148];  // added Flowers0
+  static const uint8_t obj_height_for_slope_darken[150];  // added Flowers0
 
   void set_height(MapPos pos, int height);
   void set_height_no_refresh(MapPos pos, int height);

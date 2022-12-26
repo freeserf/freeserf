@@ -640,13 +640,14 @@ Map::obj_height_for_slope_darken[] = {
   1,  //ObjectFlowerGroupB4,  // 139, sprite 131
   1,  //ObjectFlowerGroupB5,  // 140, sprite 132
   1,  //ObjectFlowerGroupB6,  // 141, sprite 133
-  0,  //ObjectFlowerGroupC1,  // 142, sprite 134
-  0,  //ObjectFlowerGroupC2,  // 143, sprite 135
-  0,  //ObjectFlowerGroupC3,  // 144, sprite 136
-  0,  //ObjectFlowerGroupC4,  // 145, sprite 137
-  0,  //ObjectFlowerGroupC5,  // 146, sprite 138
-  0,  //ObjectFlowerGroupC6,  // 147, sprite 139
-  
+  0,  //ObjectFlowerGroupC0,  // 142, sprite 134
+  0,  //ObjectFlowerGroupC1,  // 143, sprite 135
+  0,  //ObjectFlowerGroupC2,  // 144, sprite 136
+  0,  //ObjectFlowerGroupC3,  // 145, sprite 137
+  0,  //ObjectFlowerGroupC4,  // 146, sprite 138
+  0,  //ObjectFlowerGroupC5,  // 147, sprite 139
+  0,  //ObjectFlowerGroupC6,  // 148, sprite 140
+  1,  //ObjectCattail0,       // 149, sprite 141
 };
 
 
@@ -811,7 +812,7 @@ void
 Map::set_object(MapPos pos, Object obj, int index) {
   landscape_tiles[pos].obj = obj;
   if (index >= 0) game_tiles[pos].obj_index = index;
-  //Log::Debug["map"] << "inside set_object, setting pos " << pos << " to object " << obj << ", index " << index;
+  Log::Debug["map"] << "inside set_object, setting pos " << pos << " to object " << obj << ", index " << index;
 
   /* Notify about object change */
   for (Direction d : cycle_directions_cw()) {

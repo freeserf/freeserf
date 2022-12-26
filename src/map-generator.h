@@ -126,6 +126,7 @@ class ClassicMapGenerator : public MapGenerator {
   void create_objects();
 
   bool hexagon_types_in_range(MapPos pos, Map::Terrain min, Map::Terrain max);
+  bool is_coastal(MapPos pos_);
   void create_random_object_clusters(int num_clusters, int objs_in_cluster,
                                      int pos_mask, Map::Terrain type_min,
                                      Map::Terrain type_max, int obj_base,
@@ -133,7 +134,7 @@ class ClassicMapGenerator : public MapGenerator {
   void create_paired_random_object_clusters(int num_clusters, 
       int objs_in_cluster1, int spiral_dist1, Map::Terrain type1_min, Map::Terrain type1_max, int obj1_base, int obj1_mask,
       int objs_in_cluster2, int spiral_dist2, Map::Terrain type2_min, Map::Terrain type2_max, int obj2_base, int obj2_mask);
-
+  void create_cattails(int num_clusters);
   void expand_mineral_cluster(int iters, MapPos pos, int *index,
                               int amount, Map::Minerals type);
   void create_random_mineral_clusters(int num_clusters, Map::Minerals type,

@@ -2098,6 +2098,12 @@ Viewport::draw_map_objects_row(MapPos pos, int y_base, int cols, int x_base, int
       //int pos_luminosity = get_brighter_triangle_luminosity(pos);
       //Log::Debug["viewport.cc"] << "inside Viewport::draw_map_objects_row, pos " << pos << ", obj type " << map->get_obj(pos) << ", pos_luminosity is " << pos_luminosity; 
 
+      // cattails at water edge
+      if ( sprite == Map::ObjectCattail0 - Map::ObjectTree0){
+        Log::Debug["viewport.cc"] << "inside Viewport::draw_map_objects_row, found cattail at pos " << pos;
+        sprite = 1150;
+      }
+
       // normal bright Flowers
       bool flower = false;  // dumb work-around to avoid being foild by sprite += 1000
       //if (( sprite >= Map::ObjectFlowerGroupA0 - Map::ObjectTree0 && sprite <= Map::ObjectFlowerGroupA6 - Map::ObjectTree0 )

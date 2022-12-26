@@ -857,6 +857,51 @@ ClassicMapGenerator::hexagon_types_in_range(MapPos pos_, Map::Terrain min,
   return true;
 }
 
+
+// because Water and Grass are disparate types, cannot use
+//  the range based function hexagon_types_in_range
+// I think the odd placement of submerged trees is related to this logic
+//  I got the same behavior here!
+
+// return true if ANY of the tiles touch coast
+// I found this through trial and error, I don't understand why it works
+bool
+ClassicMapGenerator::is_coastal(MapPos pos_) {
+  for (int i = 0; i < 19; i++) {  //const int _spiral_dist[49] = { 1, 7, 19, 37, 61, 91, 127, 169, 217, 271, 331, 397,
+    if (i == 1){ i = 16; }
+    MapPos pos = map.pos_add_spirally(pos_, i);
+    /*
+    if (tiles[pos].type_up == Map::TerrainWater3 || tiles[pos].type_up == Map::TerrainWater2
+     || tiles[pos].type_down == Map::TerrainWater3 || tiles[pos].type_down == Map::TerrainWater2){
+      return true;
+    }
+    */
+   return true;
+  }
+ 
+ /*
+  if (type_d == Map::TerrainWater3 || type_u == Map::TerrainWater3) coast = true;
+  type_d = tiles[map.move_left(pos_)].type_down;
+  type_u = tiles[map.move_left(pos_)].type_up;
+  if (type_d == Map::TerrainWater3 || type_u == Map::TerrainWater3) coast = true;
+  type_d = tiles[map.move_up_left(pos_)].type_down;
+  type_u = tiles[map.move_up_left(pos_)].type_up;
+  if (type_d == Map::TerrainWater3 || type_u == Map::TerrainWater3) coast = true;
+  type_d = tiles[map.move_up(pos_)].type_down;
+  type_u = tiles[map.move_up(pos_)].type_up;
+  if (type_d == Map::TerrainWater3 || type_u == Map::TerrainWater3) coast = true;
+  type_d = tiles[map.move_right(pos_)].type_down;
+  type_u = tiles[map.move_right(pos_)].type_up;
+  if (type_d == Map::TerrainWater3 || type_u == Map::TerrainWater3) coast = true;
+
+  if (coast){
+    return true;
+  }
+  */
+
+  return false;
+}
+
 /* Get a random position in the spiral pattern based at col, row. */
 MapPos
 ClassicMapGenerator::pos_add_spirally_random(MapPos pos, int mask) {
@@ -976,6 +1021,50 @@ ClassicMapGenerator::create_paired_random_object_clusters(int num_clusters,
     //}
   }
 }
+
+void
+ClassicMapGenerator::create_cattails(int num_clusters) {
+  Log::Debug["map-generator.cc"] << "inside ClassicMapGenerator::create_cattails, num_clusters " << num_clusters;
+  for (int i = 0; i < num_clusters; i++) {
+    Log::Debug["map-generator.cc"] << "inside ClassicMapGenerator::create_cattails, on cluster number " << i;
+    MapPos rnd_pos = map.get_rnd_coord(NULL, NULL, &rnd);
+    if (is_coastal(rnd_pos)) {
+      Log::Debug["map-generator.cc"] << "inside ClassicMapGenerator::create_cattails,  random_int() is " << random_int() << ",rnd_pos base " << rnd_pos << ", NOT rejecting rnd_pos as nearby terrain types ARE in range";
+      //const int _spiral_dist[49] = { 1, 7, 19, 37, 61, 91, 127, 169, 217, 271, 331, 397,
+      for (int j = 0; j < 91; j++) {
+        MapPos pos = map.pos_add_extended_spirally(rnd_pos, j);
+        //if (pos % 3 == 0 || pos % 7 == 0 || pos % 11 == 0 || pos % 13 == 0 || pos % 17 == 0 || pos % 19 == 0){  // sort of "is prime?"
+        //  // skip
+        //  continue;
+        //}
+        //// because the flowers spill out of their pos, check adjacent pos also
+        ////Log::Debug["map-generator.cc"] << "inside ClassicMapGenerator::create_cattails, checking nearby terrain to pos " << pos;
+        //bool rejected = false;
+        //for (int x = 0; x < 7; x++) {
+        //  MapPos xpos = map.pos_add_extended_spirally(pos, x);
+        //  if (!hexagon_types_in_range(xpos, type2_min, type2_max)){
+        //    //Log::Debug["map-generator.cc"] << "inside ClassicMapGenerator::create_cattails, found unacceptable terrain nearby, skipping pos" << pos;
+        //    rejected = true;
+        //    break;
+        //  }
+        //}
+        //if (rejected){
+        //  break;
+        //}
+        //int actual = (random_int() % obj2_mask) + obj2_base;
+        //Log::Debug["map-generator.cc"] << "inside ClassicMapGenerator::create_cattails, random_int() is " << random_int() << ", rnd_pos base " << rnd_pos << ", creating obj type 2, actual type " << actual << " at pos " << pos;
+        if (is_coastal(pos) && tiles[pos].obj == Map::ObjectNone) {
+          tiles[pos].obj = static_cast<Map::Object>(Map::ObjectCattail0);
+          //Log::Debug["map-generator.cc"] << "inside ClassicMapGenerator::create_cattails, setting pos " << pos << " to object";
+        }
+      }
+      //break;  DO NOT BREAK!
+    }else{
+      Log::Debug["map-generator.cc"] << "inside ClassicMapGenerator::create_cattails, random_int() is " << random_int() << ", rnd_pos base " << rnd_pos << ", rejecting rnd_pos as nearby terrain types not in range";
+    }
+  }
+}
+
 
 void
 ClassicMapGenerator::create_objects() {
@@ -1099,6 +1188,9 @@ ClassicMapGenerator::clean_up() {
       // initialized as part of this same loop for non-water positions. For
       // this reason, the check for impassable spaces would never succeed
       // under two particular conditions at the map edge:
+      //  tlongstretch - is the this explanation for why submerged trees only ever
+      //  appear at the top/left edge of water bodies?  because those positions
+      //  sometimes appear as on grass despite being (barely) in water?
       // 1) x == 0 && d == DirectionLeft
       // 2) y == 0 && (d == DirectionUp || d == DirectionUpLeft)
       for (Direction d : cycle_directions_cw(DirectionLeft, 3)) {
@@ -1112,7 +1204,11 @@ ClassicMapGenerator::clean_up() {
           check_impassable = s >= Map::SpaceImpassable;
         }
 
-        if (is_in_water(other_pos) || check_impassable) {
+        //if (is_in_water(other_pos) || check_impassable) {
+        // tlongstretch - disabling is_in_water check, want to be able to have
+        //  objects in water!
+        // hey this makes submerged boulders finally appear!
+        if (check_impassable){
           tiles[pos_].obj = Map::ObjectNone;
           break;
         }
@@ -1373,6 +1469,8 @@ CustomMapGenerator::create_objects() {
   create_paired_random_object_clusters(regions *  6, 1,  7, Map::TerrainGrass1, Map::TerrainGrass2, Map::ObjectFlowerGroupB2, 5,
                                                      1, 19, Map::TerrainGrass1, Map::TerrainGrass2, Map::ObjectFlowerGroupB0, 2);
   create_random_object_clusters(regions, 6, 0x3f, Map::TerrainGrass1, Map::TerrainGrass2, Map::ObjectFlowerGroupB0, 6);
+
+  //create_cattails(500);
 }
 
 
