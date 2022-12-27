@@ -510,6 +510,7 @@ Map::map_space_from_obj[] = {
   SpaceOpen,  //ObjectFlowerGroupC5,  // 147, sprite 139
   SpaceOpen,  //ObjectFlowerGroupC6,  // 148, sprite 140
   SpaceOpen,  //ObjectCattail0,       // 149, sprite 141
+  SpaceOpen,  //ObjectCattail1,       // 150, sprite 142
 };
 
 
@@ -666,6 +667,7 @@ Map::obj_height_for_slope_darken[] = {
   0,  //ObjectFlowerGroupC5,  // 147, sprite 139
   0,  //ObjectFlowerGroupC6,  // 148, sprite 140
   1,  //ObjectCattail0,       // 149, sprite 141
+  1,  //ObjectCattail1,       // 150, sprite 142
 };
 
 

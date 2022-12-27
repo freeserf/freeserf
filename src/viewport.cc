@@ -1877,6 +1877,8 @@ Viewport::draw_map_objects_row(MapPos pos, int y_base, int cols, int x_base, int
       continue;
     }
 
+    //Log::Debug["viewport.cc"] << "inside draw_map_objects, pos " << pos << " has sprite " << map->get_obj(pos) - Map::ObjectTree0;
+
     int ly = y_base - 4 * map->get_height(pos);
     bool in_ambient_focus = false;
     if (i >= leftmost_focus_col && i <= rightmost_focus_col && ly >= topmost_focus_y && ly <= lowest_focus_y){
@@ -1897,7 +1899,8 @@ Viewport::draw_map_objects_row(MapPos pos, int y_base, int cols, int x_base, int
       int sprite = map->get_obj(pos) - Map::ObjectTree0;  // THIS IS IMPORTANT - sprite index is always 8 lower (-8) than map_object index!
       bool use_custom_set = false;  // messing with weather/seasons/palette tiles
       // if this is some kind of tree...
-      if (sprite < 24) {  // Tree/Pine/Palm/SubmergedTree are sprites <24, these have waving animations
+      if (sprite < 24 || sprite == 141 || sprite == 142) {  // Tree/Pine/Palm/SubmergedTree are sprites <24, these have waving animations
+                        // also adding Cattails/Reeds now with crammed animation
 
         // ambient sound triggers, only consider objects that are in the focus area
         if (in_ambient_focus){
@@ -1924,11 +1927,12 @@ Viewport::draw_map_objects_row(MapPos pos, int y_base, int cols, int x_base, int
           }
         }
 
-        // Adding sprite number to animation ensures
+        // "Adding sprite number to animation ensures
         //   that the tree animation won't be synchronized
-        //   for all trees on the map.  
+        //   for all trees on the map.  "
         //  WAIT A MINUTE - IT SURE SEEMS LIKE ALL TREES *ARE* SYNCED ON THE MAP, IS THIS A MISTAKE?
         //  COMPARE TO ORIGINAL GAME.   Serflings is synched too.  I think the Freeserf comment is wrong.  
+        //  I checked original game in DosBox also, they are synched.  The Freeserf comment is wrong
         //
         // NOTE  -  this is where the wind-waving Tree animation effect happens for ObjectTree0 through ObjectPine7
         //
@@ -2062,10 +2066,20 @@ Viewport::draw_map_objects_row(MapPos pos, int y_base, int cols, int x_base, int
         }else if (sprite >= 8 && sprite < 16) {
           // these are pine trees, shift.  8 frames of animation
           sprite = (sprite & ~7) + (tree_anim & 7); 
-        }else if (sprite >=16){
+        }else if (sprite >=16 && sprite < 24){
           // these are ... palm and submerged trees.  4 frames of animation per type
           sprite = (sprite & ~3) + (tree_anim & 3);
-        }
+        }else if (sprite == 141){   // adding Cattails/Reeds
+          Log::Debug["viewport.cc"] << "inside Viewport::draw_map_objects_row(), found cattail0, setting frame to " << frame;
+          frame = slow_tree_anim & 3;  // cattails/reeds have 1 type with 4 frames of animation
+          sprite = 1150 + frame;
+          use_custom_set = true;
+        }else if (sprite == 142){   // adding Cattails/Reeds
+          Log::Debug["viewport.cc"] << "inside Viewport::draw_map_objects_row(), found cattail1, setting frame to " << frame;
+          frame = slow_tree_anim & 3;  // cattails/reeds have 1 type with 4 frames of animation
+          sprite = 1160 + frame;
+          use_custom_set = true;
+        } // if sprite 8, 16...
 
       } // if sprite < 24 (various tree types)
 
@@ -2099,12 +2113,14 @@ Viewport::draw_map_objects_row(MapPos pos, int y_base, int cols, int x_base, int
       //int pos_luminosity = get_brighter_triangle_luminosity(pos);
       //Log::Debug["viewport.cc"] << "inside Viewport::draw_map_objects_row, pos " << pos << ", obj type " << map->get_obj(pos) << ", pos_luminosity is " << pos_luminosity; 
 
+/*  moved into crammed animation above
       // cattails at water edge
       if (sprite == Map::ObjectCattail0 - Map::ObjectTree0){
         Log::Debug["viewport.cc"] << "inside Viewport::draw_map_objects_row, found cattail at pos " << pos;
         use_custom_set = true;
         sprite = 1150;
       }
+      */
 
       // normal bright Flowers
       bool flower = false;  // dumb work-around to avoid being foild by sprite += 1000

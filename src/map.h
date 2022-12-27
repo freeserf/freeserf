@@ -712,8 +712,8 @@ class Map {
 
 
   /* Mapping from Object to Space. */
-  static const Space map_space_from_obj[150];  // added Flowers   
-  static const uint8_t obj_height_for_slope_darken[150];  // added Flowers0
+  static const Space map_space_from_obj[151];  // added Flowers   
+  static const uint8_t obj_height_for_slope_darken[151];  // added Flowers0
 
   void set_height(MapPos pos, int height);
   void set_height_no_refresh(MapPos pos, int height);

@@ -1063,12 +1063,12 @@ ClassicMapGenerator::create_paired_random_object_clusters(int num_clusters,
 
 void
 ClassicMapGenerator::create_cattails(int num_clusters) {
-  Log::Debug["map-generator.cc"] << "inside ClassicMapGenerator::create_cattails, num_clusters " << num_clusters;
+  //Log::Debug["map-generator.cc"] << "inside ClassicMapGenerator::create_cattails, num_clusters " << num_clusters;
   for (int i = 0; i < num_clusters; i++) {
-    Log::Debug["map-generator.cc"] << "inside ClassicMapGenerator::create_cattails, on cluster number " << i;
+    //Log::Debug["map-generator.cc"] << "inside ClassicMapGenerator::create_cattails, on cluster number " << i;
     MapPos rnd_pos = map.get_rnd_coord(NULL, NULL, &rnd);
     //if (hexagon_types_in_range(rnd_pos, Map::TerrainWater3, Map::TerrainWater3)){
-      Log::Debug["map-generator.cc"] << "inside ClassicMapGenerator::create_cattails,rnd_pos base " << rnd_pos << ", NOT rejecting rnd_pos as nearby terrain types ARE in range";
+     // Log::Debug["map-generator.cc"] << "inside ClassicMapGenerator::create_cattails,rnd_pos base " << rnd_pos << ", NOT rejecting rnd_pos as nearby terrain types ARE in range";
       //const int _spiral_dist[49] = { 1, 7, 19, 37, 61, 91, 127, 169, 217, 271, 331, 397,
       for (int j = 0; j < 61; j++) {
         MapPos pos = map.pos_add_extended_spirally(rnd_pos, j);
@@ -1090,8 +1090,8 @@ ClassicMapGenerator::create_cattails(int num_clusters) {
         //if (rejected){
         //  break;
         //}
-        //int actual = (random_int() % obj2_mask) + obj2_base;
-        //Log::Debug["map-generator.cc"] << "inside ClassicMapGenerator::create_cattails, random_int() is " << random_int() << ", rnd_pos base " << rnd_pos << ", creating obj type 2, actual type " << actual << " at pos " << pos;
+        int actual = (random_int() % 2) + Map::ObjectCattail0;
+        //Log::Debug["map-generator.cc"] << "inside ClassicMapGenerator::create_cattails, creating cattail, actual type " << actual << " at pos " << pos;
         //if (is_coastal(pos) && tiles[pos].obj == Map::ObjectNone) {
         //if (is_water_tile(pos)){
         //if( (tiles[pos].type_down == Map::TerrainWater3 && (tiles[pos].type_up == Map::TerrainWater3 || tiles[pos].type_up == Map::TerrainWater2)
@@ -1104,7 +1104,7 @@ ClassicMapGenerator::create_cattails(int num_clusters) {
          && tiles[map.move_right(pos)].type_up < Map::TerrainGrass0 //&& tiles[map.move_right(pos)].type_down < Map::TerrainGrass0){  
         ){
         //if (hexagon_types_in_range(pos, Map::TerrainWater2, Map::TerrainWater3)){
-          tiles[pos].obj = static_cast<Map::Object>(Map::ObjectCattail0);
+          tiles[pos].obj = static_cast<Map::Object>(actual);
           //tiles[pos].obj = static_cast<Map::Object>(Map::ObjectTree0);
           //Log::Debug["map-generator.cc"] << "inside ClassicMapGenerator::create_cattails, setting pos " << pos << " to object";
         }
@@ -1116,7 +1116,7 @@ ClassicMapGenerator::create_cattails(int num_clusters) {
          && tiles[map.move_right(pos)].type_up < Map::TerrainGrass0 //&& tiles[map.move_right(pos)].type_down < Map::TerrainGrass0){  
         ){
         //if (hexagon_types_in_range(pos, Map::TerrainWater2, Map::TerrainWater3)){
-          tiles[pos].obj = static_cast<Map::Object>(Map::ObjectCattail0);
+          tiles[pos].obj = static_cast<Map::Object>(actual);
           //tiles[pos].obj = static_cast<Map::Object>(Map::ObjectTree0);
           //Log::Debug["map-generator.cc"] << "inside ClassicMapGenerator::create_cattails, setting pos " << pos << " to object";
         }
@@ -1558,7 +1558,7 @@ CustomMapGenerator::create_objects() {
                                                      1, 19, Map::TerrainGrass1, Map::TerrainGrass2, Map::ObjectFlowerGroupB0, 2);
   create_random_object_clusters(regions, 6, 0x3f, Map::TerrainGrass1, Map::TerrainGrass2, Map::ObjectFlowerGroupB0, 6);
 
-  create_cattails(100);
+  create_cattails(18);
   //create_random_object_clusters(regions, 45, 0x3f, Map::TerrainWater2, Map::TerrainWater3, Map::ObjectCattail0, 0);
 }
 
