@@ -1196,9 +1196,10 @@ Viewport::draw_map_sprite_special(int lx, int ly, int index, unsigned int pos, u
    || (index >= 1400 && index <= 1499)) { // FALL trees all have full shadows
     // use the default "full" deciduous tree shadow for certain custom tree sprites
     frame->draw_sprite(lx, ly, Data::AssetMapShadow, index % 10, true, Color::transparent, 1.f);
-  }else if (index >= 1120 && index <= 1199
+  }else if (index >= 1120 && index <= 1199     // bright flowers + cattail
          || index >= 2120 && index <= 2199){   // dark flowers
     // flowers have no shadow, do not draw one
+    //Log::Debug["viewport"] << "inside Viewport::draw_map_sprite_special for sprite index " << index << ", not drawing shadow";
   }else{
     // for other "non-full" trees, use custom shadow, derived from tree sprite using ImageMagick
     frame->draw_sprite(lx, ly, Data::AssetMapShadow, index, true, Color::transparent, 1.f);
@@ -2099,8 +2100,9 @@ Viewport::draw_map_objects_row(MapPos pos, int y_base, int cols, int x_base, int
       //Log::Debug["viewport.cc"] << "inside Viewport::draw_map_objects_row, pos " << pos << ", obj type " << map->get_obj(pos) << ", pos_luminosity is " << pos_luminosity; 
 
       // cattails at water edge
-      if ( sprite == Map::ObjectCattail0 - Map::ObjectTree0){
+      if (sprite == Map::ObjectCattail0 - Map::ObjectTree0){
         Log::Debug["viewport.cc"] << "inside Viewport::draw_map_objects_row, found cattail at pos " << pos;
+        use_custom_set = true;
         sprite = 1150;
       }
 
@@ -2110,7 +2112,7 @@ Viewport::draw_map_objects_row(MapPos pos, int y_base, int cols, int x_base, int
       //||  ( sprite >= Map::ObjectFlowerGroupB0 - Map::ObjectTree0 && sprite <= Map::ObjectFlowerGroupB6 - Map::ObjectTree0 ) ){
       if ( ( sprite >= Map::ObjectFlowerGroupA0 - Map::ObjectTree0 && sprite <= Map::ObjectFlowerGroupC6 - Map::ObjectTree0 ) ){
         if (option_FourSeasons && season == 0){
-          Log::Debug["viewport.cc"] << "inside Viewport::draw_map_objects_row, subseason is " << subseason;
+          //Log::Debug["viewport.cc"] << "inside Viewport::draw_map_objects_row, subseason is " << subseason;
           // gradually introduce flowers as Spring progresses
           if (subseason == 0){
             // introduce A & C
@@ -3350,6 +3352,7 @@ draw_serf_row(MapPos pos, int y_base, int cols, int x_base) {
       }else{
         */
         // handle exceptions to normal serf drawing
+        // these are serfs that are drawn in row_BEHIND, not here
         if (serf->get_state() == Serf::StateMining &&
           (serf->get_mining_substate() == 3 ||
            serf->get_mining_substate() == 4 ||
@@ -3357,7 +3360,11 @@ draw_serf_row(MapPos pos, int y_base, int cols, int x_base) {
            serf->get_mining_substate() == 10)) {
           //  this is "any serf that is not walking to his mine elevator"
           //   because that is drawn in draw_serf_row_behind instead of here
-          //do nothing, skip this serf
+          // do nothing, this serf was already drawn in row_behind
+
+        //adding Sailor Rowing serfs here to draw them behind the reeds/cattails
+        }else if (serf->get_state() == Serf::StateTransporting && serf->get_type() == Serf::TypeSailor){
+          // do nothing, this serf was already drawn in row_behind
 
         /* removing AdvancedDemolition for now, see https://github.com/forkserf/forkserf/issues/180
         } else if (serf->get_state() == Serf::StateCleaningRubble){
@@ -3431,6 +3438,7 @@ draw_serf_row(MapPos pos, int y_base, int cols, int x_base) {
 //  are drawn here, nothing else
 // the other serfs-working-in-buildings are drawn as building sprites
 //  and not serf_torso sprites
+// UPDATE - adding Sailor Rowing serfs here to draw them behind the reeds/cattails
 void
 Viewport::draw_serf_row_behind(MapPos pos, int y_base, int cols, int x_base) {
   for (int i = 0; i < cols;
@@ -3456,6 +3464,11 @@ Viewport::draw_serf_row_behind(MapPos pos, int y_base, int cols, int x_base) {
            serf->get_mining_substate() == 4 ||
            serf->get_mining_substate() == 9 ||
            serf->get_mining_substate() == 10)) {
+        draw_active_serf(serf, pos, x_base, y_base);
+      }
+
+      //adding Sailor Rowing serfs here to draw them behind the reeds/cattails
+      if (serf->get_state() == Serf::StateTransporting && serf->get_type() == Serf::TypeSailor){
         draw_active_serf(serf, pos, x_base, y_base);
       }
     }

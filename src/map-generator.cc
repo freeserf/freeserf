@@ -1067,15 +1067,15 @@ ClassicMapGenerator::create_cattails(int num_clusters) {
   for (int i = 0; i < num_clusters; i++) {
     Log::Debug["map-generator.cc"] << "inside ClassicMapGenerator::create_cattails, on cluster number " << i;
     MapPos rnd_pos = map.get_rnd_coord(NULL, NULL, &rnd);
-    if (is_coastal(rnd_pos)) {
-      Log::Debug["map-generator.cc"] << "inside ClassicMapGenerator::create_cattails,  random_int() is " << random_int() << ",rnd_pos base " << rnd_pos << ", NOT rejecting rnd_pos as nearby terrain types ARE in range";
+    //if (hexagon_types_in_range(rnd_pos, Map::TerrainWater3, Map::TerrainWater3)){
+      Log::Debug["map-generator.cc"] << "inside ClassicMapGenerator::create_cattails,rnd_pos base " << rnd_pos << ", NOT rejecting rnd_pos as nearby terrain types ARE in range";
       //const int _spiral_dist[49] = { 1, 7, 19, 37, 61, 91, 127, 169, 217, 271, 331, 397,
-      for (int j = 0; j < 91; j++) {
+      for (int j = 0; j < 61; j++) {
         MapPos pos = map.pos_add_extended_spirally(rnd_pos, j);
-        //if (pos % 3 == 0 || pos % 7 == 0 || pos % 11 == 0 || pos % 13 == 0 || pos % 17 == 0 || pos % 19 == 0){  // sort of "is prime?"
-        //  // skip
-        //  continue;
-        //}
+        if (pos % 7 == 0 || pos % 11 == 0 || pos % 13 == 0 || pos % 17 == 0 || pos % 19 == 0){  // sort of "is prime?"
+          // skip
+          continue;
+        }
         //// because the flowers spill out of their pos, check adjacent pos also
         ////Log::Debug["map-generator.cc"] << "inside ClassicMapGenerator::create_cattails, checking nearby terrain to pos " << pos;
         //bool rejected = false;
@@ -1092,15 +1092,45 @@ ClassicMapGenerator::create_cattails(int num_clusters) {
         //}
         //int actual = (random_int() % obj2_mask) + obj2_base;
         //Log::Debug["map-generator.cc"] << "inside ClassicMapGenerator::create_cattails, random_int() is " << random_int() << ", rnd_pos base " << rnd_pos << ", creating obj type 2, actual type " << actual << " at pos " << pos;
-        if (is_coastal(pos) && tiles[pos].obj == Map::ObjectNone) {
+        //if (is_coastal(pos) && tiles[pos].obj == Map::ObjectNone) {
+        //if (is_water_tile(pos)){
+        //if( (tiles[pos].type_down == Map::TerrainWater3 && (tiles[pos].type_up == Map::TerrainWater3 || tiles[pos].type_up == Map::TerrainWater2)
+        // || (tiles[pos].type_up == Map::TerrainWater3 && (tiles[pos].type_down == Map::TerrainWater3 || tiles[pos].type_down == Map::TerrainWater2) ) ) 
+        if( (tiles[pos].type_down == Map::TerrainWater3 || tiles[pos].type_down == Map::TerrainWater2 || tiles[pos].type_down == Map::TerrainGrass0)
+         && (tiles[pos].type_up == Map::TerrainWater3 || tiles[pos].type_up == Map::TerrainWater2 || tiles[pos].type_up == Map::TerrainGrass0) 
+
+         && tiles[map.move_down(pos)].type_up < Map::TerrainGrass0 //&& tiles[map.move_down(pos)].type_down < Map::TerrainGrass0
+         && tiles[map.move_down_right(pos)].type_up < Map::TerrainGrass0 //&& tiles[map.move_down_right(pos)].type_down < Map::TerrainGrass0
+         && tiles[map.move_right(pos)].type_up < Map::TerrainGrass0 //&& tiles[map.move_right(pos)].type_down < Map::TerrainGrass0){  
+        ){
+        //if (hexagon_types_in_range(pos, Map::TerrainWater2, Map::TerrainWater3)){
           tiles[pos].obj = static_cast<Map::Object>(Map::ObjectCattail0);
+          //tiles[pos].obj = static_cast<Map::Object>(Map::ObjectTree0);
           //Log::Debug["map-generator.cc"] << "inside ClassicMapGenerator::create_cattails, setting pos " << pos << " to object";
+        }
+        if( (tiles[map.move_left(pos)].type_down == Map::TerrainWater3 || tiles[map.move_left(pos)].type_down == Map::TerrainWater2 || tiles[map.move_left(pos)].type_down == Map::TerrainGrass0)
+         && (tiles[map.move_left(pos)].type_up == Map::TerrainWater3 || tiles[map.move_left(pos)].type_up == Map::TerrainWater2 || tiles[map.move_left(pos)].type_up == Map::TerrainGrass0) 
+
+         //&& tiles[map.move_down(pos)].type_up < Map::TerrainGrass0 //&& tiles[map.move_down(pos)].type_down < Map::TerrainGrass0
+         && tiles[map.move_down_right(pos)].type_up < Map::TerrainGrass0 //&& tiles[map.move_down_right(pos)].type_down < Map::TerrainGrass0
+         && tiles[map.move_right(pos)].type_up < Map::TerrainGrass0 //&& tiles[map.move_right(pos)].type_down < Map::TerrainGrass0){  
+        ){
+        //if (hexagon_types_in_range(pos, Map::TerrainWater2, Map::TerrainWater3)){
+          tiles[pos].obj = static_cast<Map::Object>(Map::ObjectCattail0);
+          //tiles[pos].obj = static_cast<Map::Object>(Map::ObjectTree0);
+          //Log::Debug["map-generator.cc"] << "inside ClassicMapGenerator::create_cattails, setting pos " << pos << " to object";
+        }
+        // handle spots on top-left of water where there is a grass tile up-left, cattails appearing there, exclude them specifically
+        if (tiles[map.move_up_left(pos)].type_down > Map::TerrainWater3 && tiles[map.move_left(pos)].type_down > Map::TerrainWater3 
+         //&& tiles[map.move_right(pos)].type_up <= Map::TerrainWater3){
+        ){
+          tiles[pos].obj = static_cast<Map::Object>(Map::ObjectNone);
         }
       }
       //break;  DO NOT BREAK!
-    }else{
-      Log::Debug["map-generator.cc"] << "inside ClassicMapGenerator::create_cattails, random_int() is " << random_int() << ", rnd_pos base " << rnd_pos << ", rejecting rnd_pos as nearby terrain types not in range";
-    }
+    //}else{
+    //  Log::Debug["map-generator.cc"] << "inside ClassicMapGenerator::create_cattails, random_int() is " << random_int() << ", rnd_pos base " << rnd_pos << ", rejecting rnd_pos as nearby terrain types not in range";
+    //}
   }
 }
 
@@ -1249,11 +1279,15 @@ ClassicMapGenerator::clean_up() {
           check_impassable = s >= Map::SpaceImpassable;
         }
 
+        // NOTE - if map_space_from_obj is not updated to indicate proper SpaceOpen (or whatever it is)
+        //  this function will remove objects in water ever other pos, if new water objects added!
+
         //if (is_in_water(other_pos) || check_impassable) {
         // tlongstretch - disabling is_in_water check, want to be able to have
         //  objects in water!
         // hey this makes submerged boulders finally appear!
         if (check_impassable){
+          //Log::Debug["map-generator.cc"] << "inside ClassicMapGenerator::clean_up(), check_impassable true, setting pos " << pos_ << " to ObjectNone";
           tiles[pos_].obj = Map::ObjectNone;
           break;
         }
@@ -1483,7 +1517,10 @@ CustomMapGenerator::create_objects() {
   // also... it seems like these are always placed in an up-left corner of the lake... probably a bug inside the original generator logic
   // YES IT WAS ORIGINAL GAME LOGIC BUG.  IT IS NOW FIXED AND THEY APPEAR NORMALLY!
   //create_random_object_clusters(regions, 50 * custom_map_generator_options.opt[CustomMapGeneratorOption::JunkWaterSubmergedTrees], 0x7f, Map::TerrainWater2, Map::TerrainWater3, Map::ObjectWaterTree0, 0x3);
-  create_random_object_clusters(regions, 6 * custom_map_generator_options.opt[CustomMapGeneratorOption::JunkWaterSubmergedTrees], 0x7f, Map::TerrainWater2, Map::TerrainWater3, Map::ObjectWaterTree0, 0x3);
+  // ***********************************************
+  //  TEMP DISABLING while testing reeds/cattails
+  // ***********************************************
+  //create_random_object_clusters(regions, 6 * custom_map_generator_options.opt[CustomMapGeneratorOption::JunkWaterSubmergedTrees], 0x7f, Map::TerrainWater2, Map::TerrainWater3, Map::ObjectWaterTree0, 0x3);
   // Create tree stubs.
   create_random_object_clusters(regions, 5 * custom_map_generator_options.opt[CustomMapGeneratorOption::JunkGrassStubTrees], 0xff, Map::TerrainGrass1, Map::TerrainGrass2, Map::ObjectStub, 0);
   // Create small boulders.
@@ -1495,7 +1532,7 @@ CustomMapGenerator::create_objects() {
   // Create boulders submerged in water.
   //  do these actually work?  I can't remember if I've ever seen a boulder in water.  I tried increaqsing it from 8 to 50 and still don't see any
   // THIS IS NOW FIXED AND THEY APPEAR NORMALLY
-  create_random_object_clusters(regions, 1 * custom_map_generator_options.opt[CustomMapGeneratorOption::JunkWaterSubmergedBoulders], 0x7f, Map::TerrainWater0, Map::TerrainWater2, Map::ObjectWaterStone0, 0x1);
+  create_random_object_clusters(regions, 1 * custom_map_generator_options.opt[CustomMapGeneratorOption::JunkWaterSubmergedBoulders], 0x7f, Map::TerrainWater0, Map::TerrainWater3, Map::ObjectWaterStone0, 0x1);
   // Create palm trees in desert.
   create_random_object_clusters(regions, 6 * custom_map_generator_options.opt[CustomMapGeneratorOption::JunkDesertPalmTrees], 0x3f, Map::TerrainDesert2, Map::TerrainDesert2, Map::ObjectPalm0, 0x3);
 
@@ -1521,7 +1558,8 @@ CustomMapGenerator::create_objects() {
                                                      1, 19, Map::TerrainGrass1, Map::TerrainGrass2, Map::ObjectFlowerGroupB0, 2);
   create_random_object_clusters(regions, 6, 0x3f, Map::TerrainGrass1, Map::TerrainGrass2, Map::ObjectFlowerGroupB0, 6);
 
-  //create_cattails(500);
+  create_cattails(100);
+  //create_random_object_clusters(regions, 45, 0x3f, Map::TerrainWater2, Map::TerrainWater3, Map::ObjectCattail0, 0);
 }
 
 

@@ -491,7 +491,25 @@ Map::map_space_from_obj[] = {
   SpaceOpen,        // Flower0
   SpaceOpen,        // Flower1
   SpaceOpen,        // Flower2
-  // I guess these extra entries don't matter
+  SpaceOpen,  //ObjectFlowerGroupA3,  //     to the full 193 sprites (object 185) which would allow adding new objects 186+ without running into issues with objects that 
+  SpaceOpen,  //ObjectFlowerGroupA4,  //     cannot be "resolved" in enum (which might not even matter at all?)
+  SpaceOpen,  //ObjectFlowerGroupA5,  // 133, sprite 125
+  SpaceOpen,  //ObjectFlowerGroupA6,  // 134, sprite 126
+  SpaceOpen,  //ObjectFlowerGroupB0,  // 135, sprite 127
+  SpaceOpen,  //ObjectFlowerGroupB1,  // 136, sprite 128 <-- start of Flag sprites!
+  SpaceOpen,  //ObjectFlowerGroupB2,  // 137, sprite 129
+  SpaceOpen,  //ObjectFlowerGroupB3,  // 138, sprite 130
+  SpaceOpen,  //ObjectFlowerGroupB4,  // 139, sprite 131
+  SpaceOpen,  //ObjectFlowerGroupB5,  // 140, sprite 132
+  SpaceOpen,  //ObjectFlowerGroupB6,  // 141, sprite 133
+  SpaceOpen,  //ObjectFlowerGroupC0,  // 142, sprite 134
+  SpaceOpen,  //ObjectFlowerGroupC1,  // 143, sprite 135
+  SpaceOpen,  //ObjectFlowerGroupC2,  // 144, sprite 136
+  SpaceOpen,  //ObjectFlowerGroupC3,  // 145, sprite 137
+  SpaceOpen,  //ObjectFlowerGroupC4,  // 146, sprite 138
+  SpaceOpen,  //ObjectFlowerGroupC5,  // 147, sprite 139
+  SpaceOpen,  //ObjectFlowerGroupC6,  // 148, sprite 140
+  SpaceOpen,  //ObjectCattail0,       // 149, sprite 141
 };
 
 

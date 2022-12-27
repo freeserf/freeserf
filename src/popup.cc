@@ -3786,7 +3786,8 @@ PopupBox::handle_action(int action, int x_, int /*y_*/) {
     interface->set_custom_map_generator_mountain_stone(slider_mineral_double_to_uint16(2.00));  // 2
     interface->set_custom_map_generator_desert_frequency(slider_double_to_uint16(1.00)); 
     //interface->set_custom_map_generator_lakes_size(slider_double_to_uint16(1.00)); 
-    interface->set_custom_map_generator_lakes_water_level(slider_double_to_uint16(1.00)); 
+    //interface->set_custom_map_generator_lakes_water_level(slider_double_to_uint16(1.00)); 
+    interface->set_custom_map_generator_lakes_water_level(uint16_t(8188 * 1.00)); 
     interface->set_custom_map_generator_junk_grass_sandstone(slider_double_to_uint16(1.00)); 
     interface->set_custom_map_generator_junk_grass_small_boulders(slider_double_to_uint16(1.00)); 
     interface->set_custom_map_generator_junk_grass_stub_trees(slider_double_to_uint16(1.00)); 
