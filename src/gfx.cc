@@ -280,7 +280,7 @@ Frame::draw_sprite(int x, int y, Data::Resource res, unsigned int index, bool us
   //   the SPAx.PA data file, as the mutated sprites don't actually exist anywhere,
   //   they are built by mutating the original sprite during loading
   uint64_t id; // image cache key
-  if (mutate == 1){
+  if (mutate & 1){
     // fake high sprite indexes to allow caching both original and mutated
     if (res == Data::AssetMapObject){
       // this is pretty arbitrary
@@ -538,49 +538,45 @@ Frame::draw_masked_sprite(int x, int y, Data::Resource mask_res,
   //   the SPAx.PA data file, as the mutated sprites don't actually exist anywhere,
   //   they are built by mutating the original sprite during loading
   uint64_t id; // image cache key
-  if (mutate == 1){
-    // fake high sprite indexes to allow caching both original and mutated
-    if (res == Data::AssetMapGround){
-      // orig terrain types are all under 100, + 100
-      id = Data::Sprite::create_id(res, index + 100, mask_res, mask_index, {0, 0, 0, 0});
-      /* this needs to be in draw_masked_sprite not draw_sprite!
-    } else if (res == Data::AssetMapObject){
-      // this is pretty arbitrary
-      id = Data::Sprite::create_id(res, index + 3000, mask_res, mask_index, {0, 0, 0, 0});
-      */
-    } else{
+  int special_offset = 0;
+  int real_index = index;
+
+  if (mutate > 0){
+    if (res != Data::AssetMapGround){
       throw ExceptionFreeserf("unexpected Data::Asset type to mutate!");      
     }
-  }else if (index >= 40 && index <= 42){  // special water luminosity by depth
+  }
+
+  if (mutate & 1){  // odd numbered mutate indicates this is a darkened tile
+    // fake high sprite indexes to allow caching both original and mutated
+    // orig terrain types are all under 100, + 100
+    special_offset = 100;
+  }
+
+  if (index >= 40 && index <= 42){  // special water luminosity by depth
     //Log::Debug["gfx.cc"] << "inside Frame::draw_masked_sprite  with res " << res << ", mutate is >1";
 
-    // fake high sprite indexes to allow caching both original and mutated
-    //  this needs to be the non-32 index!
-    id = Data::Sprite::create_id(res, index + 100, mask_res, mask_index, {0, 0, 0, 0});
-
-    // UPDATE - using integer mutate instead of bool darken to allow more mutations
-    // for water, create different luminosity/colors for Water0 through Water3
+    // create different luminosity/colors for Water0 through Water3
     if (index == 40){
       // Water0
-      index = 32;
-      mutate = 10;
+      real_index = 32;
+      mutate += 10;
     }
     //
     // NOTE Water1 is unchanged
     //
       else if (index == 41){
       // Water2
-      index = 32;
-      mutate = 11;
+      real_index = 32;
+      mutate += 12;
     }else if (index == 42){
-      // Water 3
-      index = 32;
-      mutate = 12;
+      // Water3
+      real_index = 32;
+      mutate += 14;
     }
-  }else{
-    // original sprite index
-    id = Data::Sprite::create_id(res, index, mask_res, mask_index, {0, 0, 0, 0});
   }
+
+  id = Data::Sprite::create_id(res, index + special_offset, mask_res, mask_index, {0, 0, 0, 0});
   
   // see if finalized sprite w/ mask applied already in cache  
   Image *image = Image::get_cached_image(id);
@@ -591,11 +587,11 @@ Frame::draw_masked_sprite(int x, int y, Data::Resource mask_res,
     //
     // fetch the base sprite, MASK IS NOT APPLIED YET
     //   mutate if specified
-    s = data_source->get_sprite(res, index, {0, 0, 0, 0}, mutate);
+    s = data_source->get_sprite(res, real_index, {0, 0, 0, 0}, mutate);
     
     if (!s) {
       Log::Warn["graphics"] << "Failed to decode sprite #"
-                            << Data::get_resource_name(res) << ":" << index;
+                            << Data::get_resource_name(res) << ":" << real_index;
       return;
     }
 
@@ -619,7 +615,7 @@ Frame::draw_masked_sprite(int x, int y, Data::Resource mask_res,
                             << Data::get_resource_name(mask_res)
                             << ":" << mask_index
                             << " to sprite #"
-                            << Data::get_resource_name(res) << ":" << index;
+                            << Data::get_resource_name(res) << ":" << real_index;
       return;
     }
 

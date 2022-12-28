@@ -899,6 +899,7 @@ ClassicMapGenerator::hexagon_types_in_range(MapPos pos_, Map::Terrain min,
 }
 
 
+/*
 // because Water and Grass are disparate types, cannot use
 //  the range based function hexagon_types_in_range
 // I think the odd placement of submerged trees is related to this logic
@@ -918,28 +919,9 @@ ClassicMapGenerator::is_coastal(MapPos pos_) {
    return true;
   }
  
- /*
-  if (type_d == Map::TerrainWater3 || type_u == Map::TerrainWater3) coast = true;
-  type_d = tiles[map.move_left(pos_)].type_down;
-  type_u = tiles[map.move_left(pos_)].type_up;
-  if (type_d == Map::TerrainWater3 || type_u == Map::TerrainWater3) coast = true;
-  type_d = tiles[map.move_up_left(pos_)].type_down;
-  type_u = tiles[map.move_up_left(pos_)].type_up;
-  if (type_d == Map::TerrainWater3 || type_u == Map::TerrainWater3) coast = true;
-  type_d = tiles[map.move_up(pos_)].type_down;
-  type_u = tiles[map.move_up(pos_)].type_up;
-  if (type_d == Map::TerrainWater3 || type_u == Map::TerrainWater3) coast = true;
-  type_d = tiles[map.move_right(pos_)].type_down;
-  type_u = tiles[map.move_right(pos_)].type_up;
-  if (type_d == Map::TerrainWater3 || type_u == Map::TerrainWater3) coast = true;
-
-  if (coast){
-    return true;
-  }
-  */
-
   return false;
 }
+*/
 
 /* Get a random position in the spiral pattern based at col, row. */
 MapPos
@@ -1351,8 +1333,8 @@ const int ClassicMapGenerator::default_terrain_spikyness = 0x9999;
   // Adjust terrain types on shores
   change_shore_water_type();
   change_shore_grass_type();
-  create_water_shallows();
-  change_shore_water_type();  // need to do this a second time to smooth after creating shallows
+  //create_water_shallows();
+  //change_shore_water_type();  // need to do this a second time to smooth after creating shallows
 
 
   // Create deserts
@@ -1558,7 +1540,7 @@ CustomMapGenerator::create_objects() {
                                                      1, 19, Map::TerrainGrass1, Map::TerrainGrass2, Map::ObjectFlowerGroupB0, 2);
   create_random_object_clusters(regions, 6, 0x3f, Map::TerrainGrass1, Map::TerrainGrass2, Map::ObjectFlowerGroupB0, 6);
 
-  create_cattails(18);
+  //create_cattails(18);
   //create_random_object_clusters(regions, 45, 0x3f, Map::TerrainWater2, Map::TerrainWater3, Map::ObjectCattail0, 0);
 }
 

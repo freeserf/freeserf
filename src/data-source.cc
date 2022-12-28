@@ -335,7 +335,7 @@ Data::Sprite::create_id(uint64_t resource, uint64_t index,
 Data::PSprite
 //DataSourceBase::get_sprite(Data::Resource res, size_t index, const Data::Sprite::Color &color) {
 DataSourceBase::get_sprite(Data::Resource res, size_t index, const Data::Sprite::Color &color, int mutate) {
-  Log::Debug["data-source.cc"] << "inside DataSourceBase::get_sprite, res type " << res << ", sprite index " << index << ", mutate int is " << mutate;
+  //Log::Debug["data-source.cc"] << "inside DataSourceBase::get_sprite, res type " << res << ", sprite index " << index << ", mutate int is " << mutate;
   
   //Data::MaskImage ms = get_sprite_parts(res, index);
   Data::MaskImage ms = get_sprite_parts(res, index, mutate);

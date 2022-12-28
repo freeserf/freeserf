@@ -246,7 +246,7 @@ Viewport::draw_triangle_up(int lx, int ly, int m, int left, int right,
   // apply any hack-ish modifications from various game options
   //sprite = special_terrain_sprite(pos, sprite);
 
-  int mutate = 0;
+  int mutate = 0;  // odd numbered mutate indicates this is a darkened tile
   if (option_FogOfWar){
     //f (false){  // TEMP DISABLED
     if (!map->is_revealed(pos,interface->get_player()->get_index())){ 
@@ -268,17 +268,10 @@ Viewport::draw_triangle_up(int lx, int ly, int m, int left, int right,
         // skip this Up triangle only DO NOT COPY THIS TO draw_triangle_down!!!!
         // !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
       //}else{
-        mutate = 1;
+        mutate += 1;  // odd numbered mutate indicates this is a darkened tile
       //}
     }
   }
-  
-  /*
-  // interesting... water0 is the "deepest" and water3 is "shallowest", opposite of what I expected
-  if (type == Map::TerrainWater0 || type == Map::TerrainWater1){
-    mutate = 1;
-  };
-  */
 
   //tile->draw_masked_sprite(lx, ly, Data::AssetMapMaskUp, mask, Data::AssetMapGround, sprite);
   tile->draw_masked_sprite(lx, ly, Data::AssetMapMaskUp, mask, Data::AssetMapGround, sprite, mutate);
@@ -335,7 +328,7 @@ Viewport::draw_triangle_down(int lx, int ly, int m, int left, int right,
   // apply any hack-ish modifications from various game options
   //sprite = special_terrain_sprite(pos, sprite);
 
-  int mutate = 0;
+  int mutate = 0;  // odd numbered mutate indicates this is a darkened tile
   if (option_FogOfWar){
     //f (false){  // TEMP DISABLED
     if (!map->is_revealed(pos,interface->get_player()->get_index())){ 
@@ -357,16 +350,10 @@ Viewport::draw_triangle_down(int lx, int ly, int m, int left, int right,
         // skip this Down triangle only DO NOT COPY THIS TO draw_triangle_up!!!!
         // !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
       //}else{
-        mutate = 1;
+        mutate += 1;  // odd numbered mutate indicates this is a darkened tile
       //}
     }
   }
-
-  /*
-  if (type == Map::TerrainWater0 || type == Map::TerrainWater1){
-    mutate = 1;
-  };
-  */
 
   tile->draw_masked_sprite(lx, ly + MAP_TILE_HEIGHT, Data::AssetMapMaskDown, mask, Data::AssetMapGround, sprite, mutate);
 }
@@ -1858,7 +1845,7 @@ Viewport::draw_map_objects_row(MapPos pos, int y_base, int cols, int x_base, int
   int topmost_focus_y = center_y - (focus_y_pixels / 2);
   int lowest_focus_y = center_y + (focus_y_pixels / 2);
 
-  int mutate = 0;
+  int mutate = 0;  // odd numbered mutate indicates this is a darkened tile
 
   //Log::Debug["viewport.cc"] << "inside draw_map_objects, pos " << pos << ", cols: " << cols << ", focus_cols: " << focus_cols << ", center_col: " << center_col << ", left: " << leftmost_focus_col << ", right: " << rightmost_focus_col;
   //Log::Debug["viewport.cc"] << "inside draw_map_objects, pos " << pos << ", map height: " << height << ", ly: " << ly << ", center_y: " << center_y << ", top: " << topmost_focus_y << ", bottom: " << lowest_focus_y;
@@ -2265,7 +2252,7 @@ Viewport::draw_map_objects_row(MapPos pos, int y_base, int cols, int x_base, int
         if ((sprite >= Map::ObjectTree0 - Map::ObjectTree0) && (sprite <= Map::ObjectField5 - Map::ObjectTree0)){
           //Log::Debug["viewport.cc"] << "inside Viewport::draw_map_objects_row, found existing map objects on downward left->right slopes (mutate)";
           // DO NOT use_custom_set, these are not custom PNGs but mutated original sprites from SPAx.PA
-          mutate = 1;
+          mutate += 1;  // odd numbered mutate indicates this is a darkened tile
         }
 
       }

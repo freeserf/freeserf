@@ -610,7 +610,7 @@ GameStore::update() {
         }
         info.path = file_path;
         info.type = SaveInfo::Regular;
-        Log::Debug["savegame.cc"] << "inside GameStore::update(), found a savegame file with name " << info.name;
+        //Log::Debug["savegame.cc"] << "inside GameStore::update(), found a savegame file with name " << info.name;
         saved_games.push_back(info);
       }
     }

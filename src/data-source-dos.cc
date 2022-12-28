@@ -239,7 +239,7 @@ DataSourceDOS::fixup() {
 Data::MaskImage
 //DataSourceDOS::get_sprite_parts(Data::Resource res, size_t index) {
 DataSourceDOS::get_sprite_parts(Data::Resource res, size_t index, int mutate) {
-  Log::Debug["data-source-dos.cc"] << "inside DataSourceDOS::get_sprite_parts, res type is " << res << ", sprite index is " << index << ", mutate int is " << mutate;
+  //Log::Debug["data-source-dos.cc"] << "inside DataSourceDOS::get_sprite_parts, res type is " << res << ", sprite index is " << index << ", mutate int is " << mutate;
   
   if (index >= Data::get_resource_count(res)) {
     return std::make_tuple(nullptr, nullptr);
@@ -585,19 +585,29 @@ DataSourceDOS::SpriteDosSolid::SpriteDosSolid(PBuffer _data, ColorDOS *palette, 
         }
         // slightly reduce blues saturation
         else if (color.b > color.r && color.b > color.g    // is blue
-              && color.b > 60){
+        //      && color.b > 60){
+                && color.b > 20){
           if (subseason == 0){  // fade from fall to winter
-            color.r +=  3;
-            color.g +=  3;
-            color.b -= 13;
+            color.r += 4;
+            //color.r = color.r * 1.02;
+            color.g += 4;
+            //color.g = color.g * 1.02;
+            //color.b -= 13;
+            color.b = color.b * 0.95;
           }else if (subseason == 1){  // fade from fall to winter
-            color.r +=  6;
-            color.g +=  6;
-            color.b -= 27;
+            color.r += 8;
+            //color.r = color.r * 1.03;
+            color.g += 8;
+            //color.g = color.g * 1.03;
+            //color.b -= 27;
+            color.b = color.b * 0.94;
           }else{
-            color.r += 10;
-            color.g += 10;
-            color.b -= 40;
+            color.r += 14;
+            //color.r = color.r * 0.00;
+            color.g += 14;
+            //color.g = color.g * 0.00;
+            //color.b -= 40;
+            color.b = color.b * 0.92;
           }
         }
       }
@@ -609,7 +619,8 @@ DataSourceDOS::SpriteDosSolid::SpriteDosSolid(PBuffer _data, ColorDOS *palette, 
     //  FourSeasons so it can modify the FourSeasons-adjusted files
     //   if both enabled
     //if (option_FogOfWar && res == Data::AssetMapGround){
-    if (mutate == 1){
+    //if (mutate == 1){
+    if (mutate & 1){
       // using "200 means black" for shrouding doesn't work easily, instead it just won't even call draw at all!
       //if (sprite_index == 200){
       //  // the not-revealed shrouded state is indicated by sprite index 200, no need for more than one
@@ -626,28 +637,55 @@ DataSourceDOS::SpriteDosSolid::SpriteDosSolid(PBuffer _data, ColorDOS *palette, 
     }
     
     if (mutate >= 10){
-      //Log::Debug["data-source-dos.cc"] << "inside DataSourceDOS::SpriteDosSolid, mutate is >= 10";
-      if (mutate == 10){
+      unsigned char orig_r = color.r;
+      unsigned char orig_g = color.g;
+      unsigned char orig_b = color.b;
+
+      if (mutate == 10 || mutate == 11){
         // Water0 - deepest
         //color.r -= 20;
         //color.g -= 20;
-        color.b -= 20;
+        //color.b -= 20;
+        color.b = color.b * 0.9;
       //
       // NOTE Water1 is default, no change
       //
-      }else if (mutate == 11){
+      }else if (mutate == 12 || mutate == 13){
         // Water2
-        color.r += 20;
-        color.g += 20;
-        color.b += 20;
-      }else if (mutate == 12){
+        //color.r += 20;
+        color.r = color.g * 1.15;
+        //color.g += 20;
+        color.g = color.g * 1.15;
+        //color.b += 20;
+        color.b = color.b * 1.15;
+      }else if (mutate == 14 || mutate == 15){
         // Water3 - shallowest
-        
-        color.r += 30;
-        color.g += 40;
-        color.b += 30;
+        //color.r += 20;
+        color.r = color.r * 1.17;
+        //color.g += 50;
+        color.g = color.g * 1.30;
+        //color.b += 30;
+        color.b = color.b * 1.30;
       }
-    }  
+
+      // reduce the effect during winter
+      if (option_FourSeasons){
+        signed char diff_r = color.r - orig_r;          
+        signed char diff_g = color.g - orig_g;
+        signed char diff_b = color.b - orig_b;
+        if (season == 2){  // fall
+          color.r = orig_r + diff_r/1.5;
+          color.g = orig_g + diff_g/1.5;
+          color.b = orig_b + diff_b/1.5;
+        }
+        if (season == 3){  // winter
+          color.r = orig_r + diff_r/2;
+          color.g = orig_g + diff_g/2;
+          color.b = orig_b + diff_b/2;
+        }
+
+      }
+    } 
 
 
 
@@ -715,7 +753,7 @@ DataSourceDOS::SpriteDosTransparent::SpriteDosTransparent(PBuffer _data,
 
   PMutableBuffer result = std::make_shared<MutableBuffer>(Buffer::EndianessBig);
 
-  Log::Info["data-source-dos"] << "inside DataSourceDOS::SpriteDosTransparent::SpriteDosTransparent, index is " << index << ", mutate int is " << mutate;
+  //Log::Info["data-source-dos"] << "inside DataSourceDOS::SpriteDosTransparent::SpriteDosTransparent, index is " << index << ", mutate int is " << mutate;
 
   //Log::Info["data-source-dos"] << "this transparant sprite has size " << _data->get_size();
 
@@ -795,7 +833,7 @@ DataSourceDOS::SpriteDosTransparent::SpriteDosTransparent(PBuffer _data,
         }
       }
 
-      if (mutate == 1){
+      if (mutate & 1){
           //color.r = color.r *0.6;  // darker by xx%
           //color.g = color.g *0.6;  // darker by xx%
           //color.b = color.b *0.6;  // darker by xx%

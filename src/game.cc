@@ -3428,7 +3428,7 @@ Game::place_castle(MapPos center_pos, int player_index, unsigned int distance, u
 
     // don't count resouces that are inside enemy territory
     if (map->get_owner(pos) != player_index && map->has_owner(pos)) {
-      Log::Debug["game.cc"] << "inside Game::place_castle(), Player" << player_index << ", enemy territory at pos " << pos << ", not counting these resouces towards requirements";
+      //Log::Debug["game.cc"] << "inside Game::place_castle(), Player" << player_index << ", enemy territory at pos " << pos << ", not counting these resouces towards requirements";
       continue;
     }
 
@@ -3452,19 +3452,19 @@ Game::place_castle(MapPos center_pos, int player_index, unsigned int distance, u
     }
   }
 
-  Log::Debug["game.cc"] << "inside Game::place_castle(), Player" << player_index << ", found trees: " << trees << ", stones: " << stones << ", building_sites: " << building_sites << " in area " << center_pos << ". Desperation is " << desperation;
+  //Log::Debug["game.cc"] << "inside Game::place_castle(), Player" << player_index << ", found trees: " << trees << ", stones: " << stones << ", building_sites: " << building_sites << " in area " << center_pos << ". Desperation is " << desperation;
 
   // if good place for castle cannot be found, lower standards by faking an increased amount of resources
   if (trees + desperation*4 < near_trees_min * 4) {
-    Log::Debug["game.cc"] << "inside Game::place_castle(), Player" << player_index << ", not enough trees, min is " << near_trees_min * 4 << ", returning false.  Desperation is " << desperation;
+    //Log::Debug["game.cc"] << "inside Game::place_castle(), Player" << player_index << ", not enough trees, min is " << near_trees_min * 4 << ", returning false.  Desperation is " << desperation;
     return false;
   }
   if (stones + desperation < near_stones_min) {
-    Log::Debug["game.cc"] << "inside Game::place_castle(), Player" << player_index << ", not enough stones, min is " << near_stones_min << ", returning false.  Desperation is " << desperation;
+    //Log::Debug["game.cc"] << "inside Game::place_castle(), Player" << player_index << ", not enough stones, min is " << near_stones_min << ", returning false.  Desperation is " << desperation;
     return false;
   }
   if (building_sites + desperation*90 < near_building_sites_min) {
-    Log::Debug["game.cc"] << "inside Game::place_castle(), Player" << player_index << ", not enough building_sites, min is " << near_building_sites_min << ", returning false.  Desperation is " << desperation;
+    //Log::Debug["game.cc"] << "inside Game::place_castle(), Player" << player_index << ", not enough building_sites, min is " << near_building_sites_min << ", returning false.  Desperation is " << desperation;
     return false;
   }
   Log::Debug["game.cc"] << "inside Game::place_castle(), Player" << player_index << ", center_pos: " << center_pos << " is an acceptable building site for a castle.  Desperation is " << desperation;

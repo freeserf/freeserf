@@ -1609,12 +1609,14 @@ Interface::clear_custom_graphics_cache() {
   // there are two mask types, each with 80 elements
   // Data::AssetMapMaskUp and Data::AssetMapMaskDown
   for (int mask_index=0; mask_index<81; mask_index++){
-    for (int map_ground_index=0; map_ground_index<33; map_ground_index++){
+    //for (int map_ground_index=0; map_ground_index<33; map_ground_index++){
+    for (int map_ground_index=0; map_ground_index<43; map_ground_index++){ // added new water types
       to_purge.insert( Data::Sprite::create_id(Data::AssetMapGround, map_ground_index, Data::AssetMapMaskUp, mask_index, {0,0,0,0}) );
       to_purge.insert( Data::Sprite::create_id(Data::AssetMapGround, map_ground_index, Data::AssetMapMaskDown, mask_index, {0,0,0,0}) );
     }
     // clear the option_FogOfWar mutated sprites also, as they stil change with the seasons
-    for (int map_ground_index=100; map_ground_index<133; map_ground_index++){
+    //  also depth-luminosity mutated water sprites
+    for (int map_ground_index=100; map_ground_index<143; map_ground_index++){
       to_purge.insert( Data::Sprite::create_id(Data::AssetMapGround, map_ground_index, Data::AssetMapMaskUp, mask_index, {0,0,0,0}) );
       to_purge.insert( Data::Sprite::create_id(Data::AssetMapGround, map_ground_index, Data::AssetMapMaskDown, mask_index, {0,0,0,0}) );
     }
