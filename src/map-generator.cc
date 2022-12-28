@@ -1333,8 +1333,8 @@ const int ClassicMapGenerator::default_terrain_spikyness = 0x9999;
   // Adjust terrain types on shores
   change_shore_water_type();
   change_shore_grass_type();
-  //create_water_shallows();
-  //change_shore_water_type();  // need to do this a second time to smooth after creating shallows
+  create_water_shallows();
+  change_shore_water_type();  // need to do this a second time to smooth after creating shallows
 
 
   // Create deserts
@@ -1499,10 +1499,7 @@ CustomMapGenerator::create_objects() {
   // also... it seems like these are always placed in an up-left corner of the lake... probably a bug inside the original generator logic
   // YES IT WAS ORIGINAL GAME LOGIC BUG.  IT IS NOW FIXED AND THEY APPEAR NORMALLY!
   //create_random_object_clusters(regions, 50 * custom_map_generator_options.opt[CustomMapGeneratorOption::JunkWaterSubmergedTrees], 0x7f, Map::TerrainWater2, Map::TerrainWater3, Map::ObjectWaterTree0, 0x3);
-  // ***********************************************
-  //  TEMP DISABLING while testing reeds/cattails
-  // ***********************************************
-  //create_random_object_clusters(regions, 6 * custom_map_generator_options.opt[CustomMapGeneratorOption::JunkWaterSubmergedTrees], 0x7f, Map::TerrainWater2, Map::TerrainWater3, Map::ObjectWaterTree0, 0x3);
+  create_random_object_clusters(regions, 3 * custom_map_generator_options.opt[CustomMapGeneratorOption::JunkWaterSubmergedTrees], 0x7f, Map::TerrainWater2, Map::TerrainWater3, Map::ObjectWaterTree0, 0x3);
   // Create tree stubs.
   create_random_object_clusters(regions, 5 * custom_map_generator_options.opt[CustomMapGeneratorOption::JunkGrassStubTrees], 0xff, Map::TerrainGrass1, Map::TerrainGrass2, Map::ObjectStub, 0);
   // Create small boulders.

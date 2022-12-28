@@ -304,24 +304,25 @@ Frame::draw_sprite(int x, int y, Data::Resource res, unsigned int index, bool us
     //  new custom sprites will work for Amiga, but mutated ones will not as the
     //  mutation happens within the DOS data loading functions
     if (index > last_original_data_index[res]){
-      //Log::Debug["gfx.cc"] << "inside Frame::draw_sprite, sprite index " << index << " is higher than the last_original_data_index " << last_original_data_index[res] << " for this Data::Resource type " << res << ", assuming it is a special sprite";
+      Log::Debug["gfx.cc"] << "inside Frame::draw_sprite, sprite index " << index << " is higher than the last_original_data_index " << last_original_data_index[res] << " for this Data::Resource type " << res << ", assuming it is a special sprite";
 
       unsigned int orig_index = -1;
 
       if (res == Data::AssetFrameBottom // four seasons season dial in panelbar
        || res == Data::AssetMapObject  // new custom trees, flowers
        || res == Data::AssetMapShadow  // shadows for new custom trees
-       || res == Data::AssetIcon){   // for game-init icons
+       || res == Data::AssetIcon   // for game-init icons
+       || res == Data::AssetMapWaves){  // for splashes on water objects
         // these types, if having beyond-original indexes, are new graphics
         //  loaded from actual PN  files using the data_source_Custom
-        //Log::Debug["gfx.cc"] << "inside Frame::draw_sprite, sprite index " << index << " trying to load custom data source";
+        Log::Debug["gfx.cc"] << "inside Frame::draw_sprite, sprite index " << index << " trying to load custom data source";
         Data &data = Data::get_instance();
         if (data.get_data_source_Custom() == nullptr){
           // try load the custom sprite
           Log::Warn["gfx.cc"] << "inside Frame::draw_sprite, custom datasource not available at all, cannot even attempt to load sprite index " << index << ", trying to fall back to default datasource for this sprite, using " << orig_index;
           s = data_source->get_sprite(res, orig_index, pc);
         }else{
-          //Log::Debug["gfx.cc"] << "inside Frame::draw_sprite, sprite index " << index << " about to call data_source_Custom->get_sprite";
+          Log::Debug["gfx.cc"] << "inside Frame::draw_sprite, sprite index " << index << " about to call data_source_Custom->get_sprite";
           s = data.get_data_source_Custom()->get_sprite(res, index, pc);
           if (s == nullptr){
             // try falling back to original sprite if custom sprite couldn't be loaded
@@ -392,110 +393,6 @@ Frame::draw_sprite(int x, int y, Data::Resource res, unsigned int index, bool us
                                                      progress);
   video->draw_image(image->get_video_image(), x, y, y_off, video_frame);
 }
-
-/*
-// added to support messing with weather/seasons/palette tiles, copy of protected Frame::draw_sprite#2
-void
-Frame::draw_sprite_special3(int x, int y, Data::Resource res, unsigned int index, bool use_off, const Color &color, float progress, unsigned int pos, unsigned int obj) {
-  Log::Info["gfx.cc"] << "inside Frame::draw_sprite_special3  with res " << res << ", index " << index << ", pos " << pos << ", obj " << obj;
-  Data::Sprite::Color pc = {color.get_blue(),
-                            color.get_green(),
-                            color.get_red(),
-                            color.get_alpha()};
-
-  uint64_t id = Data::Sprite::create_id(res, index, 0, 0, pc);
-  Image *image = Image::get_cached_image(id);
-  if (image == nullptr) {
-    // messing with weather/seasons/palette
-    Data::PSprite s;
-    //int frame = index % 10;
-    //int offset = season_sprite_offset[season]; // THIS DOESN'T WORK FOR CROSS-SEASONAL SPRITES AS subseason CHANGES!
-    //int tree = (index - offset - frame) / 10;
-    //Log::Info["gfx.cc"] << "inside Frame::draw_sprite_special3, found season_sprite_offset[" << season << "] of " << offset << ", Tree#" << tree << " and frame# " << frame;
-
-    if (res == Data::AssetMapObject || res == Data::AssetMapShadow){
-    //if (res == Data::AssetMapObject){  // why is it still looking up MapShadows?  I thought I told it to use another function
-      Log::Info["gfx.cc"] << "inside Frame::draw_sprite_special3, trying to load Custom MapObject graphic with index " << index;
-      Data &data = Data::get_instance();
-      if (data.get_data_source_Custom() == nullptr){
-        Log::Error["gfx.cc"] << "inside Frame::draw_sprite_special3, index " << index << ", data_source (custom) is nullptr!, are the custom data files missing?";
-        // need to get the original 00x sprite number instead of the 2xx/3xx/4xx set used for FourSeasons
-        //  mod 10 essentially "strips the first two digits" which works because the original Tree values are 0 through 9
-        // note that this assumes it is a Tree because nothing else should be using this draw_sprite_special3 function, but if it does it will likely break!
-        unsigned int orig_index = index % 10;
-        Log::Warn["gfx.cc"] << "inside Frame::draw_sprite_special3, custom datasource not found for sprite index " << index <<", trying to fall back to default datasource for this sprite, using " << orig_index;
-        s = data_source->get_sprite(res, orig_index, pc);
-      }else{
-        // load the custom sprite
-        Log::Debug["gfx.cc"] << "inside Frame::draw_sprite_special3, custom datasource successfully loaded for sprite index " << index;
-        s = data.get_data_source_Custom()->get_sprite(res, index, pc); // FourSeasons, with crammed animation
-      }
-    }else{
-      s = data_source->get_sprite(res, index, pc);
-    }
-
-    //Data::PSprite s = data_source->get_sprite(res, index, pc);
-    if (!s) {
-      Log::Warn["gfx.cc"] << "inside Frame::draw_sprite_special3, Failed to decode sprite #"
-                            << Data::get_resource_name(res) << ":" << index;
-      return;
-    }
-
-    image = new Image(video, s);
-    Image::cache_image(id, image);
-  }
-
-  if (use_off) {
-    x += image->get_offset_x();
-    y += image->get_offset_y();
-  }
-  int y_off = image->get_height() - static_cast<int>(image->get_height() *
-                                                     progress);
-  video->draw_image(image->get_video_image(), x, y, y_off, video_frame);
-}
-*/
-
-
-/*
-void
-Frame::draw_sprite(int x, int y, Data::Resource res, unsigned int index,
-                   bool use_off) {
-  //Log::Info["gfx"] << "inside Frame::draw_sprite#3, calling draw_sprite#2 with res " << res << ", index " << index;
-  draw_sprite(x, y, res, index, use_off, Color::transparent, 1.f);  // this is Frame::draw_sprite#2
-}
-*/
-
-/*
-// copy of Frame::draw_sprite#3 but with passing of pos and object type to support messing with weather/seasons/palette tiles
-void
-Frame::draw_sprite_special1(int x, int y, Data::Resource res, unsigned int index, bool use_off, unsigned int pos, unsigned int obj) {
-  //Log::Info["gfx"] << "inside Frame::draw_sprite_special1, calling Frame::draw_sprite_special3 with res " << res << ", index " << index;
-  //draw_sprite_special3(x, y, res, index, use_off, Color::transparent, 1.f, pos, obj);  // this is Frame::draw_sprite#2
-}
-*/
-
-//void
-//Frame::draw_sprite(int x, int y, Data::Resource res, unsigned int index, bool use_off, float progress) {
-//  //Log::Info["gfx"] << "inside Frame::draw_sprite#4, calling draw_sprite#2 with res " << res << ", index " << index;
-//  draw_sprite(x, y, res, index, use_off, Color::transparent, progress);  // this is Frame::draw_sprite#2
-//}
-
-//void
-//Frame::draw_sprite(int x, int y, Data::Resource res, unsigned int index,
-//                   bool use_off, const Color &color) {
-//  //Log::Info["gfx"] << "inside Frame::draw_sprite#5  with res " << res << " and index " << index;
-//  draw_sprite(x, y, res, index, use_off, color, 1.f);
-//}
-
-/*
-// copy of Frame::draw_sprite#5 but with passing of pos and object type to support messing with weather/seasons/palette tiles
-void
-Frame::draw_sprite_special2(int x, int y, Data::Resource res, unsigned int index,
-                   bool use_off, const Color &color, unsigned int pos, unsigned int obj) {
-  Log::Info["gfx"] << "inside Frame::draw_sprite_special2 calling Frame::draw_sprite_special3 with res " << res << " and index " << index;
-  //draw_sprite_special3(x, y, res, index, use_off, color, 1.f, pos, obj);
-}
-*/
 
 void
 Frame::draw_sprite_relatively(int x, int y, Data::Resource res,
@@ -632,6 +529,7 @@ Frame::draw_masked_sprite(int x, int y, Data::Resource mask_res,
 
 /* Draw the waves sprite with given mask and sprite
    indices at x, y in dest frame. */
+   // why is this its own function?
 void
 Frame::draw_waves_sprite(int x, int y, Data::Resource mask_res,
                          unsigned int mask_index, Data::Resource res,

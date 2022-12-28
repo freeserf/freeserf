@@ -1773,6 +1773,7 @@ Viewport::draw_water_waves_row(MapPos pos, int y_base, int cols,
       // option_FogOfWar
       //   do not draw waves outside of shroud/FoW
       if (option_FogOfWar && !map->is_visible(pos, interface->get_player()->get_index())){
+      //if (option_FogOfWar && !map->is_revealed(pos, interface->get_player()->get_index())){  // it looks funny if shown in revealead areas because no other objects are
         continue;
       }
 
@@ -2265,6 +2266,18 @@ Viewport::draw_map_objects_row(MapPos pos, int y_base, int cols, int x_base, int
         //draw_shadow_and_building_sprite(x_base, ly, sprite);
         draw_shadow_and_building_sprite(x_base, ly, sprite, Color::transparent, mutate);
       }
+
+      // draw water splashes on top of water objects
+      //  this cannot be done inside draw_waves_row because that is done before map_objects drawn
+      if (map->get_obj(pos) == Map::ObjectWaterStone0 || map->get_obj(pos) == Map::ObjectWaterStone1){
+      //||  (map->get_obj(pos) >= Map::ObjectWaterTree0 && map->get_obj(pos) <= Map::ObjectWaterTree3)){
+        //Log::Debug["viewport.cc"] << "inside Viewport::draw_map_objects_row(), found water object, drawing splashes, setting frame to " << frame;
+        // splashes have 1 type with 4 frames of animation
+        int fast_anim = (interface->get_game()->get_tick() + 20) >> 4;  
+        int sprite = 20 + (fast_anim & 3);
+        frame->draw_sprite(x_base, y_base, Data::AssetMapWaves, sprite, true);
+      }
+
 
     } // if not a Tree or junk object
   } // foreach column in this row
