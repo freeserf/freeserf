@@ -2514,7 +2514,12 @@ Game::update_FogOfWar(MapPos init_pos) {
   // need to redraw terrain for FoW updates to be visible
   set_must_redraw_frame();
 
-  const int visible_radius_by_type[25] = {0,0,0,0,0,0,0,0,0,0,0,10,0,0,0,0,0,0,0,0,0,15,19,0,21};
+  //const int visible_radius_by_type[25] = {0,0,0,0,0,0,0,0,0,0,0,10,0,0,0,0,0,0,0,0,0,15,19,0,21};
+  // visually I like the smaller radius, but increasing it so that attackable buildings are always visible...
+  //const int visible_radius_by_type[25] = {0,0,0,0,0,0,0,0,0,0,0,15,0,0,0,0,0,0,0,0,0,20,23,0,23};
+  // ugh this still isnt enough, maybe consider making attackable buildings always visible & attackable
+  //  even if not actually within visible range?
+  const int visible_radius_by_type[25] = {0,0,0,0,0,0,0,0,0,0,0,18,0,0,0,0,0,0,0,0,0,20,23,0,23};
   int reveal_beyond = 6;  // added to visible_radius when setting
   // _spiral_dist / AI::spiral_dist ONLY GOES UP TO 25!!  DO NOT ALLOW REVEAL RADIUS TO BE LARGER!
   // copied from AI::spiral_dist, MAKE THIS GLOBAL!
@@ -2534,6 +2539,9 @@ const int _spiral_dist[49] = { 1, 7, 19, 37, 61, 91, 127, 169, 217, 271, 331, 39
   // NO! only unset_all_visible for the influence radius of the largest visible_radius_by_type (castle)
   //  but look for other influential buildings at DOUBLE that radius
   int influence_radius = visible_radius_by_type[Building::TypeCastle] * 2 + 1;  // THIS MUST BE AT LEAST *TWICE* LARGE AS THE LARGEST POSSIBLE visible_radius (castle's)
+  //if (influence_radius > 48){ // HACK to allow castle radius 24
+  //  influence_radius = 48; // extended_spiral only goes this high
+  //}
   MapPosVector influential_buildings = {};
   // NOTE - if the building at init_pos exists and is occupied, it will be found here and its visible and revealed radius will be set
   //   if the building at init_pos was destroyed/lost, it will *not* be found here and so it will correctly lose visibilty

@@ -850,9 +850,9 @@ DataSourceDOS::SpriteDosTransparent::SpriteDosTransparent(PBuffer _data,
         // mutate rocks (gray colors)
         if ((color.r + color.g + color.b) / 3 > avg_brightness + 2      // is bright
          && (color.r == color.g && color.g == color.b )) {   // is grayscale (colors all balanced)
-          color.r -= 30;
-          color.g -= 30;
-          color.b -= 30;
+          color.r -= 27;
+          color.g -= 27;
+          color.b -= 27;
         // slightly reduce reds saturation
         }else if (color.r > color.g && color.r > color.b    // is red
               && color.r > 50){

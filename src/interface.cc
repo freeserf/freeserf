@@ -677,7 +677,7 @@ Interface::set_game(PGame new_game) {
     add_float(viewport, 0, 0);
   }
 
-  clear_custom_graphics_cache(); // this prevents the FourSeasons seasonal terrain graphics from persistent on a new or loaded game which may have diff season
+  clear_custom_graphics_cache(); // this prevents the FourSeasons seasonal terrain graphics from persisting on a new or loaded game which may have diff season
   layout();
 
   set_player(0);
