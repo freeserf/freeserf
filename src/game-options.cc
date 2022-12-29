@@ -4,6 +4,19 @@
 #include "src/configfile.h"
 #include "src/log.h"
 
+#ifdef _WIN32
+#include <Windows.h>
+#include <Knownfolders.h>
+#include <Shlobj.h>
+#include <direct.h>
+#elif defined(__APPLE__)
+#include <dirent.h>
+#include <sys/stat.h>
+#else
+#include <dirent.h>
+#include <sys/stat.h>
+#endif
+
 GameOptions &
 GameOptions::get_instance() {
   Log::Debug["game-options.cc"] << "inside GameOptions::get_instance()";
