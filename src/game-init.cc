@@ -211,7 +211,7 @@ GameInitBox::internal_draw() {
       int players_icon_sprite = 262; // default to "single human w/ thumbs up" sprite
       bool has_human = false;
       int ai_count = 0;
-      for (int player_index; player_index < mission->get_player_count(); player_index++){
+      for (int player_index = 0; player_index < mission->get_player_count(); player_index++){
         if (mission->get_player(player_index)->get_face() == 12 || mission->get_player(player_index)->get_face() == 13){
           has_human = true;
         }else{

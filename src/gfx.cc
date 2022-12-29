@@ -328,6 +328,8 @@ Frame::draw_sprite(int x, int y, Data::Resource res, unsigned int index, bool us
             // try falling back to original sprite if custom sprite couldn't be loaded
             if (res == Data::AssetFrameBottom){
               orig_index = 6;  // this is the original sprite that the seasons dial replaces
+            }else if (res == Data::AssetMapGround && index > 32){
+              orig_index = 32;  // normal Water sprite
             }else{
               // stripping the first two digits results in 0-7 which hold the original Trees & Tree-shadows
               //  and the original frame_bottom sprite that the seasons dial replaces is #6, which will also work
