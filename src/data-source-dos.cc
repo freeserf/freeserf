@@ -26,7 +26,7 @@
 #include <memory>
 #include <sstream>
 #include <utility>
-#include <bitset>   // TEMP DEBUG, only for printing binary representation of chars
+//#include <bitset>   // TEMP DEBUG, only for printing binary representation of chars
 //#include <sstream>  // TEMP DEBUG for printing ascii art
 //#include <string>  // TEMP DEBUG for printing ascii art
 //#include <iostream>  // TEMP DEBUG for printing ascii art

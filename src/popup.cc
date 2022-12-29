@@ -292,8 +292,9 @@ typedef enum Action {
   ACTION_SAVE,
   ACTION_NEW_NAME,
   ACTION_OPTIONS_FLIP_TO_GAME_OPTIONS,
-  ACTION_GAME_OPTIONS_NEXT_PAGE,
-  ACTION_GAME_OPTIONS_PREV_PAGE,
+  ACTION_GAME_OPTIONS_PAGE2,
+  //ACTION_GAME_OPTIONS_PREV_PAGE,
+  ACTION_GAME_OPTIONS_PAGE3,
   ACTION_GAME_OPTIONS_RETURN_TO_OPTIONS,
   ACTION_GAME_OPTIONS_ENABLE_AUTOSAVE,
 //  ACTION_GAME_OPTIONS_IMPROVED_PIG_FARMS, // removing this as it turns out the default behavior for pig farms is to require almost no grain
@@ -314,6 +315,7 @@ typedef enum Action {
   ACTION_GAME_OPTIONS_SpecialClickMiddle,
   ACTION_GAME_OPTIONS_SpecialClickDouble,
   ACTION_GAME_OPTIONS_SailorsMoveFaster,
+  ACTION_GAME_OPTIONS_RandomizeInstruments,
   ACTION_MAPGEN_ADJUST_TREES,
   ACTION_MAPGEN_ADJUST_STONEPILES,
   ACTION_MAPGEN_ADJUST_FISH,
@@ -2066,7 +2068,7 @@ PopupBox::draw_options_box() {
 
   //draw_popup_icon(13, 109, 0x3d); /* flipbox to game options */
   //draw_popup_icon(14, 128, 60); /* exit */
-  draw_green_string(18, 131, "Page 1 of 3");
+  draw_green_string(18, 131, "Page 1 of 4");
   draw_popup_icon(30, 128, 0x3d); // flipbox to next page
   draw_popup_icon(32, 128, 60); /* exit */
 }
@@ -2094,7 +2096,7 @@ PopupBox::draw_game_options_box() {
   draw_green_string(3, 105, "Baby Trees Mature Slowly");
   draw_popup_icon(1, 102, option_BabyTreesMatureSlowly ? 288 : 220);
 
-  draw_green_string(18, 131, "Page 2 of 3");
+  draw_green_string(18, 131, "Page 2 of 4");
   draw_popup_icon(30, 128, 0x3d); // flipbox to next page
   draw_popup_icon(32, 128, 60); /* exit */
 }
@@ -2120,7 +2122,33 @@ PopupBox::draw_game_options2_box() {
   draw_green_string(3, 105, "Sailors Move Faster");
   draw_popup_icon(1, 102, option_SailorsMoveFaster ? 288 : 220);
 
-  draw_green_string(18, 131, "Page 3 of 3");
+  draw_green_string(18, 131, "Page 3 of 4");
+  draw_popup_icon(30, 128, 0x3d); // flipbox to previous page
+  draw_popup_icon(32, 128, 60); /* exit */
+}
+
+void
+PopupBox::draw_game_options3_box() {
+  draw_large_box_background(PatternDiagonalGreen);
+  draw_green_string(3, 10, "Randomize Music Instruments");
+  draw_popup_icon(1, 7, option_RandomizeInstruments ? 288 : 220);
+
+  //draw_green_string(3, 29, "Lost Transporters Clear Faster");
+  //draw_popup_icon(1, 26, option_LostTransportersClearFaster ? 288 : 220);
+
+  //draw_green_string(3, 48, "Four Seasons of Weather");
+  //draw_popup_icon(1, 45, option_FourSeasons ? 288 : 220);
+
+  //draw_green_string(3, 67, "Fish Spawn Very Slowly");
+  //draw_popup_icon(1, 64, option_FishSpawnSlowly ? 288 : 220);
+
+  //draw_green_string(3, 86, "Fog Of War");
+  //draw_popup_icon(1, 83, option_FogOfWar ? 288 : 220);
+
+  //draw_green_string(3, 105, "Sailors Move Faster");
+  //draw_popup_icon(1, 102, option_SailorsMoveFaster ? 288 : 220);
+
+  draw_green_string(18, 131, "Page 4 of 4");
   draw_popup_icon(30, 128, 0x3d); // flipbox to previous page
   draw_popup_icon(32, 128, 60); /* exit */
 }
@@ -3011,7 +3039,7 @@ PopupBox::draw_save_box() {
 void
 PopupBox::internal_draw() {
   //Log::Debug["popup.cc"] << "inside PopupBox::internal_draw(), box type is " << box;
-  if (box == Type::TypeOptions || box == Type::TypeGameOptions || box == Type::TypeGameOptions2
+  if (box == Type::TypeOptions || box == Type::TypeGameOptions || box == Type::TypeGameOptions2 || box == Type::TypeGameOptions3
    || box == Type::TypeEditMapGenerator || box == Type::TypeLoadSave){
     draw_large_popup_box_frame();
       // work-around for joining of SettSelect and LoadSave popups, but only LoadSave doubled
@@ -3134,6 +3162,9 @@ PopupBox::internal_draw() {
     break;
   case TypeGameOptions2:
     draw_game_options2_box();
+    break;
+  case TypeGameOptions3:
+    draw_game_options3_box();
     break;
   case TypeEditMapGenerator:
     draw_edit_map_generator_box();
@@ -3806,11 +3837,14 @@ PopupBox::handle_action(int action, int x_, int /*y_*/) {
     interface->close_popup();
     break;
   case ACTION_OPTIONS_FLIP_TO_GAME_OPTIONS:
-  case ACTION_GAME_OPTIONS_PREV_PAGE:
+  //case ACTION_GAME_OPTIONS_PREV_PAGE:
     interface->open_popup(TypeGameOptions);
     break;
-  case ACTION_GAME_OPTIONS_NEXT_PAGE:
+  case ACTION_GAME_OPTIONS_PAGE2:
     interface->open_popup(TypeGameOptions2);
+    break;
+  case ACTION_GAME_OPTIONS_PAGE3:
+    interface->open_popup(TypeGameOptions3);
     break;
   //case ???? 
   /* ToDo */
@@ -3972,6 +4006,13 @@ PopupBox::handle_action(int action, int x_, int /*y_*/) {
       option_SailorsMoveFaster = false;
     } else{
       option_SailorsMoveFaster = true;
+    }
+    break;
+  case ACTION_GAME_OPTIONS_RandomizeInstruments:
+    if (option_RandomizeInstruments){
+      option_RandomizeInstruments = false;
+    } else{
+      option_RandomizeInstruments = true;
     }
     break;
   case ACTION_MAPGEN_ADJUST_TREES:
@@ -4354,7 +4395,7 @@ PopupBox::handle_box_game_options_clk(int cx, int cy) {
     ACTION_GAME_OPTIONS_QUICK_DEMO_EMPTY_BUILD_SITES, 7, 64, 150, 16,
     ACTION_GAME_OPTIONS_TREES_REPRODUCE, 7, 83, 150, 16,
     ACTION_GAME_OPTIONS_BABY_TREES_MATURE_SLOWLY, 7, 102, 150, 16,
-    ACTION_GAME_OPTIONS_NEXT_PAGE, 239, 126, 16, 16,  // flip button
+    ACTION_GAME_OPTIONS_PAGE2, 239, 126, 16, 16,  // flip button
     ACTION_CLOSE_OPTIONS, 255, 126, 16, 16, // exit button
     -1
   };
@@ -4372,6 +4413,24 @@ PopupBox::handle_box_game_options2_clk(int cx, int cy) {
     ACTION_GAME_OPTIONS_FogOfWar, 7, 83, 150, 16,
     //ACTION_GAME_OPTIONS_AdvancedDemolition, 7, 83, 150, 16,  /* removing AdvancedDemolition for now, see https://github.com/forkserf/forkserf/issues/180/
     ACTION_GAME_OPTIONS_SailorsMoveFaster, 7, 102, 150, 16,
+    ACTION_GAME_OPTIONS_PAGE3, 239, 126, 16, 16,  // flip button
+    ACTION_CLOSE_OPTIONS, 255, 126, 16, 16, // exit button
+    -1
+  };
+  handle_clickmap(cx, cy, clkmap);
+}
+
+void
+PopupBox::handle_box_game_options3_clk(int cx, int cy) {
+  //all options need to be defined here for the checkboxes to work,
+  const int clkmap[] = {
+    ACTION_GAME_OPTIONS_RandomizeInstruments, 7, 7, 150, 16,
+    //ACTION_GAME_OPTIONS_LostTransportersClearFaster, 7, 26, 150, 16,
+    //ACTION_GAME_OPTIONS_FourSeasons, 7, 45, 150, 16,
+    //ACTION_GAME_OPTIONS_FishSpawnSlowly, 7, 64, 150, 16,
+    //ACTION_GAME_OPTIONS_FogOfWar, 7, 83, 150, 16,
+    //ACTION_GAME_OPTIONS_AdvancedDemolition, 7, 83, 150, 16,  /* removing AdvancedDemolition for now, see https://github.com/forkserf/forkserf/issues/180/
+    //ACTION_GAME_OPTIONS_SailorsMoveFaster, 7, 102, 150, 16,
     ActionShowOptions, 239, 126, 16, 16,  // flip button
     ACTION_CLOSE_OPTIONS, 255, 126, 16, 16, // exit button
     -1
@@ -5061,6 +5120,9 @@ PopupBox::handle_left_click(int cx, int cy, int modifier) {
     break;
   case TypeGameOptions2:
     handle_box_game_options2_clk(cx, cy);
+    break;
+  case TypeGameOptions3:
+    handle_box_game_options3_clk(cx, cy);
     break;
   case TypeEditMapGenerator:
     handle_box_edit_map_generator_clk(cx, cy);

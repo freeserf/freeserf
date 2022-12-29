@@ -26,9 +26,11 @@
 #include <memory>
 #include <string>
 #include <map>
+//F#include <bitset> // for debugging midi, testing instrument changes
 
 #include "src/freeserf_endian.h"
 #include "src/log.h"
+#include "src/game-options.h"  // for option_RandomizeInstruments
 
 typedef struct MidiFile {
   std::vector<ConvertorXMI2MID::MidiNode> nodes;
@@ -174,10 +176,42 @@ xmi_process_EVNT(PBuffer buffer, MidiFile *midi) {
             node = subnode;
           }
           break;
-        case 0xC0:
+        case 0xC0:   //https://www.cs.cmu.edu/~music/cmsip/readings/Standard-MIDI-file-format-updated.pdf
         case 0xD0:
           node.data1 = buffer->pop<uint8_t>();
           node.data2 = 0;
+          if (option_RandomizeInstruments){
+            // 0x3F is the binary inverse of 0xC0
+            //uint8_t midi_instrument = node.data1 + 1;
+            //Log::Debug["xmi2mid.cc"] << "inside xmi_process_EVNT() 0xC0/0xD0, node.type is " << std::bitset<16>(node.type) << ", mask " << std::bitset<16>(0x3F) << ", foo " << std::bitset<16>(node.type & 0x3F) << ", node.type int is " << int(node.type & 0x3F) << ", node.data1 int " << int(node.data1) << " node.data1 bin " << std::bitset<16>(node.data1);
+            Log::Debug["xmi2mid.cc"] << "inside xmi_process_EVNT() 0xC0/0xD0, found instrument " << node.data1 + 1; 
+            //if (node.data1 == 100){ // #49 String Ensemble 1
+            //  node.data1 = 101;
+            //}
+            //node.data1 = 116;
+
+            //uint8_t random_instrument = (rand() % static_cast<int>(80));
+            // don't use or mess with instruments >80, they are weird and won't work well
+            if (node.data1 < 81){
+              node.data1 = rand() % static_cast<int>(80);
+              Log::Debug["xmi2mid.cc"] << "inside xmi_process_EVNT() 0xC0/0xD0, changing instrument to " << node.data1 + 1;
+            }
+
+            // found instruments
+            //  45 Tremolo Strings
+            //  46 Pizzicato Strings
+            //  49 String Ensemble 1
+            //  61 French Horn
+            //  70 English Horn
+            //  71 Bassoon
+            //  74 Flute
+            //  89 Synth Pad 1 (new age)
+            // 101 Synth FX 5 (brightness)
+            // 117 Taiko Drum
+            //
+            // it seems there might be a few other instruments that aren't appearing here?  and changing node.data1 here doesn't affect them
+            //
+          }
           break;
         case 0xF0:
           if (type == 0xFF) {  // Meta message.
@@ -195,6 +229,8 @@ xmi_process_EVNT(PBuffer buffer, MidiFile *midi) {
           }
           break;
       }
+
+      //Log::Debug["xmi2mid.cc"] << "inside xmi_process_EVNT(), node.type is " << node.type;
 
       midi->nodes.push_back(node);
     } else {

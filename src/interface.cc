@@ -162,7 +162,7 @@ Interface::open_popup(int box) {
   //  TypeLoadSave save a popup window size, and in order to make the LoadSave popup double-wide it must
   //  be referred to as SettSelect here, which makes SettSelect off-center because it is not actually
   //  double-wide but is offset as if it were.  Attempting to fix by simply reverting the offset for this
-  if (box == PopupBox::TypeOptions || box == PopupBox::TypeGameOptions || box == PopupBox::TypeGameOptions2
+  if (box == PopupBox::TypeOptions || box == PopupBox::TypeGameOptions || box == PopupBox::TypeGameOptions2 || box == PopupBox::TypeGameOptions3
    || box == PopupBox::TypeEditMapGenerator || box == PopupBox::TypeSettSelect){
      Log::Debug["interface.cc"] << "inside Interface::open_popup(), for popup type " << box << ", drawing double-wide";
     // double wide, normal height
