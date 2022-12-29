@@ -90,7 +90,6 @@ class Viewport : public GuiObject, public Map::Handler {
 
  protected:
   Map::Terrain special_terrain_type(MapPos pos, Map::Terrain type);  // convenience function to allow changes to both draw_triangle_up & _down without code duplication
-  int special_terrain_sprite(MapPos pos, int sprite_index);  // convenience function to allow changes to both draw_triangle_up & _down without code duplication
   void draw_triangle_up(int x, int y, int m, int left, int right, MapPos pos,
                         Frame *frame);
   void draw_triangle_down(int x, int y, int m, int left, int right,
@@ -99,7 +98,6 @@ class Viewport : public GuiObject, public Map::Handler {
                         Frame *frame);
   void draw_down_tile_col(MapPos pos, int x_base, int y_base, int max_y,
                           Frame *frame);
-  int get_brighter_triangle_luminosity(MapPos pos);  // for drawing shaded map_object sprites on downward slopes (left->right)
   void draw_landscape();
   void draw_path_segment(int x, int y, MapPos pos, Direction dir);
   void draw_border_segment(int x, int y, MapPos pos, Direction dir);

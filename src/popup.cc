@@ -315,6 +315,7 @@ typedef enum Action {
   ACTION_GAME_OPTIONS_SpecialClickMiddle,
   ACTION_GAME_OPTIONS_SpecialClickDouble,
   ACTION_GAME_OPTIONS_SailorsMoveFaster,
+  ACTION_GAME_OPTIONS_WaterDepthLuminosity,
   ACTION_GAME_OPTIONS_RandomizeInstruments,
   ACTION_MAPGEN_ADJUST_TREES,
   ACTION_MAPGEN_ADJUST_STONEPILES,
@@ -2130,11 +2131,11 @@ PopupBox::draw_game_options2_box() {
 void
 PopupBox::draw_game_options3_box() {
   draw_large_box_background(PatternDiagonalGreen);
-  draw_green_string(3, 10, "Randomize Music Instruments");
-  draw_popup_icon(1, 7, option_RandomizeInstruments ? 288 : 220);
+  draw_green_string(3, 10, "Water Depth Visualized");
+  draw_popup_icon(1, 7, option_WaterDepthLuminosity ? 288 : 220);
 
-  //draw_green_string(3, 29, "Lost Transporters Clear Faster");
-  //draw_popup_icon(1, 26, option_LostTransportersClearFaster ? 288 : 220);
+  draw_green_string(3, 29, "Randomize Music Instruments");
+  draw_popup_icon(1, 26, option_RandomizeInstruments ? 288 : 220);
 
   //draw_green_string(3, 48, "Four Seasons of Weather");
   //draw_popup_icon(1, 45, option_FourSeasons ? 288 : 220);
@@ -4008,6 +4009,19 @@ PopupBox::handle_action(int action, int x_, int /*y_*/) {
       option_SailorsMoveFaster = true;
     }
     break;
+  case ACTION_GAME_OPTIONS_WaterDepthLuminosity:
+    if (option_WaterDepthLuminosity){
+      option_WaterDepthLuminosity = false;
+      //clear_custom_graphics_cache();
+      interface->get_game()->set_must_redraw_frame();
+      interface->get_viewport()->set_size(width, height);  // this does the magic refresh without affecting popups (as Interface->layout() does)
+    } else{
+      option_WaterDepthLuminosity = true;
+      //clear_custom_graphics_cache();
+      interface->get_game()->set_must_redraw_frame();
+      interface->get_viewport()->set_size(width, height);  // this does the magic refresh without affecting popups (as Interface->layout() does)
+    }
+    break;
   case ACTION_GAME_OPTIONS_RandomizeInstruments:
     if (option_RandomizeInstruments){
       option_RandomizeInstruments = false;
@@ -4424,8 +4438,8 @@ void
 PopupBox::handle_box_game_options3_clk(int cx, int cy) {
   //all options need to be defined here for the checkboxes to work,
   const int clkmap[] = {
-    ACTION_GAME_OPTIONS_RandomizeInstruments, 7, 7, 150, 16,
-    //ACTION_GAME_OPTIONS_LostTransportersClearFaster, 7, 26, 150, 16,
+    ACTION_GAME_OPTIONS_WaterDepthLuminosity, 7, 7, 150, 16,
+    ACTION_GAME_OPTIONS_RandomizeInstruments, 7, 26, 150, 16,
     //ACTION_GAME_OPTIONS_FourSeasons, 7, 45, 150, 16,
     //ACTION_GAME_OPTIONS_FishSpawnSlowly, 7, 64, 150, 16,
     //ACTION_GAME_OPTIONS_FogOfWar, 7, 83, 150, 16,

@@ -65,7 +65,7 @@ MapPos debug_overlay_clicked_pos = bad_map_pos;
 
 // this array is used to get the map_ground sprite id for a given
 //  Map::Terrain type (ex. TypeSnow0)  and luminosity level
-// Notice that 32 (water) is all same because it only has one luminosity levle
+// Notice that 32 (water) is all same because it only has one luminosity level
 //  buy others have varying levels
 /*
 static const uint8_t tri_spr[] = {
@@ -87,7 +87,7 @@ static const uint8_t tri_spr[] = {
   16, 17, 18, 19, 20, 21, 22, 23   // snow
 };
 */
-// testing varied water darkness by depth
+// testing varied water darkness by depth for option_WaterDepthLuminosity
 static const uint8_t tri_spr[] = {
   40, 40, 40, 40, 40, 40, 40, 40,  // water
   32, 32, 32, 32, 32, 32, 32, 32,  // water
@@ -156,46 +156,6 @@ Viewport::special_terrain_type(MapPos pos, Map::Terrain type){
   return new_type;
 }
 
-// return the new sprite id (or original sprite id)
-//  as modified by any special new option
-//  logic.  This function exists to avoid
-//  having to constantly sync identical logic
-//  between draw_triangle_up & _down
-int
-Viewport::special_terrain_sprite(MapPos pos, int sprite_index){
-  Log::Debug["viewport.cc"] << "start of Viewport::special_terrain_sprite(), pos " << pos << ", orig terrain sprite_index " << sprite_index;
-
-  // option_FogOfWar
-  //  draw revealed-but-not-currently-visible areas darker than normal
-  /* no longer using prerendered custom PNG sprites,
-      switching to using mutated sprites derived directly from base sprites
-  if (option_FogOfWar){
-    static const int8_t tri_fog[] = {
-      34, 34, 36,  0,  1,  2,  3,  4,  // grass   (default  0-7)  lower # is darker
-      37, 38, 39,  8,  9, 10, 11, 12,  // tundra  (default  8-15)
-      40, 41, 42, 16, 17, 18, 19, 20,  // snow    (default  16-23)
-      43, 44, 45, 24, 25, 26, 27, 28,  // desert  (default  24-31)
-      46,                              // water   (default has only has one luminosity, sprite 32)
-      33,                              // shroud  (does not exist in default, no luminosity change here. Added for simplicity)
-    };  // 34 values in array ([0-33])
-    if (!map->is_visible(pos, interface->get_player()->get_index())){
-      sprite_index = tri_fog[sprite_index];
-    }
-  }
-  */
-
-  // use 100+base to indicate darker sprites for FogOfWar
-  //  the SpriteDosSolid constructor has added logic to handle it
-  if (option_FogOfWar){
-    if (!map->is_visible(pos, interface->get_player()->get_index())){
-      sprite_index += 100;
-    }
-  }
-
-  Log::Debug["viewport.cc"] << "start of Viewport::special_terrain_sprite(), pos " << pos << ", new sprite_index " << sprite_index;
-  return sprite_index;
-}
-
 void
 Viewport::draw_triangle_up(int lx, int ly, int m, int left, int right,
                            MapPos pos, Frame *tile) {
@@ -243,8 +203,10 @@ Viewport::draw_triangle_up(int lx, int ly, int m, int left, int right,
   //int sprite = tri_spr[index];
   sprite = tri_spr[index];
 
-  // apply any hack-ish modifications from various game options
-  //sprite = special_terrain_sprite(pos, sprite);
+  // restore normal water sprite if not using option_WaterDepthLuminosity
+  if (!option_WaterDepthLuminosity && sprite > 32){
+    sprite = 32;
+  }
 
   int mutate = 0;  // odd numbered mutate indicates this is a darkened tile
   if (option_FogOfWar){
@@ -325,8 +287,10 @@ Viewport::draw_triangle_down(int lx, int ly, int m, int left, int right,
   //int sprite = tri_spr[index];
   sprite = tri_spr[index];
 
-  // apply any hack-ish modifications from various game options
-  //sprite = special_terrain_sprite(pos, sprite);
+  // restore normal water sprite if not using option_WaterDepthLuminosity
+  if (!option_WaterDepthLuminosity && sprite > 32){
+    sprite = 32;
+  }
 
   int mutate = 0;  // odd numbered mutate indicates this is a darkened tile
   if (option_FogOfWar){
@@ -356,108 +320,6 @@ Viewport::draw_triangle_down(int lx, int ly, int m, int left, int right,
   }
 
   tile->draw_masked_sprite(lx, ly + MAP_TILE_HEIGHT, Data::AssetMapMaskDown, mask, Data::AssetMapGround, sprite, mutate);
-}
-
-
-// return the 0-7 luminosity value corresponding
-//  to the higher (brighter) triangle (up or down)
-int
-Viewport::get_brighter_triangle_luminosity(MapPos pos) {
-  Log::Debug["viewport.cc"] << "inside Viewport::get_brighter_triangle_luminosity, pos " << pos;
-  // copied from draw_triangle_up
-  static const int8_t up_tri_mask[] = {
-     0,  1,  3,  6,  7, -1, -1, -1, -1,
-     0,  1,  2,  5,  6,  7, -1, -1, -1,
-     0,  1,  2,  3,  5,  6,  7, -1, -1,
-     0,  1,  2,  3,  4,  5,  6,  7, -1,
-     0,  1,  2,  3,  4,  4,  5,  6,  7,
-    -1,  0,  1,  2,  3,  4,  5,  6,  7,
-    -1, -1,  0,  1,  2,  4,  5,  6,  7,
-    -1, -1, -1,  0,  1,  2,  5,  6,  7,
-    -1, -1, -1, -1,  0,  1,  4,  6,  7
-  };  // this is a 9x9 array, so 81 values in array ([0-80])
-  // copied from draw_triangle_up
-  static const int8_t down_tri_mask[] = {
-     0,  0,  0,  0,  0, -1, -1, -1, -1,
-     1,  1,  1,  1,  1,  0, -1, -1, -1,
-     3,  2,  2,  2,  2,  1,  0, -1, -1,
-     6,  5,  3,  3,  3,  2,  1,  0, -1,
-     7,  6,  5,  4,  4,  3,  2,  1,  0,
-    -1,  7,  6,  5,  4,  4,  4,  2,  1,
-    -1, -1,  7,  6,  5,  5,  5,  5,  4,
-    -1, -1, -1,  7,  6,  6,  6,  6,  6,
-    -1, -1, -1, -1,  7,  7,  7,  7,  7
-  };
-
-  // here is how draw_up_tile_col does it
-  /*  starts a col beginning with up pointing triangle
-  int m = map->get_height(pos);
-  int left, right;
-  // Loop until a tile is inside the frame (y >= 0).
-  while (1) {
-    pos = map->move_down(pos);
-    left = map->get_height(pos);
-    right = map->get_height(map->move_right(pos));
-    int t = std::min(left, right);
-    if (y_base + MAP_TILE_HEIGHT - 4*t >= 0) break;
-    y_base += MAP_TILE_HEIGHT;
-    pos = map->move_down_right(pos);
-    m = map->get_height(pos);
-    if (y_base + MAP_TILE_HEIGHT - 4*m >= 0) goto down;
-    y_base += MAP_TILE_HEIGHT;
-  }
-
-  // Loop until a tile is completely outside the frame (y >= max_y). 
-  while (1) {
-    if (y_base - 2*MAP_TILE_HEIGHT - 4*m >= max_y) break;
-    draw_triangle_up(x_base, y_base - 4*m, m, left, right, pos, tile);
-    y_base += MAP_TILE_HEIGHT;
-    pos = map->move_down_right(pos);
-    m = map->get_height(pos);
-    if (y_base - 2*MAP_TILE_HEIGHT - 4*std::max(left, right) >= max_y) break;
-  down:
-    draw_triangle_down(x_base, y_base - 4*m, m, left, right, pos, tile);
-    y_base += MAP_TILE_HEIGHT;
-    pos = map->move_down(pos);
-    left = map->get_height(pos);
-    right = map->get_height(map->move_right(pos));
-  }
-  */
-
-  // the important bits seem to be:
-  // for up triangle on up_col
-  int uptri_m = map->get_height(pos);
-  int uptri_posx = map->move_down(pos);
-  int uptri_left = map->get_height(uptri_posx);
-  int uptri_right = map->get_height(map->move_right(uptri_posx));
-    
-  int up_mask   = 4 +  uptri_m - uptri_left + 9*(4 + uptri_m - uptri_right);
-
-  // for down triangle on up_col
-  int dntri_left = map->get_height(pos);
-  int dntri_right = map->get_height(map->move_right(pos));
-  int dntri_posx = map->move_down_right(pos);
-  int dntri_m = map->get_height(dntri_posx);
-  dntri_posx = map->move_down_right(dntri_posx);
-  dntri_m = map->get_height(dntri_posx);
-
-  int down_mask = 4 +  dntri_left - dntri_m + 9*(4 + dntri_right - dntri_m);
-
-  Log::Debug["viewport.cc"] << "inside Viewport::get_brighter_triangle_luminosity, pos " << pos << ", up_mask " << up_mask << ", down_mask " << down_mask;
-  if (up_tri_mask[up_mask] < 0) {
-    throw ExceptionFreeserf("get_brighter_triangle_luminosity found a up-triangle level below zero!");
-  }
-  if (down_tri_mask[down_mask] < 0) {
-    throw ExceptionFreeserf("get_brighter_triangle_luminosity found a up-triangle level below zero!");
-  }
-  Log::Debug["viewport.cc"] << "inside Viewport::get_brighter_triangle_luminosity, pos " << pos << ", up_mask " << up_mask << ", down_mask " << down_mask << ", up luminosity " << int(up_tri_mask[up_mask]) << ", down luminosity " << int(down_tri_mask[down_mask]);
-  // return the higher value
-  if (up_tri_mask[up_mask] >= down_tri_mask[down_mask]){
-    Log::Debug["viewport.cc"] << "inside Viewport::get_brighter_triangle_luminosity, pos " << pos << ", up_mask " << up_mask << ", down_mask " << down_mask << ", returning up luminosity " << int(up_tri_mask[up_mask]);
-    return up_tri_mask[up_mask];
-  }
-  Log::Debug["viewport.cc"] << "inside Viewport::get_brighter_triangle_luminosity, pos " << pos << ", up_mask " << up_mask << ", down_mask " << down_mask << ", returning down luminosity " << int(down_tri_mask[down_mask]);
-  return down_tri_mask[down_mask];
 }
 
 
@@ -2097,11 +1959,8 @@ Viewport::draw_map_objects_row(MapPos pos, int y_base, int cols, int x_base, int
       } 
       */
 
-      //int pos_luminosity = 0;
-      //int pos_luminosity = get_brighter_triangle_luminosity(pos);
-      //Log::Debug["viewport.cc"] << "inside Viewport::draw_map_objects_row, pos " << pos << ", obj type " << map->get_obj(pos) << ", pos_luminosity is " << pos_luminosity; 
 
-/*  moved into crammed animation above
+      /*  moved into crammed animation above
       // cattails at water edge
       if (sprite == Map::ObjectCattail0 - Map::ObjectTree0){
         Log::Debug["viewport.cc"] << "inside Viewport::draw_map_objects_row, found cattail at pos " << pos;

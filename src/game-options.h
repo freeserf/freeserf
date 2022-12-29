@@ -24,6 +24,7 @@ extern bool option_SpecialClickBoth;
 extern bool option_SpecialClickMiddle;
 extern bool option_SpecialClickDouble;
 extern bool option_SailorsMoveFaster;
+extern bool option_WaterDepthLuminosity;
 extern bool option_RandomizeInstruments;  // only affects DOS music
 extern int season;
 extern int last_season;

@@ -1333,8 +1333,9 @@ const int ClassicMapGenerator::default_terrain_spikyness = 0x9999;
   // Adjust terrain types on shores
   change_shore_water_type();
   change_shore_grass_type();
-  create_water_shallows();
-  change_shore_water_type();  // need to do this a second time to smooth after creating shallows
+  // disabling shallows for now, needs tweaking and not required until cattails/reeds and more working properly
+  //create_water_shallows();
+  //change_shore_water_type();  // need to do this a second time to smooth after creating shallows
 
 
   // Create deserts
