@@ -1,6 +1,22 @@
 #ifndef SRC_GAME_OPTIONS_H_
 #define SRC_GAME_OPTIONS_H_
 
+#include "src/configfile.h"
+//#include "src/savegame.h"  // DO NOT INCLUDE THIS IT BREAKS THINGS //for SaveGameWriter to write options to file
+
+class GameOptions {
+ public:
+  void load_options_from_file();
+  void save_options_to_file();
+  GameOptions();
+  static GameOptions &get_instance();
+ protected:
+  PConfigFile meta_main;
+  std::string folder_path;
+  std::string path;
+  std::string filename;
+};
+
 // these variables are deCLAREd here, and this header is to be included in any
 //  code file that needs to use them
 // these variables are deFINEd (and initialized?) in game.cc (for now) which is an arbitrary 
@@ -23,10 +39,17 @@ extern bool option_InvertWheelZoom;
 extern bool option_SpecialClickBoth;
 extern bool option_SpecialClickMiddle;
 extern bool option_SpecialClickDouble;
+extern bool option_SailorsMoveFaster;
+extern bool option_WaterDepthLuminosity;
+extern bool option_RandomizeInstruments;  // only affects DOS music
 extern int season;
 extern int last_season;
 extern int subseason;
 extern int last_subseason;
 extern int season_sprite_offset[4];
+// because SDL Event Loop can only notify game/interface but cannot query it
+//  this is needed to determine mousewheel behavior, so it can either zoom the viewport
+//  or scroll the load games window
+extern bool is_list_in_focus;
 
 #endif  // SRC_GAME_OPTIONS_H_

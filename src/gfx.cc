@@ -263,31 +263,31 @@ Graphics::get_instance() {
 //
 //
 void
-Frame::draw_sprite(int x, int y, Data::Resource res, unsigned int index, bool use_off, const Color &color, float progress, bool darken) {
-  //Log::Debug["gfx.cc"] << "inside Frame::draw_sprite  with res " << res << " and index " << index << ", darken bool is " << darken;
+Frame::draw_sprite(int x, int y, Data::Resource res, unsigned int index, bool use_off, const Color &color, float progress, int mutate) {
+  //Log::Debug["gfx.cc"] << "inside Frame::draw_sprite  with res " << res << " and index " << index << ", mutate int is " << mutate;
   Data::Sprite::Color pc = {color.get_blue(),
                             color.get_green(),
                             color.get_red(),
                             color.get_alpha()};
   
-  // for darken versions of original game sprites when on downward slopes (left->right)
-  //  The darkened terrain sprites must be cached with alernate sprite indexes
+  // for mutate versions of original game sprites when on downward slopes (left->right)
+  //  The mutated terrain sprites must be cached with alernate sprite indexes
   //   to allow both the fully-visible and revealed-but-not-currently-visible
   //   sprites to be drawn at the same time
-  //  To support this, fake the sprite index for the darkened sprites by using +XX
+  //  To support this, fake the sprite index for the mutated sprites by using +XX
   //   so that they are cached and retrieved with the higher index but the original
   //   sprite index is actually passed to the downstream functions to retrieve from
-  //   the SPAx.PA data file, as the darkened sprites don't actually exist anywhere,
+  //   the SPAx.PA data file, as the mutated sprites don't actually exist anywhere,
   //   they are built by mutating the original sprite during loading
   uint64_t id; // image cache key
-  if (darken){
+  if (mutate & 1){
     // fake high sprite indexes to allow caching both original and mutated
     if (res == Data::AssetMapObject){
       // this is pretty arbitrary
       id = Data::Sprite::create_id(res, index + 3000, 0, 0, pc);
-      //Log::Debug["gfx.cc"] << "inside Frame::draw_sprite  with res " << res << " and index " << index << ", darken bool is " << darken << ", caching with fake high id " << index + 3000;
+      //Log::Debug["gfx.cc"] << "inside Frame::draw_sprite  with res " << res << " and index " << index << ", mutate int is " << mutate << ", caching with fake high id " << index + 3000;
     } else{
-      throw ExceptionFreeserf("inside Frame::draw_sprite, unexpected Data::Asset type to darken!");      
+      throw ExceptionFreeserf("inside Frame::draw_sprite, unexpected Data::Asset type to mutate!");      
     }
   }else{
     // original sprite index
@@ -308,9 +308,11 @@ Frame::draw_sprite(int x, int y, Data::Resource res, unsigned int index, bool us
 
       unsigned int orig_index = -1;
 
-      if (res == Data::AssetFrameBottom
-       || res == Data::AssetMapObject
-       || res == Data::AssetMapShadow){
+      if (res == Data::AssetFrameBottom // four seasons season dial in panelbar
+       || res == Data::AssetMapObject  // new custom trees, flowers
+       || res == Data::AssetMapShadow  // shadows for new custom trees
+       || res == Data::AssetIcon   // for game-init icons
+       || res == Data::AssetMapWaves){  // for splashes on water objects
         // these types, if having beyond-original indexes, are new graphics
         //  loaded from actual PN  files using the data_source_Custom
         //Log::Debug["gfx.cc"] << "inside Frame::draw_sprite, sprite index " << index << " trying to load custom data source";
@@ -326,6 +328,8 @@ Frame::draw_sprite(int x, int y, Data::Resource res, unsigned int index, bool us
             // try falling back to original sprite if custom sprite couldn't be loaded
             if (res == Data::AssetFrameBottom){
               orig_index = 6;  // this is the original sprite that the seasons dial replaces
+            }else if (res == Data::AssetMapGround && index > 32){
+              orig_index = 32;  // normal Water sprite
             }else{
               // stripping the first two digits results in 0-7 which hold the original Trees & Tree-shadows
               //  and the original frame_bottom sprite that the seasons dial replaces is #6, which will also work
@@ -339,12 +343,15 @@ Frame::draw_sprite(int x, int y, Data::Resource res, unsigned int index, bool us
           }
         }
       }else if (res == Data::AssetMapGround){
+        //
+        //  REMOVE THIS WHOLE SECTION, I think
+        //
         //Log::Debug["gfx.cc"] << "inside Frame::draw_sprite, sprite index " << index << "terrain sprite, nothing to do here";
         // for option_FogOfWar
         //  call get_sprite for the BASE terrain sprite index to be mutated
         //
         // logic inside the downstream SpriteDosSolid/Transparent/Overlay constructor
-        //   will apply necessary mutation when it sees darken bool set
+        //   will apply necessary mutation when it sees mutate int set
         //
         // this mutated sprite will be cached with its new higher-than-original index
         //  so it will be loaded from cache on subsequent draw_sprite calls without
@@ -367,13 +374,12 @@ Frame::draw_sprite(int x, int y, Data::Resource res, unsigned int index, bool us
       //    - option_FourSeasons uses this for seasonal changes to terrain
       //
       //s = data_source->get_sprite(res, index, pc);
-      //Log::Debug["gfx.cc"] << "inside Frame::draw_sprite, using original data source, index " << index << ", darken bool is " << darken;
-      s = data_source->get_sprite(res, index, pc, darken);
+      //Log::Debug["gfx.cc"] << "inside Frame::draw_sprite, using original data source, index " << index << ", mutate int is " << mutate;
+      s = data_source->get_sprite(res, index, pc, mutate);
     } // if index beyond original range
 
     if (!s) {
-      Log::Warn["gfx.cc"] << "inside Frame::draw_sprite, Failed to decode sprite #"
-                            << Data::get_resource_name(res) << ":" << index;
+      Log::Warn["gfx.cc"] << "inside Frame::draw_sprite, Failed to decode sprite #" << Data::get_resource_name(res) << ":" << index;
       return;
     }
     image = new Image(video, s);
@@ -388,110 +394,6 @@ Frame::draw_sprite(int x, int y, Data::Resource res, unsigned int index, bool us
                                                      progress);
   video->draw_image(image->get_video_image(), x, y, y_off, video_frame);
 }
-
-/*
-// added to support messing with weather/seasons/palette tiles, copy of protected Frame::draw_sprite#2
-void
-Frame::draw_sprite_special3(int x, int y, Data::Resource res, unsigned int index, bool use_off, const Color &color, float progress, unsigned int pos, unsigned int obj) {
-  Log::Info["gfx.cc"] << "inside Frame::draw_sprite_special3  with res " << res << ", index " << index << ", pos " << pos << ", obj " << obj;
-  Data::Sprite::Color pc = {color.get_blue(),
-                            color.get_green(),
-                            color.get_red(),
-                            color.get_alpha()};
-
-  uint64_t id = Data::Sprite::create_id(res, index, 0, 0, pc);
-  Image *image = Image::get_cached_image(id);
-  if (image == nullptr) {
-    // messing with weather/seasons/palette
-    Data::PSprite s;
-    //int frame = index % 10;
-    //int offset = season_sprite_offset[season]; // THIS DOESN'T WORK FOR CROSS-SEASONAL SPRITES AS subseason CHANGES!
-    //int tree = (index - offset - frame) / 10;
-    //Log::Info["gfx.cc"] << "inside Frame::draw_sprite_special3, found season_sprite_offset[" << season << "] of " << offset << ", Tree#" << tree << " and frame# " << frame;
-
-    if (res == Data::AssetMapObject || res == Data::AssetMapShadow){
-    //if (res == Data::AssetMapObject){  // why is it still looking up MapShadows?  I thought I told it to use another function
-      Log::Info["gfx.cc"] << "inside Frame::draw_sprite_special3, trying to load Custom MapObject graphic with index " << index;
-      Data &data = Data::get_instance();
-      if (data.get_data_source_Custom() == nullptr){
-        Log::Error["gfx.cc"] << "inside Frame::draw_sprite_special3, index " << index << ", data_source (custom) is nullptr!, are the custom data files missing?";
-        // need to get the original 00x sprite number instead of the 2xx/3xx/4xx set used for FourSeasons
-        //  mod 10 essentially "strips the first two digits" which works because the original Tree values are 0 through 9
-        // note that this assumes it is a Tree because nothing else should be using this draw_sprite_special3 function, but if it does it will likely break!
-        unsigned int orig_index = index % 10;
-        Log::Warn["gfx.cc"] << "inside Frame::draw_sprite_special3, custom datasource not found for sprite index " << index <<", trying to fall back to default datasource for this sprite, using " << orig_index;
-        s = data_source->get_sprite(res, orig_index, pc);
-      }else{
-        // load the custom sprite
-        Log::Debug["gfx.cc"] << "inside Frame::draw_sprite_special3, custom datasource successfully loaded for sprite index " << index;
-        s = data.get_data_source_Custom()->get_sprite(res, index, pc); // FourSeasons, with crammed animation
-      }
-    }else{
-      s = data_source->get_sprite(res, index, pc);
-    }
-
-    //Data::PSprite s = data_source->get_sprite(res, index, pc);
-    if (!s) {
-      Log::Warn["gfx.cc"] << "inside Frame::draw_sprite_special3, Failed to decode sprite #"
-                            << Data::get_resource_name(res) << ":" << index;
-      return;
-    }
-
-    image = new Image(video, s);
-    Image::cache_image(id, image);
-  }
-
-  if (use_off) {
-    x += image->get_offset_x();
-    y += image->get_offset_y();
-  }
-  int y_off = image->get_height() - static_cast<int>(image->get_height() *
-                                                     progress);
-  video->draw_image(image->get_video_image(), x, y, y_off, video_frame);
-}
-*/
-
-
-/*
-void
-Frame::draw_sprite(int x, int y, Data::Resource res, unsigned int index,
-                   bool use_off) {
-  //Log::Info["gfx"] << "inside Frame::draw_sprite#3, calling draw_sprite#2 with res " << res << ", index " << index;
-  draw_sprite(x, y, res, index, use_off, Color::transparent, 1.f);  // this is Frame::draw_sprite#2
-}
-*/
-
-/*
-// copy of Frame::draw_sprite#3 but with passing of pos and object type to support messing with weather/seasons/palette tiles
-void
-Frame::draw_sprite_special1(int x, int y, Data::Resource res, unsigned int index, bool use_off, unsigned int pos, unsigned int obj) {
-  //Log::Info["gfx"] << "inside Frame::draw_sprite_special1, calling Frame::draw_sprite_special3 with res " << res << ", index " << index;
-  //draw_sprite_special3(x, y, res, index, use_off, Color::transparent, 1.f, pos, obj);  // this is Frame::draw_sprite#2
-}
-*/
-
-//void
-//Frame::draw_sprite(int x, int y, Data::Resource res, unsigned int index, bool use_off, float progress) {
-//  //Log::Info["gfx"] << "inside Frame::draw_sprite#4, calling draw_sprite#2 with res " << res << ", index " << index;
-//  draw_sprite(x, y, res, index, use_off, Color::transparent, progress);  // this is Frame::draw_sprite#2
-//}
-
-//void
-//Frame::draw_sprite(int x, int y, Data::Resource res, unsigned int index,
-//                   bool use_off, const Color &color) {
-//  //Log::Info["gfx"] << "inside Frame::draw_sprite#5  with res " << res << " and index " << index;
-//  draw_sprite(x, y, res, index, use_off, color, 1.f);
-//}
-
-/*
-// copy of Frame::draw_sprite#5 but with passing of pos and object type to support messing with weather/seasons/palette tiles
-void
-Frame::draw_sprite_special2(int x, int y, Data::Resource res, unsigned int index,
-                   bool use_off, const Color &color, unsigned int pos, unsigned int obj) {
-  Log::Info["gfx"] << "inside Frame::draw_sprite_special2 calling Frame::draw_sprite_special3 with res " << res << " and index " << index;
-  //draw_sprite_special3(x, y, res, index, use_off, color, 1.f, pos, obj);
-}
-*/
 
 void
 Frame::draw_sprite_relatively(int x, int y, Data::Resource res,
@@ -521,36 +423,58 @@ Frame::draw_sprite_relatively(int x, int y, Data::Resource res,
 void
 Frame::draw_masked_sprite(int x, int y, Data::Resource mask_res,
                           unsigned int mask_index, Data::Resource res,
-                          unsigned int index, bool darken) {
-  //Log::Debug["gfx.cc"] << "inside Frame::draw_masked_sprite  with res " << res;
+                          unsigned int index, int mutate) {
+  //Log::Debug["gfx.cc"] << "inside Frame::draw_masked_sprite  with res " << res << ", index " << index << ", mutate " << mutate;
 
   // for option_FogOfWar
-  //  The darkened terrain sprites must be cached with alernate sprite indexes
+  //  The mutated terrain sprites must be cached with alernate sprite indexes
   //   to allow both the fully-visible and revealed-but-not-currently-visible
   //   sprites to be drawn at the same time
-  //  To support this, fake the sprite index for the darkened sprites by using +100
+  //  To support this, fake the sprite index for the mutated sprites by using +100
   //   so that they are cached and retrieved with the higher index but the original
   //   sprite index is actually passed to the downstream functions to retrieve from
-  //   the SPAx.PA data file, as the darkened sprites don't actually exist anywhere,
+  //   the SPAx.PA data file, as the mutated sprites don't actually exist anywhere,
   //   they are built by mutating the original sprite during loading
   uint64_t id; // image cache key
-  if (darken){
-    // fake high sprite indexes to allow caching both original and mutated
-    if (res == Data::AssetMapGround){
-      // orig terrain types are all under 100, + 100
-      id = Data::Sprite::create_id(res, index + 100, mask_res, mask_index, {0, 0, 0, 0});
-      /* this needs to be in draw_masked_sprite not draw_sprite!
-    } else if (res == Data::AssetMapObject){
-      // this is pretty arbitrary
-      id = Data::Sprite::create_id(res, index + 3000, mask_res, mask_index, {0, 0, 0, 0});
-      */
-    } else{
-      throw ExceptionFreeserf("unexpected Data::Asset type to darken!");      
+  int special_offset = 0;
+  int real_index = index;
+
+  if (mutate > 0){
+    if (res != Data::AssetMapGround){
+      throw ExceptionFreeserf("unexpected Data::Asset type to mutate!");      
     }
-  }else{
-    // original sprite index
-    id = Data::Sprite::create_id(res, index, mask_res, mask_index, {0, 0, 0, 0});
   }
+
+  if (mutate & 1){  // odd numbered mutate indicates this is a darkened tile
+    // fake high sprite indexes to allow caching both original and mutated
+    // orig terrain types are all under 100, + 100
+    special_offset = 100;
+  }
+
+  if (index >= 40 && index <= 42){  // special water luminosity by depth
+    //Log::Debug["gfx.cc"] << "inside Frame::draw_masked_sprite  with res " << res << ", mutate is >1";
+
+    // create different luminosity/colors for Water0 through Water3
+    if (index == 40){
+      // Water0
+      real_index = 32;
+      mutate += 10;
+    }
+    //
+    // NOTE Water1 is unchanged
+    //
+      else if (index == 41){
+      // Water2
+      real_index = 32;
+      mutate += 12;
+    }else if (index == 42){
+      // Water3
+      real_index = 32;
+      mutate += 14;
+    }
+  }
+
+  id = Data::Sprite::create_id(res, index + special_offset, mask_res, mask_index, {0, 0, 0, 0});
   
   // see if finalized sprite w/ mask applied already in cache  
   Image *image = Image::get_cached_image(id);
@@ -560,21 +484,21 @@ Frame::draw_masked_sprite(int x, int y, Data::Resource mask_res,
     Data::PSprite s;
     //
     // fetch the base sprite, MASK IS NOT APPLIED YET
-    //   darken if specified
-    s = data_source->get_sprite(res, index, {0, 0, 0, 0}, darken);
+    //   mutate if specified
+    s = data_source->get_sprite(res, real_index, {0, 0, 0, 0}, mutate);
     
     if (!s) {
       Log::Warn["graphics"] << "Failed to decode sprite #"
-                            << Data::get_resource_name(res) << ":" << index;
+                            << Data::get_resource_name(res) << ":" << real_index;
       return;
     }
 
     //
     // fetch the mask sprite as if it were a normal sprite
     //
-    // darken bool is false is default, but listing explicitly here to avoid confusion
+    // mutate int is false is default, but listing explicitly here to avoid confusion
     //   The mask is not modified, only the base terrain sprite is
-    Data::PSprite m = data_source->get_sprite(mask_res, mask_index,{0, 0, 0, 0}, darken = false);
+    Data::PSprite m = data_source->get_sprite(mask_res, mask_index,{0, 0, 0, 0}, mutate = 0);
                                               
     if (!m) {
       Log::Warn["graphics"] << "Failed to decode sprite #"
@@ -589,7 +513,7 @@ Frame::draw_masked_sprite(int x, int y, Data::Resource mask_res,
                             << Data::get_resource_name(mask_res)
                             << ":" << mask_index
                             << " to sprite #"
-                            << Data::get_resource_name(res) << ":" << index;
+                            << Data::get_resource_name(res) << ":" << real_index;
       return;
     }
 
@@ -606,6 +530,7 @@ Frame::draw_masked_sprite(int x, int y, Data::Resource mask_res,
 
 /* Draw the waves sprite with given mask and sprite
    indices at x, y in dest frame. */
+   // why is this its own function?
 void
 Frame::draw_waves_sprite(int x, int y, Data::Resource mask_res,
                          unsigned int mask_index, Data::Resource res,

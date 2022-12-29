@@ -5,7 +5,7 @@
  *
  * This file is part of freeserf.
  *
- * freeserf is free software: you can redistribute it and/or modify
+ * freeserf is free software: you can redistribute it anLoadd/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
@@ -292,8 +292,9 @@ typedef enum Action {
   ACTION_SAVE,
   ACTION_NEW_NAME,
   ACTION_OPTIONS_FLIP_TO_GAME_OPTIONS,
-  ACTION_GAME_OPTIONS_NEXT_PAGE,
-  ACTION_GAME_OPTIONS_PREV_PAGE,
+  ACTION_GAME_OPTIONS_PAGE2,
+  //ACTION_GAME_OPTIONS_PREV_PAGE,
+  ACTION_GAME_OPTIONS_PAGE3,
   ACTION_GAME_OPTIONS_RETURN_TO_OPTIONS,
   ACTION_GAME_OPTIONS_ENABLE_AUTOSAVE,
 //  ACTION_GAME_OPTIONS_IMPROVED_PIG_FARMS, // removing this as it turns out the default behavior for pig farms is to require almost no grain
@@ -313,6 +314,9 @@ typedef enum Action {
   ACTION_GAME_OPTIONS_SpecialClickBoth,
   ACTION_GAME_OPTIONS_SpecialClickMiddle,
   ACTION_GAME_OPTIONS_SpecialClickDouble,
+  ACTION_GAME_OPTIONS_SailorsMoveFaster,
+  ACTION_GAME_OPTIONS_WaterDepthLuminosity,
+  ACTION_GAME_OPTIONS_RandomizeInstruments,
   ACTION_MAPGEN_ADJUST_TREES,
   ACTION_MAPGEN_ADJUST_STONEPILES,
   ACTION_MAPGEN_ADJUST_FISH,
@@ -345,17 +349,22 @@ PopupBox::PopupBox(Interface *_interface)
   minimap->set_size(128, 128);
   add_float(minimap.get(), 8, 9);
 
-  file_list->set_size(120, 100);
+  //file_list->set_size(120, 100);  // this is the save game file list, NOT the load game file list (which is in game-init.cc)
+  file_list->set_size(260, 100);
   file_list->set_displayed(false);
+
   file_list->set_selection_handler([this](const std::string &item) {
     size_t p = item.find_last_of("/\\");
     std::string file_name = item.substr(p+1, item.size());
     this->file_field->set_text(file_name);
+    //this->file_field->set_filter(savegame_text_input_filter);  // not here, lower
   });
   add_float(file_list.get(), 12, 22);
 
-  file_field->set_size(120, 10);
+  //file_field->set_size(120, 10);
+  file_field->set_size(260, 10);
   file_field->set_displayed(false);
+  file_field->set_filter(savegame_text_input_filter);
   add_float(file_field.get(), 12, 124);
 }
 
@@ -374,6 +383,7 @@ PopupBox::draw_popup_box_frame() {
 /* Draw larger frame used for extra options screen */
 void
 PopupBox::draw_large_popup_box_frame() {
+  //Log::Debug["popup.cc"] << "inside PopupBox::draw_large_popup_box_frame()";
   //sprite index 0: top bar, decorated (~2 pixels thicker than the others!)
   //sprite index 1: bottom bar, plain
   //sprite index 2: left bar, plain
@@ -2059,7 +2069,7 @@ PopupBox::draw_options_box() {
 
   //draw_popup_icon(13, 109, 0x3d); /* flipbox to game options */
   //draw_popup_icon(14, 128, 60); /* exit */
-  draw_green_string(18, 131, "Page 1 of 3");
+  draw_green_string(18, 131, "Page 1 of 4");
   draw_popup_icon(30, 128, 0x3d); // flipbox to next page
   draw_popup_icon(32, 128, 60); /* exit */
 }
@@ -2087,7 +2097,7 @@ PopupBox::draw_game_options_box() {
   draw_green_string(3, 105, "Baby Trees Mature Slowly");
   draw_popup_icon(1, 102, option_BabyTreesMatureSlowly ? 288 : 220);
 
-  draw_green_string(18, 131, "Page 2 of 3");
+  draw_green_string(18, 131, "Page 2 of 4");
   draw_popup_icon(30, 128, 0x3d); // flipbox to next page
   draw_popup_icon(32, 128, 60); /* exit */
 }
@@ -2110,10 +2120,36 @@ PopupBox::draw_game_options2_box() {
   draw_green_string(3, 86, "Fog Of War");
   draw_popup_icon(1, 83, option_FogOfWar ? 288 : 220);
 
-  //draw_green_string(3, 105, "Invert Mouse");    // moved to page1
-  //draw_popup_icon(1, 102, option_InvertMouse ? 288 : 220);   // moved to page1
+  draw_green_string(3, 105, "Sailors Move Faster");
+  draw_popup_icon(1, 102, option_SailorsMoveFaster ? 288 : 220);
 
-  draw_green_string(18, 131, "Page 3 of 3");
+  draw_green_string(18, 131, "Page 3 of 4");
+  draw_popup_icon(30, 128, 0x3d); // flipbox to previous page
+  draw_popup_icon(32, 128, 60); /* exit */
+}
+
+void
+PopupBox::draw_game_options3_box() {
+  draw_large_box_background(PatternDiagonalGreen);
+  draw_green_string(3, 10, "Water Depth Visualized");
+  draw_popup_icon(1, 7, option_WaterDepthLuminosity ? 288 : 220);
+
+  draw_green_string(3, 29, "Randomize Music Instruments");
+  draw_popup_icon(1, 26, option_RandomizeInstruments ? 288 : 220);
+
+  //draw_green_string(3, 48, "Four Seasons of Weather");
+  //draw_popup_icon(1, 45, option_FourSeasons ? 288 : 220);
+
+  //draw_green_string(3, 67, "Fish Spawn Very Slowly");
+  //draw_popup_icon(1, 64, option_FishSpawnSlowly ? 288 : 220);
+
+  //draw_green_string(3, 86, "Fog Of War");
+  //draw_popup_icon(1, 83, option_FogOfWar ? 288 : 220);
+
+  //draw_green_string(3, 105, "Sailors Move Faster");
+  //draw_popup_icon(1, 102, option_SailorsMoveFaster ? 288 : 220);
+
+  draw_green_string(18, 131, "Page 4 of 4");
   draw_popup_icon(30, 128, 0x3d); // flipbox to previous page
   draw_popup_icon(32, 128, 60); /* exit */
 }
@@ -2993,20 +3029,35 @@ PopupBox::draw_save_box() {
     -1
   };
 
-  draw_box_background(PatternDiagonalGreen);
+  draw_large_box_background(PatternDiagonalGreen);
   draw_custom_icon_box(layout);
 
-  draw_green_string(3, 2, "Save  Game");
+  draw_green_string(12, 2, "Save  Game");
 
-  draw_popup_icon(14, 128, 60); /* Exit */
+  draw_popup_icon(32, 128, 60); /* Exit */
 }
 
 void
 PopupBox::internal_draw() {
-  Log::Debug["popup.cc"] << "inside PopupBox::internal_draw(), box type is " << box;
-  //if (box == Type::TypeGameOptions || box == Type::TypeGameOptions2 || box == Type::TypeEditMapGenerator){
-  if (box == Type::TypeOptions || box == Type::TypeGameOptions || box == Type::TypeGameOptions2 || box == Type::TypeEditMapGenerator){
+  //Log::Debug["popup.cc"] << "inside PopupBox::internal_draw(), box type is " << box;
+  if (box == Type::TypeOptions || box == Type::TypeGameOptions || box == Type::TypeGameOptions2 || box == Type::TypeGameOptions3
+   || box == Type::TypeEditMapGenerator || box == Type::TypeLoadSave){
     draw_large_popup_box_frame();
+      // work-around for joining of SettSelect and LoadSave popups, but only LoadSave doubled
+      if (box == Type::TypeLoadSave){
+        int loadsave_pos_x = 0;
+        int loadsave_pos_y = 0;
+        int *ptloadsave_pos_x = &loadsave_pos_x;
+        int *ptloadsave_pos_y = &loadsave_pos_y;
+        //this->get_position(ptloadsave_pos_x, ptloadsave_pos_y);
+        // cannot offset based on current popup position because it results in
+        //  the popup being shifted every time it is redrawn!
+        // Instead, center position relative to viewport which is absolute
+        interface->get_viewport()->get_size(ptloadsave_pos_x, ptloadsave_pos_y);
+        loadsave_pos_x = *ptloadsave_pos_x / 2 - 144;
+        loadsave_pos_y = *ptloadsave_pos_y / 2 - 80;
+        this->move_to(loadsave_pos_x, loadsave_pos_y);
+      }
   }else{
     draw_popup_box_frame();
   }
@@ -3112,6 +3163,9 @@ PopupBox::internal_draw() {
     break;
   case TypeGameOptions2:
     draw_game_options2_box();
+    break;
+  case TypeGameOptions3:
+    draw_game_options3_box();
     break;
   case TypeEditMapGenerator:
     draw_edit_map_generator_box();
@@ -3764,7 +3818,8 @@ PopupBox::handle_action(int action, int x_, int /*y_*/) {
     interface->set_custom_map_generator_mountain_stone(slider_mineral_double_to_uint16(2.00));  // 2
     interface->set_custom_map_generator_desert_frequency(slider_double_to_uint16(1.00)); 
     //interface->set_custom_map_generator_lakes_size(slider_double_to_uint16(1.00)); 
-    interface->set_custom_map_generator_lakes_water_level(slider_double_to_uint16(1.00)); 
+    //interface->set_custom_map_generator_lakes_water_level(slider_double_to_uint16(1.00)); 
+    interface->set_custom_map_generator_lakes_water_level(uint16_t(8188 * 1.00)); 
     interface->set_custom_map_generator_junk_grass_sandstone(slider_double_to_uint16(1.00)); 
     interface->set_custom_map_generator_junk_grass_small_boulders(slider_double_to_uint16(1.00)); 
     interface->set_custom_map_generator_junk_grass_stub_trees(slider_double_to_uint16(1.00)); 
@@ -3783,11 +3838,14 @@ PopupBox::handle_action(int action, int x_, int /*y_*/) {
     interface->close_popup();
     break;
   case ACTION_OPTIONS_FLIP_TO_GAME_OPTIONS:
-  case ACTION_GAME_OPTIONS_PREV_PAGE:
+  //case ACTION_GAME_OPTIONS_PREV_PAGE:
     interface->open_popup(TypeGameOptions);
     break;
-  case ACTION_GAME_OPTIONS_NEXT_PAGE:
+  case ACTION_GAME_OPTIONS_PAGE2:
     interface->open_popup(TypeGameOptions2);
+    break;
+  case ACTION_GAME_OPTIONS_PAGE3:
+    interface->open_popup(TypeGameOptions3);
     break;
   //case ???? 
   /* ToDo */
@@ -3799,6 +3857,7 @@ PopupBox::handle_action(int action, int x_, int /*y_*/) {
     } else{
       option_EnableAutoSave = true;
     }
+    GameOptions::get_instance().save_options_to_file();
     break;
   // removing this as it turns out the default behavior for pig farms is to require almost no grain
   /*case ACTION_GAME_OPTIONS_IMPROVED_PIG_FARMS:
@@ -3807,6 +3866,7 @@ PopupBox::handle_action(int action, int x_, int /*y_*/) {
     } else{
       option_ImprovedPigFarms = true;
     }
+    GameOptions::get_instance().save_options_to_file();
     break;
     */
   case ACTION_GAME_OPTIONS_CAN_TRANSPORT_SERFS_IN_BOATS:
@@ -3815,6 +3875,7 @@ PopupBox::handle_action(int action, int x_, int /*y_*/) {
     } else{
       option_CanTransportSerfsInBoats = true;
     }
+    GameOptions::get_instance().save_options_to_file();
     break;
   case ACTION_GAME_OPTIONS_QUICK_DEMO_EMPTY_BUILD_SITES:
     if (option_QuickDemoEmptyBuildSites){
@@ -3822,6 +3883,7 @@ PopupBox::handle_action(int action, int x_, int /*y_*/) {
     } else{
       option_QuickDemoEmptyBuildSites = true;
     }
+    GameOptions::get_instance().save_options_to_file();
     break;
   case ACTION_GAME_OPTIONS_TREES_REPRODUCE:
     if (option_TreesReproduce){
@@ -3829,6 +3891,7 @@ PopupBox::handle_action(int action, int x_, int /*y_*/) {
     } else{
       option_TreesReproduce = true;
     }
+    GameOptions::get_instance().save_options_to_file();
     break;
   case ACTION_GAME_OPTIONS_BABY_TREES_MATURE_SLOWLY:
     if (option_BabyTreesMatureSlowly){
@@ -3836,6 +3899,7 @@ PopupBox::handle_action(int action, int x_, int /*y_*/) {
     } else{
       option_BabyTreesMatureSlowly = true;
     }
+    GameOptions::get_instance().save_options_to_file();
     break;
   // forced true to indicate that the code to make optional isn't added yet
   case ACTION_GAME_OPTIONS_ResourceRequestsTimeOut:
@@ -3844,6 +3908,7 @@ PopupBox::handle_action(int action, int x_, int /*y_*/) {
     //} else{
     //  option_ResourceRequestsTimeOut = true;
     //}
+    //GameOptions::get_instance().save_options_to_file();
     play_sound(Audio::TypeSfxNotAccepted);  // play sound to indicate this can't be disabled
     break;
   // forced true to indicate that the code to make optional isn't added yet
@@ -3853,6 +3918,7 @@ PopupBox::handle_action(int action, int x_, int /*y_*/) {
     //} else{
     //  option_PrioritizeUsableResources = true;
     //}
+    //GameOptions::get_instance().save_options_to_file();
     play_sound(Audio::TypeSfxNotAccepted);  // play sound to indicate this can't be disabled
     break;
   case ACTION_GAME_OPTIONS_LostTransportersClearFaster:
@@ -3861,6 +3927,7 @@ PopupBox::handle_action(int action, int x_, int /*y_*/) {
     } else{
       option_LostTransportersClearFaster = true;
     }
+    GameOptions::get_instance().save_options_to_file();
     break;
   case ACTION_GAME_OPTIONS_FourSeasons:
     if (option_FourSeasons){
@@ -3868,6 +3935,7 @@ PopupBox::handle_action(int action, int x_, int /*y_*/) {
     }else{
       option_FourSeasons = true;
     }
+    GameOptions::get_instance().save_options_to_file();
     break;
   case ACTION_GAME_OPTIONS_FishSpawnSlowly:
     if (option_FishSpawnSlowly){
@@ -3875,6 +3943,7 @@ PopupBox::handle_action(int action, int x_, int /*y_*/) {
     }else{
       option_FishSpawnSlowly = true;
     }
+    GameOptions::get_instance().save_options_to_file();
     break;
   /* removing AdvancedDemolition for now, see https://github.com/forkserf/forkserf/issues/180
   case ACTION_GAME_OPTIONS_AdvancedDemolition:
@@ -3883,6 +3952,7 @@ PopupBox::handle_action(int action, int x_, int /*y_*/) {
     }else{
       option_AdvancedDemolition = true;
     }
+    GameOptions::get_instance().save_options_to_file();
     break;
     */
   case ACTION_GAME_OPTIONS_FogOfWar:
@@ -3893,6 +3963,7 @@ PopupBox::handle_action(int action, int x_, int /*y_*/) {
     }
     interface->reload_any_minimaps();
     interface->get_viewport()->set_size(width, height);  // this does the magic refresh without affecting popups (as Interface->layout() does)
+    GameOptions::get_instance().save_options_to_file();
     break;
   case ACTION_GAME_OPTIONS_InvertMouse:
     if (option_InvertMouse){
@@ -3900,6 +3971,7 @@ PopupBox::handle_action(int action, int x_, int /*y_*/) {
     } else{
       option_InvertMouse = true;
     }
+    GameOptions::get_instance().save_options_to_file();
     break;
   case ACTION_GAME_OPTIONS_InvertWheelZoom:
     if (option_InvertWheelZoom){
@@ -3907,6 +3979,7 @@ PopupBox::handle_action(int action, int x_, int /*y_*/) {
     } else{
       option_InvertWheelZoom = true;
     }
+    GameOptions::get_instance().save_options_to_file();
     break;
   case ACTION_GAME_OPTIONS_SpecialClickBoth:
     if (option_SpecialClickBoth){
@@ -3919,6 +3992,7 @@ PopupBox::handle_action(int action, int x_, int /*y_*/) {
     } else{
       option_SpecialClickBoth = true;
     }
+    GameOptions::get_instance().save_options_to_file();
     break;
   case ACTION_GAME_OPTIONS_SpecialClickMiddle:
     if (option_SpecialClickMiddle){
@@ -3931,6 +4005,7 @@ PopupBox::handle_action(int action, int x_, int /*y_*/) {
     } else{
       option_SpecialClickMiddle = true;
     }
+    GameOptions::get_instance().save_options_to_file();
     break;
   case ACTION_GAME_OPTIONS_SpecialClickDouble:
     if (option_SpecialClickDouble){
@@ -3943,6 +4018,37 @@ PopupBox::handle_action(int action, int x_, int /*y_*/) {
     } else{
       option_SpecialClickDouble = true;
     }
+    GameOptions::get_instance().save_options_to_file();
+    break;
+  case ACTION_GAME_OPTIONS_SailorsMoveFaster:
+    if (option_SailorsMoveFaster){
+      option_SailorsMoveFaster = false;
+    } else{
+      option_SailorsMoveFaster = true;
+    }
+    GameOptions::get_instance().save_options_to_file();
+    break;
+  case ACTION_GAME_OPTIONS_WaterDepthLuminosity:
+    if (option_WaterDepthLuminosity){
+      option_WaterDepthLuminosity = false;
+      //clear_custom_graphics_cache();
+      interface->get_game()->set_must_redraw_frame();
+      interface->get_viewport()->set_size(width, height);  // this does the magic refresh without affecting popups (as Interface->layout() does)
+    } else{
+      option_WaterDepthLuminosity = true;
+      //clear_custom_graphics_cache();
+      interface->get_game()->set_must_redraw_frame();
+      interface->get_viewport()->set_size(width, height);  // this does the magic refresh without affecting popups (as Interface->layout() does)
+    }
+    GameOptions::get_instance().save_options_to_file();
+    break;
+  case ACTION_GAME_OPTIONS_RandomizeInstruments:
+    if (option_RandomizeInstruments){
+      option_RandomizeInstruments = false;
+    } else{
+      option_RandomizeInstruments = true;
+    }
+    GameOptions::get_instance().save_options_to_file();
     break;
   case ACTION_MAPGEN_ADJUST_TREES:
     Log::Info["popup"] << "ACTION_MAPGEN_ADJUST_TREES x_ = " << x_ << ", gui_get_slider_click_value(x_) = " << gui_get_slider_click_value(x_) << ", unint16_t(gui_get_slider_click_value(x_)) = " << uint16_t(gui_get_slider_click_value(x_));
@@ -4240,12 +4346,17 @@ PopupBox::handle_action(int action, int x_, int /*y_*/) {
         file_ext.clear();
       }
     }
+    if (file_name == ""){
+      Log::Warn["popup.cc"] << "inside PopUpBox::handle_action(), user attempted to save with empty filename, disallowing";
+      play_sound(Audio::TypeSfxNotAccepted);
+      break;
+    }
     if (file_ext.empty()) {
       file_name += ".save";
     }
     std::string file_path = file_list->get_folder_path() + "/" + file_name;
-    if (GameStore::get_instance().save(file_path,
-                                       interface->get_game().get())) {
+    if (GameStore::get_instance().save(file_path, interface->get_game().get())) {
+      play_sound(Audio::TypeSfxAccepted);
       interface->close_popup();
     }
     break;
@@ -4319,7 +4430,7 @@ PopupBox::handle_box_game_options_clk(int cx, int cy) {
     ACTION_GAME_OPTIONS_QUICK_DEMO_EMPTY_BUILD_SITES, 7, 64, 150, 16,
     ACTION_GAME_OPTIONS_TREES_REPRODUCE, 7, 83, 150, 16,
     ACTION_GAME_OPTIONS_BABY_TREES_MATURE_SLOWLY, 7, 102, 150, 16,
-    ACTION_GAME_OPTIONS_NEXT_PAGE, 239, 126, 16, 16,  // flip button
+    ACTION_GAME_OPTIONS_PAGE2, 239, 126, 16, 16,  // flip button
     ACTION_CLOSE_OPTIONS, 255, 126, 16, 16, // exit button
     -1
   };
@@ -4336,7 +4447,25 @@ PopupBox::handle_box_game_options2_clk(int cx, int cy) {
     ACTION_GAME_OPTIONS_FishSpawnSlowly, 7, 64, 150, 16,
     ACTION_GAME_OPTIONS_FogOfWar, 7, 83, 150, 16,
     //ACTION_GAME_OPTIONS_AdvancedDemolition, 7, 83, 150, 16,  /* removing AdvancedDemolition for now, see https://github.com/forkserf/forkserf/issues/180/
-    ACTION_GAME_OPTIONS_InvertMouse, 7, 102, 150, 16,
+    ACTION_GAME_OPTIONS_SailorsMoveFaster, 7, 102, 150, 16,
+    ACTION_GAME_OPTIONS_PAGE3, 239, 126, 16, 16,  // flip button
+    ACTION_CLOSE_OPTIONS, 255, 126, 16, 16, // exit button
+    -1
+  };
+  handle_clickmap(cx, cy, clkmap);
+}
+
+void
+PopupBox::handle_box_game_options3_clk(int cx, int cy) {
+  //all options need to be defined here for the checkboxes to work,
+  const int clkmap[] = {
+    ACTION_GAME_OPTIONS_WaterDepthLuminosity, 7, 7, 150, 16,
+    ACTION_GAME_OPTIONS_RandomizeInstruments, 7, 26, 150, 16,
+    //ACTION_GAME_OPTIONS_FourSeasons, 7, 45, 150, 16,
+    //ACTION_GAME_OPTIONS_FishSpawnSlowly, 7, 64, 150, 16,
+    //ACTION_GAME_OPTIONS_FogOfWar, 7, 83, 150, 16,
+    //ACTION_GAME_OPTIONS_AdvancedDemolition, 7, 83, 150, 16,  /* removing AdvancedDemolition for now, see https://github.com/forkserf/forkserf/issues/180/
+    //ACTION_GAME_OPTIONS_SailorsMoveFaster, 7, 102, 150, 16,
     ActionShowOptions, 239, 126, 16, 16,  // flip button
     ACTION_CLOSE_OPTIONS, 255, 126, 16, 16, // exit button
     -1
@@ -4928,7 +5057,7 @@ void
 PopupBox::handle_save_clk(int cx, int cy) {
   const int clkmap[] = {
     ACTION_SAVE, 0, 128, 32, 64,
-    ACTION_CLOSE_BOX, 112, 128, 16, 16,
+    ACTION_CLOSE_BOX, 260, 128, 16, 16,
     -1
   };
 
@@ -4936,8 +5065,8 @@ PopupBox::handle_save_clk(int cx, int cy) {
 }
 
 bool
-//PopupBox::handle_click_left(int cx, int cy) {
-PopupBox::handle_click_left(int cx, int cy, int modifier) {
+//PopupBox::handle_left_click(int cx, int cy) {
+PopupBox::handle_left_click(int cx, int cy, int modifier) {
   cx -= 8;
   cy -= 8;
 
@@ -5026,6 +5155,9 @@ PopupBox::handle_click_left(int cx, int cy, int modifier) {
     break;
   case TypeGameOptions2:
     handle_box_game_options2_clk(cx, cy);
+    break;
+  case TypeGameOptions3:
+    handle_box_game_options3_clk(cx, cy);
     break;
   case TypeEditMapGenerator:
     handle_box_edit_map_generator_clk(cx, cy);

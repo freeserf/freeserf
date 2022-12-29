@@ -65,13 +65,34 @@ MapPos debug_overlay_clicked_pos = bad_map_pos;
 
 // this array is used to get the map_ground sprite id for a given
 //  Map::Terrain type (ex. TypeSnow0)  and luminosity level
-// Notice that 32 (water) is all same because it only has one luminosity levle
+// Notice that 32 (water) is all same because it only has one luminosity level
 //  buy others have varying levels
+/*
 static const uint8_t tri_spr[] = {
   32, 32, 32, 32, 32, 32, 32, 32,  // water
   32, 32, 32, 32, 32, 32, 32, 32,  // water
   32, 32, 32, 32, 32, 32, 32, 32,  // water
   32, 32, 32, 32, 32, 32, 32, 32,  // water
+  0, 1, 2, 3, 4, 5, 6, 7,          // grass
+  0, 1, 2, 3, 4, 5, 6, 7,          // grass
+  0, 1, 2, 3, 4, 5, 6, 7,          // grass
+  0, 1, 2, 3, 4, 5, 6, 7,          // grass
+  24, 25, 26, 27, 28, 29, 30, 31,  // desert
+  24, 25, 26, 27, 28, 29, 30, 31,  // desert
+  24, 25, 26, 27, 28, 29, 30, 31,  // desert
+  8, 9, 10, 11, 12, 13, 14, 15,    // tundra (brown mountain)
+  8, 9, 10, 11, 12, 13, 14, 15,    // tundra (brown mountain)
+  8, 9, 10, 11, 12, 13, 14, 15,    // tundra (brown mountain)
+  16, 17, 18, 19, 20, 21, 22, 23,  // snow
+  16, 17, 18, 19, 20, 21, 22, 23   // snow
+};
+*/
+// testing varied water darkness by depth for option_WaterDepthLuminosity
+static const uint8_t tri_spr[] = {
+  40, 40, 40, 40, 40, 40, 40, 40,  // water
+  32, 32, 32, 32, 32, 32, 32, 32,  // water
+  41, 41, 41, 41, 41, 41, 41, 41,  // water
+  42, 42, 42, 42, 42, 42, 42, 42,  // water
   0, 1, 2, 3, 4, 5, 6, 7,          // grass
   0, 1, 2, 3, 4, 5, 6, 7,          // grass
   0, 1, 2, 3, 4, 5, 6, 7,          // grass
@@ -135,46 +156,6 @@ Viewport::special_terrain_type(MapPos pos, Map::Terrain type){
   return new_type;
 }
 
-// return the new sprite id (or original sprite id)
-//  as modified by any special new option
-//  logic.  This function exists to avoid
-//  having to constantly sync identical logic
-//  between draw_triangle_up & _down
-int
-Viewport::special_terrain_sprite(MapPos pos, int sprite_index){
-  Log::Debug["viewport.cc"] << "start of Viewport::special_terrain_sprite(), pos " << pos << ", orig terrain sprite_index " << sprite_index;
-
-  // option_FogOfWar
-  //  draw revealed-but-not-currently-visible areas darker than normal
-  /* no longer using prerendered custom PNG sprites,
-      switching to using mutated sprites derived directly from base sprites
-  if (option_FogOfWar){
-    static const int8_t tri_fog[] = {
-      34, 34, 36,  0,  1,  2,  3,  4,  // grass   (default  0-7)  lower # is darker
-      37, 38, 39,  8,  9, 10, 11, 12,  // tundra  (default  8-15)
-      40, 41, 42, 16, 17, 18, 19, 20,  // snow    (default  16-23)
-      43, 44, 45, 24, 25, 26, 27, 28,  // desert  (default  24-31)
-      46,                              // water   (default has only has one luminosity, sprite 32)
-      33,                              // shroud  (does not exist in default, no luminosity change here. Added for simplicity)
-    };  // 34 values in array ([0-33])
-    if (!map->is_visible(pos, interface->get_player()->get_index())){
-      sprite_index = tri_fog[sprite_index];
-    }
-  }
-  */
-
-  // use 100+base to indicate darker sprites for FogOfWar
-  //  the SpriteDosSolid constructor has added logic to handle it
-  if (option_FogOfWar){
-    if (!map->is_visible(pos, interface->get_player()->get_index())){
-      sprite_index += 100;
-    }
-  }
-
-  Log::Debug["viewport.cc"] << "start of Viewport::special_terrain_sprite(), pos " << pos << ", new sprite_index " << sprite_index;
-  return sprite_index;
-}
-
 void
 Viewport::draw_triangle_up(int lx, int ly, int m, int left, int right,
                            MapPos pos, Frame *tile) {
@@ -222,10 +203,12 @@ Viewport::draw_triangle_up(int lx, int ly, int m, int left, int right,
   //int sprite = tri_spr[index];
   sprite = tri_spr[index];
 
-  // apply any hack-ish modifications from various game options
-  //sprite = special_terrain_sprite(pos, sprite);
+  // restore normal water sprite if not using option_WaterDepthLuminosity
+  if (!option_WaterDepthLuminosity && sprite > 32){
+    sprite = 32;
+  }
 
-  bool darken = false;
+  int mutate = 0;  // odd numbered mutate indicates this is a darkened tile
   if (option_FogOfWar){
     //f (false){  // TEMP DISABLED
     if (!map->is_revealed(pos,interface->get_player()->get_index())){ 
@@ -236,7 +219,7 @@ Viewport::draw_triangle_up(int lx, int ly, int m, int left, int right,
     } else if (!map->is_visible(pos, interface->get_player()->get_index())){
       // SPECIAL CATCH TO SMOOTH THE EDGES OF THE TOP-LEFT 
       //  AND DOWN-RIGHT EDGES OF FOW HEXAGON - DRAW A HALF TRIANGLE
-      //  AT THE EDGE BE CHECKING IF LAST POS WAS DARKENED!
+      //  AT THE EDGE BE CHECKING IF LAST POS WAS MUTATED!
       //if (false){
         // NEVERMIND, this works for the initial castle hexagon but breaks down
         //  once more activity happens, not going to bother with it now
@@ -247,13 +230,13 @@ Viewport::draw_triangle_up(int lx, int ly, int m, int left, int right,
         // skip this Up triangle only DO NOT COPY THIS TO draw_triangle_down!!!!
         // !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
       //}else{
-        darken = true;
+        mutate += 1;  // odd numbered mutate indicates this is a darkened tile
       //}
     }
   }
 
   //tile->draw_masked_sprite(lx, ly, Data::AssetMapMaskUp, mask, Data::AssetMapGround, sprite);
-  tile->draw_masked_sprite(lx, ly, Data::AssetMapMaskUp, mask, Data::AssetMapGround, sprite, darken);
+  tile->draw_masked_sprite(lx, ly, Data::AssetMapMaskUp, mask, Data::AssetMapGround, sprite, mutate);
 }
 
 void
@@ -304,10 +287,12 @@ Viewport::draw_triangle_down(int lx, int ly, int m, int left, int right,
   //int sprite = tri_spr[index];
   sprite = tri_spr[index];
 
-  // apply any hack-ish modifications from various game options
-  //sprite = special_terrain_sprite(pos, sprite);
+  // restore normal water sprite if not using option_WaterDepthLuminosity
+  if (!option_WaterDepthLuminosity && sprite > 32){
+    sprite = 32;
+  }
 
-  bool darken = false;
+  int mutate = 0;  // odd numbered mutate indicates this is a darkened tile
   if (option_FogOfWar){
     //f (false){  // TEMP DISABLED
     if (!map->is_revealed(pos,interface->get_player()->get_index())){ 
@@ -318,7 +303,7 @@ Viewport::draw_triangle_down(int lx, int ly, int m, int left, int right,
     }else if (!map->is_visible(pos, interface->get_player()->get_index())){
       // SPECIAL CATCH TO SMOOTH THE EDGES OF THE TOP-LEFT 
       //  AND DOWN-RIGHT EDGES OF FOW HEXAGON - DRAW A HALF TRIANGLE
-      //  AT THE EDGE BE CHECKING IF LAST POS WAS DARKENED!
+      //  AT THE EDGE BE CHECKING IF LAST POS WAS MUTATED!
       //if (false){
         // NEVERMIND, this works for the initial castle hexagon but breaks down
         //  once more activity happens, not going to bother with it now
@@ -329,114 +314,12 @@ Viewport::draw_triangle_down(int lx, int ly, int m, int left, int right,
         // skip this Down triangle only DO NOT COPY THIS TO draw_triangle_up!!!!
         // !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
       //}else{
-        darken = true;
+        mutate += 1;  // odd numbered mutate indicates this is a darkened tile
       //}
     }
   }
 
-  tile->draw_masked_sprite(lx, ly + MAP_TILE_HEIGHT, Data::AssetMapMaskDown, mask, Data::AssetMapGround, sprite, darken);
-}
-
-
-// return the 0-7 luminosity value corresponding
-//  to the higher (brighter) triangle (up or down)
-int
-Viewport::get_brighter_triangle_luminosity(MapPos pos) {
-  Log::Debug["viewport.cc"] << "inside Viewport::get_brighter_triangle_luminosity, pos " << pos;
-  // copied from draw_triangle_up
-  static const int8_t up_tri_mask[] = {
-     0,  1,  3,  6,  7, -1, -1, -1, -1,
-     0,  1,  2,  5,  6,  7, -1, -1, -1,
-     0,  1,  2,  3,  5,  6,  7, -1, -1,
-     0,  1,  2,  3,  4,  5,  6,  7, -1,
-     0,  1,  2,  3,  4,  4,  5,  6,  7,
-    -1,  0,  1,  2,  3,  4,  5,  6,  7,
-    -1, -1,  0,  1,  2,  4,  5,  6,  7,
-    -1, -1, -1,  0,  1,  2,  5,  6,  7,
-    -1, -1, -1, -1,  0,  1,  4,  6,  7
-  };  // this is a 9x9 array, so 81 values in array ([0-80])
-  // copied from draw_triangle_up
-  static const int8_t down_tri_mask[] = {
-     0,  0,  0,  0,  0, -1, -1, -1, -1,
-     1,  1,  1,  1,  1,  0, -1, -1, -1,
-     3,  2,  2,  2,  2,  1,  0, -1, -1,
-     6,  5,  3,  3,  3,  2,  1,  0, -1,
-     7,  6,  5,  4,  4,  3,  2,  1,  0,
-    -1,  7,  6,  5,  4,  4,  4,  2,  1,
-    -1, -1,  7,  6,  5,  5,  5,  5,  4,
-    -1, -1, -1,  7,  6,  6,  6,  6,  6,
-    -1, -1, -1, -1,  7,  7,  7,  7,  7
-  };
-
-  // here is how draw_up_tile_col does it
-  /*  starts a col beginning with up pointing triangle
-  int m = map->get_height(pos);
-  int left, right;
-  // Loop until a tile is inside the frame (y >= 0).
-  while (1) {
-    pos = map->move_down(pos);
-    left = map->get_height(pos);
-    right = map->get_height(map->move_right(pos));
-    int t = std::min(left, right);
-    if (y_base + MAP_TILE_HEIGHT - 4*t >= 0) break;
-    y_base += MAP_TILE_HEIGHT;
-    pos = map->move_down_right(pos);
-    m = map->get_height(pos);
-    if (y_base + MAP_TILE_HEIGHT - 4*m >= 0) goto down;
-    y_base += MAP_TILE_HEIGHT;
-  }
-
-  // Loop until a tile is completely outside the frame (y >= max_y). 
-  while (1) {
-    if (y_base - 2*MAP_TILE_HEIGHT - 4*m >= max_y) break;
-    draw_triangle_up(x_base, y_base - 4*m, m, left, right, pos, tile);
-    y_base += MAP_TILE_HEIGHT;
-    pos = map->move_down_right(pos);
-    m = map->get_height(pos);
-    if (y_base - 2*MAP_TILE_HEIGHT - 4*std::max(left, right) >= max_y) break;
-  down:
-    draw_triangle_down(x_base, y_base - 4*m, m, left, right, pos, tile);
-    y_base += MAP_TILE_HEIGHT;
-    pos = map->move_down(pos);
-    left = map->get_height(pos);
-    right = map->get_height(map->move_right(pos));
-  }
-  */
-
-  // the important bits seem to be:
-  // for up triangle on up_col
-  int uptri_m = map->get_height(pos);
-  int uptri_posx = map->move_down(pos);
-  int uptri_left = map->get_height(uptri_posx);
-  int uptri_right = map->get_height(map->move_right(uptri_posx));
-    
-  int up_mask   = 4 +  uptri_m - uptri_left + 9*(4 + uptri_m - uptri_right);
-
-  // for down triangle on up_col
-  int dntri_left = map->get_height(pos);
-  int dntri_right = map->get_height(map->move_right(pos));
-  int dntri_posx = map->move_down_right(pos);
-  int dntri_m = map->get_height(dntri_posx);
-  dntri_posx = map->move_down_right(dntri_posx);
-  dntri_m = map->get_height(dntri_posx);
-
-  int down_mask = 4 +  dntri_left - dntri_m + 9*(4 + dntri_right - dntri_m);
-
-  Log::Debug["viewport.cc"] << "inside Viewport::get_brighter_triangle_luminosity, pos " << pos << ", up_mask " << up_mask << ", down_mask " << down_mask;
-  if (up_tri_mask[up_mask] < 0) {
-    throw ExceptionFreeserf("get_brighter_triangle_luminosity found a up-triangle level below zero!");
-  }
-  if (down_tri_mask[down_mask] < 0) {
-    throw ExceptionFreeserf("get_brighter_triangle_luminosity found a up-triangle level below zero!");
-  }
-  Log::Debug["viewport.cc"] << "inside Viewport::get_brighter_triangle_luminosity, pos " << pos << ", up_mask " << up_mask << ", down_mask " << down_mask << ", up luminosity " << int(up_tri_mask[up_mask]) << ", down luminosity " << int(down_tri_mask[down_mask]);
-  // return the higher value
-  if (up_tri_mask[up_mask] >= down_tri_mask[down_mask]){
-    Log::Debug["viewport.cc"] << "inside Viewport::get_brighter_triangle_luminosity, pos " << pos << ", up_mask " << up_mask << ", down_mask " << down_mask << ", returning up luminosity " << int(up_tri_mask[up_mask]);
-    return up_tri_mask[up_mask];
-  }
-  Log::Debug["viewport.cc"] << "inside Viewport::get_brighter_triangle_luminosity, pos " << pos << ", up_mask " << up_mask << ", down_mask " << down_mask << ", returning down luminosity " << int(down_tri_mask[down_mask]);
-  return down_tri_mask[down_mask];
+  tile->draw_masked_sprite(lx, ly + MAP_TILE_HEIGHT, Data::AssetMapMaskDown, mask, Data::AssetMapGround, sprite, mutate);
 }
 
 
@@ -1118,14 +1001,14 @@ Viewport::draw_serf(int lx, int ly, const Color &color, int head, int body) {
 // this says shadow and building but it seems to include ANY map object sprite that has a shadow
 //  such as trees, stones, junk objects?
 void
-Viewport::draw_shadow_and_building_sprite(int lx, int ly, int index, const Color &color, bool darken) {
+Viewport::draw_shadow_and_building_sprite(int lx, int ly, int index, const Color &color, int mutate) {
   
-  //Log::Info["viewport"] << "inside Viewport::draw_shadow_and_building_sprite for sprite index " << index << ", darken bool is " << darken;
+  //Log::Info["viewport"] << "inside Viewport::draw_shadow_and_building_sprite for sprite index " << index << ", mutate int is " << mutate;
   //frame->draw_sprite(lx, ly, Data::AssetMapShadow, index, true);
   frame->draw_sprite(lx, ly, Data::AssetMapShadow, index, true, Color::transparent, 1.f);
   //frame->draw_sprite(lx, ly, Data::AssetMapObject, index, true, color);
   //frame->draw_sprite(lx, ly, Data::AssetMapObject, index, true, color, 1.f);
-  frame->draw_sprite(lx, ly, Data::AssetMapObject, index, true, color, 1.f, darken);
+  frame->draw_sprite(lx, ly, Data::AssetMapObject, index, true, color, 1.f, mutate);
 }
 
 /*
@@ -1162,9 +1045,10 @@ Viewport::draw_map_sprite_special(int lx, int ly, int index, unsigned int pos, u
    || (index >= 1400 && index <= 1499)) { // FALL trees all have full shadows
     // use the default "full" deciduous tree shadow for certain custom tree sprites
     frame->draw_sprite(lx, ly, Data::AssetMapShadow, index % 10, true, Color::transparent, 1.f);
-  }else if (index >= 1120 && index <= 1199
+  }else if (index >= 1120 && index <= 1199     // bright flowers + cattail
          || index >= 2120 && index <= 2199){   // dark flowers
     // flowers have no shadow, do not draw one
+    //Log::Debug["viewport"] << "inside Viewport::draw_map_sprite_special for sprite index " << index << ", not drawing shadow";
   }else{
     // for other "non-full" trees, use custom shadow, derived from tree sprite using ImageMagick
     frame->draw_sprite(lx, ly, Data::AssetMapShadow, index, true, Color::transparent, 1.f);
@@ -1751,6 +1635,7 @@ Viewport::draw_water_waves_row(MapPos pos, int y_base, int cols,
       // option_FogOfWar
       //   do not draw waves outside of shroud/FoW
       if (option_FogOfWar && !map->is_visible(pos, interface->get_player()->get_index())){
+      //if (option_FogOfWar && !map->is_revealed(pos, interface->get_player()->get_index())){  // it looks funny if shown in revealead areas because no other objects are
         continue;
       }
 
@@ -1823,7 +1708,7 @@ Viewport::draw_map_objects_row(MapPos pos, int y_base, int cols, int x_base, int
   int topmost_focus_y = center_y - (focus_y_pixels / 2);
   int lowest_focus_y = center_y + (focus_y_pixels / 2);
 
-  bool darken = false;
+  int mutate = 0;  // odd numbered mutate indicates this is a darkened tile
 
   //Log::Debug["viewport.cc"] << "inside draw_map_objects, pos " << pos << ", cols: " << cols << ", focus_cols: " << focus_cols << ", center_col: " << center_col << ", left: " << leftmost_focus_col << ", right: " << rightmost_focus_col;
   //Log::Debug["viewport.cc"] << "inside draw_map_objects, pos " << pos << ", map height: " << height << ", ly: " << ly << ", center_y: " << center_y << ", top: " << topmost_focus_y << ", bottom: " << lowest_focus_y;
@@ -1841,6 +1726,8 @@ Viewport::draw_map_objects_row(MapPos pos, int y_base, int cols, int x_base, int
       }
       continue;
     }
+
+    //Log::Debug["viewport.cc"] << "inside draw_map_objects, pos " << pos << " has sprite " << map->get_obj(pos) - Map::ObjectTree0;
 
     int ly = y_base - 4 * map->get_height(pos);
     bool in_ambient_focus = false;
@@ -1862,7 +1749,8 @@ Viewport::draw_map_objects_row(MapPos pos, int y_base, int cols, int x_base, int
       int sprite = map->get_obj(pos) - Map::ObjectTree0;  // THIS IS IMPORTANT - sprite index is always 8 lower (-8) than map_object index!
       bool use_custom_set = false;  // messing with weather/seasons/palette tiles
       // if this is some kind of tree...
-      if (sprite < 24) {  // Tree/Pine/Palm/SubmergedTree are sprites <24, these have waving animations
+      if (sprite < 24 || sprite == 141 || sprite == 142) {  // Tree/Pine/Palm/SubmergedTree are sprites <24, these have waving animations
+                        // also adding Cattails/Reeds now with crammed animation
 
         // ambient sound triggers, only consider objects that are in the focus area
         if (in_ambient_focus){
@@ -1889,11 +1777,12 @@ Viewport::draw_map_objects_row(MapPos pos, int y_base, int cols, int x_base, int
           }
         }
 
-        // Adding sprite number to animation ensures
+        // "Adding sprite number to animation ensures
         //   that the tree animation won't be synchronized
-        //   for all trees on the map.  
+        //   for all trees on the map.  "
         //  WAIT A MINUTE - IT SURE SEEMS LIKE ALL TREES *ARE* SYNCED ON THE MAP, IS THIS A MISTAKE?
         //  COMPARE TO ORIGINAL GAME.   Serflings is synched too.  I think the Freeserf comment is wrong.  
+        //  I checked original game in DosBox also, they are synched.  The Freeserf comment is wrong
         //
         // NOTE  -  this is where the wind-waving Tree animation effect happens for ObjectTree0 through ObjectPine7
         //
@@ -2027,10 +1916,20 @@ Viewport::draw_map_objects_row(MapPos pos, int y_base, int cols, int x_base, int
         }else if (sprite >= 8 && sprite < 16) {
           // these are pine trees, shift.  8 frames of animation
           sprite = (sprite & ~7) + (tree_anim & 7); 
-        }else if (sprite >=16){
+        }else if (sprite >=16 && sprite < 24){
           // these are ... palm and submerged trees.  4 frames of animation per type
           sprite = (sprite & ~3) + (tree_anim & 3);
-        }
+        }else if (sprite == 141){   // adding Cattails/Reeds
+          Log::Debug["viewport.cc"] << "inside Viewport::draw_map_objects_row(), found cattail0, setting frame to " << frame;
+          frame = slow_tree_anim & 3;  // cattails/reeds have 1 type with 4 frames of animation
+          sprite = 1150 + frame;
+          use_custom_set = true;
+        }else if (sprite == 142){   // adding Cattails/Reeds
+          Log::Debug["viewport.cc"] << "inside Viewport::draw_map_objects_row(), found cattail1, setting frame to " << frame;
+          frame = slow_tree_anim & 3;  // cattails/reeds have 1 type with 4 frames of animation
+          sprite = 1160 + frame;
+          use_custom_set = true;
+        } // if sprite 8, 16...
 
       } // if sprite < 24 (various tree types)
 
@@ -2060,9 +1959,15 @@ Viewport::draw_map_objects_row(MapPos pos, int y_base, int cols, int x_base, int
       } 
       */
 
-      //int pos_luminosity = 0;
-      //int pos_luminosity = get_brighter_triangle_luminosity(pos);
-      //Log::Debug["viewport.cc"] << "inside Viewport::draw_map_objects_row, pos " << pos << ", obj type " << map->get_obj(pos) << ", pos_luminosity is " << pos_luminosity; 
+
+      /*  moved into crammed animation above
+      // cattails at water edge
+      if (sprite == Map::ObjectCattail0 - Map::ObjectTree0){
+        Log::Debug["viewport.cc"] << "inside Viewport::draw_map_objects_row, found cattail at pos " << pos;
+        use_custom_set = true;
+        sprite = 1150;
+      }
+      */
 
       // normal bright Flowers
       bool flower = false;  // dumb work-around to avoid being foild by sprite += 1000
@@ -2070,7 +1975,7 @@ Viewport::draw_map_objects_row(MapPos pos, int y_base, int cols, int x_base, int
       //||  ( sprite >= Map::ObjectFlowerGroupB0 - Map::ObjectTree0 && sprite <= Map::ObjectFlowerGroupB6 - Map::ObjectTree0 ) ){
       if ( ( sprite >= Map::ObjectFlowerGroupA0 - Map::ObjectTree0 && sprite <= Map::ObjectFlowerGroupC6 - Map::ObjectTree0 ) ){
         if (option_FourSeasons && season == 0){
-          Log::Debug["viewport.cc"] << "inside Viewport::draw_map_objects_row, subseason is " << subseason;
+          //Log::Debug["viewport.cc"] << "inside Viewport::draw_map_objects_row, subseason is " << subseason;
           // gradually introduce flowers as Spring progresses
           if (subseason == 0){
             // introduce A & C
@@ -2186,7 +2091,7 @@ Viewport::draw_map_objects_row(MapPos pos, int y_base, int cols, int x_base, int
         break;
       }
 
-      darken = false;
+      mutate = 0;
   
       if (shaded){
 
@@ -2205,9 +2110,9 @@ Viewport::draw_map_objects_row(MapPos pos, int y_base, int cols, int x_base, int
 
         // shaded existing map objects
         if ((sprite >= Map::ObjectTree0 - Map::ObjectTree0) && (sprite <= Map::ObjectField5 - Map::ObjectTree0)){
-          //Log::Debug["viewport.cc"] << "inside Viewport::draw_map_objects_row, found existing map objects on downward left->right slopes (darken)";
+          //Log::Debug["viewport.cc"] << "inside Viewport::draw_map_objects_row, found existing map objects on downward left->right slopes (mutate)";
           // DO NOT use_custom_set, these are not custom PNGs but mutated original sprites from SPAx.PA
-          darken = true;
+          mutate += 1;  // odd numbered mutate indicates this is a darkened tile
         }
 
       }
@@ -2216,10 +2121,22 @@ Viewport::draw_map_objects_row(MapPos pos, int y_base, int cols, int x_base, int
         //Log::Debug["viewport.cc"] << "inside Viewport::draw_map_objects_row, calling draw_map_sprite_special()";
         draw_map_sprite_special(x_base, ly, sprite, pos, map->get_obj(pos));
       }else{
-        //Log::Debug["viewport.cc"] << "inside Viewport::draw_map_objects_row, calling draw_shadow_and_building_sprite(), darken bool is " << darken;
+        //Log::Debug["viewport.cc"] << "inside Viewport::draw_map_objects_row, calling draw_shadow_and_building_sprite(), mutate int is " << mutate;
         //draw_shadow_and_building_sprite(x_base, ly, sprite);
-        draw_shadow_and_building_sprite(x_base, ly, sprite, Color::transparent, darken);
+        draw_shadow_and_building_sprite(x_base, ly, sprite, Color::transparent, mutate);
       }
+
+      // draw water splashes on top of water objects
+      //  this cannot be done inside draw_waves_row because that is done before map_objects drawn
+      if (map->get_obj(pos) == Map::ObjectWaterStone0 || map->get_obj(pos) == Map::ObjectWaterStone1){
+      //||  (map->get_obj(pos) >= Map::ObjectWaterTree0 && map->get_obj(pos) <= Map::ObjectWaterTree3)){
+        //Log::Debug["viewport.cc"] << "inside Viewport::draw_map_objects_row(), found water object, drawing splashes, setting frame to " << frame;
+        // splashes have 1 type with 4 frames of animation
+        int fast_anim = (interface->get_game()->get_tick() + 20) >> 4;  
+        int sprite = 20 + (fast_anim & 3);
+        frame->draw_sprite(x_base, y_base, Data::AssetMapWaves, sprite, true);
+      }
+
 
     } // if not a Tree or junk object
   } // foreach column in this row
@@ -3166,7 +3083,7 @@ Viewport::draw_active_serf(Serf *serf, MapPos pos, int x_base, int y_base) {
                   */
 
                   // draw text box above the marked serf with its status
-                  //  this red/green_blue stuff is related to darkening color effect as wait_counter increases, but is not actually needed
+                  //  this red/green_blue stuff is related to mutateing color effect as wait_counter increases, but is not actually needed
                   //frame->draw_string(lx, ly + 8, state_details, Color(red, green_blue, green_blue));
                   // just use a fixed color
           frame->draw_string(lx, ly + 8, state_details, colors.at("white"));
@@ -3310,6 +3227,7 @@ draw_serf_row(MapPos pos, int y_base, int cols, int x_base) {
       }else{
         */
         // handle exceptions to normal serf drawing
+        // these are serfs that are drawn in row_BEHIND, not here
         if (serf->get_state() == Serf::StateMining &&
           (serf->get_mining_substate() == 3 ||
            serf->get_mining_substate() == 4 ||
@@ -3317,7 +3235,11 @@ draw_serf_row(MapPos pos, int y_base, int cols, int x_base) {
            serf->get_mining_substate() == 10)) {
           //  this is "any serf that is not walking to his mine elevator"
           //   because that is drawn in draw_serf_row_behind instead of here
-          //do nothing, skip this serf
+          // do nothing, this serf was already drawn in row_behind
+
+        //adding Sailor Rowing serfs here to draw them behind the reeds/cattails
+        }else if (serf->get_state() == Serf::StateTransporting && serf->get_type() == Serf::TypeSailor){
+          // do nothing, this serf was already drawn in row_behind
 
         /* removing AdvancedDemolition for now, see https://github.com/forkserf/forkserf/issues/180
         } else if (serf->get_state() == Serf::StateCleaningRubble){
@@ -3391,6 +3313,7 @@ draw_serf_row(MapPos pos, int y_base, int cols, int x_base) {
 //  are drawn here, nothing else
 // the other serfs-working-in-buildings are drawn as building sprites
 //  and not serf_torso sprites
+// UPDATE - adding Sailor Rowing serfs here to draw them behind the reeds/cattails
 void
 Viewport::draw_serf_row_behind(MapPos pos, int y_base, int cols, int x_base) {
   for (int i = 0; i < cols;
@@ -3416,6 +3339,11 @@ Viewport::draw_serf_row_behind(MapPos pos, int y_base, int cols, int x_base) {
            serf->get_mining_substate() == 4 ||
            serf->get_mining_substate() == 9 ||
            serf->get_mining_substate() == 10)) {
+        draw_active_serf(serf, pos, x_base, y_base);
+      }
+
+      //adding Sailor Rowing serfs here to draw them behind the reeds/cattails
+      if (serf->get_state() == Serf::StateTransporting && serf->get_type() == Serf::TypeSailor){
         draw_active_serf(serf, pos, x_base, y_base);
       }
     }
@@ -3643,21 +3571,21 @@ Viewport::draw_map_cursor_possible_build() {
 
       /* Draw possible building */
       int sprite = -1;
+      if (game->can_build_flag(pos, interface->get_player())) {  // freeserf was missing this
+        sprite = 47;  // this will be overridden below if a building can be built here
+      }
       if (game->can_build_castle(pos, interface->get_player())) {
         sprite = 50;
-      } else if (game->can_player_build(pos, interface->get_player()) &&
-                 Map::map_space_from_obj[map->get_obj(pos)] == Map::SpaceOpen &&
-                 (game->can_build_flag(map->move_down_right(pos),
-                                       interface->get_player()) ||
-                 map->has_flag(map->move_down_right(pos)))) {
+      } else if (game->can_player_build(pos, interface->get_player())
+              && Map::map_space_from_obj[map->get_obj(pos)] == Map::SpaceOpen
+              && ( game->can_build_flag(map->move_down_right(pos), interface->get_player())
+                    || map->has_flag(map->move_down_right(pos))) ) {
         if (game->can_build_mine(pos)) {
           sprite = 48;
         } else if (game->can_build_large(pos)) {
           sprite = 50;
         } else if (game->can_build_small(pos)) {
           sprite = 49;
-        } else if (game->can_build_flag(pos, interface->get_player())) {  // freeserf was missing this
-          sprite = 47;
         }
       }
 
@@ -4235,7 +4163,7 @@ Viewport::internal_draw() {
 }
 
 bool
-Viewport::handle_click_left(int lx, int ly, int modifier) {
+Viewport::handle_left_click(int lx, int ly, int modifier) {
   set_redraw();
   MapPos clk_pos = map_pos_from_screen_pix(lx, ly);
 

@@ -26,7 +26,7 @@
 #include <memory>
 #include <sstream>
 #include <utility>
-#include <bitset>   // TEMP DEBUG, only for printing binary representation of chars
+//#include <bitset>   // TEMP DEBUG, only for printing binary representation of chars
 //#include <sstream>  // TEMP DEBUG for printing ascii art
 //#include <string>  // TEMP DEBUG for printing ascii art
 //#include <iostream>  // TEMP DEBUG for printing ascii art
@@ -238,8 +238,8 @@ DataSourceDOS::fixup() {
 //  when get_object is called to get the "from zero" data object id
 Data::MaskImage
 //DataSourceDOS::get_sprite_parts(Data::Resource res, size_t index) {
-DataSourceDOS::get_sprite_parts(Data::Resource res, size_t index, bool darken) {
-  //Log::Debug["data-source-dos.cc"] << "inside DataSourceDOS::get_sprite_parts, res type is " << res << ", sprite index is " << index << ", darken bool is " << darken;
+DataSourceDOS::get_sprite_parts(Data::Resource res, size_t index, int mutate) {
+  //Log::Debug["data-source-dos.cc"] << "inside DataSourceDOS::get_sprite_parts, res type is " << res << ", sprite index is " << index << ", mutate int is " << mutate;
   
   if (index >= Data::get_resource_count(res)) {
     return std::make_tuple(nullptr, nullptr);
@@ -328,8 +328,8 @@ DataSourceDOS::get_sprite_parts(Data::Resource res, size_t index, bool darken) {
       //sprite = std::make_shared<SpriteDosSolid>(data, palette);
       //sprite = std::make_shared<SpriteDosSolid>(data, palette, res);  // FourSeasons needs the resource type
       //sprite = std::make_shared<SpriteDosSolid>(data, palette, res, dos_res.index + index);  // FogOfWar needs the resource type AND the sprite index (or some kind of bool I guess)
-      //Log::Debug["data-source-dos.cc"] << "inside DataSourceDOS::get_sprite_parts, res type is " << res << ", sprite index is " << index << ", darken bool is " << darken << ", about to call SpriteDosSolid constructor";
-      sprite = std::make_shared<SpriteDosSolid>(data, palette, res, dos_res.index + index, darken);  // using a bool for FogOfWar, previous way wouldn't work)
+      //Log::Debug["data-source-dos.cc"] << "inside DataSourceDOS::get_sprite_parts, res type is " << res << ", sprite index is " << index << ", mutate int is " << mutate << ", about to call SpriteDosSolid constructor";
+      sprite = std::make_shared<SpriteDosSolid>(data, palette, res, dos_res.index + index, mutate);  // using a bool for FogOfWar, previous way wouldn't work)
       break;
     }
     case SpriteTypeTransparent: {
@@ -338,7 +338,7 @@ DataSourceDOS::get_sprite_parts(Data::Resource res, size_t index, bool darken) {
       //sprite = std::make_shared<SpriteDosTransparent>(data, palette);
       //sprite = std::make_shared<SpriteDosTransparent>(data, palette, res, dos_res.index + index);
       //Log::Debug["data-source-dos.cc"] << "inside DataSourceDOS::get_sprite_parts, FOO E";
-      sprite = std::make_shared<SpriteDosTransparent>(data, palette, res, dos_res.index + index, 0, darken);
+      sprite = std::make_shared<SpriteDosTransparent>(data, palette, res, dos_res.index + index, 0, mutate);
       break;
     }
     case SpriteTypeOverlay: {
@@ -375,9 +375,9 @@ DataSourceDOS::get_sprite_parts(Data::Resource res, size_t index, bool darken) {
 // added passing of resource type to assist with weather/seasons/palette messing
 //DataSourceDOS::SpriteDosSolid::SpriteDosSolid(PBuffer _data, ColorDOS *palette, Data::Resource res)
 //DataSourceDOS::SpriteDosSolid::SpriteDosSolid(PBuffer _data, ColorDOS *palette, Data::Resource res, size_t sprite_index)
-DataSourceDOS::SpriteDosSolid::SpriteDosSolid(PBuffer _data, ColorDOS *palette, Data::Resource res, size_t index, bool darken)
+DataSourceDOS::SpriteDosSolid::SpriteDosSolid(PBuffer _data, ColorDOS *palette, Data::Resource res, size_t index, int mutate)
      : SpriteBaseDOS(_data) {
-  //Log::Debug["data-source-dos.cc"] << "inside DataSourceDOS::SpriteDosSolid::SpriteDosSolid, res type " << res << ", index " << index << ", darken bool is " << darken;
+  //Log::Debug["data-source-dos.cc"] << "inside DataSourceDOS::SpriteDosSolid::SpriteDosSolid, res type " << res << ", index " << index << ", mutate int is " << mutate;
   size_t size = _data->get_size();
   if (size != (width * height + 10)) {
     throw ExceptionFreeserf("Failed to extract DOS solid sprite");
@@ -446,6 +446,7 @@ DataSourceDOS::SpriteDosSolid::SpriteDosSolid(PBuffer _data, ColorDOS *palette, 
         }
         // REDUCE IMPACT OF WINTER's reduce greens saturation and shift blue slightly
         else if (color.g > color.r && color.g > color.b) {   // is green
+          /*
           if ((color.r + color.g + color.b) / 3 > avg_brightness + 2) {    // is bright
             if (subseason == 1){  // fade from winter to spring
               color.r +=  3;
@@ -457,6 +458,7 @@ DataSourceDOS::SpriteDosSolid::SpriteDosSolid(PBuffer _data, ColorDOS *palette, 
               color.b += 16;
             }
           }else{
+            */
             // is not bright
             if (subseason == 1){  // fade from winter to spring
               color.r += 10;
@@ -467,7 +469,7 @@ DataSourceDOS::SpriteDosSolid::SpriteDosSolid(PBuffer _data, ColorDOS *palette, 
               color.g -= 14;
               color.b += 24;
             }
-          }
+          //}
         }
         // REDUCE IMPACT OF WINTER's slightly reduce blues saturation
         else if (color.b > color.r && color.b > color.g    // is blue
@@ -502,7 +504,7 @@ DataSourceDOS::SpriteDosSolid::SpriteDosSolid(PBuffer _data, ColorDOS *palette, 
             color.b += 10;
           } else {
             color.g -=  0;
-            color.r += 85;
+            color.r += 75;
             color.b += 15;
           }
         }
@@ -515,11 +517,11 @@ DataSourceDOS::SpriteDosSolid::SpriteDosSolid(PBuffer _data, ColorDOS *palette, 
         // REDUCE IMPACT OF FALL's reduce saturation of greens and shift highlights yellow to look like long grass
         if (color.g > color.r && color.g > color.b  // is green
             && ((color.r + color.g + color.b) / 3 > avg_brightness + 2)) {    // is bright
-          if (subseason == 1){  // fade from summer to fall
+          if (subseason == 1){  // fade from fall to winter
             color.g -=  0;
             color.r += 28;
             color.b +=  5;
-          } else if (subseason == 0){ // fade from summer to fall
+          } else if (subseason == 0){ // fade from fall to winter
             color.g -=  0;
             color.r += 56;
             color.b += 10;
@@ -528,6 +530,331 @@ DataSourceDOS::SpriteDosSolid::SpriteDosSolid(PBuffer _data, ColorDOS *palette, 
 
         // slightly reduce reds saturation
         if (color.r > color.g && color.r > color.b    // is red
+              && color.r > 50){
+          if (subseason == 0){  // fade from fall to winter
+            color.r -=  2;
+            color.g +=  3;
+            color.b +=  3;
+          }else if (subseason == 1){  // fade from fall to winter
+            color.r -=  5;
+            color.g +=  6;
+            color.b +=  6;
+          }else{
+            color.r -=  5;
+            color.g += 10;
+            color.b += 10;
+          }
+        }
+        // reduce greens saturation and shift blue slightly
+        else if (color.g > color.r && color.g > color.b) {   // is green
+          /*
+          //
+          // I don't like this, it elminates the grass highlights and makes it look too flat
+          //
+          if ((color.r + color.g + color.b) / 3 > avg_brightness + 2) {    // is bright
+            if (subseason == 0){  // fade from fall to winter
+              color.r +=  3;
+              color.g -= 10;
+              color.b +=  8;
+            }else if (subseason == 1){  // fade from fall to winter
+              color.r +=  6;
+              color.g -= 20;
+              color.b += 16;
+            }else{
+              color.r += 10;
+              color.g -= 30;
+              color.b += 25;
+            }
+          }else{
+            */
+            // is not bright
+            if (subseason == 0){  // fade from fall to winter
+              color.r += 10;
+              color.g -=  7;
+              color.b += 12;
+            }else if (subseason == 1){  // fade from fall to winter
+              color.r += 20;
+              color.g -= 14;
+              color.b += 24;
+            }else{
+              color.r += 30;
+              color.g -= 20;
+              color.b += 35;
+            }
+          //}
+        }
+        // slightly reduce blues saturation
+        else if (color.b > color.r && color.b > color.g    // is blue
+        //      && color.b > 60){
+                && color.b > 20){
+          if (subseason == 0){  // fade from fall to winter
+            color.r += 4;
+            //color.r = color.r * 1.02;
+            color.g += 4;
+            //color.g = color.g * 1.02;
+            //color.b -= 13;
+            color.b = color.b * 0.95;
+          }else if (subseason == 1){  // fade from fall to winter
+            color.r += 8;
+            //color.r = color.r * 1.03;
+            color.g += 8;
+            //color.g = color.g * 1.03;
+            //color.b -= 27;
+            color.b = color.b * 0.94;
+          }else{
+            color.r += 14;
+            //color.r = color.r * 0.00;
+            color.g += 14;
+            //color.g = color.g * 0.00;
+            //color.b -= 40;
+            color.b = color.b * 0.92;
+          }
+        }
+      }
+     
+    } // if option_FourSeasons && AssetMapGround
+
+    // handle FogOfWar
+    //  note that FoW dark-ify must run after
+    //  FourSeasons so it can modify the FourSeasons-adjusted files
+    //   if both enabled
+    //if (option_FogOfWar && res == Data::AssetMapGround){
+    //if (mutate == 1){
+    if (mutate & 1){
+      // using "200 means black" for shrouding doesn't work easily, instead it just won't even call draw at all!
+      //if (sprite_index == 200){
+      //  // the not-revealed shrouded state is indicated by sprite index 200, no need for more than one
+      //  color.r = 0;  // black
+      //  color.g = 0;  // black
+      //  color.b = 0;  // black
+      //} else if (sprite_index >= 100){
+        // the revealed-but-not-currently-visible state is indicated by sprite index 1xx
+        color.r = color.r *0.6;  // darker by xx%
+        color.g = color.g *0.6;  // darker by xx%
+        color.b = color.b *0.6;  // darker by xx%
+      //}
+      // otherwise, this is a currently-visible sprite, so draw it normally
+    }
+    
+    if (mutate >= 10){
+      unsigned char orig_r = color.r;
+      unsigned char orig_g = color.g;
+      unsigned char orig_b = color.b;
+
+      if (mutate == 10 || mutate == 11){
+        // Water0 - deepest
+        //color.r -= 20;
+        //color.g -= 20;
+        //color.b -= 20;
+        color.b = color.b * 0.9;
+      //
+      // NOTE Water1 is default, no change
+      //
+      }else if (mutate == 12 || mutate == 13){
+        // Water2
+        //color.r += 20;
+        color.r = color.g * 1.15;
+        //color.g += 20;
+        color.g = color.g * 1.15;
+        //color.b += 20;
+        color.b = color.b * 1.15;
+      }else if (mutate == 14 || mutate == 15){
+        // Water3 - shallowest
+        //color.r += 20;
+        color.r = color.r * 1.17;
+        //color.g += 50;
+        color.g = color.g * 1.30;
+        //color.b += 30;
+        color.b = color.b * 1.30;
+      }
+
+      // reduce the effect during winter
+      if (option_FourSeasons){
+        signed char diff_r = color.r - orig_r;          
+        signed char diff_g = color.g - orig_g;
+        signed char diff_b = color.b - orig_b;
+        if (season == 2){  // fall
+          color.r = orig_r + diff_r/1.5;
+          color.g = orig_g + diff_g/1.5;
+          color.b = orig_b + diff_b/1.5;
+        }
+        if (season == 3){  // winter
+          color.r = orig_r + diff_r/2;
+          color.g = orig_g + diff_g/2;
+          color.b = orig_b + diff_b/2;
+        }
+
+      }
+    } 
+
+
+
+    //Log::Info["data-source-dos"] << "ColorDOS new color.b " << std::to_string(color.b) << ", color.g " << std::to_string(color.g) << ", color.r " << std::to_string(color.r);
+
+    result->push<uint8_t>(color.b);  // Blue
+    result->push<uint8_t>(color.g);  // Green
+    result->push<uint8_t>(color.r);  // Red
+    result->push<uint8_t>(0xff);     // Alpha
+
+    /*
+    // TEST TEST TEST
+    if (option_FourSeasons){
+      // making terrain sprites partially-transparent to make them darker sort of works, but where two tiles overlay slightly it is
+      //  much lighter and looks bad
+      //result->push<uint8_t>(0x80);     // Alpha
+      // instead reducing overall brightness via rgb
+      /// YES this works very well and is easier than swapping sprites with pre-rendered ones
+      result->push<uint8_t>(color.b *0.5);  // Blue
+      result->push<uint8_t>(color.g *0.5);  // Green
+      result->push<uint8_t>(color.r *0.5);  // Red
+      result->push<uint8_t>(0xff);     // Alpha
+    }else{
+      // normal coloration & solid
+      result->push<uint8_t>(color.b);  // Blue
+      result->push<uint8_t>(color.g);  // Green
+      result->push<uint8_t>(color.r);  // Red
+      result->push<uint8_t>(0xff);     // Alpha
+    }
+  */
+
+  }  // while data readable
+
+  data = reinterpret_cast<uint8_t*>(result->unfix());
+
+} // SpriteDosSolid
+
+//
+// this function controls Map Objects such as trees, stones, serfs?, buildings
+//  plus the mouse cursor and seemingly any other object that
+//  has a transparent aspect
+//
+/*
+DataSourceDOS::SpriteDosTransparent::SpriteDosTransparent(PBuffer _data,
+                                                          ColorDOS *palette,
+                                                          uint8_t color)
+  : SpriteBaseDOS(_data) {
+*/
+// added passing of resource type to assist with weather/seasons/palette messing
+/*
+DataSourceDOS::SpriteDosTransparent::SpriteDosTransparent(PBuffer _data,
+                                                          ColorDOS *palette,
+                                                          Data::Resource res,
+                                                          uint8_t color)
+  : SpriteBaseDOS(_data) {
+*/
+// added passing of resource type AND sprite index to also allow manipulating specific sprites
+DataSourceDOS::SpriteDosTransparent::SpriteDosTransparent(PBuffer _data,
+                                                          ColorDOS *palette,
+                                                          Data::Resource res,
+                                                          size_t index,
+                                                          uint8_t color,
+                                                          int mutate)
+  : SpriteBaseDOS(_data) {
+
+  PMutableBuffer result = std::make_shared<MutableBuffer>(Buffer::EndianessBig);
+
+  //Log::Info["data-source-dos"] << "inside DataSourceDOS::SpriteDosTransparent::SpriteDosTransparent, index is " << index << ", mutate int is " << mutate;
+
+  //Log::Info["data-source-dos"] << "this transparant sprite has size " << _data->get_size();
+
+   // find the average brightness so the brightest/highlight pixels
+  //  can be identified
+  // don't really need to check the whole sprite, a small sample
+  // should be representative for map tiles
+  // NOTE - this avg_brightness has NOTHING TO DO WITH FogOfWar.
+  //  It is used for identifying high/lowlights within a given sprite
+  //  to enhance contrast/manipulate colors
+  int avg_brightness = 0;
+  if (option_FourSeasons && season == 3){
+    //while (_data->readable()) {
+    for (int i=0; i < 30; i++){
+
+      ColorDOS color = palette[_data->pop<uint8_t>()];
+      avg_brightness += color.r + color.g + color.b;
+      //Log::Info["data-source-dos"] << "this pixel has brightness " << (color.r + color.g + color.b) / 3;
+    }
+
+    // because I do not know how to make a copy of this data, and
+    //  the pop function increments this read counter to track its
+    //  place in the buffer, I added this reset_read function to try
+    //  resetting to zero to hope that it will allow normal iteration
+    //  over it again from the usual pixel loading function below
+    _data->reset_read();
+    // now advance past the metadata at the beginning
+    //  which is a total of ten 8-bit segments (8,8,16,16,16,16)
+    /*delta_x = _data->pop<int8_t>();
+    delta_y = _data->pop<int8_t>();
+    width = _data->pop<uint16_t>();
+    height = _data->pop<uint16_t>();
+    offset_x = _data->pop<int16_t>();
+    offset_y = _data->pop<int16_t>();*/
+    for (int i=0; i < 10; i++){
+      _data->pop<int8_t>();
+    }
+
+    avg_brightness = avg_brightness / 90; // 30 samples x3 colors each
+    //Log::Info["data-source-dos"] << "the avg_brightness of this map tile is " << avg_brightness;
+  }
+  
+
+  while (_data->readable()) {
+    size_t drop = _data->pop<uint8_t>();
+    result->push<uint32_t>(0x00000000, drop);
+
+    size_t fill = _data->pop<uint8_t>();
+    for (size_t i = 0; i < fill; i++) {
+      unsigned int p_index = _data->pop<uint8_t>() + color;  // color_off;
+
+      ColorDOS color = palette[p_index];
+
+      // testing FourSeasons manipulating Seeds / Field sprites
+      if (option_FourSeasons && season == 3){
+        if (res == Data::AssetMapObject){
+          // I haven't bothered to check how the sprite indexes are numbered, there must be some offset
+          //  for each data type, instead I found through trial and error, only need one as a reference point
+          int base = 1241;
+          //if (index >= base + 105 && index <= base + 111){      // ObjectSeeds0 - ObjectFieldExpired 
+          if ((index >= base + 105 && index <= base + 111)    // ObjectSeeds0 - ObjectFieldExpired 
+           || (index >= base + 121 && index <= base + 121)){  // ObjectField0 - ObjectField0
+            if (color.r < 200){  // is *NOT* red (i.e., is yellow or green, or blue I guess)
+            //if (color.g > color.r && color.g > color.b){  // is green
+              //if (color.g + color.r + color.b > 158){ // is bright
+                // make more gray
+                int tmpr = color.r + 50; if (tmpr < 1){ tmpr = 0;} if (tmpr >255){ tmpr = 255;} color.r=tmpr;
+                int tmpg = color.g - 45; if (tmpg < 1){ tmpg = 0;} if (tmpg >255){ tmpg = 255;} color.g=tmpg;
+                int tmpb = color.b +  0; if (tmpb < 1){ tmpb = 0;} if (tmpb >255){ tmpb = 255;} color.b=tmpb;
+                // make black
+                //color.r = 0;
+                //color.g = 0;
+                //color.b = 0;
+            //  }         
+            }
+          }
+        }
+      }
+
+      if (mutate & 1){
+          //color.r = color.r *0.6;  // darker by xx%
+          //color.g = color.g *0.6;  // darker by xx%
+          //color.b = color.b *0.6;  // darker by xx%
+          color.r = color.r * 0.75;
+          color.g = color.g * 0.75;
+          color.b = color.b * 0.75;
+      }
+
+      //if (dull){
+      if (option_FourSeasons && season == 3){
+        //Log::Debug["data-source-dos.cc"] << "inside DataSourceDOS::SpriteDosTransparent(), it is Winter";
+        // WINTER
+
+        // mutate rocks (gray colors)
+        if ((color.r + color.g + color.b) / 3 > avg_brightness + 2      // is bright
+         && (color.r == color.g && color.g == color.b )) {   // is grayscale (colors all balanced)
+          color.r -= 27;
+          color.g -= 27;
+          color.b -= 27;
+        // slightly reduce reds saturation
+        }else if (color.r > color.g && color.r > color.b    // is red
               && color.r > 50){
           if (subseason == 0){  // fade from fall to winter
             color.r -=  2;
@@ -594,151 +921,12 @@ DataSourceDOS::SpriteDosSolid::SpriteDosSolid(PBuffer _data, ColorDOS *palette, 
           }
         }
       }
-     
-    } // if option_FourSeasons && AssetMapGround
-
-    // handle FogOfWar
-    //  note that FoW dark-ify must run after
-    //  FourSeasons so it can modify the FourSeasons-adjusted files
-    //   if both enabled
-    //if (option_FogOfWar && res == Data::AssetMapGround){
-    if (darken){
-      // using "200 means black" for shrouding doesn't work easily, instead it just won't even call draw at all!
-      //if (sprite_index == 200){
-      //  // the not-revealed shrouded state is indicated by sprite index 200, no need for more than one
-      //  color.r = 0;  // black
-      //  color.g = 0;  // black
-      //  color.b = 0;  // black
-      //} else if (sprite_index >= 100){
-        // the revealed-but-not-currently-visible state is indicated by sprite index 1xx
-        color.r = color.r *0.6;  // darker by xx%
-        color.g = color.g *0.6;  // darker by xx%
-        color.b = color.b *0.6;  // darker by xx%
-      //}
-      // otherwise, this is a currently-visible sprite, so draw it normally
-    }    
-
-
-    //Log::Info["data-source-dos"] << "ColorDOS new color.b " << std::to_string(color.b) << ", color.g " << std::to_string(color.g) << ", color.r " << std::to_string(color.r);
-
-    result->push<uint8_t>(color.b);  // Blue
-    result->push<uint8_t>(color.g);  // Green
-    result->push<uint8_t>(color.r);  // Red
-    result->push<uint8_t>(0xff);     // Alpha
-
-    /*
-    // TEST TEST TEST
-    if (option_FourSeasons){
-      // making terrain sprites partially-transparent to make them darker sort of works, but where two tiles overlay slightly it is
-      //  much lighter and looks bad
-      //result->push<uint8_t>(0x80);     // Alpha
-      // instead reducing overall brightness via rgb
-      /// YES this works very well and is easier than swapping sprites with pre-rendered ones
-      result->push<uint8_t>(color.b *0.5);  // Blue
-      result->push<uint8_t>(color.g *0.5);  // Green
-      result->push<uint8_t>(color.r *0.5);  // Red
-      result->push<uint8_t>(0xff);     // Alpha
-    }else{
-      // normal coloration & solid
-      result->push<uint8_t>(color.b);  // Blue
-      result->push<uint8_t>(color.g);  // Green
-      result->push<uint8_t>(color.r);  // Red
-      result->push<uint8_t>(0xff);     // Alpha
-    }
-  */
-
-  }  // while data readable
-
-  data = reinterpret_cast<uint8_t*>(result->unfix());
-
-} // SpriteDosSolid
-
-//
-// this function controls Map Objects such as trees, stones, serfs?, buildings
-//  plus the mouse cursor and seemingly any other object that
-//  has a transparent aspect
-//
-/*
-DataSourceDOS::SpriteDosTransparent::SpriteDosTransparent(PBuffer _data,
-                                                          ColorDOS *palette,
-                                                          uint8_t color)
-  : SpriteBaseDOS(_data) {
-*/
-// added passing of resource type to assist with weather/seasons/palette messing
-/*
-DataSourceDOS::SpriteDosTransparent::SpriteDosTransparent(PBuffer _data,
-                                                          ColorDOS *palette,
-                                                          Data::Resource res,
-                                                          uint8_t color)
-  : SpriteBaseDOS(_data) {
-*/
-// added passing of resource type AND sprite index to also allow manipulating specific sprites
-DataSourceDOS::SpriteDosTransparent::SpriteDosTransparent(PBuffer _data,
-                                                          ColorDOS *palette,
-                                                          Data::Resource res,
-                                                          size_t index,
-                                                          uint8_t color,
-                                                          bool darken)
-  : SpriteBaseDOS(_data) {
-
-  PMutableBuffer result = std::make_shared<MutableBuffer>(Buffer::EndianessBig);
-
-  //Log::Info["data-source-dos"] << "inside DataSourceDOS::SpriteDosTransparent::SpriteDosTransparent, index is " << index << ", darken bool is " << darken;
-
-  //Log::Info["data-source-dos"] << "this transparant sprite has size " << _data->get_size();
-
-  while (_data->readable()) {
-    size_t drop = _data->pop<uint8_t>();
-    result->push<uint32_t>(0x00000000, drop);
-
-    size_t fill = _data->pop<uint8_t>();
-    for (size_t i = 0; i < fill; i++) {
-      unsigned int p_index = _data->pop<uint8_t>() + color;  // color_off;
-
-      ColorDOS color = palette[p_index];
-
-      // testing FourSeasons manipulating Seeds / Field sprites
-      //  THESE ARE BEING CACHED EVEN IF option_FourSeasons IS TURNED OFF!!!
-      /// NEED TO FIGURE OUT HOW TO FLUSH THE CACHE!
-      if (option_FourSeasons && season == 3){
-        if (res == Data::AssetMapObject){
-          // I haven't bothered to check how the sprite indexes are numbered, there must be some offset
-          //  for each data type, instead I found through trial and error, only need one as a reference point
-          int base = 1241;
-          //if (index >= base + 105 && index <= base + 111){      // ObjectSeeds0 - ObjectFieldExpired 
-          if ((index >= base + 105 && index <= base + 111)    // ObjectSeeds0 - ObjectFieldExpired 
-           || (index >= base + 121 && index <= base + 121)){  // ObjectField0 - ObjectField0
-            if (color.r < 200){  // is *NOT* red (i.e., is yellow or green, or blue I guess)
-            //if (color.g > color.r && color.g > color.b){  // is green
-              //if (color.g + color.r + color.b > 158){ // is bright
-                // make more gray
-                int tmpr = color.r + 50; if (tmpr < 1){ tmpr = 0;} if (tmpr >255){ tmpr = 255;} color.r=tmpr;
-                int tmpg = color.g - 45; if (tmpg < 1){ tmpg = 0;} if (tmpg >255){ tmpg = 255;} color.g=tmpg;
-                int tmpb = color.b +  0; if (tmpb < 1){ tmpb = 0;} if (tmpb >255){ tmpb = 255;} color.b=tmpb;
-                // make black
-                //color.r = 0;
-                //color.g = 0;
-                //color.b = 0;
-            //  }         
-            }
-          }
-        }
-      }
-
-      if (darken){
-          //color.r = color.r *0.6;  // darker by xx%
-          //color.g = color.g *0.6;  // darker by xx%
-          //color.b = color.b *0.6;  // darker by xx%
-          color.r = color.r * 0.75;
-          color.g = color.g * 0.75;
-          color.b = color.b * 0.75;
-      }    
-
 
       result->push<uint8_t>(color.b);  // Blue
       result->push<uint8_t>(color.g);  // Green
       result->push<uint8_t>(color.r);  // Red
       result->push<uint8_t>(0xFF);     // Alpha
+    //}
     }
   }
 

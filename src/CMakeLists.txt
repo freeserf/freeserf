@@ -49,7 +49,8 @@ set(GAME_SOURCES ai.cc
                  random.cc
                  savegame.cc
                  serf.cc
-                 game-manager.cc)
+                 game-manager.cc
+                 game-options.cc)
 
 set(GAME_HEADERS ai.h
                  ai_roadbuilder.h
@@ -68,7 +69,8 @@ set(GAME_HEADERS ai.h
                  resource.h
                  savegame.h
                  serf.h
-                 game-manager.h)
+                 game-manager.h
+                 game-options.h)
 
 add_library(game STATIC ${GAME_SOURCES} ${GAME_HEADERS})
 target_check_style(game)
@@ -263,6 +265,14 @@ add_custom_command(TARGET Forkserf POST_BUILD
 add_custom_command(TARGET Forkserf POST_BUILD
                    COMMAND ${CMAKE_COMMAND} -E copy_directory
                        ${CMAKE_SOURCE_DIR}/custom_graphics/frame_bottom $<TARGET_FILE_DIR:Forkserf>/frame_bottom)
+# custom game-init icons for human vs AI
+add_custom_command(TARGET Forkserf POST_BUILD
+                   COMMAND ${CMAKE_COMMAND} -E copy_directory
+                       ${CMAKE_SOURCE_DIR}/custom_graphics/icon $<TARGET_FILE_DIR:Forkserf>/icon)
+# custom splashes for water-objects
+add_custom_command(TARGET Forkserf POST_BUILD
+                   COMMAND ${CMAKE_COMMAND} -E copy_directory
+                       ${CMAKE_SOURCE_DIR}/custom_graphics/map_waves $<TARGET_FILE_DIR:Forkserf>/map_waves)
 
 
 # Profiler executable

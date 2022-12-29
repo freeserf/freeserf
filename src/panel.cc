@@ -387,8 +387,8 @@ PanelBar::button_special_click(int button) {
 
 
 bool
-PanelBar::handle_click_left(int cx, int cy, int modifier) {
-  //Log::Debug["panel.cc"] << "inside PanelBar::handle_click_left(), cx " << cx << ", cy " << cy;
+PanelBar::handle_left_click(int cx, int cy, int modifier) {
+  //Log::Debug["panel.cc"] << "inside PanelBar::handle_left_click(), cx " << cx << ", cy " << cy;
   set_redraw();
 
   if (cx >= 41 && cx < 53) {

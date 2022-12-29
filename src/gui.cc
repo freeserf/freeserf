@@ -100,7 +100,8 @@ GuiObject::handle_event(const Event *event) {
 
   int event_x = event->x;
   int event_y = event->y;
-  if (event->type == Event::TypeClick ||
+  if (event->type == Event::TypeLeftClick ||
+      event->type == Event::TypeRightClick ||
       event->type == Event::TypeDoubleClick ||
       event->type == Event::TypeMiddleClick ||
       event->type == Event::TypeSpecialClick ||
@@ -132,16 +133,16 @@ GuiObject::handle_event(const Event *event) {
 
   bool result = false;
   switch (event->type) {
-    case Event::TypeClick:
-      if (event->button == Event::ButtonLeft) {
-        result = handle_click_left(event_x, event_y, event->dy);
-      }
+    case Event::TypeLeftClick:
+      result = handle_left_click(event_x, event_y, event->dy);
       break;
     case Event::TypeDrag:
       result = handle_drag(event->dx, event->dy);
       break;
+    case Event::TypeRightClick:
+      result = handle_click_right(event_x, event_y);
+      break;
     case Event::TypeDoubleClick:
-      //result = handle_dbl_click(event->x, event->y, event->button);  // shouldn't this be event_x/y (the offset kind)
       result = handle_dbl_click(event_x, event_y, event->button);
       break;
     case Event::TypeMiddleClick:
@@ -153,11 +154,19 @@ GuiObject::handle_event(const Event *event) {
     case Event::TypeKeyPressed:
       result = handle_key_pressed(event->dx, event->dy);
       break;
+    case Event::TypeArrowKeyPressed:
+      result = handle_arrow_key_pressed(event->dx);
+      break;
+    case Event::TypeListScroll:
+      result = handle_list_scroll(event->dx);
+      break;
     default:
       break;
   }
 
+  //Log::Debug["gui.cc"] << "inside GuiObject::handle_event(), focus, trigged event->type " << event->type << ", result was " << result;
   if (result && (focused_object != this)) {
+    //Log::Debug["gui.cc"] << "inside GuiObject::handle_event(), focus, triggering focus_loose, result was " << result;
     if (focused_object != nullptr) {
       focused_object->focused = false;
       focused_object->handle_focus_loose();

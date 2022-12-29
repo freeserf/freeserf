@@ -53,8 +53,9 @@ class TextInput : public GuiObject {
  protected:
   virtual void internal_draw();
 
-  virtual bool handle_click_left(int x, int y, int modifier);
+  virtual bool handle_left_click(int x, int y, int modifier);
   virtual bool handle_key_pressed(char key, int modifier);
+ // virtual bool handle_arrow_key_pressed(uint8_t key);
   virtual bool handle_focus_loose();
 };
 

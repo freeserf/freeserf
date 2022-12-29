@@ -30,6 +30,7 @@
 #include "src/resource.h"
 
 #include "src/minimap.h" // for refreshing minimap when FogOfWar toggled
+#include "src/text-input.h" // for TextInput text_input_filter for filtering bad chars from savegame name
 
 class Interface;
 class MinimapGame;
@@ -62,11 +63,11 @@ class PopupBox : public GuiObject {
     TypeStartAttack,
     TypeStartAttackRedraw,
     TypeGroundAnalysis,
-    TypeLoadArchive,
-    TypeLoadSave,
+    TypeLoadArchive,  // I don't think this is used
+    TypeLoadSave,    // this is tied to the SettSelect popup
     Type25,
     TypeDiskMsg,
-    TypeSettSelect,
+    TypeSettSelect,  // this is tied to the save game popup LoadSave
     TypeSett1,
     TypeSett2,
     TypeSett3,
@@ -102,6 +103,7 @@ class PopupBox : public GuiObject {
     TypeCtrlsInfo,
     TypeGameOptions,
     TypeGameOptions2,
+    TypeGameOptions3,
     TypeEditMapGenerator,
     TypePleaseWaitSaving,  // added for option_EnableAutoSave
     TypePleaseWaitFogOfWar // added for option_FogOfWar
@@ -159,6 +161,22 @@ class PopupBox : public GuiObject {
   int current_sett_6_item;
   int current_stat_7_item;
   int current_stat_8_mode;
+
+  // function-as-parameter style copied from RandomText::TextInput in game-init.cc
+  static bool savegame_text_input_filter(const char key, TextInput *text_input) {
+    // allow only a-z, 0-9, dash, and dot. 
+    // there is no uppercase, it seems all letters are evaluated as lowercase
+    // there are also sprites for german special chars, %, and :, but these are bad in filenames and so excluded
+    if (!((key >= 'a' && key <= 'z') ||
+          (key >= '0' && key <= '9') ||
+          (key == '-' || key == '.'))) {
+      return false;
+    }
+    if (text_input->get_text().length() > 30) {
+      return false;
+    }
+    return true;
+  }
 
  public:
   explicit PopupBox(Interface *interface);
@@ -229,6 +247,7 @@ class PopupBox : public GuiObject {
   void draw_options_box();
   void draw_game_options_box();
   void draw_game_options2_box();
+  void draw_game_options3_box();
   void draw_edit_map_generator_box();
   void draw_castle_res_box();
   void draw_mine_output_box();
@@ -263,6 +282,7 @@ class PopupBox : public GuiObject {
   void handle_box_options_clk(int x, int y);
   void handle_box_game_options_clk(int x, int y);
   void handle_box_game_options2_clk(int x, int y);
+  void handle_box_game_options3_clk(int x, int y);
   void handle_box_edit_map_generator_clk(int x, int y);
   void handle_mine_building_clk(int x, int y);
   void handle_basic_building_clk(int x, int y, int flip);
@@ -315,8 +335,8 @@ class PopupBox : public GuiObject {
   uint16_t slider_mineral_double_to_uint16(double val){ return uint16_t(val * 7278); }
 
   virtual void internal_draw();
-  //virtual bool handle_click_left(int x, int y);
-  virtual bool handle_click_left(int x, int y, int modifier);
+  //virtual bool handle_left_click(int x, int y);
+  virtual bool handle_left_click(int x, int y, int modifier);
 };
 
 #endif  // SRC_POPUP_H_

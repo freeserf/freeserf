@@ -66,8 +66,7 @@ class DataSourceDOS : public DataSourceLegacy {
     //SpriteDosSolid(PBuffer data, ColorDOS *palette);
     //SpriteDosSolid(PBuffer data, ColorDOS *palette, Data::Resource res);
     //SpriteDosSolid(PBuffer data, ColorDOS *palette, Data::Resource res, size_t index);
-    SpriteDosSolid(PBuffer data, ColorDOS *palette, Data::Resource res, size_t index, bool darken = false);  // it seems that using a default value on a constructor doesn't work correctly?  seeing this as false when called w/ true
-    //SpriteDosSolid(PBuffer data, ColorDOS *palette, Data::Resource res, size_t index, bool darken);  // and this doesn't compile, wtf
+    SpriteDosSolid(PBuffer data, ColorDOS *palette, Data::Resource res, size_t index, int mutate = 0);
     virtual ~SpriteDosSolid() {}
   };
   typedef std::shared_ptr<SpriteDosSolid> PSpriteDosSolid;  // this is never used
@@ -77,7 +76,7 @@ class DataSourceDOS : public DataSourceLegacy {
     //SpriteDosTransparent(PBuffer data, ColorDOS *palette, uint8_t color = 0);
     //SpriteDosTransparent(PBuffer data, ColorDOS *palette, Data::Resource res, uint8_t color = 0);  // added Data::Resource type
     //SpriteDosTransparent(PBuffer data, ColorDOS *palette, Data::Resource res, size_t index, uint8_t color = 0);  // sprite data index (within resource type)
-    SpriteDosTransparent(PBuffer data, ColorDOS *palette, Data::Resource res, size_t index, uint8_t color = 0, bool darken = false);  // sprite data index (within resource type)
+    SpriteDosTransparent(PBuffer data, ColorDOS *palette, Data::Resource res, size_t index, uint8_t color = 0, int mutate = 0);  // sprite data index (within resource type)
     virtual ~SpriteDosTransparent() {}
   };
   typedef std::shared_ptr<SpriteDosTransparent> PSpriteDosTransparent;  // this is never used
@@ -118,7 +117,7 @@ class DataSourceDOS : public DataSourceLegacy {
   virtual bool load();
 
   //virtual Data::MaskImage get_sprite_parts(Data::Resource res, size_t index);
-  virtual Data::MaskImage get_sprite_parts(Data::Resource res, size_t index, bool darken = false);
+  virtual Data::MaskImage get_sprite_parts(Data::Resource res, size_t index, int mutate = 0);
 
   virtual PBuffer get_sound(size_t index);
   virtual Data::MusicFormat get_music_format() { return Data::MusicFormatMidi; }

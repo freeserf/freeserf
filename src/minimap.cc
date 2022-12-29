@@ -517,7 +517,7 @@ MinimapGame::internal_draw() {
 }
 
 bool
-MinimapGame::handle_click_left(int cx, int cy, int modifier) {
+MinimapGame::handle_left_click(int cx, int cy, int modifier) {
   MapPos pos = map_pos_from_screen_pix(cx, cy);
   interface->get_viewport()->move_to_map_pos(pos);
 

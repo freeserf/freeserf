@@ -151,15 +151,20 @@ Interface::get_popup_box() {
 /* Open popup box */
 void
 Interface::open_popup(int box) {
-  //Log::Debug["interface.cc"] << "inside Interface::open_popup(), for popup type " << box;
+  Log::Debug["interface.cc"] << "inside Interface::open_popup(), for popup type " << box;
   if (popup == nullptr) {
     //Log::Debug["interface.cc"] << "inside Interface::open_popup(), for popup type " << box << ", popup is nullptr, creating new";
     popup = new PopupBox(this);
     add_float(popup, 0, 0);
   }
   layout();
-  //if (box == PopupBox::TypeGameOptions || box == PopupBox::TypeGameOptions2 || box == PopupBox::TypeEditMapGenerator){
-  if (box == PopupBox::TypeOptions || box == PopupBox::TypeGameOptions || box == PopupBox::TypeGameOptions2 || box == PopupBox::TypeEditMapGenerator){
+  // something odd, it seems that some popup objects may be re-used?  it seems that TypeSettSelect and
+  //  TypeLoadSave save a popup window size, and in order to make the LoadSave popup double-wide it must
+  //  be referred to as SettSelect here, which makes SettSelect off-center because it is not actually
+  //  double-wide but is offset as if it were.  Attempting to fix by simply reverting the offset for this
+  if (box == PopupBox::TypeOptions || box == PopupBox::TypeGameOptions || box == PopupBox::TypeGameOptions2 || box == PopupBox::TypeGameOptions3
+   || box == PopupBox::TypeEditMapGenerator || box == PopupBox::TypeSettSelect){
+     Log::Debug["interface.cc"] << "inside Interface::open_popup(), for popup type " << box << ", drawing double-wide";
     // double wide, normal height
     popup->set_size(288, 160);
     // recenter the popup
@@ -171,8 +176,11 @@ Interface::open_popup(int box) {
     int *ptoptions_pos_y = &options_pos_y;
     popup->get_position(ptoptions_pos_x, ptoptions_pos_y);
     options_pos_x = *ptoptions_pos_x;
-    // shift left half of one "normal width", keep same height
-    options_pos_x -= 72;
+    // see notes above, this one is weird
+    if (box != PopupBox::TypeSettSelect){
+      // shift left half of one "normal width", keep same height
+      options_pos_x -= 72;
+    }
     popup->move_to(options_pos_x, options_pos_y);
   }
   /* this doesn't work here, not exactly clear why
@@ -669,6 +677,7 @@ Interface::set_game(PGame new_game) {
     add_float(viewport, 0, 0);
   }
 
+  clear_custom_graphics_cache(); // this prevents the FourSeasons seasonal terrain graphics from persisting on a new or loaded game which may have diff season
   layout();
 
   set_player(0);
@@ -1039,6 +1048,7 @@ Interface::layout() {
 void
 Interface::update() {
   //Log::Debug["interface.cc"] << "start of Interface::update()";
+  
   if (!game) {
     return;
   }
@@ -1235,9 +1245,9 @@ Interface::handle_key_pressed(char key, int modifier) {
     }
     */
 
-    // what is this?   backspace or escape maybe? to cancel popup?
+    // escape key
     case 27: {
-      Log::Debug["interface"] << "BACKSPACE key pressed, closing any open popup / road build";
+      //Log::Debug["interface.cc"] << "ESCAPE key pressed, closing any open popup / road build";
       if ((notification_box != nullptr) && notification_box->is_displayed()) {
         close_message();
       } else if ((popup != nullptr) && popup->is_displayed()) {
@@ -1428,6 +1438,7 @@ Interface::handle_key_pressed(char key, int modifier) {
       }
       clear_custom_graphics_cache();
       viewport->set_size(width, height);  // this does the magic refresh without affecting popups (as Interface->layout() does)
+      GameOptions::get_instance().save_options_to_file();
       break;
     case 'f':
       Log::Info["interface.cc"] << "'f' key pressed, toggling FogOfWar";
@@ -1450,6 +1461,7 @@ Interface::handle_key_pressed(char key, int modifier) {
         game->init_FogOfWar();
         reload_any_minimaps();
       }
+      GameOptions::get_instance().save_options_to_file();
       break;
     case 'q':
       //disabled for now, season is now tied to tick so it works with save/load game
@@ -1483,19 +1495,19 @@ Interface::handle_key_pressed(char key, int modifier) {
       */
       break;
     case 'z':
-      Log::Info["interface"] << "'z' key pressed, quick-saving game'";
+      Log::Info["interface"] << "'z' key pressed, quick-saving game";
       if (modifier & 1) {
         GameStore::get_instance().quick_save("quicksave", game.get());
       }
       break;
     case 'n':
-      Log::Info["interface"] << "'n' key pressed, opening new-game-init popup'";
+      Log::Info["interface"] << "'n' key pressed, opening new-game-init popup";
       if (modifier & 1) {
         open_game_init();
       }
       break;
     case 'c':
-      Log::Info["interface"] << "'c' key pressed, confirming quit'";
+      Log::Info["interface"] << "'c' key pressed, confirming quit";
       // ALLOW ENTER KEY TO DO THIS!
       if (modifier & 1) {
         open_popup(PopupBox::TypeQuitConfirm);
@@ -1521,7 +1533,23 @@ Interface::handle_event(const Event *event) {
     case Event::TypeDraw:
       draw(reinterpret_cast<Frame*>(event->object));
       break;
-
+    case Event::TypeRightClick:
+      //Log::Info["interface.cc"] << "inside Interface::handle_event(), TypeRightClick";
+      // the game init box uses right click for player cycling
+      if (init_box != nullptr && init_box->is_displayed()){
+        GuiObject::handle_event(event);
+      }else{
+        //Log::Info["interface.cc"] << "inside Interface::handle_event(), TypeRightClick, closing popups/notifications/canceling road";
+        // for all other cases, trigger "close-popup/cancel-action"
+        if ((notification_box != nullptr) && notification_box->is_displayed()) {
+          close_message();
+        } else if ((popup != nullptr) && popup->is_displayed()) {
+          close_popup();
+        } else if (building_road.is_valid()) {
+          build_road_end();
+        }
+      }
+      break;
     default:
       return GuiObject::handle_event(event);
       break;
@@ -1575,6 +1603,7 @@ Interface::clear_custom_graphics_cache() {
     }
   }
   // custom shadows not being used yet because the transparency isn't working, add those to purge list once that is fixed
+  //  wait CUSTOM SHADOWS DO WORK NOW!  does this now require purging?? 
   // for (xxx)
   //   to_purge.insert( Data::Sprite::create_id(Data::AssetMapShadow, i + xxx, 0, 0, {0,0,0,0}) );
   //
@@ -1584,12 +1613,14 @@ Interface::clear_custom_graphics_cache() {
   // there are two mask types, each with 80 elements
   // Data::AssetMapMaskUp and Data::AssetMapMaskDown
   for (int mask_index=0; mask_index<81; mask_index++){
-    for (int map_ground_index=0; map_ground_index<33; map_ground_index++){
+    //for (int map_ground_index=0; map_ground_index<33; map_ground_index++){
+    for (int map_ground_index=0; map_ground_index<43; map_ground_index++){ // added new water types
       to_purge.insert( Data::Sprite::create_id(Data::AssetMapGround, map_ground_index, Data::AssetMapMaskUp, mask_index, {0,0,0,0}) );
       to_purge.insert( Data::Sprite::create_id(Data::AssetMapGround, map_ground_index, Data::AssetMapMaskDown, mask_index, {0,0,0,0}) );
     }
-    // clear the option_FogOfWar darkened sprites also, as they stil change with the seasons
-    for (int map_ground_index=100; map_ground_index<133; map_ground_index++){
+    // clear the option_FogOfWar mutated sprites also, as they stil change with the seasons
+    //  also depth-luminosity mutated water sprites
+    for (int map_ground_index=100; map_ground_index<143; map_ground_index++){
       to_purge.insert( Data::Sprite::create_id(Data::AssetMapGround, map_ground_index, Data::AssetMapMaskUp, mask_index, {0,0,0,0}) );
       to_purge.insert( Data::Sprite::create_id(Data::AssetMapGround, map_ground_index, Data::AssetMapMaskDown, mask_index, {0,0,0,0}) );
     }
@@ -1602,10 +1633,17 @@ Interface::clear_custom_graphics_cache() {
   //   so sprite for Seeds0 which is index 105 is actually sprite index 97 because 105-8=97
   //for (int unknown_index=Map::ObjectSeeds0 - 8; unknown_index <= Map::ObjectSeeds2 - 8; unknown_index++){
   //for (int unknown_index=Map::ObjectSeeds0 - 8; unknown_index <= Map::ObjectField5 - 8; unknown_index++){
-    for (int unknown_index=Map::ObjectSeeds0 - 8; unknown_index <= Map::ObjectFieldExpired - 8; unknown_index++){
+  for (int unknown_index=Map::ObjectSeeds0 - 8; unknown_index <= Map::ObjectFieldExpired - 8; unknown_index++){
     to_purge.insert( Data::Sprite::create_id(Data::AssetMapObject, unknown_index, Data::AssetNone, 0, {0,0,0,0}) );
   }
-    
+
+  // dull winter colors, purge ALMOST ALL objects!
+  if (option_FourSeasons && (season == 3 || season == 0)){  // can't forget to purge again on next season! spring
+    for (int unknown_index=Map::ObjectTree0 - 8; unknown_index <= Map::ObjectField5 - 8; unknown_index++){
+      to_purge.insert( Data::Sprite::create_id(Data::AssetMapObject, unknown_index, Data::AssetNone, 0, {0,0,0,0}) );
+    }
+  }
+
   //for (uint64_t id : to_purge){
   //  Log::Debug["interface"] << "to_purge contains id " << id;
   //}

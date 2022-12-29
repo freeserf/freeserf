@@ -61,13 +61,23 @@ EventLoop::notify_handlers(Event *event) {
 }
 
 bool
-EventLoop::notify_click(int x, int y, unsigned char modifier, Event::Button button) {
+EventLoop::notify_left_click(int x, int y, unsigned char modifier, Event::Button button) {
   Event event;
-  event.type = Event::TypeClick;
+  event.type = Event::TypeLeftClick;
   event.x = x;
   event.y = y;
   event.dy = modifier;
   event.button = button;
+  return notify_handlers(&event);
+}
+
+bool
+EventLoop::notify_right_click(int x, int y) {
+  Event event;
+  event.type = Event::TypeRightClick;
+  event.x = x;
+  event.y = y;
+  //event.button = button;
   return notify_handlers(&event);
 }
 
@@ -121,6 +131,27 @@ EventLoop::notify_key_pressed(unsigned char key, unsigned char modifier) {
   event.y = 0;
   event.dx = key;
   event.dy = modifier;
+  return notify_handlers(&event);
+}
+
+// 0=up, 1=down, 3=left, 4=right
+bool
+EventLoop::notify_arrow_key_pressed(uint8_t key) {
+  Event event;
+  event.type = Event::TypeArrowKeyPressed;
+  event.x = 0;
+  event.y = 0;
+  event.dx = key; // this is where the key value is passed
+  return notify_handlers(&event);
+}
+
+bool
+EventLoop::notify_list_scroll(int y){
+  Event event;
+  event.type = Event::TypeListScroll;
+  event.x = 0;
+  event.y = 0;
+  event.dx = y; // this is where the y value is passed
   return notify_handlers(&event);
 }
 

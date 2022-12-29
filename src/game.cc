@@ -65,10 +65,14 @@ bool option_InvertWheelZoom = false;
 bool option_SpecialClickBoth = true;
 bool option_SpecialClickMiddle = true;
 bool option_SpecialClickDouble = true;
+bool option_SailorsMoveFaster = false;
+bool option_WaterDepthLuminosity = false;
+bool option_RandomizeInstruments = false;  // only affects DOS music
 int season = 1;  // default to Summer
 int last_season = 1;  // four seasons
 int subseason = 0;  // 1/16th of a season
 int last_subseason = 0;
+bool is_list_in_focus = false;
 typedef enum Season {
   SeasonSpring = 0,
   SeasonSummer = 1,
@@ -1554,7 +1558,7 @@ Game::build_flag_split_path(MapPos pos) {
 /* Check whether player can build flag at pos. */
 bool
 Game::can_build_flag(MapPos pos, const Player *player) const {
-  //Log::Debug["game.cc"] << "inside Game::can_build_flag, map->has_owner bool is " << map->has_owner(pos) << ", map->get_owner is " << map->get_owner(pos) << ", player index " << player->get_index();
+  //Log::Debug["game.cc"] << "inside Game::can_build_flag, pos " << pos << ", map->has_owner bool is " << map->has_owner(pos) << ", map->get_owner is " << map->get_owner(pos) << ", player index " << player->get_index();
 
   //if (!map->has_owner(pos))
   //  Log::Debug["game.cc"] << "inside Game::can_build_flag, A";
@@ -1573,7 +1577,7 @@ Game::can_build_flag(MapPos pos, const Player *player) const {
   if (Map::map_space_from_obj[map->get_obj(pos)] != Map::SpaceOpen) {
     return false;
   }
-  //Log::Debug["game.cc"] << "inside Game::can_build_flag, player index " << player->get_index() << ", clearance check passed";
+  //Log::Debug["game.cc"] << "inside Game::can_build_flag, pos " << pos << ", player index " << player->get_index() << ", clearance check passed";
 
   /* Check whether cursor is in water */
   if (map->type_up(pos) <= Map::TerrainWater3 &&
@@ -1585,7 +1589,7 @@ Game::can_build_flag(MapPos pos, const Player *player) const {
     return false;
   }
 
-  //Log::Debug["game.cc"] << "inside Game::can_build_flag, player index " << player->get_index() << ", water check passed";
+  //Log::Debug["game.cc"] << "inside Game::can_build_flag, pos " << pos << ", player index " << player->get_index() << ", water check passed";
 
   /* Check that no flags are nearby */
   for (Direction d : cycle_directions_cw()) {
@@ -1593,7 +1597,7 @@ Game::can_build_flag(MapPos pos, const Player *player) const {
       return false;
     }
   }
-  //Log::Debug["game.cc"] << "inside Game::can_build_flag, player index " << player->get_index() << ", flags-neaby check passed";
+  //Log::Debug["game.cc"] << "inside Game::can_build_flag, pos " << pos << ", player index " << player->get_index() << ", flags-neaby check passed";
 
   return true;
 }
@@ -2512,7 +2516,12 @@ Game::update_FogOfWar(MapPos init_pos) {
   // need to redraw terrain for FoW updates to be visible
   set_must_redraw_frame();
 
-  const int visible_radius_by_type[25] = {0,0,0,0,0,0,0,0,0,0,0,10,0,0,0,0,0,0,0,0,0,15,19,0,21};
+  //const int visible_radius_by_type[25] = {0,0,0,0,0,0,0,0,0,0,0,10,0,0,0,0,0,0,0,0,0,15,19,0,21};
+  // visually I like the smaller radius, but increasing it so that attackable buildings are always visible...
+  //const int visible_radius_by_type[25] = {0,0,0,0,0,0,0,0,0,0,0,15,0,0,0,0,0,0,0,0,0,20,23,0,23};
+  // ugh this still isnt enough, maybe consider making attackable buildings always visible & attackable
+  //  even if not actually within visible range?
+  const int visible_radius_by_type[25] = {0,0,0,0,0,0,0,0,0,0,0,18,0,0,0,0,0,0,0,0,0,20,23,0,23};
   int reveal_beyond = 6;  // added to visible_radius when setting
   // _spiral_dist / AI::spiral_dist ONLY GOES UP TO 25!!  DO NOT ALLOW REVEAL RADIUS TO BE LARGER!
   // copied from AI::spiral_dist, MAKE THIS GLOBAL!
@@ -2532,6 +2541,9 @@ const int _spiral_dist[49] = { 1, 7, 19, 37, 61, 91, 127, 169, 217, 271, 331, 39
   // NO! only unset_all_visible for the influence radius of the largest visible_radius_by_type (castle)
   //  but look for other influential buildings at DOUBLE that radius
   int influence_radius = visible_radius_by_type[Building::TypeCastle] * 2 + 1;  // THIS MUST BE AT LEAST *TWICE* LARGE AS THE LARGEST POSSIBLE visible_radius (castle's)
+  //if (influence_radius > 48){ // HACK to allow castle radius 24
+  //  influence_radius = 48; // extended_spiral only goes this high
+  //}
   MapPosVector influential_buildings = {};
   // NOTE - if the building at init_pos exists and is occupied, it will be found here and its visible and revealed radius will be set
   //   if the building at init_pos was destroyed/lost, it will *not* be found here and so it will correctly lose visibilty
@@ -3426,7 +3438,7 @@ Game::place_castle(MapPos center_pos, int player_index, unsigned int distance, u
 
     // don't count resouces that are inside enemy territory
     if (map->get_owner(pos) != player_index && map->has_owner(pos)) {
-      Log::Debug["game.cc"] << "inside Game::place_castle(), Player" << player_index << ", enemy territory at pos " << pos << ", not counting these resouces towards requirements";
+      //Log::Debug["game.cc"] << "inside Game::place_castle(), Player" << player_index << ", enemy territory at pos " << pos << ", not counting these resouces towards requirements";
       continue;
     }
 
@@ -3450,19 +3462,19 @@ Game::place_castle(MapPos center_pos, int player_index, unsigned int distance, u
     }
   }
 
-  Log::Debug["game.cc"] << "inside Game::place_castle(), Player" << player_index << ", found trees: " << trees << ", stones: " << stones << ", building_sites: " << building_sites << " in area " << center_pos << ". Desperation is " << desperation;
+  //Log::Debug["game.cc"] << "inside Game::place_castle(), Player" << player_index << ", found trees: " << trees << ", stones: " << stones << ", building_sites: " << building_sites << " in area " << center_pos << ". Desperation is " << desperation;
 
   // if good place for castle cannot be found, lower standards by faking an increased amount of resources
   if (trees + desperation*4 < near_trees_min * 4) {
-    Log::Debug["game.cc"] << "inside Game::place_castle(), Player" << player_index << ", not enough trees, min is " << near_trees_min * 4 << ", returning false.  Desperation is " << desperation;
+    //Log::Debug["game.cc"] << "inside Game::place_castle(), Player" << player_index << ", not enough trees, min is " << near_trees_min * 4 << ", returning false.  Desperation is " << desperation;
     return false;
   }
   if (stones + desperation < near_stones_min) {
-    Log::Debug["game.cc"] << "inside Game::place_castle(), Player" << player_index << ", not enough stones, min is " << near_stones_min << ", returning false.  Desperation is " << desperation;
+    //Log::Debug["game.cc"] << "inside Game::place_castle(), Player" << player_index << ", not enough stones, min is " << near_stones_min << ", returning false.  Desperation is " << desperation;
     return false;
   }
   if (building_sites + desperation*90 < near_building_sites_min) {
-    Log::Debug["game.cc"] << "inside Game::place_castle(), Player" << player_index << ", not enough building_sites, min is " << near_building_sites_min << ", returning false.  Desperation is " << desperation;
+    //Log::Debug["game.cc"] << "inside Game::place_castle(), Player" << player_index << ", not enough building_sites, min is " << near_building_sites_min << ", returning false.  Desperation is " << desperation;
     return false;
   }
   Log::Debug["game.cc"] << "inside Game::place_castle(), Player" << player_index << ", center_pos: " << center_pos << " is an acceptable building site for a castle.  Desperation is " << desperation;

@@ -239,7 +239,7 @@ class Interface : public GuiObject, public GameManager::Handler {
   void set_custom_map_generator_mountain_stone(uint16_t val){ custom_map_generator_options.opt[CustomMapGeneratorOption::MountainStone] = slider_mineral_uint16_to_int_to_double(val); }
   void set_custom_map_generator_desert_frequency(uint16_t val){ custom_map_generator_options.opt[CustomMapGeneratorOption::DesertFrequency] = slider_uint16_to_double(val); }
   void set_custom_map_generator_lakes_water_level(uint16_t val){
-    // default is 20, values as high as 150 seem okay, resulting in islands surrounded by water
+    // default is 20 (really, 20??), values as high as 150 seem okay, resulting in islands surrounded by water
     // these island maps are not very playable, and AI won't be able to place a castle, but leaving
     // this available for experimentation.  A set of game rules adjustments need to be made to
     // create island maps with beaches and some way of being able to place knight huts far away

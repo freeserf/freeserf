@@ -71,8 +71,8 @@ class RandomInput : public TextInput {
     return true;
   }
 
-  virtual bool handle_click_left(int cx, int cy, int modifier) {
-    TextInput::handle_click_left(cx, cy, modifier);
+  virtual bool handle_left_click(int cx, int cy, int modifier) {
+    TextInput::handle_left_click(cx, cy, modifier);
     saved_text = text;
     text.clear();
     return true;
@@ -118,14 +118,17 @@ GameInitBox::GameInitBox(Interface *interface)
   random_input->set_displayed(true);
   add_float(random_input.get(), 19 + 31*8, 15);
 
-  file_list->set_size(160, 160);
+  //file_list->set_size(160, 160);
+  file_list->set_size(320, 160);  // this covers the minimap, but it is acceptable tradeoff I think
   file_list->set_displayed(false);
   file_list->set_selection_handler([this](const std::string &item) {
+    /* disabling this for now as the minimap is covered by the file list
     Game game;
     if (GameStore::get_instance().load(item, &game)) {
       this->map = game.get_map();
       this->minimap->set_map(map);
     }
+    */
   });
   add_float(file_list.get(), 20, 55);
 }
@@ -202,7 +205,31 @@ GameInitBox::internal_draw() {
       break;
     }
     case GameCustom: {
-      draw_box_icon(5, 0, 263);  // Game type
+      //draw_box_icon(5, 0, 263);  // Game type    // this is human vs human, which isn't even supported
+
+      // update icon drawn to match current plays assigned
+      int players_icon_sprite = 262; // default to "single human w/ thumbs up" sprite
+      bool has_human = false;
+      int ai_count = 0;
+      for (int player_index = 0; player_index < mission->get_player_count(); player_index++){
+        if (mission->get_player(player_index)->get_face() == 12 || mission->get_player(player_index)->get_face() == 13){
+          has_human = true;
+        }else{
+          ai_count++;
+        }
+      }
+      if (has_human && ai_count > 0){
+        players_icon_sprite = 1262;  // custom human vs AI sprite
+      }else if (ai_count >= 2){
+        players_icon_sprite = 264;   // built-in computer-vs-computer aka 'demo' sprite
+      }else if (ai_count == 1){
+        players_icon_sprite = 1264;  // custom single-AI-only sprite
+      }else{
+        // only human player[s], leave original "single human w/ thumbs up sprite".
+        // NOTE that if there are only multiple human players allocated, because multi-seat and network-multiplayer not implemented
+        //  only a single human is really controlling the players, so leave the single-human graphic
+      }
+      draw_box_icon(5, 0, players_icon_sprite);  // human vs AI
 
       std::stringstream str_map_size;
       str_map_size << mission->get_map_size();
@@ -291,7 +318,12 @@ GameInitBox::draw_player_box(unsigned int player, int bx, int by) {
   draw_box_icon(bx+5, by, 282);
   if (game_type == GameCustom) {
     draw_box_icon(bx+4, by, 308);
-    draw_box_icon(bx+5, by, (face == 0) ? 287 : 259);
+    // draw mouse icon for human players, circle icon for AI players
+    if (face == 12 || face == 13){
+      draw_box_icon(bx+5, by, (face == 0) ? 287 : 256);  // icon #256 is mouse
+    }else{   // icon #287 is "unselected/off" empty circle
+      draw_box_icon(bx+5, by, (face == 0) ? 287 : 259);  // icon #259 is "selected/on" empty circle
+    }
   }
 
   if (player < mission->get_player_count()) {
@@ -316,12 +348,19 @@ void
 GameInitBox::handle_action(int action) {
   switch (action) {
     case ActionStartGame: {
+      is_list_in_focus = false;  // another hack, to restore normal zoom once game starts
       if (game_type == GameLoad) {
         std::string path = file_list->get_selected();
+        if (path == ""){
+          play_sound(Audio::TypeSfxNotAccepted);
+          return;
+        }
+        play_sound(Audio::TypeSfxAccepted);
         if (!GameManager::get_instance().load_game(path)) {
           return;
         }
       } else {
+        play_sound(Audio::TypeSfxAccepted);
         if (!GameManager::get_instance().start_game(mission, interface->get_custom_map_generator_options())) {
           return;
         }
@@ -332,6 +371,12 @@ GameInitBox::handle_action(int action) {
     }
     case ActionToggleGameType:
       game_type++;
+
+      // missions don't work right, simply disable them for now
+      if (game_type == GameMission){
+        game_type++;
+      }
+
       if (game_type > GameLoad) {
         game_type = GameCustom;
       }
@@ -372,8 +417,7 @@ GameInitBox::handle_action(int action) {
           mission = GameInfo::get_mission(game_mission);
           break;
         case GameCustom:
-          custom_mission->set_map_size(std::min(10u,
-                                           custom_mission->get_map_size() + 1));
+          custom_mission->set_map_size(std::min(10u, custom_mission->get_map_size() + 1));
           break;
       }
       generate_map_preview();
@@ -385,19 +429,19 @@ GameInitBox::handle_action(int action) {
           mission = GameInfo::get_mission(game_mission);
           break;
         case GameCustom:
-          custom_mission->set_map_size(std::max(3u,
-                                           custom_mission->get_map_size() - 1));
+          custom_mission->set_map_size(std::max(3u, custom_mission->get_map_size() - 1));
           break;
       }
       generate_map_preview();
       break;
     case ActionClose:
+      is_list_in_focus = false;  // another hack, to restore normal zoom
       interface->close_game_init();
       break;
     case ActionGenRandom: {
       random_input->set_random(Random());
       set_redraw();
-      break;
+      // break;  // now generating a new random seed immediately applies it!
     }
     case ActionApplyRandom: {
       std::string str = random_input->get_text();
@@ -420,7 +464,7 @@ GameInitBox::handle_action(int action) {
 }
 
 bool
-  GameInitBox::handle_click_left(int cx, int cy, int modifier) {
+  GameInitBox::handle_left_click(int cx, int cy, int modifier) {
   const int clickmap_mission[] = {
     ActionStartGame,        20,  16, 32, 32,
     ActionToggleGameType,   60,  16, 32, 32,
@@ -498,6 +542,51 @@ bool
   return true;
 }
 
+// right click is only used here to reverse-cycle through
+//  player face/character
+bool
+GameInitBox::handle_click_right(int cx, int cy) {
+  //Log::Debug["game-init.cc"] << "inside GameInitBox::handle_click_right()";
+
+  if (game_type != GameCustom){
+    return false;
+  }
+
+
+  /* Check player area */
+  int lx = 0;
+  int ly = 0;
+  for (int i = 0; i < GAME_MAX_PLAYER_COUNT; i++) {
+    int px = 20 + lx * 80;
+    int py = 56 + ly * 80;
+      if ((cx > px) && (cx < px + 80) && (cy > py) && (cy < py + 80)) {
+        if (i >= mission->get_player_count()) {
+        return true;
+      }
+      PPlayerInfo player = mission->get_player(i);
+      player->set_character(get_prev_character(i));
+      // tlongstretch - hack to work around missing color for players 2+
+      Player::Color def_color[] = {
+        {0x00, 0xe3, 0xe3},
+        {0xcf, 0x63, 0x63},
+        {0xdf, 0x7f, 0xef},
+        {0xef, 0xef, 0x8f},
+        {0x00, 0x00, 0x00}
+      };
+      player->set_color(def_color[i]);
+      set_redraw();
+      break;
+    }
+    lx++;
+    if (i == 1) {
+      ly++;
+      lx = 0;
+    }
+  }
+
+  return true;
+}
+
 unsigned int
 GameInitBox::get_next_character(unsigned int player_index) {
   bool in_use = false;
@@ -506,6 +595,31 @@ GameInitBox::get_next_character(unsigned int player_index) {
   do {
     next = (next + 1) % 14;
     next = std::max(1u, next);
+    /* Check that face is not already in use by another player */
+    in_use = 0;
+    for (size_t i = 0; i < mission->get_player_count(); i++) {
+      if (player_index != i && mission->get_player(i)->get_face() == next) {
+        in_use = true;
+        break;
+      }
+    }
+  } while (in_use);
+
+  return next;
+}
+
+unsigned int
+GameInitBox::get_prev_character(unsigned int player_index) {
+  //Log::Debug["game-init.cc"] << "inside GameInitBox::get_prev_character for player_index " << player_index;
+  bool in_use = false;
+  PPlayerInfo player = mission->get_player(player_index);
+  unsigned int next = player->get_face();
+  do {
+    if (next == 1){  // face 0 is "no player", first face is #1 (lady something)
+      next = 13;
+    }else{
+      next--;
+    }
     /* Check that face is not already in use by another player */
     in_use = 0;
     for (size_t i = 0; i < mission->get_player_count(); i++) {

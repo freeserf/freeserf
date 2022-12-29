@@ -1920,9 +1920,18 @@ Serf::handle_serf_transporting_state() {
 
   //Log::Debug["serf"] << "a transporting serf with index " << get_index() << " has values: dest " << s.transporting.dest << ", dir" << s.transporting.dir << ", res " << s.transporting.res << ", wait_counter " << s.transporting.wait_counter;
 
-  //if (type == Serf::TypeSailor){
-  // //Log::Info["serf"] << "debug: a sailor is in transporting state 000";
-  //}
+  if (option_SailorsMoveFaster){
+    if (type == Serf::TypeSailor){
+      //Log::Info["serf"] << "debug: a sailor is in transporting state 000, doubling his movement!";
+      //if (game->get_tick() % 4 == 0){   // 1.5x speed
+      if (game->get_tick() % 4 == 0 || game->get_tick() % 6 == 0){   // 1.66x speed
+        //Log::Info["serf"] << "debug: a sailor is in transporting state 000, increase his movement by 66%!";
+        counter -= delta;
+      //}else{
+      //  Log::Info["serf"] << "debug: a sailor is in transporting state 000, not increase his movement this tick";
+      }
+    }
+  }
 
   if (counter >= 0) return;
 

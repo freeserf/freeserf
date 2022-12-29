@@ -43,6 +43,7 @@ TextInput::get_text() {
 
 void
 TextInput::internal_draw() {
+  is_list_in_focus = true;
   frame->fill_rect(0, 0, width, height, color_background);
   if (draw_focus && focused) {
     frame->draw_rect(0, 0, width, height, color_focus);
@@ -64,7 +65,8 @@ TextInput::internal_draw() {
 }
 
 bool
-  TextInput::handle_click_left(int x, int y, int modifier) {
+TextInput::handle_left_click(int x, int y, int modifier) {
+  Log::Debug["text-input.cc"] << "inside TextInput::handle_left_click(), x/y pos " << x << "," << y;
   set_focused();
   return true;
 }
@@ -100,7 +102,8 @@ TextInput::handle_key_pressed(char key, int modifier) {
 
 bool
 TextInput::handle_focus_loose() {
-  focused = false;
+  //focused = false;
+  focused = true;  // hack to avoid losing focus when existing-save-games-list has focus, couldn't get it back
   set_redraw();
   return true;
 }
