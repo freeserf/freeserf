@@ -196,6 +196,11 @@ main(int argc, char *argv[]) {
   interface.set_size(screen_width, screen_height);
   interface.set_displayed(true);
 
+  // load options state from file store
+  GameOptions &gameoptions_inst = GameOptions::get_instance();
+  gameoptions_inst.load_options_from_file();
+  //gameoptions_inst.save_options_to_file();
+
   /* Initialize AI */
   bool loaded_game_start_ai = false;
   if (save_file.empty()) {

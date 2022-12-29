@@ -504,7 +504,7 @@ DataSourceDOS::SpriteDosSolid::SpriteDosSolid(PBuffer _data, ColorDOS *palette, 
             color.b += 10;
           } else {
             color.g -=  0;
-            color.r += 85;
+            color.r += 75;
             color.b += 15;
           }
         }
@@ -517,11 +517,11 @@ DataSourceDOS::SpriteDosSolid::SpriteDosSolid(PBuffer _data, ColorDOS *palette, 
         // REDUCE IMPACT OF FALL's reduce saturation of greens and shift highlights yellow to look like long grass
         if (color.g > color.r && color.g > color.b  // is green
             && ((color.r + color.g + color.b) / 3 > avg_brightness + 2)) {    // is bright
-          if (subseason == 1){  // fade from summer to fall
+          if (subseason == 1){  // fade from fall to winter
             color.g -=  0;
             color.r += 28;
             color.b +=  5;
-          } else if (subseason == 0){ // fade from summer to fall
+          } else if (subseason == 0){ // fade from fall to winter
             color.g -=  0;
             color.r += 56;
             color.b += 10;

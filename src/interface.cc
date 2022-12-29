@@ -1438,6 +1438,7 @@ Interface::handle_key_pressed(char key, int modifier) {
       }
       clear_custom_graphics_cache();
       viewport->set_size(width, height);  // this does the magic refresh without affecting popups (as Interface->layout() does)
+      GameOptions::get_instance().save_options_to_file();
       break;
     case 'f':
       Log::Info["interface.cc"] << "'f' key pressed, toggling FogOfWar";
@@ -1460,6 +1461,7 @@ Interface::handle_key_pressed(char key, int modifier) {
         game->init_FogOfWar();
         reload_any_minimaps();
       }
+      GameOptions::get_instance().save_options_to_file();
       break;
     case 'q':
       //disabled for now, season is now tied to tick so it works with save/load game

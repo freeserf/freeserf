@@ -1,6 +1,22 @@
 #ifndef SRC_GAME_OPTIONS_H_
 #define SRC_GAME_OPTIONS_H_
 
+#include "src/configfile.h"
+//#include "src/savegame.h"  // DO NOT INCLUDE THIS IT BREAKS THINGS //for SaveGameWriter to write options to file
+
+class GameOptions {
+ public:
+  void load_options_from_file();
+  void save_options_to_file();
+  GameOptions();
+  static GameOptions &get_instance();
+ protected:
+  PConfigFile meta_main;
+  std::string folder_path;
+  std::string path;
+  std::string filename;
+};
+
 // these variables are deCLAREd here, and this header is to be included in any
 //  code file that needs to use them
 // these variables are deFINEd (and initialized?) in game.cc (for now) which is an arbitrary 

@@ -28,6 +28,8 @@
 #include <memory>
 #include <list>
 
+#include "src/log.h"  //for log ging debug
+
 class ConfigFile {
  protected:
   typedef std::map<std::string, std::string> Values;
@@ -49,18 +51,23 @@ class ConfigFile {
   std::list<std::string> get_values(const std::string &section) const;
 
   bool contains(const std::string &section, const std::string &name) const {
+    Log::Debug["configfile.h"] << "inside ConfigFile::contains";
     if (data.find(section) == data.end()) {
+      Log::Debug["configfile.h"] << "inside ConfigFile::contains, didn't find section " << section;
       return false;
     }
     PValues values = data.at(section);
     if (values->find(name) == values->end()) {
+      Log::Debug["configfile.h"] << "inside ConfigFile::contains, didn't find value name " << name;
       return false;
     }
+    Log::Debug["configfile.h"] << "inside ConfigFile::contains, found section & value";
     return true;
   }
 
   std::string value(const std::string &section, const std::string &name,
                     const std::string &def_val) const {
+    Log::Debug["configfile.h"] << "inside ConfigFile::value";
     if (!contains(section, name)) {
       return def_val;
     }

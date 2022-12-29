@@ -49,7 +49,8 @@ set(GAME_SOURCES ai.cc
                  random.cc
                  savegame.cc
                  serf.cc
-                 game-manager.cc)
+                 game-manager.cc
+                 game-options.cc)
 
 set(GAME_HEADERS ai.h
                  ai_roadbuilder.h
@@ -68,7 +69,8 @@ set(GAME_HEADERS ai.h
                  resource.h
                  savegame.h
                  serf.h
-                 game-manager.h)
+                 game-manager.h
+                 game-options.h)
 
 add_library(game STATIC ${GAME_SOURCES} ${GAME_HEADERS})
 target_check_style(game)

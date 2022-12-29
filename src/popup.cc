@@ -3857,6 +3857,7 @@ PopupBox::handle_action(int action, int x_, int /*y_*/) {
     } else{
       option_EnableAutoSave = true;
     }
+    GameOptions::get_instance().save_options_to_file();
     break;
   // removing this as it turns out the default behavior for pig farms is to require almost no grain
   /*case ACTION_GAME_OPTIONS_IMPROVED_PIG_FARMS:
@@ -3865,6 +3866,7 @@ PopupBox::handle_action(int action, int x_, int /*y_*/) {
     } else{
       option_ImprovedPigFarms = true;
     }
+    GameOptions::get_instance().save_options_to_file();
     break;
     */
   case ACTION_GAME_OPTIONS_CAN_TRANSPORT_SERFS_IN_BOATS:
@@ -3873,6 +3875,7 @@ PopupBox::handle_action(int action, int x_, int /*y_*/) {
     } else{
       option_CanTransportSerfsInBoats = true;
     }
+    GameOptions::get_instance().save_options_to_file();
     break;
   case ACTION_GAME_OPTIONS_QUICK_DEMO_EMPTY_BUILD_SITES:
     if (option_QuickDemoEmptyBuildSites){
@@ -3880,6 +3883,7 @@ PopupBox::handle_action(int action, int x_, int /*y_*/) {
     } else{
       option_QuickDemoEmptyBuildSites = true;
     }
+    GameOptions::get_instance().save_options_to_file();
     break;
   case ACTION_GAME_OPTIONS_TREES_REPRODUCE:
     if (option_TreesReproduce){
@@ -3887,6 +3891,7 @@ PopupBox::handle_action(int action, int x_, int /*y_*/) {
     } else{
       option_TreesReproduce = true;
     }
+    GameOptions::get_instance().save_options_to_file();
     break;
   case ACTION_GAME_OPTIONS_BABY_TREES_MATURE_SLOWLY:
     if (option_BabyTreesMatureSlowly){
@@ -3894,6 +3899,7 @@ PopupBox::handle_action(int action, int x_, int /*y_*/) {
     } else{
       option_BabyTreesMatureSlowly = true;
     }
+    GameOptions::get_instance().save_options_to_file();
     break;
   // forced true to indicate that the code to make optional isn't added yet
   case ACTION_GAME_OPTIONS_ResourceRequestsTimeOut:
@@ -3902,6 +3908,7 @@ PopupBox::handle_action(int action, int x_, int /*y_*/) {
     //} else{
     //  option_ResourceRequestsTimeOut = true;
     //}
+    //GameOptions::get_instance().save_options_to_file();
     play_sound(Audio::TypeSfxNotAccepted);  // play sound to indicate this can't be disabled
     break;
   // forced true to indicate that the code to make optional isn't added yet
@@ -3911,6 +3918,7 @@ PopupBox::handle_action(int action, int x_, int /*y_*/) {
     //} else{
     //  option_PrioritizeUsableResources = true;
     //}
+    //GameOptions::get_instance().save_options_to_file();
     play_sound(Audio::TypeSfxNotAccepted);  // play sound to indicate this can't be disabled
     break;
   case ACTION_GAME_OPTIONS_LostTransportersClearFaster:
@@ -3919,6 +3927,7 @@ PopupBox::handle_action(int action, int x_, int /*y_*/) {
     } else{
       option_LostTransportersClearFaster = true;
     }
+    GameOptions::get_instance().save_options_to_file();
     break;
   case ACTION_GAME_OPTIONS_FourSeasons:
     if (option_FourSeasons){
@@ -3926,6 +3935,7 @@ PopupBox::handle_action(int action, int x_, int /*y_*/) {
     }else{
       option_FourSeasons = true;
     }
+    GameOptions::get_instance().save_options_to_file();
     break;
   case ACTION_GAME_OPTIONS_FishSpawnSlowly:
     if (option_FishSpawnSlowly){
@@ -3933,6 +3943,7 @@ PopupBox::handle_action(int action, int x_, int /*y_*/) {
     }else{
       option_FishSpawnSlowly = true;
     }
+    GameOptions::get_instance().save_options_to_file();
     break;
   /* removing AdvancedDemolition for now, see https://github.com/forkserf/forkserf/issues/180
   case ACTION_GAME_OPTIONS_AdvancedDemolition:
@@ -3941,6 +3952,7 @@ PopupBox::handle_action(int action, int x_, int /*y_*/) {
     }else{
       option_AdvancedDemolition = true;
     }
+    GameOptions::get_instance().save_options_to_file();
     break;
     */
   case ACTION_GAME_OPTIONS_FogOfWar:
@@ -3951,6 +3963,7 @@ PopupBox::handle_action(int action, int x_, int /*y_*/) {
     }
     interface->reload_any_minimaps();
     interface->get_viewport()->set_size(width, height);  // this does the magic refresh without affecting popups (as Interface->layout() does)
+    GameOptions::get_instance().save_options_to_file();
     break;
   case ACTION_GAME_OPTIONS_InvertMouse:
     if (option_InvertMouse){
@@ -3958,6 +3971,7 @@ PopupBox::handle_action(int action, int x_, int /*y_*/) {
     } else{
       option_InvertMouse = true;
     }
+    GameOptions::get_instance().save_options_to_file();
     break;
   case ACTION_GAME_OPTIONS_InvertWheelZoom:
     if (option_InvertWheelZoom){
@@ -3965,6 +3979,7 @@ PopupBox::handle_action(int action, int x_, int /*y_*/) {
     } else{
       option_InvertWheelZoom = true;
     }
+    GameOptions::get_instance().save_options_to_file();
     break;
   case ACTION_GAME_OPTIONS_SpecialClickBoth:
     if (option_SpecialClickBoth){
@@ -3977,6 +3992,7 @@ PopupBox::handle_action(int action, int x_, int /*y_*/) {
     } else{
       option_SpecialClickBoth = true;
     }
+    GameOptions::get_instance().save_options_to_file();
     break;
   case ACTION_GAME_OPTIONS_SpecialClickMiddle:
     if (option_SpecialClickMiddle){
@@ -3989,6 +4005,7 @@ PopupBox::handle_action(int action, int x_, int /*y_*/) {
     } else{
       option_SpecialClickMiddle = true;
     }
+    GameOptions::get_instance().save_options_to_file();
     break;
   case ACTION_GAME_OPTIONS_SpecialClickDouble:
     if (option_SpecialClickDouble){
@@ -4001,6 +4018,7 @@ PopupBox::handle_action(int action, int x_, int /*y_*/) {
     } else{
       option_SpecialClickDouble = true;
     }
+    GameOptions::get_instance().save_options_to_file();
     break;
   case ACTION_GAME_OPTIONS_SailorsMoveFaster:
     if (option_SailorsMoveFaster){
@@ -4008,6 +4026,7 @@ PopupBox::handle_action(int action, int x_, int /*y_*/) {
     } else{
       option_SailorsMoveFaster = true;
     }
+    GameOptions::get_instance().save_options_to_file();
     break;
   case ACTION_GAME_OPTIONS_WaterDepthLuminosity:
     if (option_WaterDepthLuminosity){
@@ -4021,6 +4040,7 @@ PopupBox::handle_action(int action, int x_, int /*y_*/) {
       interface->get_game()->set_must_redraw_frame();
       interface->get_viewport()->set_size(width, height);  // this does the magic refresh without affecting popups (as Interface->layout() does)
     }
+    GameOptions::get_instance().save_options_to_file();
     break;
   case ACTION_GAME_OPTIONS_RandomizeInstruments:
     if (option_RandomizeInstruments){
@@ -4028,6 +4048,7 @@ PopupBox::handle_action(int action, int x_, int /*y_*/) {
     } else{
       option_RandomizeInstruments = true;
     }
+    GameOptions::get_instance().save_options_to_file();
     break;
   case ACTION_MAPGEN_ADJUST_TREES:
     Log::Info["popup"] << "ACTION_MAPGEN_ADJUST_TREES x_ = " << x_ << ", gui_get_slider_click_value(x_) = " << gui_get_slider_click_value(x_) << ", unint16_t(gui_get_slider_click_value(x_)) = " << uint16_t(gui_get_slider_click_value(x_));
