@@ -728,7 +728,7 @@ GameStore::find_regular() {
 
 bool
 GameStore::load(const std::string &path, Game *game) {
-  Log::Debug["savegame.cc"] << "inside GameStore::load(), path " << path;
+  //Log::Debug["savegame.cc"] << "inside GameStore::load(), path " << path;
   std::ifstream file;
   file.open(path.c_str());
 

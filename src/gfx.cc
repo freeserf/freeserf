@@ -304,7 +304,7 @@ Frame::draw_sprite(int x, int y, Data::Resource res, unsigned int index, bool us
     //  new custom sprites will work for Amiga, but mutated ones will not as the
     //  mutation happens within the DOS data loading functions
     if (index > last_original_data_index[res]){
-      Log::Debug["gfx.cc"] << "inside Frame::draw_sprite, sprite index " << index << " is higher than the last_original_data_index " << last_original_data_index[res] << " for this Data::Resource type " << res << ", assuming it is a special sprite";
+      //Log::Debug["gfx.cc"] << "inside Frame::draw_sprite, sprite index " << index << " is higher than the last_original_data_index " << last_original_data_index[res] << " for this Data::Resource type " << res << ", assuming it is a special sprite";
 
       unsigned int orig_index = -1;
 
@@ -315,14 +315,14 @@ Frame::draw_sprite(int x, int y, Data::Resource res, unsigned int index, bool us
        || res == Data::AssetMapWaves){  // for splashes on water objects
         // these types, if having beyond-original indexes, are new graphics
         //  loaded from actual PN  files using the data_source_Custom
-        Log::Debug["gfx.cc"] << "inside Frame::draw_sprite, sprite index " << index << " trying to load custom data source";
+        //Log::Debug["gfx.cc"] << "inside Frame::draw_sprite, sprite index " << index << " trying to load custom data source";
         Data &data = Data::get_instance();
         if (data.get_data_source_Custom() == nullptr){
           // try load the custom sprite
           Log::Warn["gfx.cc"] << "inside Frame::draw_sprite, custom datasource not available at all, cannot even attempt to load sprite index " << index << ", trying to fall back to default datasource for this sprite, using " << orig_index;
           s = data_source->get_sprite(res, orig_index, pc);
         }else{
-          Log::Debug["gfx.cc"] << "inside Frame::draw_sprite, sprite index " << index << " about to call data_source_Custom->get_sprite";
+          //Log::Debug["gfx.cc"] << "inside Frame::draw_sprite, sprite index " << index << " about to call data_source_Custom->get_sprite";
           s = data.get_data_source_Custom()->get_sprite(res, index, pc);
           if (s == nullptr){
             // try falling back to original sprite if custom sprite couldn't be loaded
@@ -346,7 +346,7 @@ Frame::draw_sprite(int x, int y, Data::Resource res, unsigned int index, bool us
         //
         //  REMOVE THIS WHOLE SECTION, I think
         //
-        Log::Debug["gfx.cc"] << "inside Frame::draw_sprite, sprite index " << index << "terrain sprite, nothing to do here";
+        //Log::Debug["gfx.cc"] << "inside Frame::draw_sprite, sprite index " << index << "terrain sprite, nothing to do here";
         // for option_FogOfWar
         //  call get_sprite for the BASE terrain sprite index to be mutated
         //
@@ -379,8 +379,7 @@ Frame::draw_sprite(int x, int y, Data::Resource res, unsigned int index, bool us
     } // if index beyond original range
 
     if (!s) {
-      Log::Warn["gfx.cc"] << "inside Frame::draw_sprite, Failed to decode sprite #"
-                            << Data::get_resource_name(res) << ":" << index;
+      Log::Warn["gfx.cc"] << "inside Frame::draw_sprite, Failed to decode sprite #" << Data::get_resource_name(res) << ":" << index;
       return;
     }
     image = new Image(video, s);

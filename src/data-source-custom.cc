@@ -93,15 +93,15 @@ DataSourceCustom::get_sprite_parts(Data::Resource res, size_t index, int mutate)
   std::string image_file_name = info->meta->value(section, "image_path", std::string());
   std::string mask_file_name = info->meta->value(section, "mask_path", std::string());
 
-  Log::Debug["data-source-custom"] << "inside DataSourceCustom::get_sprite_parts with res " << res << ", index " << index << ", trying to find sprite file";
+  //Log::Debug["data-source-custom"] << "inside DataSourceCustom::get_sprite_parts with res " << res << ", index " << index << ", trying to find sprite file";
   PSpriteFile image;
   if (!image_file_name.empty()) {
-    Log::Debug["data-source-custom"] << "inside DataSourceCustom::get_sprite_parts with res " << res << ", index " << index << ", image file name is " << image_file_name;
+    //Log::Debug["data-source-custom"] << "inside DataSourceCustom::get_sprite_parts with res " << res << ", index " << index << ", image file name is " << image_file_name;
     image = std::make_shared<SpriteFile>();
     if (image->load(info->path + "/" + image_file_name)) {
       image->set_delta(delta_x, delta_y);
       image->set_offset(offset_x, offset_y);
-      Log::Debug["data-source-custom"] << "inside DataSourceCustom::get_sprite_parts with res " << res << ", index " << index << ", image->load succeeded for image " << info->path << "/" << image_file_name;
+      //Log::Debug["data-source-custom"] << "inside DataSourceCustom::get_sprite_parts with res " << res << ", index " << index << ", image->load succeeded for image " << info->path << "/" << image_file_name;
     } else {
       Log::Warn["data-source-custom"] << "inside DataSourceCustom::get_sprite_parts with res " << res << ", index " << index << ", image->load failed for image " << info->path << "/" << image_file_name;
       image = nullptr;
@@ -110,14 +110,14 @@ DataSourceCustom::get_sprite_parts(Data::Resource res, size_t index, int mutate)
     //Log::Debug["data-source-custom"] << "inside DataSourceCustom::get_sprite_parts with res " << res << ", index " << index << ", image_file_name is empty!";
   }
 
-  Log::Debug["data-source-custom"] << "inside DataSourceCustom::get_sprite_parts with res " << res << ", index " << index << ", trying to find mask file";
+  //Log::Debug["data-source-custom"] << "inside DataSourceCustom::get_sprite_parts with res " << res << ", index " << index << ", trying to find mask file";
   PSpriteFile mask;
   if (!mask_file_name.empty()) {
     mask = std::make_shared<SpriteFile>();
     if (mask->load(info->path + "/" + mask_file_name)) {
       mask->set_delta(delta_x, delta_y);
       mask->set_offset(offset_x, offset_y);
-      Log::Debug["data-source-custom"] << "inside DataSourceCustom::get_sprite_parts with res " << res << ", index " << index << ", mask->load succeeded for mask " << info->path << "/" << mask_file_name;
+      //Log::Debug["data-source-custom"] << "inside DataSourceCustom::get_sprite_parts with res " << res << ", index " << index << ", mask->load succeeded for mask " << info->path << "/" << mask_file_name;
     } else {
       Log::Warn["data-source-custom"] << "inside DataSourceCustom::get_sprite_parts with res " << res << ", index " << index << ", mask->load failed for mask " << info->path << "/" << mask_file_name;
       mask = nullptr;

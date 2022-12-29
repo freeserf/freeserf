@@ -31,7 +31,7 @@ SpriteFile::SpriteFile() {
 
 bool
 SpriteFile::load(const std::string &path) {
-  Log::Debug["sprite-file-sdl"] << "inside SpriteFile::load with path " << path;
+  //Log::Debug["sprite-file-sdl"] << "inside SpriteFile::load with path " << path;
   SDL_Surface *image = IMG_Load(path.c_str());
   if (image == nullptr) {
     Log::Warn["sprite-file-sdl"] << "inside SpriteFile::load with path " << path << ", got nullptr for IMG_Load !";
