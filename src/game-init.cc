@@ -551,14 +551,18 @@ GameInitBox::handle_click_right(int cx, int cy) {
   if (game_type != GameCustom){
     return false;
   }
- 
+
+
   /* Check player area */
   int lx = 0;
   int ly = 0;
   for (int i = 0; i < GAME_MAX_PLAYER_COUNT; i++) {
     int px = 20 + lx * 80;
     int py = 56 + ly * 80;
-    if ((cx > px) && (cx < px + 80) && (cy > py) && (cy < py + 80)) {
+      if ((cx > px) && (cx < px + 80) && (cy > py) && (cy < py + 80)) {
+        if (i >= mission->get_player_count()) {
+        return true;
+      }
       PPlayerInfo player = mission->get_player(i);
       player->set_character(get_prev_character(i));
       // tlongstretch - hack to work around missing color for players 2+
