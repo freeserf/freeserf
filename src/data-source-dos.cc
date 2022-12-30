@@ -813,9 +813,8 @@ DataSourceDOS::SpriteDosTransparent::SpriteDosTransparent(PBuffer _data,
           // I haven't bothered to check how the sprite indexes are numbered, there must be some offset
           //  for each data type, instead I found through trial and error, only need one as a reference point
           int base = 1241;
-          //if (index >= base + 105 && index <= base + 111){      // ObjectSeeds0 - ObjectFieldExpired 
-          if ((index >= base + 105 && index <= base + 111)    // ObjectSeeds0 - ObjectFieldExpired 
-           || (index >= base + 121 && index <= base + 121)){  // ObjectField0 - ObjectField0
+          if ((index >= base + 97 && index <= base + 103)    // ObjectSeeds0 - ObjectFieldExpired 
+           || (index >= base + 113 && index <= base + 118)){  // ObjectField0 - ObjectField0
             if (color.r < 200){  // is *NOT* red (i.e., is yellow or green, or blue I guess)
             //if (color.g > color.r && color.g > color.b){  // is green
               //if (color.g + color.r + color.b > 158){ // is bright
@@ -843,7 +842,9 @@ DataSourceDOS::SpriteDosTransparent::SpriteDosTransparent(PBuffer _data,
       }
 
       //if (dull){
-      if (option_FourSeasons && season == 3){
+      if (option_FourSeasons && season == 3
+       && (!(index >= 104 && index <= 112))  // don't modify geologist signs, it makes them hard to identify (iron, at least, in winter).  These are the sign sprite indexes (which are -8 from the map object
+              ){
         //Log::Debug["data-source-dos.cc"] << "inside DataSourceDOS::SpriteDosTransparent(), it is Winter";
         // WINTER
 
