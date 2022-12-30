@@ -222,6 +222,11 @@ class Interface : public GuiObject, public GameManager::Handler {
   double get_custom_map_generator_junk_desert_cacti(){ return slider_double_to_uint16(custom_map_generator_options.opt[CustomMapGeneratorOption::JunkDesertCacti]); }
   double get_custom_map_generator_junk_desert_palm_trees(){ return slider_double_to_uint16(custom_map_generator_options.opt[CustomMapGeneratorOption::JunkDesertPalmTrees]); }
 
+  // this is a dumb hack using globals to allow the game-options class to indirectly interact with the Interface
+  //  to support save/load of map generator options to disk
+  void set_custom_map_generator_options_from_global();
+  void reset_custom_map_generator_options();
+
   void set_custom_map_generator_trees(uint16_t val){
     // reasonable values for trees are 0.00-4.00, so divide max slider 65500 by 4 to get 16375 and let 1.00 == 16375
     custom_map_generator_options.opt[CustomMapGeneratorOption::Trees] = double(val) / double(16375);

@@ -151,7 +151,7 @@ Interface::get_popup_box() {
 /* Open popup box */
 void
 Interface::open_popup(int box) {
-  Log::Debug["interface.cc"] << "inside Interface::open_popup(), for popup type " << box;
+  //Log::Debug["interface.cc"] << "inside Interface::open_popup(), for popup type " << box;
   if (popup == nullptr) {
     //Log::Debug["interface.cc"] << "inside Interface::open_popup(), for popup type " << box << ", popup is nullptr, creating new";
     popup = new PopupBox(this);
@@ -164,7 +164,7 @@ Interface::open_popup(int box) {
   //  double-wide but is offset as if it were.  Attempting to fix by simply reverting the offset for this
   if (box == PopupBox::TypeOptions || box == PopupBox::TypeGameOptions || box == PopupBox::TypeGameOptions2 || box == PopupBox::TypeGameOptions3
    || box == PopupBox::TypeEditMapGenerator || box == PopupBox::TypeSettSelect){
-     Log::Debug["interface.cc"] << "inside Interface::open_popup(), for popup type " << box << ", drawing double-wide";
+     //Log::Debug["interface.cc"] << "inside Interface::open_popup(), for popup type " << box << ", drawing double-wide";
     // double wide, normal height
     popup->set_size(288, 160);
     // recenter the popup
@@ -1652,4 +1652,101 @@ Interface::clear_custom_graphics_cache() {
   //layout();  // THIS IS IT - this is the "fix viewport" function   // THIS IS CAUSING ISSUES WITH POPUP MENUS BEING CORRUPTED WHEN IT RUNS!
   //viewport->set_size(width, height);  // this does the magic refresh without affecting popups (as Interface->layout() does)
   //set_redraw(); // this is not enough!
+}
+
+// this is a dumb hack using globals to allow the game-options class to indirectly interact with the Interface
+//  to support save/load of map generator options to disk
+void
+Interface::set_custom_map_generator_options_from_global(){
+  /*
+  custom_map_generator_options.opt[CustomMapGeneratorOption::Trees] = mapgen_trees;
+  custom_map_generator_options.opt[CustomMapGeneratorOption::StonepileDense] = mapgen_stonepile_dense;
+  custom_map_generator_options.opt[CustomMapGeneratorOption::StonepileSparse] = mapgen_stonepile_sparse;
+  custom_map_generator_options.opt[CustomMapGeneratorOption::MountainGold] = mapgen_mountain_gold;
+  custom_map_generator_options.opt[CustomMapGeneratorOption::MountainIron] = mapgen_mountain_iron;
+  custom_map_generator_options.opt[CustomMapGeneratorOption::MountainCoal] = mapgen_mountain_coal;
+  custom_map_generator_options.opt[CustomMapGeneratorOption::MountainStone] = mapgen_mountain_stone;
+  custom_map_generator_options.opt[CustomMapGeneratorOption::StonepileDense]
+  custom_map_generator_options.opt[CustomMapGeneratorOption::StonepileDense]
+  custom_map_generator_options.opt[CustomMapGeneratorOption::StonepileDense]
+  custom_map_generator_options.opt[CustomMapGeneratorOption::StonepileDense]
+  custom_map_generator_options.opt[CustomMapGeneratorOption::StonepileDense]
+  custom_map_generator_options.opt[CustomMapGeneratorOption::StonepileDense]
+  custom_map_generator_options.opt[CustomMapGeneratorOption::StonepileDense]
+  custom_map_generator_options.opt[CustomMapGeneratorOption::StonepileDense]
+  custom_map_generator_options.opt[CustomMapGeneratorOption::StonepileDense]
+  */
+  set_custom_map_generator_trees(mapgen_trees);
+  set_custom_map_generator_stonepile_dense(mapgen_stonepile_dense);
+  set_custom_map_generator_stonepile_sparse(mapgen_stonepile_sparse);
+  set_custom_map_generator_fish(mapgen_fish);
+  set_custom_map_generator_mountain_gold(mapgen_mountain_gold);
+  set_custom_map_generator_mountain_iron(mapgen_mountain_iron);
+  set_custom_map_generator_mountain_coal(mapgen_mountain_coal);
+  set_custom_map_generator_mountain_stone(mapgen_mountain_stone);
+  set_custom_map_generator_desert_frequency(mapgen_desert_frequency);
+  set_custom_map_generator_lakes_water_level(mapgen_water_level);
+  set_custom_map_generator_junk_grass_sandstone(mapgen_junk_grass_sandstone);
+  set_custom_map_generator_junk_grass_small_boulders(mapgen_junk_grass_small_boulders);
+  set_custom_map_generator_junk_grass_stub_trees(mapgen_junk_grass_stub_trees);
+  set_custom_map_generator_junk_grass_dead_trees(mapgen_junk_grass_dead_trees);
+  set_custom_map_generator_junk_water_boulders(mapgen_junk_water_boulders);
+  set_custom_map_generator_junk_water_trees(mapgen_junk_water_trees);
+  set_custom_map_generator_junk_desert_cadavers(mapgen_junk_desert_cadavers);
+  set_custom_map_generator_junk_desert_cacti(mapgen_junk_desert_cacti);
+  set_custom_map_generator_junk_desert_palm_trees(mapgen_junk_desert_palm_trees);
+}
+
+// copied directly from game.cc, stupid hack
+void
+Interface::reset_custom_map_generator_options(){
+
+  // reasonable values for trees are 0.00-4.00, so divide max slider 65500 by 4 to get 16375 and let 1.00 == 16375
+  set_custom_map_generator_trees(uint16_t(16375 * 1.00));
+  set_custom_map_generator_stonepile_dense(slider_double_to_uint16(1.00)); 
+  set_custom_map_generator_stonepile_sparse(slider_double_to_uint16(1.00)); 
+  //set_custom_map_generator_fish(slider_double_to_uint16(1.00)); 
+  // reasonable values for fish are 0.00-4.00, so divide max slider 65500 by 4 to get 16375 and let 1.00 == 16375
+  set_custom_map_generator_fish(uint16_t(16375 * 1.00));
+  set_custom_map_generator_mountain_gold(slider_mineral_double_to_uint16(2.00));   // 2
+  set_custom_map_generator_mountain_iron(slider_mineral_double_to_uint16(4.00));   // 4
+  set_custom_map_generator_mountain_coal(slider_mineral_double_to_uint16(9.00));   // 9
+  set_custom_map_generator_mountain_stone(slider_mineral_double_to_uint16(2.00));  // 2
+  set_custom_map_generator_desert_frequency(slider_double_to_uint16(1.00)); 
+  //set_custom_map_generator_lakes_size(slider_double_to_uint16(1.00)); 
+  //set_custom_map_generator_lakes_water_level(slider_double_to_uint16(1.00)); 
+  set_custom_map_generator_lakes_water_level(uint16_t(8188 * 1.00)); 
+  set_custom_map_generator_junk_grass_sandstone(slider_double_to_uint16(1.00)); 
+  set_custom_map_generator_junk_grass_small_boulders(slider_double_to_uint16(1.00)); 
+  set_custom_map_generator_junk_grass_stub_trees(slider_double_to_uint16(1.00)); 
+  set_custom_map_generator_junk_grass_dead_trees(slider_double_to_uint16(1.00)); 
+  set_custom_map_generator_junk_water_boulders(slider_double_to_uint16(1.00)); 
+  set_custom_map_generator_junk_water_trees(slider_double_to_uint16(1.00)); 
+  set_custom_map_generator_junk_desert_cadavers(slider_double_to_uint16(1.00)); 
+  set_custom_map_generator_junk_desert_cacti(slider_double_to_uint16(1.00)); 
+  set_custom_map_generator_junk_desert_palm_trees(slider_double_to_uint16(1.00)); 
+
+  // unsigned int mapgen_size = 3;  don't reset map size here
+
+  mapgen_trees = 16375;
+  mapgen_stonepile_dense = 32750;
+  mapgen_stonepile_sparse = 32750;
+  mapgen_fish = 16375;
+  mapgen_mountain_gold = 7278 * 2;
+  mapgen_mountain_iron = 7278 * 4;
+  mapgen_mountain_coal = 7278 * 9;
+  mapgen_mountain_stone = 7278 * 2;
+  mapgen_desert_frequency = 32750;
+  mapgen_water_level = 8188;
+  mapgen_junk_grass_sandstone = 32750;
+  mapgen_junk_grass_small_boulders = 32750;
+  mapgen_junk_grass_stub_trees = 32750;
+  mapgen_junk_grass_dead_trees = 32750;
+  mapgen_junk_water_boulders = 32750;
+  mapgen_junk_water_trees = 32750;
+  mapgen_junk_desert_cadavers = 32750;
+  mapgen_junk_desert_cacti = 32750;
+  mapgen_junk_desert_palm_trees = 32750;
+
+  GameOptions::get_instance().save_options_to_file();
 }

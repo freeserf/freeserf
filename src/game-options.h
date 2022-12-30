@@ -42,6 +42,28 @@ extern bool option_SpecialClickDouble;
 extern bool option_SailorsMoveFaster;
 extern bool option_WaterDepthLuminosity;
 extern bool option_RandomizeInstruments;  // only affects DOS music
+
+extern unsigned int mapgen_size;
+extern uint16_t mapgen_trees;
+extern uint16_t mapgen_stonepile_dense;
+extern uint16_t mapgen_stonepile_sparse;
+extern uint16_t mapgen_fish;
+extern uint16_t mapgen_mountain_gold;
+extern uint16_t mapgen_mountain_iron;
+extern uint16_t mapgen_mountain_coal;
+extern uint16_t mapgen_mountain_stone;
+extern uint16_t mapgen_desert_frequency;
+extern uint16_t mapgen_water_level;
+extern uint16_t mapgen_junk_grass_sandstone;
+extern uint16_t mapgen_junk_grass_small_boulders;
+extern uint16_t mapgen_junk_grass_stub_trees;
+extern uint16_t mapgen_junk_grass_dead_trees;
+extern uint16_t mapgen_junk_water_boulders;
+extern uint16_t mapgen_junk_water_trees;
+extern uint16_t mapgen_junk_desert_cadavers;
+extern uint16_t mapgen_junk_desert_cacti;
+extern uint16_t mapgen_junk_desert_palm_trees;
+
 extern int season;
 extern int last_season;
 extern int subseason;

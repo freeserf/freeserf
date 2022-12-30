@@ -68,6 +68,56 @@ bool option_SpecialClickDouble = true;
 bool option_SailorsMoveFaster = false;
 bool option_WaterDepthLuminosity = false;
 bool option_RandomizeInstruments = false;  // only affects DOS music
+
+// map generator settings
+/*
+    // reasonable values for trees are 0.00-4.00, so divide max slider 65500 by 4 to get 16375 and let 1.00 == 16375
+    interface->set_custom_map_generator_trees(uint16_t(16375 * 1.00));
+    interface->set_custom_map_generator_stonepile_dense(slider_double_to_uint16(1.00)); 
+    interface->set_custom_map_generator_stonepile_sparse(slider_double_to_uint16(1.00)); 
+    //interface->set_custom_map_generator_fish(slider_double_to_uint16(1.00)); 
+    // reasonable values for fish are 0.00-4.00, so divide max slider 65500 by 4 to get 16375 and let 1.00 == 16375
+    interface->set_custom_map_generator_fish(uint16_t(16375 * 1.00));
+    interface->set_custom_map_generator_mountain_gold(slider_mineral_double_to_uint16(2.00));   // 2
+    interface->set_custom_map_generator_mountain_iron(slider_mineral_double_to_uint16(4.00));   // 4
+    interface->set_custom_map_generator_mountain_coal(slider_mineral_double_to_uint16(9.00));   // 9
+    interface->set_custom_map_generator_mountain_stone(slider_mineral_double_to_uint16(2.00));  // 2
+    interface->set_custom_map_generator_desert_frequency(slider_double_to_uint16(1.00)); 
+    //interface->set_custom_map_generator_lakes_size(slider_double_to_uint16(1.00)); 
+    //interface->set_custom_map_generator_lakes_water_level(slider_double_to_uint16(1.00)); 
+    interface->set_custom_map_generator_lakes_water_level(uint16_t(8188 * 1.00)); 
+    interface->set_custom_map_generator_junk_grass_sandstone(slider_double_to_uint16(1.00)); 
+    interface->set_custom_map_generator_junk_grass_small_boulders(slider_double_to_uint16(1.00)); 
+    interface->set_custom_map_generator_junk_grass_stub_trees(slider_double_to_uint16(1.00)); 
+    interface->set_custom_map_generator_junk_grass_dead_trees(slider_double_to_uint16(1.00)); 
+    interface->set_custom_map_generator_junk_water_boulders(slider_double_to_uint16(1.00)); 
+    interface->set_custom_map_generator_junk_water_trees(slider_double_to_uint16(1.00)); 
+    interface->set_custom_map_generator_junk_desert_cadavers(slider_double_to_uint16(1.00)); 
+    interface->set_custom_map_generator_junk_desert_cacti(slider_double_to_uint16(1.00)); 
+    interface->set_custom_map_generator_junk_desert_palm_trees(slider_double_to_uint16(1.00)); 
+    */
+unsigned int mapgen_size = 3;
+uint16_t mapgen_trees = 16375;
+uint16_t mapgen_stonepile_dense = 32750;
+uint16_t mapgen_stonepile_sparse = 32750;
+uint16_t mapgen_fish = 16375;
+uint16_t mapgen_mountain_gold = 7278 * 2;
+uint16_t mapgen_mountain_iron = 7278 * 4;
+uint16_t mapgen_mountain_coal = 7278 * 9;
+uint16_t mapgen_mountain_stone = 7278 * 2;
+uint16_t mapgen_desert_frequency = 32750;
+uint16_t mapgen_water_level = 8188;
+uint16_t mapgen_junk_grass_sandstone = 32750;
+uint16_t mapgen_junk_grass_small_boulders = 32750;
+uint16_t mapgen_junk_grass_stub_trees = 32750;
+uint16_t mapgen_junk_grass_dead_trees = 32750;
+uint16_t mapgen_junk_water_boulders = 32750;
+uint16_t mapgen_junk_water_trees = 32750;
+uint16_t mapgen_junk_desert_cadavers = 32750;
+uint16_t mapgen_junk_desert_cacti = 32750;
+uint16_t mapgen_junk_desert_palm_trees = 32750;
+
+
 int season = 1;  // default to Summer
 int last_season = 1;  // four seasons
 int subseason = 0;  // 1/16th of a season

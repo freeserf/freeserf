@@ -106,6 +106,7 @@ GameInitBox::GameInitBox(Interface *interface)
   //   and also set full reproduction because low reproduction is confusing and the mechanism adds little to the game
   //custom_mission->add_player(1, {0xcf, 0x63, 0x63}, 20, 30, 40);
   custom_mission->add_player(1, { 0xcf, 0x63, 0x63 }, 40, 19, 40);
+  custom_mission->set_map_size(mapgen_size);
   mission = custom_mission;
 
   minimap->set_displayed(true);
@@ -418,6 +419,8 @@ GameInitBox::handle_action(int action) {
           break;
         case GameCustom:
           custom_mission->set_map_size(std::min(10u, custom_mission->get_map_size() + 1));
+          mapgen_size = custom_mission->get_map_size();
+          GameOptions::get_instance().save_options_to_file();
           break;
       }
       generate_map_preview();
@@ -430,6 +433,8 @@ GameInitBox::handle_action(int action) {
           break;
         case GameCustom:
           custom_mission->set_map_size(std::max(3u, custom_mission->get_map_size() - 1));
+          mapgen_size = custom_mission->get_map_size();
+          GameOptions::get_instance().save_options_to_file();
           break;
       }
       generate_map_preview();
@@ -705,7 +710,7 @@ GameInitBox::handle_player_click(unsigned int player_index, int cx, int cy) {
 
 void
 GameInitBox::generate_map_preview() {
-  Log::Debug["game-init.cc"] << "inside GameInitBox::generate_map_preview()";
+  //Log::Debug["game-init.cc"] << "inside GameInitBox::generate_map_preview()";
   map.reset(new Map(MapGeometry(mission->get_map_size())));
   if (game_type == GameMission) {
     ClassicMissionMapGenerator generator(*map, mission->get_random_base());
