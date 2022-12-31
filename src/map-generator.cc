@@ -1542,7 +1542,8 @@ CustomMapGenerator::create_objects() {
   //create_random_object_clusters(regions, 45, 0x3f, Map::TerrainWater2, Map::TerrainWater3, Map::ObjectCattail0, 0);
 
   // new submerged boulders using partially drawn sprites of other stone types
-  create_random_object_clusters(regions, 6, 0x3f, Map::TerrainWater0, Map::TerrainWater3, Map::ObjectNewWaterStone0, 0);
+  //create_random_object_clusters(regions, 6, 0x3f, Map::TerrainWater0, Map::TerrainWater3, Map::ObjectNewWaterStone0, 1);  
+  create_random_object_clusters(regions, 6, 0x3f, Map::TerrainWater0, Map::TerrainWater3, Map::ObjectNewWaterStone0, 0);  // NewWaterStone1 looks bad, 2+ don't exist, needs work
   
 }
 

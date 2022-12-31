@@ -264,7 +264,7 @@ Graphics::get_instance() {
 //
 void
 Frame::draw_sprite(int x, int y, Data::Resource res, unsigned int index, bool use_off, const Color &color, float progress, int mutate) {
-  Log::Debug["gfx.cc"] << "inside Frame::draw_sprite  with res " << res << " and index " << index << ", mutate int is " << mutate;
+  //Log::Debug["gfx.cc"] << "start of Frame::draw_sprite with res " << res << " and index " << index << ", mutate int is " << mutate;
   Data::Sprite::Color pc = {color.get_blue(),
                             color.get_green(),
                             color.get_red(),
@@ -285,7 +285,7 @@ Frame::draw_sprite(int x, int y, Data::Resource res, unsigned int index, bool us
     if (res == Data::AssetMapObject){
       // this is pretty arbitrary
       id = Data::Sprite::create_id(res, index + 3000, 0, 0, pc);
-      //Log::Debug["gfx.cc"] << "inside Frame::draw_sprite  with res " << res << " and index " << index << ", mutate int is " << mutate << ", caching with fake high id " << index + 3000;
+      //Log::Debug["gfx.cc"] << "inside Frame::draw_sprite with res " << res << " and index " << index << ", mutate int is " << mutate << ", caching with fake high id " << index + 3000;
     } else{
       throw ExceptionFreeserf("inside Frame::draw_sprite, unexpected Data::Asset type to mutate!");      
     }
@@ -317,7 +317,14 @@ Frame::draw_sprite(int x, int y, Data::Resource res, unsigned int index, bool us
 
       }else if ((res == Data::AssetMapObject  || res == Data::AssetMapShadow) && index >= 1151 && index <= 1158){  // NewWaterStone0-7 
         Log::Debug["gfx.cc"] << "inside Frame::draw_sprite, found a NewWaterStone type, index " << index;
-        index = 72;  // this is ObjectSandstone0, the largest one
+        if (index == 1151){
+          index = 72;  // this is ObjectSandstone0, the largest one
+        }else if (index == 1152){
+          index = 64;  // this is ObjectStone7, the largest stone pile
+        }else{
+          // FALLBACK 
+          index = 72;  // this is ObjectSandstone0, the largest one
+        }
         mutate += 20;  // this tells SpriteDosTransparent to use a partial sprite
         s = data_source->get_sprite(res, index, pc, mutate);
 

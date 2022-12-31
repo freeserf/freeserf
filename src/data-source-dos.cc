@@ -919,6 +919,13 @@ DataSourceDOS::SpriteDosTransparent::SpriteDosTransparent(PBuffer _data,
           //break;
           stop = true;
         }
+      } else if (res == Data::AssetMapObject && index == 1250 + 64){   // large Stone7 pile / NewWaterStone1  
+        // this one looks bad, try various rock types and see what looks good submerged
+        // consider creating a normal->submerged adjustment table for orig index, x/y offets, byte to stop at, etc.
+        if (bytes > 200){
+          //break;
+          stop = true;
+        }
       }
     }
   }

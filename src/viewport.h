@@ -109,7 +109,8 @@ class Viewport : public GuiObject, public Map::Handler {
   void draw_shadow_and_building_sprite(int x, int y, int index, const Color &color = Color::transparent, int mutate = 0);
   //void draw_shadow_and_custom_building_sprite(int x, int y, int index, const Color &color = Color::transparent);
   // new function to try messing with weather/seasons/palette
-  void draw_map_sprite_special(int x, int y, int index, unsigned int pos, unsigned int obj, const Color &color = Color::transparent);
+  //void draw_map_sprite_special(int x, int y, int index, unsigned int pos, unsigned int obj, const Color &color = Color::transparent);
+  void draw_map_sprite_special(int x, int y, int index, const Color &color = Color::transparent, int mutate = 0); // this is basically just used for custom shadow logic, it is no longer really needed! 
   void draw_shadow_and_building_unfinished(int x, int y, int index,
                                            int progress);
   void draw_building_unfinished(Building *building, Building::Type bld_type,

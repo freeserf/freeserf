@@ -1035,7 +1035,8 @@ Viewport::draw_shadow_and_custom_building_sprite(int lx, int ly, int index, cons
 //  AND THESE CUSTOM TREE SHADOWS ARE STATIC, THIS NEEDS TO BE FIXED!!
 // UPDATE - IT HAS BEEN FIXED!  - now get rid of / merge this function
 void
-Viewport::draw_map_sprite_special(int lx, int ly, int index, unsigned int pos, unsigned int obj, const Color &color) {
+//Viewport::draw_map_sprite_special(int lx, int ly, int index, unsigned int pos, unsigned int obj, const Color &color) {
+Viewport::draw_map_sprite_special(int lx, int ly, int index, const Color &color, int mutate) {
   // this is only used by draw_map_objects_row, added passing of pos and object type to support sprite replacement
   //  THIS FUNCTION MAY NOT BE NEEDED ANYMORE, could integration into normal draw sprite functions?
   //Log::Debug["viewport"] << "inside Viewport::draw_map_sprite_special for sprite index " << index;
@@ -1045,17 +1046,20 @@ Viewport::draw_map_sprite_special(int lx, int ly, int index, unsigned int pos, u
    || (index >= 1400 && index <= 1499)) { // FALL trees all have full shadows
     // use the default "full" deciduous tree shadow for certain custom tree sprites
     frame->draw_sprite(lx, ly, Data::AssetMapShadow, index % 10, true, Color::transparent, 1.f);
-  }else if (index >= 1120 && index <= 1199     // bright flowers + cattail
-         || index >= 2120 && index <= 2199){   // dark flowers
+  }else if (index >= 1120 && index <= 1148     // bright flowers + cattail
+         || index >= 2120 && index <= 2148){   // dark flowers
     // flowers have no shadow, do not draw one
     //Log::Debug["viewport"] << "inside Viewport::draw_map_sprite_special for sprite index " << index << ", not drawing shadow";
+  }else if (index >= 1151 && index <= 1158){   // NewWaterStone0-7
+    // adjust y axis of shadow
+    frame->draw_sprite(lx - 5, ly - 19, Data::AssetMapShadow, index, true, Color::transparent, 1.f);
   }else{
     // for other "non-full" trees, use custom shadow, derived from tree sprite using ImageMagick
     frame->draw_sprite(lx, ly, Data::AssetMapShadow, index, true, Color::transparent, 1.f);
   }
 
   // draw the tree itself
-  frame->draw_sprite(lx, ly, Data::AssetMapObject, index, true, color); // pos and obj only needed for debugging
+  frame->draw_sprite(lx, ly, Data::AssetMapObject, index, true, Color::transparent, 1.f, mutate); // pos and obj only needed for debugging
 }
 
 
@@ -2128,14 +2132,16 @@ Viewport::draw_map_objects_row(MapPos pos, int y_base, int cols, int x_base, int
       if (map->get_obj(pos) >= Map::ObjectNewWaterStone0 && map->get_obj(pos) <= Map::ObjectNewWaterStone7){
         Log::Debug["viewport.cc"] << "inside Viewport::draw_map_objects_row, found NewWaterStone0+, setting index to +1000";
         sprite += 1000;
-        // do NOT use custom set, as this is a mutated sprite
-        // THESE ARE CURRENTLY CORRUPTED, NEED TO CORRECT!
+        use_custom_set = true;  // this basically just means "use special shadow ruleset"
+        // adjust the y axis
+        ly = ly + 16;
       }
 
-
-      if (use_custom_set){
+      // draw the sprite
+      if (use_custom_set){  // use_custom_set now basically just means "use special shadow ruleset"
         //Log::Debug["viewport.cc"] << "inside Viewport::draw_map_objects_row, calling draw_map_sprite_special()";
-        draw_map_sprite_special(x_base, ly, sprite, pos, map->get_obj(pos));
+        //draw_map_sprite_special(x_base, ly, sprite, pos, map->get_obj(pos));
+        draw_map_sprite_special(x_base, ly, sprite, Color::transparent, mutate);
       }else{
         //Log::Debug["viewport.cc"] << "inside Viewport::draw_map_objects_row, calling draw_shadow_and_building_sprite(), mutate int is " << mutate;
         //draw_shadow_and_building_sprite(x_base, ly, sprite);
@@ -2143,7 +2149,9 @@ Viewport::draw_map_objects_row(MapPos pos, int y_base, int cols, int x_base, int
       }
 
       // draw water splashes on top of water objects
-      //  this cannot be done inside draw_waves_row because that is done before map_objects drawn
+      // this cannot be done inside draw_waves_row because that is done before map_objects drawn
+      // NOTE the normal sprite has already been drawn by above function, these splashes are drawn
+      //  OVER TOP of the normal sprite
       if (map->get_obj(pos) == Map::ObjectWaterStone0 || map->get_obj(pos) == Map::ObjectWaterStone1 
        || (map->get_obj(pos) >= Map::ObjectNewWaterStone0 && map->get_obj(pos) <= Map::ObjectNewWaterStone7)
                  ){
@@ -2152,8 +2160,8 @@ Viewport::draw_map_objects_row(MapPos pos, int y_base, int cols, int x_base, int
         // splashes have 1 type with 4 frames of animation
         int fast_anim = (interface->get_game()->get_tick() + 20) >> 4;  
         int sprite = 20 + (fast_anim & 3);
-        //frame->draw_sprite(x_base, y_base, Data::AssetMapWaves, sprite, true);  // this is correct for original water objects
-        frame->draw_sprite(x_base, y_base - 16, Data::AssetMapWaves, sprite, true); // testing new partial stone sprites
+        frame->draw_sprite(x_base, y_base, Data::AssetMapWaves, sprite, true);  // this is correct for original water objects
+        //frame->draw_sprite(x_base, y_base - 16, Data::AssetMapWaves, sprite, true); // testing new partial stone sprites
       }
 
     } // if not a Tree or junk object

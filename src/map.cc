@@ -621,8 +621,8 @@ Map::obj_height_for_slope_darken[] = {
   1,  //ObjectSandstone3, /* 85 */
   0,  //ObjectCadaver0,
   0,  //ObjectCadaver1,
-  0,  //ObjectWaterStone0,
-  0,  //ObjectWaterStone1,
+  2,  //ObjectWaterStone0,
+  2,  //ObjectWaterStone1,
   3,   //ObjectCactus0, /* 90 */
   3,   //ObjectCactus1,
   3,   //ObjectDeadTree,
