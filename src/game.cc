@@ -57,6 +57,7 @@ bool option_ResourceRequestsTimeOut = true;  // this is forced true to indicate 
 bool option_PrioritizeUsableResources = true;    // this is forced true to indicate that the code to make them optional isn't added yet
 bool option_LostTransportersClearFaster = false;
 bool option_FourSeasons = false;
+bool option_AdvancedFarming = false;
 bool option_FishSpawnSlowly = false;
 bool option_FogOfWar = false;
 //bool option_EastSlopesShadeObjects = true;   // make this an option, maybe
@@ -68,6 +69,7 @@ bool option_SpecialClickDouble = true;
 bool option_SailorsMoveFaster = false;
 bool option_WaterDepthLuminosity = false;
 bool option_RandomizeInstruments = false;  // only affects DOS music
+bool option_ForesterMonoculture = false;
 
 // map generator settings
 /*
@@ -1051,6 +1053,7 @@ Game::update() {
   //AdvancedDemolition
   Log::Info["game"] << "option_LostTransportersClearFaster is " << option_LostTransportersClearFaster;
   Log::Info["game"] << "option_FourSeasons is " << option_FourSeasons;
+  //option_AdvancedFarming
   Log::Info["game"] << "option_FishSpawnSlowly is " << option_FishSpawnSlowly;
   //option_FogOfWar
   //option_InvertMouse

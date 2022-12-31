@@ -3512,8 +3512,8 @@ Serf::handle_serf_free_walking_state_dest_reached() {
         s.free_walking.dist_col = s.free_walking.neg_dist1;
         s.free_walking.dist_row = s.free_walking.neg_dist2;
 
-        if (option_FourSeasons){
-                // advanced farming
+        if (option_AdvancedFarming){
+                
           if (season != 3 &&  // don't even try harvesting in winter
               map->get_obj(pos) == Map::ObjectSeeds5 ||
               (map->get_obj(pos) >= Map::ObjectField0 &&
@@ -3562,7 +3562,7 @@ Serf::handle_serf_free_walking_state_dest_reached() {
             counter = 0;
             break;
           }
-        } //if option_FourSeasons
+        } //if option_AdvancedFarming
 
         set_state(StateFarming);
         s.free_walking.neg_dist2 = 0;
@@ -4201,8 +4201,22 @@ Serf::handle_serf_planting_state() {
     // tlongstretch - I had always thought that Forester/rangers only plant Pine trees, but
     //  it seems I was mis-remembering, I just verified in the original Settlers 1 game that 
     //  both Pine and deciduous Trees are planted by ranger/forester
-    Map::Object new_obj = (Map::Object)(Map::ObjectNewPine +
-                                    (game->random_int() & 1));
+    //Map::Object new_obj = (Map::Object)(Map::ObjectNewPine + (game->random_int() & 1));
+
+    // option_ForesterMonoculture
+    //  each individual forester always plants trees of the same type
+    //   though others serfs may plant other types
+    // to avoid having to create a new variable, and add to save/load, use
+    //  the serf's index to determine the tree type
+    //Map::Object new_obj = (Map::Object)(game->random_int());
+    Map::Object new_obj = (Map::Object)(get_index()); // this is the SERF's index, being used as a consistent random number
+    if (new_obj % 16 > 7){
+      // pine, only one type
+      new_obj = (Map::Object)(Map::ObjectNewPine);
+    }else{
+      // deciduous tree, choose from one of 8 types (orig == 0, plus 7 new types)
+      new_obj = (Map::Object)(Map::ObjectNewTree0 + (new_obj % 8));
+    }
 
     if (map->paths(pos) == 0 && map->get_obj(pos) == Map::ObjectNone) {
       map->set_object(pos, new_obj, -1);
@@ -4877,7 +4891,7 @@ Serf::handle_serf_planning_farming_state() {
   //  can be done, then goes back into inactive state for 65500 ticks
   // with AdvancedFarming, farmer must always be active
   //  but will only sow/harvest during appropriate seasons
-  if (option_FourSeasons){
+  if (option_AdvancedFarming){
     // keep working
   }else{
     // take rest until 65500 speed-adjusted game ticks have passed?
@@ -4896,7 +4910,7 @@ Serf::handle_serf_planning_farming_state() {
     MapPos dest = map->pos_add_spirally(pos, dist);
 
     bool send_farmer_out = false;
-    if (option_FourSeasons) {
+    if (option_AdvancedFarming) {
               // advanced farming logic - prefer harvesting, only sow during appropriate seasons
       // if this is a mature field
       if (map->get_obj(dest) == Map::ObjectSeeds5 ||
@@ -4929,7 +4943,7 @@ Serf::handle_serf_planning_farming_state() {
     }
 
     // avoid incrementing the counter BEYOND 65500 when AdvancedFarming is on, in case it is turned back off (or overflows?)
-    if (option_FourSeasons && counter >= 65500){
+    if (option_AdvancedFarming && counter >= 65500){
       // do not increment
     }else{
       counter += 500;
@@ -4970,7 +4984,7 @@ Serf::handle_serf_farming_state() {
     } else if (object == Map::ObjectSignLargeGold || object == Map::Object127) { 
       // WTF is this???
       object = Map::ObjectFieldExpired;
-    }else if (option_FourSeasons){
+    }else if (option_AdvancedFarming){
       // immediately Expire a field when harvested when AdvancedFarming on
       object = Map::ObjectFieldExpired;
     }
@@ -5143,7 +5157,7 @@ Serf::handle_serf_pigfarming_state() {
 
         // AdvancedFarming - reduce pig breeding rate to keep wheat farm's advantage (when space available)
         int breeding_prob_val = 0;
-        if (option_FourSeasons){
+        if (option_AdvancedFarming){
           breeding_prob_val = reduced_breeding_prob[building->pigs_count()-1];      
         }else{
           breeding_prob_val = normal_breeding_prob[building->pigs_count()-1];  
@@ -6665,10 +6679,10 @@ Serf::update() {
     handle_serf_planning_logging_state();
     break;
   case StatePlanningPlanting:
-    handle_serf_planning_planting_state();
+    handle_serf_planning_planting_state();  // this is Forester/Ranger planting trees
     break;
-  case StatePlanting: /* 20 */
-    handle_serf_planting_state();
+  case StatePlanting: /* 20 */ 
+    handle_serf_planting_state();  // this is Forester/Ranger planting trees
     break;
   case StatePlanningStoneCutting:
     handle_serf_planning_stonecutting();

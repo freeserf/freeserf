@@ -580,6 +580,7 @@ Interface::update_interface() {
   //AdvancedDemolition
   Log::Info["interface"] << "option_LostTransportersClearFaster is " << option_LostTransportersClearFaster;
   Log::Info["interface"] << "option_FourSeasons is " << option_FourSeasons;
+  //AdvancedFarming
   Log::Info["interface"] << "option_FishSpawnSlowly is " << option_FishSpawnSlowly;
   //option_FogOfWar
   option_InvertMouse
@@ -1088,7 +1089,7 @@ Interface::update() {
     //Log::Debug["interface.cc"] << "inside Interface::update(), game->get_update_viewport_cursor_pos is false";
   }
 
-  if (option_FourSeasons){
+  if (option_FourSeasons || option_AdvancedFarming){
     // messing with weather/seasons/palette - increase subseason
     // in the game, it takes 100k ticks for a sown field to become harvestable (Seed5,Field0+)
     // and the field remains harvestable for 100k ticks until after Field5 it becomse FieldExpired
@@ -1431,10 +1432,10 @@ Interface::handle_key_pressed(char key, int modifier) {
       Log::Info["interface.cc"] << "'w' key pressed, toggling FourSeasons";
       if (option_FourSeasons){
         option_FourSeasons = false;
-        Log::Info["interface.cc"] << "Disabling FourSeasons of Weather and clearing image cache";
+        Log::Info["interface.cc"] << "Disabling FourSeasons and clearing image cache";
       }else{
         option_FourSeasons = true;
-        Log::Info["interface.cc"] << "Enabling FourSeasons of Weather and clearing image cache";
+        Log::Info["interface.cc"] << "Enabling FourSeasons and clearing image cache";
       }
       clear_custom_graphics_cache();
       viewport->set_size(width, height);  // this does the magic refresh without affecting popups (as Interface->layout() does)

@@ -511,6 +511,22 @@ Map::map_space_from_obj[] = {
   SpaceOpen,  //ObjectFlowerGroupC6,  // 148, sprite 140
   SpaceOpen,  //ObjectCattail0,       // 149, sprite 141
   SpaceOpen,  //ObjectCattail1,       // 150, sprite 142
+  SpaceFilled,   // 151, sprite 143  (NewTree0+ don't actually have new sprites)
+  SpaceFilled,  //ObjectNewTree1,
+  SpaceFilled,  //ObjectNewTree2,
+  SpaceFilled,  //ObjectNewTree3,
+  SpaceFilled,  //ObjectNewTree4,   // these are to support option_ForesterMonoculture, deciduous trees are now born with a type
+  SpaceFilled,  //ObjectNewTree5,   //  the original 'ObjectNewTree' CANNOT serve as ObjectNewTree0 because it must result in
+  SpaceFilled,  //ObjectNewTree6,   //  maturing into a random subtype for when this option is not enabled to maintain orig behavior
+  SpaceFilled,  //ObjectNewTree7,   // 158, sprite 150
+  SpaceImpassable,  //ObjectNewWaterStone0,  // 159, sprite 151    these values don't even matter for water objects because it is flat
+  SpaceImpassable,  //ObjectNewWaterStone1,  
+  SpaceImpassable,  //ObjectNewWaterStone2,  
+  SpaceImpassable,  //ObjectNewWaterStone3,  
+  SpaceImpassable,  //ObjectNewWaterStone4,  
+  SpaceImpassable,  //ObjectNewWaterStone5,  
+  SpaceImpassable,  //ObjectNewWaterStone6,  
+  SpaceImpassable,  //ObjectNewWaterStone7,  // 166, sprite 158
 };
 
 
@@ -668,6 +684,22 @@ Map::obj_height_for_slope_darken[] = {
   0,  //ObjectFlowerGroupC6,  // 148, sprite 140
   1,  //ObjectCattail0,       // 149, sprite 141
   1,  //ObjectCattail1,       // 150, sprite 142
+  1,  //ObjectNewTree0,   // 151, sprite 143  (NewTree0+ don't actually have new sprites)
+  1,  //ObjectNewTree1,
+  1,  //ObjectNewTree2,
+  1,  //ObjectNewTree3,
+  1,  //ObjectNewTree4,   // these are to support option_ForesterMonoculture, deciduous trees are now born with a type
+  1,  //ObjectNewTree5,   //  the original 'ObjectNewTree' CANNOT serve as ObjectNewTree0 because it must result in
+  1,  //ObjectNewTree6,   //  maturing into a random subtype for when this option is not enabled to maintain orig behavior
+  1,  //ObjectNewTree7,   // 158, sprite 150
+  3,  //ObjectNewWaterStone0,  // 159, sprite 151    these values don't even matter for water objects because it is flat
+  3,  //ObjectNewWaterStone1,  
+  3,  //ObjectNewWaterStone2,  
+  3,  //ObjectNewWaterStone3,  
+  3,  //ObjectNewWaterStone4,  
+  3,  //ObjectNewWaterStone5,  
+  3,  //ObjectNewWaterStone6,  
+  3,  //ObjectNewWaterStone7,  // 166, sprite 158
 };
 
 
@@ -907,6 +939,13 @@ Map::update_public(MapPos pos, Random *rnd) {
     }
     break;
   case ObjectNewTree:
+  case ObjectNewTree1:
+  case ObjectNewTree2:
+  case ObjectNewTree3:
+  case ObjectNewTree4:
+  case ObjectNewTree5:
+  case ObjectNewTree6:
+  case ObjectNewTree7:
     // new trees randomly grow into mature trees
     r = rnd->random();
     if ((r & 0x300) == 0) {
@@ -919,8 +958,16 @@ Map::update_public(MapPos pos, Random *rnd) {
         }
         Log::Debug["map"] << "inside Map::update_public, BabyTreesMatureSlowly feature on, r = " << r << ", maturing this Tree at pos " << pos;
       }
-      // I believe this r & 7 sets a random "animation-state" subtype of Tree0 through Tree7
-      set_object(pos, (Object)(ObjectTree0 + (r & 7)), -1);
+
+      if (get_obj(pos) >= ObjectNewTree0 && get_obj(pos) <= ObjectNewTree7){
+        // option_ForesterMonoculture
+        //  mature into the matching adult type
+        set_object(pos, (Object)(ObjectTree0 + (get_obj(pos) - ObjectNewTree0)), -1);
+      }else{
+        // original behavior, mature into random subtype
+        // I believe this r & 7 sets a random "animation-state" subtype of Tree0 through Tree7
+        set_object(pos, (Object)(ObjectTree0 + (r & 7)), -1);
+      }
     }
     break;
   // at 20k ticks per update, it should take 200k ticks
@@ -938,19 +985,19 @@ Map::update_public(MapPos pos, Random *rnd) {
   // - Farmer should only sow in early-mid spring, and anytime in fall
   // - Harvested fields are destroyed immediately?
   case ObjectSeeds0: case ObjectSeeds1:
-    if (option_FourSeasons && season == 1){
-      Log::Debug["map"] << "option_FourSeasons and option_AdvancedFarming on, and it is Summer, this young Seed-field at pos " << pos << " is now being destroyed (too hot for immature seedlings)";
+    if (option_AdvancedFarming && season == 1){
+      Log::Debug["map"] << "option_AdvancedFarming on, and it is Summer, this young Seed-field at pos " << pos << " is now being destroyed (too hot for immature seedlings)";
       set_object(pos, ObjectFieldExpired, -1);
-    }else if (option_FourSeasons && season == 3){
-      Log::Debug["map"] << "option_FourSeasons and option_AdvancedFarming on, and it is Winter, this Seed-field at pos " << pos << " is not advancing this update (too cold for seeds to grow)";
+    }else if (option_AdvancedFarming && season == 3){
+      Log::Debug["map"] << "option_AdvancedFarming on, and it is Winter, this Seed-field at pos " << pos << " is not advancing this update (too cold for seeds to grow)";
     }else{
       set_object(pos, (Object)(get_obj(pos) + 1), -1);
     }
     break;
   case ObjectSeeds2: case ObjectSeeds3:
   case ObjectSeeds4:
-    if (option_FourSeasons && season == 3){
-      Log::Debug["map"] << "option_FourSeasons and option_AdvancedFarming on, and it is Winter, this Seed-field at pos " << pos << " is not advancing this update (too cold for seeds to grow)";
+    if (option_AdvancedFarming && season == 3){
+      Log::Debug["map"] << "option_AdvancedFarming on, and it is Winter, this Seed-field at pos " << pos << " is not advancing this update (too cold for seeds to grow)";
     }else{
       set_object(pos, (Object)(get_obj(pos) + 1), -1);
     }
@@ -958,16 +1005,16 @@ Map::update_public(MapPos pos, Random *rnd) {
   case ObjectField0: case ObjectField1:
   case ObjectField2: case ObjectField3:
   case ObjectField4:
-    if (option_FourSeasons && (season >= 3 || (season >=2 && subseason >= 8))){
-      Log::Debug["map"] << "option_FourSeasons and option_AdvancedFarming on, and it is past mid-Fall, this Field at pos " << pos << " is now being destroyed";
+    if (option_AdvancedFarming && (season >= 3 || (season >=2 && subseason >= 8))){
+      Log::Debug["map"] << "option_AdvancedFarming on, and it is past mid-Fall, this Field at pos " << pos << " is now being destroyed";
       set_object(pos, ObjectFieldExpired, -1);
     }else{
       set_object(pos, (Object)(get_obj(pos) + 1), -1);
     }
     break;
   case ObjectSeeds5:
-    if (option_FourSeasons && (season >= 3 || (season >=2 && subseason >= 8))){
-      Log::Debug["map"] << "option_FourSeasons and option_AdvancedFarming on, and it is past mid-Fall, this Seeds5-field at pos " << pos << " is now being destroyed instead of progressing to Field0";
+    if (option_AdvancedFarming && (season >= 3 || (season >=2 && subseason >= 8))){
+      Log::Debug["map"] << "option_AdvancedFarming on, and it is past mid-Fall, this Seeds5-field at pos " << pos << " is now being destroyed instead of progressing to Field0";
       set_object(pos, ObjectFieldExpired, -1);
     }else{
       set_object(pos, ObjectField0, -1);

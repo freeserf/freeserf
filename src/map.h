@@ -220,6 +220,23 @@ class Map {
     ObjectFlowerGroupC5,  // 147, sprite 139
     ObjectFlowerGroupC6,  // 148, sprite 140
     ObjectCattail0,       // 149, sprite 141
+    ObjectCattail1,   // 150, sprite 142
+    ObjectNewTree0,   // 151, sprite 143
+    ObjectNewTree1,
+    ObjectNewTree2,
+    ObjectNewTree3,
+    ObjectNewTree4,   // these are to support option_ForesterMonoculture, deciduous trees are now born with a type
+    ObjectNewTree5,   //  the original 'ObjectNewTree' CANNOT serve as ObjectNewTree0 because it must result in
+    ObjectNewTree6,   //  maturing into a random subtype for when this option is not enabled to maintain orig behavior
+    ObjectNewTree7,   // 158, sprite 150
+    ObjectNewWaterStone0,  // 159, sprite 151
+    ObjectNewWaterStone1,  
+    ObjectNewWaterStone2,  
+    ObjectNewWaterStone3,  
+    ObjectNewWaterStone4,  
+    ObjectNewWaterStone5,  
+    ObjectNewWaterStone6,  
+    ObjectNewWaterStone7,  // 166, sprite 158
   } Object;  // NOTE, the map_objects sprite index is always minus 8 from the object number
 
   typedef enum Minerals {
@@ -712,8 +729,8 @@ class Map {
 
 
   /* Mapping from Object to Space. */
-  static const Space map_space_from_obj[151];  // added Flowers   
-  static const uint8_t obj_height_for_slope_darken[151];  // added Flowers0
+  static const Space map_space_from_obj[167];
+  static const uint8_t obj_height_for_slope_darken[167];
 
   void set_height(MapPos pos, int height);
   void set_height_no_refresh(MapPos pos, int height);

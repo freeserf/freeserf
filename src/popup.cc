@@ -307,6 +307,7 @@ typedef enum Action {
   ACTION_GAME_OPTIONS_PrioritizeUsableResources,
   ACTION_GAME_OPTIONS_LostTransportersClearFaster,
   ACTION_GAME_OPTIONS_FourSeasons,
+  ACTION_GAME_OPTIONS_AdvancedFarming,
   ACTION_GAME_OPTIONS_FishSpawnSlowly,
   //ACTION_GAME_OPTIONS_AdvancedDemolition,
   ACTION_GAME_OPTIONS_FogOfWar,
@@ -318,6 +319,7 @@ typedef enum Action {
   ACTION_GAME_OPTIONS_SailorsMoveFaster,
   ACTION_GAME_OPTIONS_WaterDepthLuminosity,
   ACTION_GAME_OPTIONS_RandomizeInstruments,
+  ACTION_GAME_OPTIONS_ForesterMonoculture,
   ACTION_MAPGEN_ADJUST_TREES,
   ACTION_MAPGEN_ADJUST_STONEPILES,
   ACTION_MAPGEN_ADJUST_FISH,
@@ -2138,11 +2140,11 @@ PopupBox::draw_game_options3_box() {
   draw_green_string(3, 29, "Randomize Music Instruments");
   draw_popup_icon(1, 26, option_RandomizeInstruments ? 288 : 220);
 
-  //draw_green_string(3, 48, "Four Seasons of Weather");
-  //draw_popup_icon(1, 45, option_FourSeasons ? 288 : 220);
+  draw_green_string(3, 48, "Advanced Farming");
+  draw_popup_icon(1, 45, option_AdvancedFarming ? 288 : 220);
 
-  //draw_green_string(3, 67, "Fish Spawn Very Slowly");
-  //draw_popup_icon(1, 64, option_FishSpawnSlowly ? 288 : 220);
+  draw_green_string(3, 67, "Foresters Create Monocultures");
+  draw_popup_icon(1, 64, option_ForesterMonoculture ? 288 : 220);
 
   //draw_green_string(3, 86, "Fog Of War");
   //draw_popup_icon(1, 83, option_FogOfWar ? 288 : 220);
@@ -3919,6 +3921,14 @@ PopupBox::handle_action(int action, int x_, int /*y_*/) {
     }
     GameOptions::get_instance().save_options_to_file();
     break;
+  case ACTION_GAME_OPTIONS_AdvancedFarming:
+    if (option_AdvancedFarming){
+      option_AdvancedFarming = false;
+    }else{
+      option_AdvancedFarming = true;
+    }
+    GameOptions::get_instance().save_options_to_file();
+    break;
   case ACTION_GAME_OPTIONS_FishSpawnSlowly:
     if (option_FishSpawnSlowly){
       option_FishSpawnSlowly = false;
@@ -4029,6 +4039,14 @@ PopupBox::handle_action(int action, int x_, int /*y_*/) {
       option_RandomizeInstruments = false;
     } else{
       option_RandomizeInstruments = true;
+    }
+    GameOptions::get_instance().save_options_to_file();
+    break;
+  case ACTION_GAME_OPTIONS_ForesterMonoculture:
+    if (option_ForesterMonoculture){
+      option_ForesterMonoculture = false;
+    } else{
+      option_ForesterMonoculture = true;
     }
     GameOptions::get_instance().save_options_to_file();
     break;
@@ -4480,8 +4498,8 @@ PopupBox::handle_box_game_options3_clk(int cx, int cy) {
   const int clkmap[] = {
     ACTION_GAME_OPTIONS_WaterDepthLuminosity, 7, 7, 150, 16,
     ACTION_GAME_OPTIONS_RandomizeInstruments, 7, 26, 150, 16,
-    //ACTION_GAME_OPTIONS_FourSeasons, 7, 45, 150, 16,
-    //ACTION_GAME_OPTIONS_FishSpawnSlowly, 7, 64, 150, 16,
+    ACTION_GAME_OPTIONS_AdvancedFarming, 7, 45, 150, 16,
+    ACTION_GAME_OPTIONS_ForesterMonoculture, 7, 64, 150, 16,
     //ACTION_GAME_OPTIONS_FogOfWar, 7, 83, 150, 16,
     //ACTION_GAME_OPTIONS_AdvancedDemolition, 7, 83, 150, 16,  /* removing AdvancedDemolition for now, see https://github.com/forkserf/forkserf/issues/180/
     //ACTION_GAME_OPTIONS_SailorsMoveFaster, 7, 102, 150, 16,

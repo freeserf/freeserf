@@ -100,6 +100,7 @@ GameOptions::load_options_from_file(){
     bool option_PrioritizeUsableResources = true;    // this is forced true to indicate that the code to make them optional isn't added yet
     bool option_LostTransportersClearFaster = false;
     bool option_FourSeasons = false;
+    bool option_AdvancedFarming = false;
     bool option_FishSpawnSlowly = false;
     bool option_FogOfWar = false;
     //bool option_EastSlopesShadeObjects = true;   // make this an option, maybe
@@ -120,6 +121,7 @@ GameOptions::load_options_from_file(){
   option_BabyTreesMatureSlowly = meta_main->value("options", "babytreesmatureslowly", option_BabyTreesMatureSlowly);
   option_LostTransportersClearFaster = meta_main->value("options", "losttransportersclearfaster", option_LostTransportersClearFaster);
   option_FourSeasons = meta_main->value("options", "fourseasons", option_FourSeasons);
+  option_AdvancedFarming = meta_main->value("options", "advancedfarming", option_AdvancedFarming);
   option_FishSpawnSlowly = meta_main->value("options", "fishspawnslowly", option_FishSpawnSlowly);
   option_InvertMouse = meta_main->value("options", "invertmouse", option_InvertMouse);
   option_InvertWheelZoom = meta_main->value("options", "invertwheelzoom", option_InvertWheelZoom);
@@ -129,6 +131,7 @@ GameOptions::load_options_from_file(){
   option_SailorsMoveFaster = meta_main->value("options", "sailorsmovefaster", option_SailorsMoveFaster);
   option_WaterDepthLuminosity = meta_main->value("options", "waterdepthluminosity", option_WaterDepthLuminosity);
   option_RandomizeInstruments = meta_main->value("options", "randomizeinstruments", option_RandomizeInstruments);
+  option_ForesterMonoculture = meta_main->value("options", "forestermonoculture", option_ForesterMonoculture);
 
   mapgen_size = meta_main->value("mapgen", "size", mapgen_size);
   mapgen_trees = meta_main->value("mapgen", "trees", mapgen_trees);
@@ -172,6 +175,7 @@ GameOptions::save_options_to_file(){
   file << "BabyTreesMatureSlowly=" << option_BabyTreesMatureSlowly << "\n";
   file << "LostTransportersClearFaster=" << option_LostTransportersClearFaster << "\n";
   file << "FourSeasons=" << option_FourSeasons << "\n";
+  file << "AdvancedFarming=" << option_AdvancedFarming << "\n";
   file << "FishSpawnSlowly=" << option_FishSpawnSlowly << "\n";
   file << "InvertMouse=" << option_InvertMouse << "\n";
   file << "InvertWheelZoom=" << option_InvertWheelZoom << "\n";
@@ -181,6 +185,7 @@ GameOptions::save_options_to_file(){
   file << "SailorsMoveFaster=" << option_SailorsMoveFaster << "\n";
   file << "WaterDepthLuminosity=" << option_WaterDepthLuminosity << "\n";
   file << "RandomizeInstruments=" << option_RandomizeInstruments << "\n";
+  file << "option_ForesterMonoculture=" << option_ForesterMonoculture << "\n";
 
  /*
   case ACTION_RESET_MAPGEN_DEFAULTS:

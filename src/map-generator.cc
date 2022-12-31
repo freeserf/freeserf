@@ -1540,6 +1540,10 @@ CustomMapGenerator::create_objects() {
 
   //create_cattails(18);
   //create_random_object_clusters(regions, 45, 0x3f, Map::TerrainWater2, Map::TerrainWater3, Map::ObjectCattail0, 0);
+
+  // new submerged boulders using partially drawn sprites of other stone types
+  create_random_object_clusters(regions, 6, 0x3f, Map::TerrainWater0, Map::TerrainWater3, Map::ObjectNewWaterStone0, 0);
+  
 }
 
 

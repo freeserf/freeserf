@@ -636,6 +636,7 @@ DataSourceDOS::SpriteDosSolid::SpriteDosSolid(PBuffer _data, ColorDOS *palette, 
       // otherwise, this is a currently-visible sprite, so draw it normally
     }
     
+    // varying water luminosity for option_WaterDepthLuminosity
     if (mutate >= 10){
       unsigned char orig_r = color.r;
       unsigned char orig_g = color.g;
@@ -696,27 +697,6 @@ DataSourceDOS::SpriteDosSolid::SpriteDosSolid(PBuffer _data, ColorDOS *palette, 
     result->push<uint8_t>(color.r);  // Red
     result->push<uint8_t>(0xff);     // Alpha
 
-    /*
-    // TEST TEST TEST
-    if (option_FourSeasons){
-      // making terrain sprites partially-transparent to make them darker sort of works, but where two tiles overlay slightly it is
-      //  much lighter and looks bad
-      //result->push<uint8_t>(0x80);     // Alpha
-      // instead reducing overall brightness via rgb
-      /// YES this works very well and is easier than swapping sprites with pre-rendered ones
-      result->push<uint8_t>(color.b *0.5);  // Blue
-      result->push<uint8_t>(color.g *0.5);  // Green
-      result->push<uint8_t>(color.r *0.5);  // Red
-      result->push<uint8_t>(0xff);     // Alpha
-    }else{
-      // normal coloration & solid
-      result->push<uint8_t>(color.b);  // Blue
-      result->push<uint8_t>(color.g);  // Green
-      result->push<uint8_t>(color.r);  // Red
-      result->push<uint8_t>(0xff);     // Alpha
-    }
-  */
-
   }  // while data readable
 
   data = reinterpret_cast<uint8_t*>(result->unfix());
@@ -728,20 +708,6 @@ DataSourceDOS::SpriteDosSolid::SpriteDosSolid(PBuffer _data, ColorDOS *palette, 
 //  plus the mouse cursor and seemingly any other object that
 //  has a transparent aspect
 //
-/*
-DataSourceDOS::SpriteDosTransparent::SpriteDosTransparent(PBuffer _data,
-                                                          ColorDOS *palette,
-                                                          uint8_t color)
-  : SpriteBaseDOS(_data) {
-*/
-// added passing of resource type to assist with weather/seasons/palette messing
-/*
-DataSourceDOS::SpriteDosTransparent::SpriteDosTransparent(PBuffer _data,
-                                                          ColorDOS *palette,
-                                                          Data::Resource res,
-                                                          uint8_t color)
-  : SpriteBaseDOS(_data) {
-*/
 // added passing of resource type AND sprite index to also allow manipulating specific sprites
 DataSourceDOS::SpriteDosTransparent::SpriteDosTransparent(PBuffer _data,
                                                           ColorDOS *palette,
@@ -753,9 +719,9 @@ DataSourceDOS::SpriteDosTransparent::SpriteDosTransparent(PBuffer _data,
 
   PMutableBuffer result = std::make_shared<MutableBuffer>(Buffer::EndianessBig);
 
-  //Log::Info["data-source-dos"] << "inside DataSourceDOS::SpriteDosTransparent::SpriteDosTransparent, index is " << index << ", mutate int is " << mutate;
+  Log::Info["data-source-dos"] << "inside DataSourceDOS::SpriteDosTransparent::SpriteDosTransparent, index is " << index << ", mutate int is " << mutate;
 
-  //Log::Info["data-source-dos"] << "this transparant sprite has size " << _data->get_size();
+  Log::Info["data-source-dos"] << "this transparant sprite has size " << _data->get_size();
 
    // find the average brightness so the brightest/highlight pixels
   //  can be identified
@@ -796,16 +762,25 @@ DataSourceDOS::SpriteDosTransparent::SpriteDosTransparent(PBuffer _data,
     //Log::Info["data-source-dos"] << "the avg_brightness of this map tile is " << avg_brightness;
   }
   
+  // TEST
+  int bytes = 0;  // to allow for partial sprites, track bytes read so far
+  bool stop = false;  // another way
 
   while (_data->readable()) {
     size_t drop = _data->pop<uint8_t>();
-    result->push<uint32_t>(0x00000000, drop);
+    result->push<uint32_t>(0x00000000, drop);  // this is transparent pixels, of "drop" number
+    
+    bytes++;  //TEST    // to allow for partial sprites, track bytes read so far
 
     size_t fill = _data->pop<uint8_t>();
     for (size_t i = 0; i < fill; i++) {
       unsigned int p_index = _data->pop<uint8_t>() + color;  // color_off;
 
+      bytes++;//TEST   // to allow for partial sprites, track bytes read so far
+
       ColorDOS color = palette[p_index];
+
+      //Log::Debug["data-source-dos.cc"] << "inside DataSourceDOS::SpriteDosTransparent constructor, color is " << int(color.r) << "," << int(color.g) << "," << int(color.b);
 
       // testing FourSeasons manipulating Seeds / Field sprites
       if (option_FourSeasons && season == 3){
@@ -923,11 +898,28 @@ DataSourceDOS::SpriteDosTransparent::SpriteDosTransparent(PBuffer _data,
         }
       }
 
-      result->push<uint8_t>(color.b);  // Blue
-      result->push<uint8_t>(color.g);  // Green
-      result->push<uint8_t>(color.r);  // Red
-      result->push<uint8_t>(0xFF);     // Alpha
-    //}
+      if (stop){
+        // this is the transparent "color"
+        result->push<uint32_t>(0x00000000, 1);  // this is the same as pushing R,G,B with Alpha of 0x00!
+      }else{
+        result->push<uint8_t>(color.b);  // Blue
+        result->push<uint8_t>(color.g);  // Green
+        result->push<uint8_t>(color.r);  // Red
+        result->push<uint8_t>(0xFF);     // Alpha
+      }
+    }
+
+    // TEST partial sprite
+    //  this works great!
+    /// wait nope, it seems to create corruption, figure out how to fix
+    /// fixed by pushing transparent instead of nothing
+    if (mutate == 20){
+      if (res == Data::AssetMapObject && index == 1250 + 72){   // large sandstone rock / NewWaterStone0
+        if (bytes > 300){
+          //break;
+          stop = true;
+        }
+      }
     }
   }
 

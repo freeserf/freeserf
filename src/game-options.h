@@ -32,6 +32,7 @@ extern bool option_ResourceRequestsTimeOut;
 extern bool option_PrioritizeUsableResources;
 extern bool option_LostTransportersClearFaster;
 extern bool option_FourSeasons;
+extern bool option_AdvancedFarming;
 extern bool option_FishSpawnSlowly;
 extern bool option_FogOfWar;
 extern bool option_InvertMouse;
@@ -42,6 +43,7 @@ extern bool option_SpecialClickDouble;
 extern bool option_SailorsMoveFaster;
 extern bool option_WaterDepthLuminosity;
 extern bool option_RandomizeInstruments;  // only affects DOS music
+extern bool option_ForesterMonoculture;
 
 extern unsigned int mapgen_size;
 extern uint16_t mapgen_trees;
