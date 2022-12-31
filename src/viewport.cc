@@ -1046,8 +1046,9 @@ Viewport::draw_map_sprite_special(int lx, int ly, int index, const Color &color,
    || (index >= 1400 && index <= 1499)) { // FALL trees all have full shadows
     // use the default "full" deciduous tree shadow for certain custom tree sprites
     frame->draw_sprite(lx, ly, Data::AssetMapShadow, index % 10, true, Color::transparent, 1.f);
-  }else if (index >= 1120 && index <= 1148     // bright flowers + cattail
-         || index >= 2120 && index <= 2148){   // dark flowers
+  }else if ((index >= 1120 && index <= 1148)     // bright flowers
+         || (index >= 2120 && index <= 2148)    // dark flowers
+         || (index >= 1160 && index <= 1179)){   // cattails
     // flowers have no shadow, do not draw one
     //Log::Debug["viewport"] << "inside Viewport::draw_map_sprite_special for sprite index " << index << ", not drawing shadow";
   }else if (index >= 1151 && index <= 1158){   // NewWaterStone0-7
@@ -1933,13 +1934,13 @@ Viewport::draw_map_objects_row(MapPos pos, int y_base, int cols, int x_base, int
           sprite = (sprite & ~3) + (tree_anim & 3);
         }else if (sprite == 141){   // adding Cattails/Reeds
           Log::Debug["viewport.cc"] << "inside Viewport::draw_map_objects_row(), found cattail0, setting frame to " << frame;
-          frame = slow_tree_anim & 3;  // cattails/reeds have 1 type with 4 frames of animation
-          sprite = 1150 + frame;
+          frame = slow_tree_anim & 3;  // cattails/reeds have 2 types with 4 frames of animation
+          sprite = 1160 + frame;
           use_custom_set = true;
         }else if (sprite == 142){   // adding Cattails/Reeds
           Log::Debug["viewport.cc"] << "inside Viewport::draw_map_objects_row(), found cattail1, setting frame to " << frame;
-          frame = slow_tree_anim & 3;  // cattails/reeds have 1 type with 4 frames of animation
-          sprite = 1160 + frame;
+          frame = slow_tree_anim & 3;  // cattails/reeds have 2 types with 4 frames of animation
+          sprite = 1170 + frame;
           use_custom_set = true;
         } // if sprite 8, 16...
 

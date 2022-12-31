@@ -1072,7 +1072,10 @@ ClassicMapGenerator::create_cattails(int num_clusters) {
         //if (rejected){
         //  break;
         //}
+
         int actual = (random_int() % 2) + Map::ObjectCattail0;
+        //int actual = Map::ObjectCattail0;
+
         //Log::Debug["map-generator.cc"] << "inside ClassicMapGenerator::create_cattails, creating cattail, actual type " << actual << " at pos " << pos;
         //if (is_coastal(pos) && tiles[pos].obj == Map::ObjectNone) {
         //if (is_water_tile(pos)){
@@ -1539,7 +1542,7 @@ CustomMapGenerator::create_objects() {
                                                      1, 19, Map::TerrainGrass1, Map::TerrainGrass2, Map::ObjectFlowerGroupB0, 2);
   create_random_object_clusters(regions, 6, 0x3f, Map::TerrainGrass1, Map::TerrainGrass2, Map::ObjectFlowerGroupB0, 6);
 
-  //create_cattails(18);
+  create_cattails(18);
   //create_random_object_clusters(regions, 45, 0x3f, Map::TerrainWater2, Map::TerrainWater3, Map::ObjectCattail0, 0);
 
   // new submerged boulders using partially drawn sprites of other stone types
