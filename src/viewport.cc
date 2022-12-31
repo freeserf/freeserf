@@ -1052,7 +1052,15 @@ Viewport::draw_map_sprite_special(int lx, int ly, int index, const Color &color,
     //Log::Debug["viewport"] << "inside Viewport::draw_map_sprite_special for sprite index " << index << ", not drawing shadow";
   }else if (index >= 1151 && index <= 1158){   // NewWaterStone0-7
     // adjust y axis of shadow
-    frame->draw_sprite(lx - 5, ly - 19, Data::AssetMapShadow, index, true, Color::transparent, 1.f);
+    if (index == 1151){ // NewWaterStone0  // this shadow looks good but when compared to the larger stone it looks wrong, one must change!
+      frame->draw_sprite(lx - 5, ly - 19, Data::AssetMapShadow, index, true, Color::transparent, 1.f);
+    }else if (index == 1152){ // NewWaterStone1   // this shadow looks good but when compared to the smaller stone it looks wrong, one must change!
+      frame->draw_sprite(lx - 6, ly - 9, Data::AssetMapShadow, index, true, Color::transparent, 1.f);
+    }else if (index == 1153){ // NewWaterStone2
+      frame->draw_sprite(lx - 1, ly - 1, Data::AssetMapShadow, index, true, Color::transparent, 1.f);
+    }else{
+      // no shadow I guess
+    }
   }else{
     // for other "non-full" trees, use custom shadow, derived from tree sprite using ImageMagick
     frame->draw_sprite(lx, ly, Data::AssetMapShadow, index, true, Color::transparent, 1.f);
@@ -2134,7 +2142,13 @@ Viewport::draw_map_objects_row(MapPos pos, int y_base, int cols, int x_base, int
         sprite += 1000;
         use_custom_set = true;  // this basically just means "use special shadow ruleset"
         // adjust the y axis
-        ly = ly + 16;
+        if (map->get_obj(pos) == Map::ObjectNewWaterStone0){
+          ly = ly + 16;
+        }else if (map->get_obj(pos) == Map::ObjectNewWaterStone1){
+          ly = ly + 6;
+        }else if (map->get_obj(pos) == Map::ObjectNewWaterStone2){
+          ly = ly + 4;
+        }
       }
 
       // draw the sprite
@@ -2152,16 +2166,20 @@ Viewport::draw_map_objects_row(MapPos pos, int y_base, int cols, int x_base, int
       // this cannot be done inside draw_waves_row because that is done before map_objects drawn
       // NOTE the normal sprite has already been drawn by above function, these splashes are drawn
       //  OVER TOP of the normal sprite
-      if (map->get_obj(pos) == Map::ObjectWaterStone0 || map->get_obj(pos) == Map::ObjectWaterStone1 
-       || (map->get_obj(pos) >= Map::ObjectNewWaterStone0 && map->get_obj(pos) <= Map::ObjectNewWaterStone7)
-                 ){
+      if (map->get_obj(pos) == Map::ObjectWaterStone0 || map->get_obj(pos) == Map::ObjectWaterStone1){
       //||  (map->get_obj(pos) >= Map::ObjectWaterTree0 && map->get_obj(pos) <= Map::ObjectWaterTree3)){
         //Log::Debug["viewport.cc"] << "inside Viewport::draw_map_objects_row(), found water object, drawing splashes, setting frame to " << frame;
-        // splashes have 1 type with 4 frames of animation
+        // splashes have 2 types with 4 frames of animation
         int fast_anim = (interface->get_game()->get_tick() + 20) >> 4;  
         int sprite = 20 + (fast_anim & 3);
         frame->draw_sprite(x_base, y_base, Data::AssetMapWaves, sprite, true);  // this is correct for original water objects
         //frame->draw_sprite(x_base, y_base - 16, Data::AssetMapWaves, sprite, true); // testing new partial stone sprites
+      }else if (map->get_obj(pos) >= Map::ObjectNewWaterStone0 && map->get_obj(pos) <= Map::ObjectNewWaterStone7){
+        // wider splashes for larger objects
+        // splashes have 2 types with 4 frames of animation
+        int fast_anim = (interface->get_game()->get_tick() + 24) >> 4;   // sprite 24 is wider splashes base
+        int sprite = 24 + (fast_anim & 3);
+        frame->draw_sprite(x_base - 1, y_base, Data::AssetMapWaves, sprite, true);
       }
 
     } // if not a Tree or junk object

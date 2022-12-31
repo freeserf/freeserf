@@ -1512,7 +1512,8 @@ CustomMapGenerator::create_objects() {
   // Create boulders submerged in water.
   //  do these actually work?  I can't remember if I've ever seen a boulder in water.  I tried increaqsing it from 8 to 50 and still don't see any
   // THIS IS NOW FIXED AND THEY APPEAR NORMALLY
-  create_random_object_clusters(regions, 1 * custom_map_generator_options.opt[CustomMapGeneratorOption::JunkWaterSubmergedBoulders], 0x7f, Map::TerrainWater0, Map::TerrainWater3, Map::ObjectWaterStone0, 0x1);
+  //create_random_object_clusters(regions, 1 * custom_map_generator_options.opt[CustomMapGeneratorOption::JunkWaterSubmergedBoulders], 0x7f, Map::TerrainWater0, Map::TerrainWater3, Map::ObjectWaterStone0, 0x1);
+  create_random_object_clusters(regions - 1, 1 * custom_map_generator_options.opt[CustomMapGeneratorOption::JunkWaterSubmergedBoulders], 0x7f, Map::TerrainWater1, Map::TerrainWater3, Map::ObjectWaterStone0, 0x1);
   // Create palm trees in desert.
   create_random_object_clusters(regions, 6 * custom_map_generator_options.opt[CustomMapGeneratorOption::JunkDesertPalmTrees], 0x3f, Map::TerrainDesert2, Map::TerrainDesert2, Map::ObjectPalm0, 0x3);
 
@@ -1542,8 +1543,8 @@ CustomMapGenerator::create_objects() {
   //create_random_object_clusters(regions, 45, 0x3f, Map::TerrainWater2, Map::TerrainWater3, Map::ObjectCattail0, 0);
 
   // new submerged boulders using partially drawn sprites of other stone types
-  //create_random_object_clusters(regions, 6, 0x3f, Map::TerrainWater0, Map::TerrainWater3, Map::ObjectNewWaterStone0, 1);  
-  create_random_object_clusters(regions, 6, 0x3f, Map::TerrainWater0, Map::TerrainWater3, Map::ObjectNewWaterStone0, 0);  // NewWaterStone1 looks bad, 2+ don't exist, needs work
+  create_random_object_clusters(1, 1, 1, Map::TerrainWater0, Map::TerrainWater0, Map::ObjectNewWaterStone0, 2);  // NOTE WITH THIS AN EVEN NUMBER, the 2nd TYPE WILL NEVER APPEAR!
+  //create_random_object_clusters(regions, 6, 0x3f, Map::TerrainWater0, Map::TerrainWater3, Map::ObjectNewWaterStone0, 0);  // NewWaterStone1 looks bad, 2+ don't exist, needs work
   
 }
 

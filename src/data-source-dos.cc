@@ -719,9 +719,9 @@ DataSourceDOS::SpriteDosTransparent::SpriteDosTransparent(PBuffer _data,
 
   PMutableBuffer result = std::make_shared<MutableBuffer>(Buffer::EndianessBig);
 
-  Log::Info["data-source-dos"] << "inside DataSourceDOS::SpriteDosTransparent::SpriteDosTransparent, index is " << index << ", mutate int is " << mutate;
+  //Log::Info["data-source-dos"] << "inside DataSourceDOS::SpriteDosTransparent::SpriteDosTransparent, index is " << index << ", mutate int is " << mutate;
 
-  Log::Info["data-source-dos"] << "this transparant sprite has size " << _data->get_size();
+  //Log::Info["data-source-dos"] << "this transparent sprite has size " << _data->get_size();
 
    // find the average brightness so the brightest/highlight pixels
   //  can be identified
@@ -898,6 +898,17 @@ DataSourceDOS::SpriteDosTransparent::SpriteDosTransparent(PBuffer _data,
         }
       }
 
+      if (mutate == 22){
+        if (res == Data::AssetMapObject && index == 1250 + 72      // large sandstone rock / NewWaterStone0
+         || res == Data::AssetMapObject && index == 1250 + 73 ){   // small sandstone rock / NewWaterStone2
+          // make grayscale
+          int total = color.r + color.g + color.b;
+          color.r = total / 3;
+          color.g = total / 3;
+          color.b = total / 3;
+        }
+      }
+
       if (stop){
         // this is the transparent "color"
         result->push<uint32_t>(0x00000000, 1);  // this is the same as pushing R,G,B with Alpha of 0x00!
@@ -919,10 +930,24 @@ DataSourceDOS::SpriteDosTransparent::SpriteDosTransparent(PBuffer _data,
           //break;
           stop = true;
         }
+        /*
       } else if (res == Data::AssetMapObject && index == 1250 + 64){   // large Stone7 pile / NewWaterStone1  
         // this one looks bad, try various rock types and see what looks good submerged
         // consider creating a normal->submerged adjustment table for orig index, x/y offets, byte to stop at, etc.
         if (bytes > 200){
+          //break;
+          stop = true;
+        }*/
+      }
+    }else if (mutate == 22){
+      if (res == Data::AssetMapObject && index == 1250 + 72){   // large sandstone rock / NewWaterStone0
+        if (bytes > 530){
+          //break;
+          stop = true;
+        }
+      }
+      if (res == Data::AssetMapObject && index == 1250 + 73){   // small sandstone rock / NewWaterStone2
+        if (bytes > 210){
           //break;
           stop = true;
         }

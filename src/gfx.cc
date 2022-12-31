@@ -319,13 +319,19 @@ Frame::draw_sprite(int x, int y, Data::Resource res, unsigned int index, bool us
         Log::Debug["gfx.cc"] << "inside Frame::draw_sprite, found a NewWaterStone type, index " << index;
         if (index == 1151){
           index = 72;  // this is ObjectSandstone0, the largest one
+          mutate += 20;  // this tells SpriteDosTransparent to use a partial sprite
         }else if (index == 1152){
-          index = 64;  // this is ObjectStone7, the largest stone pile
+          //index = 64;  // this is ObjectStone7, the largest stone pile
+          index = 72;  // this is ObjectSandstone0, the largest one
+          mutate += 22;  // this tells SpriteDosTransparent to use a partial sprite  LARGER AMOUNT
+        }else if (index == 1153){
+          index = 73;  // this is ObjectSandstone1, the smaller one
+          mutate += 22;  // this tells SpriteDosTransparent to use a partial sprite  LARGER AMOUNT
         }else{
           // FALLBACK 
           index = 72;  // this is ObjectSandstone0, the largest one
         }
-        mutate += 20;  // this tells SpriteDosTransparent to use a partial sprite
+        //mutate += 20;  // this tells SpriteDosTransparent to use a partial sprite
         s = data_source->get_sprite(res, index, pc, mutate);
 
       }else if (res == Data::AssetFrameBottom // four seasons season dial in panelbar
@@ -397,7 +403,7 @@ Frame::draw_sprite(int x, int y, Data::Resource res, unsigned int index, bool us
       //    - option_FourSeasons uses this for seasonal changes to terrain
       //
       //s = data_source->get_sprite(res, index, pc);
-      Log::Debug["gfx.cc"] << "inside Frame::draw_sprite, using original data source, index " << index << ", mutate int is " << mutate;
+      //Log::Debug["gfx.cc"] << "inside Frame::draw_sprite, using original data source, index " << index << ", mutate int is " << mutate;
       s = data_source->get_sprite(res, index, pc, mutate);
     } // if index beyond original range
 
