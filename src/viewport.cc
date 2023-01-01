@@ -1048,7 +1048,8 @@ Viewport::draw_map_sprite_special(int lx, int ly, int index, const Color &color,
     frame->draw_sprite(lx, ly, Data::AssetMapShadow, index % 10, true, Color::transparent, 1.f);
   }else if ((index >= 1120 && index <= 1148)     // bright flowers
          || (index >= 2120 && index <= 2148)    // dark flowers
-         || (index >= 1160 && index <= 1179)){   // cattails
+         //|| (index >= 1160 && index <= 1179)){   // cattails   NOW HAVE SHADOW
+              ){
     // flowers have no shadow, do not draw one
     //Log::Debug["viewport"] << "inside Viewport::draw_map_sprite_special for sprite index " << index << ", not drawing shadow";
   }else if (index >= 1151 && index <= 1158){   // NewWaterStone0-7
@@ -1933,12 +1934,12 @@ Viewport::draw_map_objects_row(MapPos pos, int y_base, int cols, int x_base, int
           // these are ... palm and submerged trees.  4 frames of animation per type
           sprite = (sprite & ~3) + (tree_anim & 3);
         }else if (sprite == 141){   // adding Cattails/Reeds
-          Log::Debug["viewport.cc"] << "inside Viewport::draw_map_objects_row(), found cattail0, setting frame to " << frame;
+          //Log::Debug["viewport.cc"] << "inside Viewport::draw_map_objects_row(), found cattail0, setting frame to " << frame;
           frame = slow_tree_anim & 3;  // cattails/reeds have 2 types with 4 frames of animation
           sprite = 1160 + frame;
           use_custom_set = true;
         }else if (sprite == 142){   // adding Cattails/Reeds
-          Log::Debug["viewport.cc"] << "inside Viewport::draw_map_objects_row(), found cattail1, setting frame to " << frame;
+          //Log::Debug["viewport.cc"] << "inside Viewport::draw_map_objects_row(), found cattail1, setting frame to " << frame;
           frame = slow_tree_anim & 3;  // cattails/reeds have 2 types with 4 frames of animation
           sprite = 1170 + frame;
           use_custom_set = true;
@@ -2132,14 +2133,14 @@ Viewport::draw_map_objects_row(MapPos pos, int y_base, int cols, int x_base, int
 
       // handle option_ForesterMonoculture
       if (map->get_obj(pos) >= Map::ObjectNewTree0 && map->get_obj(pos) <= Map::ObjectNewTree7){
-        Log::Debug["viewport.cc"] << "inside Viewport::draw_map_objects_row, found NewTree0+, setting index to +1000";
+        //Log::Debug["viewport.cc"] << "inside Viewport::draw_map_objects_row, found NewTree0+, setting index to +1000";
         sprite += 1000;
         // do NOT use custom set, as draw_sprite will simply set this to the original NewTree sprite and shadow
       }
 
       // handle partial sprite NewWaterStone0-7
       if (map->get_obj(pos) >= Map::ObjectNewWaterStone0 && map->get_obj(pos) <= Map::ObjectNewWaterStone7){
-        Log::Debug["viewport.cc"] << "inside Viewport::draw_map_objects_row, found NewWaterStone0+, setting index to +1000";
+        //Log::Debug["viewport.cc"] << "inside Viewport::draw_map_objects_row, found NewWaterStone0+, setting index to +1000";
         sprite += 1000;
         use_custom_set = true;  // this basically just means "use special shadow ruleset"
         // adjust the y axis
@@ -2186,6 +2187,8 @@ Viewport::draw_map_objects_row(MapPos pos, int y_base, int cols, int x_base, int
     } // if not a Tree or junk object
   } // foreach column in this row
 } // end Viewport::draw_map_objects_row
+
+
 
 /* Draw one individual serf in the row. */
 void
@@ -3409,6 +3412,13 @@ Viewport::draw_game_objects(int layers_) {
   int draw_serfs = layers_ & LayerSerfs;
   if (!draw_landscape && !draw_objects && !draw_serfs) return;
 
+
+  // TERRIBLE HACK TO FIX WATER WAVES BEING WRITTEN OVER Reeds/Cattails!
+  //  because the cattail/reed sprites are large and spill into the next 
+  //  pos, when the next row is drawn the water waves overwrite the cattails
+  //  and it looks bad
+  // SO, JUST DRAW THE WATER WAVES AND TERRAIN THIS LOOP!
+
   int cols = (2*(width / MAP_TILE_WIDTH) + 1);
   int short_row_len = ((cols + 1) >> 1) + 1;
   int long_row_len = ((cols + 2) >> 1) + 1;
@@ -3420,10 +3430,39 @@ Viewport::draw_game_objects(int layers_) {
   int row_0 = (offset_y/MAP_TILE_HEIGHT) & map->get_row_mask();
   MapPos pos = map->pos(col_0, row_0);
 
+  // Loop until objects drawn fall outside the frame. 
+  while (1) {
+    // short row 
+    if (draw_landscape) draw_water_waves_row(pos, ly, short_row_len, lx);
+    ly += MAP_TILE_HEIGHT;
+    if (ly >= height + 6*MAP_TILE_HEIGHT) break;
+    pos = map->move_down(pos);
+    // long row 
+    if (draw_landscape) {
+      draw_water_waves_row(pos, ly, long_row_len, lx - 16);
+    }
+    ly += MAP_TILE_HEIGHT;
+    if (ly >= height + 6*MAP_TILE_HEIGHT) break;
+    pos = map->move_down_right(pos);
+  }
+
+
+  // usual function resumes here
+  cols = (2*(width / MAP_TILE_WIDTH) + 1);
+  short_row_len = ((cols + 1) >> 1) + 1;
+  long_row_len = ((cols + 2) >> 1) + 1;
+
+  lx = -(offset_x + 16*(offset_y/20)) % 32;
+  ly = -(offset_y) % 20;
+
+  col_0 = (offset_x/16 + offset_y/20)/2 & map->get_col_mask();
+  row_0 = (offset_y/MAP_TILE_HEIGHT) & map->get_row_mask();
+  pos = map->pos(col_0, row_0);
+
   /* Loop until objects drawn fall outside the frame. */
   while (1) {
     /* short row */
-    if (draw_landscape) draw_water_waves_row(pos, ly, short_row_len, lx);
+    //if (draw_landscape) draw_water_waves_row(pos, ly, short_row_len, lx);
     if (draw_serfs) {
       draw_serf_row_behind(pos, ly, short_row_len, lx);
     }
@@ -3441,9 +3480,9 @@ Viewport::draw_game_objects(int layers_) {
     pos = map->move_down(pos);
 
     /* long row */
-    if (draw_landscape) {
-      draw_water_waves_row(pos, ly, long_row_len, lx - 16);
-    }
+    //if (draw_landscape) {
+    //  draw_water_waves_row(pos, ly, long_row_len, lx - 16);
+    //}
     if (draw_serfs) {
       draw_serf_row_behind(pos, ly, long_row_len, lx - 16);
     }
@@ -3460,6 +3499,7 @@ Viewport::draw_game_objects(int layers_) {
 
     pos = map->move_down_right(pos);
   }
+
 
   //
   // ambient sounds - birds near trees, waves near water (palms)

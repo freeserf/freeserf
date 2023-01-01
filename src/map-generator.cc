@@ -1075,6 +1075,7 @@ ClassicMapGenerator::create_cattails(int num_clusters) {
 
         int actual = (random_int() % 2) + Map::ObjectCattail0;
         //int actual = Map::ObjectCattail0;
+        //int actual = Map::ObjectCattail1;
 
         //Log::Debug["map-generator.cc"] << "inside ClassicMapGenerator::create_cattails, creating cattail, actual type " << actual << " at pos " << pos;
         //if (is_coastal(pos) && tiles[pos].obj == Map::ObjectNone) {
