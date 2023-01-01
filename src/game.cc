@@ -46,30 +46,30 @@
 #define GROUND_ANALYSIS_RADIUS  25
 
 // deFINE the global game option bools that were deCLARED in game-options.h
-bool option_EnableAutoSave = false;
+bool option_EnableAutoSave = true;
 //bool option_ImprovedPigFarms = false;  // removing this as it turns out the default behavior for pig farms is to require almost no grain
-bool option_CanTransportSerfsInBoats = false;
-bool option_QuickDemoEmptyBuildSites = false;
+bool option_CanTransportSerfsInBoats = true;
+bool option_QuickDemoEmptyBuildSites = true;
 //bool option_AdvancedDemolition = true;  // this needs more playtesting  */
-bool option_TreesReproduce = false;
-bool option_BabyTreesMatureSlowly = false;
+bool option_TreesReproduce = true;
+bool option_BabyTreesMatureSlowly = true;
 bool option_ResourceRequestsTimeOut = true;  // this is forced true to indicate that the code to make them optional isn't added yet
 bool option_PrioritizeUsableResources = true;    // this is forced true to indicate that the code to make them optional isn't added yet
-bool option_LostTransportersClearFaster = false;
-bool option_FourSeasons = false;
-bool option_AdvancedFarming = false;
-bool option_FishSpawnSlowly = false;
-bool option_FogOfWar = false;
+bool option_LostTransportersClearFaster = true;
+bool option_FourSeasons = true;
+bool option_AdvancedFarming = true;
+bool option_FishSpawnSlowly = true;
+bool option_FogOfWar = true;
 //bool option_EastSlopesShadeObjects = true;   // make this an option, maybe
-bool option_InvertMouse = false;
-bool option_InvertWheelZoom = false;
+bool option_InvertMouse = true;
+bool option_InvertWheelZoom = true;
 bool option_SpecialClickBoth = true;
 bool option_SpecialClickMiddle = true;
 bool option_SpecialClickDouble = true;
-bool option_SailorsMoveFaster = false;
-bool option_WaterDepthLuminosity = false;
-bool option_RandomizeInstruments = false;  // only affects DOS music
-bool option_ForesterMonoculture = false;
+bool option_SailorsMoveFaster = true;
+bool option_WaterDepthLuminosity = true;
+bool option_RandomizeInstruments = true;  // only affects DOS music
+bool option_ForesterMonoculture = true;
 
 // map generator settings
 /*
