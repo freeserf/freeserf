@@ -790,6 +790,19 @@ Viewport::draw_path_segment(int lx, int ly, MapPos pos, Direction dir) {
 
   if (type <= Map::TerrainWater3) {
     sprite = 9;
+    // with WaterDepthLuminosity, it is hard to identify water paths
+    //  in shallow water, this makes the shallow sections darker
+    //  while leaving the deeper sections as they were
+    if (option_WaterDepthLuminosity && type >= Map::TerrainWater2){
+      // but not in winter...
+      if (option_FourSeasons && season == 3){
+         // do nothing
+       }else{
+          //frame->draw_masked_sprite(lx, ly, Data::AssetPathMask, mask, Data::AssetMapGround, 32);  // this is the original water terrain sprite
+          frame->draw_masked_sprite(lx, ly, Data::AssetPathMask, mask, Data::AssetMapGround, 40);  // this is the original water terrain sprite
+          return;
+       }
+    }
   } else if (type >= Map::TerrainSnow0) {
     sprite += 6;
   } else if (type >= Map::TerrainDesert0) {

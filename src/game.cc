@@ -46,7 +46,7 @@
 #define GROUND_ANALYSIS_RADIUS  25
 
 // deFINE the global game option bools that were deCLARED in game-options.h
-bool option_EnableAutoSave = true;
+bool option_EnableAutoSave = false;
 //bool option_ImprovedPigFarms = false;  // removing this as it turns out the default behavior for pig farms is to require almost no grain
 bool option_CanTransportSerfsInBoats = true;
 bool option_QuickDemoEmptyBuildSites = true;
