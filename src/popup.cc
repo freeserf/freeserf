@@ -206,6 +206,8 @@ typedef enum Action {
   ACTION_SHOW_QUIT,
   ActionShowOptions,
   ACTION_RESET_MAPGEN_DEFAULTS,
+  ACTION_MAPGEN_NEXT_PAGE,
+  ACTION_MAPGEN_PREV_PAGE,
   ACTION_SAVE_MAPGEN_SETTINGS,
   ACTION_CLOSE_MAPGEN_BOX,
   ACTION_SHOW_SAVE,
@@ -2272,9 +2274,46 @@ PopupBox::draw_edit_map_generator_box() {
   // instead, auto-save on any change
   //draw_green_string(22, 128, "Save");
   //draw_popup_icon(25, 124, 93); // diskette icon
+
+  draw_green_string(18, 131, "Page 1 of 2");
+  draw_popup_icon(30, 128, 0x3d); // flipbox to previous page
   
   draw_popup_icon(32, 128, 60); // exit icon  
 }
+
+
+void
+PopupBox::draw_edit_map_generator2_box() {
+  draw_large_box_background(PatternDiagonalGreen);
+
+  CustomMapGeneratorOptions generator_options = interface->get_custom_map_generator_options();
+
+  // uint16_t slider_double_to_uint16(double val){ return uint16_t(val * 32750); }
+  // reasonable values for trees are 0.00-4.00, so divide max slider 65500 by 4 to get 16375 and let 1.00 == 16375
+  draw_colored_slide_bar(1,  5, generator_options.opt[CustomMapGeneratorOption::Trees] * 16375, Color::blue);
+  draw_green_string(10, 4, "Reeds or Cattails");
+
+  draw_colored_slide_bar(1, 18, slider_double_to_uint16(CustomMapGeneratorOption::Trees), Color::blue);
+  draw_green_string(10, 18, "Submerged Trees");
+  
+  draw_colored_slide_bar(1, 32, slider_double_to_uint16(CustomMapGeneratorOption::StonepileDense), Color::blue);
+  draw_green_string(10, 32, "Submerged Stones");
+
+
+  draw_green_string(1, 128, "Reset Defaults");
+  draw_popup_icon(16, 124, 0x3d); // flipbox icon  
+
+  // instead, auto-save on any change
+  //draw_green_string(22, 128, "Save");
+  //draw_popup_icon(25, 124, 93); // diskette icon
+
+
+  draw_green_string(18, 131, "Page 2 of 2");
+  draw_popup_icon(30, 128, 0x3d); // flipbox to previous page
+  
+  draw_popup_icon(32, 128, 60); // exit icon  
+}
+
 
 
 void
@@ -3048,7 +3087,7 @@ void
 PopupBox::internal_draw() {
   //Log::Debug["popup.cc"] << "inside PopupBox::internal_draw(), box type is " << box;
   if (box == Type::TypeOptions || box == Type::TypeGameOptions || box == Type::TypeGameOptions2 || box == Type::TypeGameOptions3
-   || box == Type::TypeEditMapGenerator || box == Type::TypeLoadSave){
+   || box == Type::TypeEditMapGenerator || box == PopupBox::TypeEditMapGenerator2 || box == Type::TypeLoadSave){
     draw_large_popup_box_frame();
       // work-around for joining of SettSelect and LoadSave popups, but only LoadSave doubled
       if (box == Type::TypeLoadSave){
@@ -3176,6 +3215,9 @@ PopupBox::internal_draw() {
     break;
   case TypeEditMapGenerator:
     draw_edit_map_generator_box();
+    break;
+  case TypeEditMapGenerator2:
+    draw_edit_map_generator2_box();
     break;
   case TypeCastleRes:
     draw_castle_res_box();
@@ -3813,6 +3855,12 @@ PopupBox::handle_action(int action, int x_, int /*y_*/) {
     break;
   case ACTION_RESET_MAPGEN_DEFAULTS:
     interface->reset_custom_map_generator_options();
+    break;
+  case ACTION_MAPGEN_NEXT_PAGE:
+    interface->open_popup(TypeEditMapGenerator2);
+    break;
+  case ACTION_MAPGEN_PREV_PAGE:
+    interface->open_popup(TypeEditMapGenerator);
     break;
   case ACTION_CLOSE_MAPGEN_BOX:
     //generate_map_preview();
@@ -4535,6 +4583,39 @@ PopupBox::handle_box_edit_map_generator_clk(int cx, int cy) {
     //generate_map_preview(); ??
     //set_redraw()  ??
     //ACTION_CLOSE_BOX, 255, 126, 16, 16,
+    ACTION_MAPGEN_NEXT_PAGE, 239, 126, 16, 16,  // flip button
+    ACTION_CLOSE_MAPGEN_BOX, 255, 126, 16, 16,
+    -1
+  };
+  handle_clickmap(cx, cy, clkmap);
+}
+
+void
+PopupBox::handle_box_edit_map_generator2_clk(int cx, int cy) {
+  const int clkmap[] = {
+    ACTION_MAPGEN_ADJUST_TREES,             7,   7, 64, 6,
+    ACTION_MAPGEN_ADJUST_STONEPILES,        7,  22, 64, 6,
+    
+    ACTION_MAPGEN_ADJUST_FISH,  199,  13, 64, 6,
+
+    ACTION_MAPGEN_ADJUST_MINE_RES_GOLD,   199,  36, 64, 6,
+    ACTION_MAPGEN_ADJUST_MINE_RES_IRON,   199,  44, 64, 6,
+    ACTION_MAPGEN_ADJUST_MINE_RES_COAL,   199,  53, 64, 6,
+    ACTION_MAPGEN_ADJUST_MINE_RES_STONE,  199,  60, 64, 6,
+
+    ACTION_MAPGEN_ADJUST_DESERTS,           7,  69, 64, 6,
+    ACTION_MAPGEN_ADJUST_LAKES,             7,  84, 64, 6,
+    
+    ACTION_MAPGEN_ADJUST_JUNK_OBJ_GRASS,  199,  95, 64, 6,
+    ACTION_MAPGEN_ADJUST_JUNK_OBJ_WATER,  199, 103, 64, 6,
+    ACTION_MAPGEN_ADJUST_JUNK_OBJ_DESERT, 199, 111, 64, 6,
+    
+
+    ACTION_RESET_MAPGEN_DEFAULTS, 128, 124, 16, 16,
+    //generate_map_preview(); ??
+    //set_redraw()  ??
+    //ACTION_CLOSE_BOX, 255, 126, 16, 16,
+    ACTION_MAPGEN_PREV_PAGE, 239, 126, 16, 16,  // flip button
     ACTION_CLOSE_MAPGEN_BOX, 255, 126, 16, 16,
     -1
   };
@@ -5198,6 +5279,9 @@ PopupBox::handle_left_click(int cx, int cy, int modifier) {
     break;
   case TypeEditMapGenerator:
     handle_box_edit_map_generator_clk(cx, cy);
+    break;
+  case TypeEditMapGenerator2:
+    handle_box_edit_map_generator2_clk(cx, cy);
     break;
   case TypeCastleRes:
     handle_castle_res_clk(cx, cy);

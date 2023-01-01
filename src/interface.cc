@@ -163,7 +163,7 @@ Interface::open_popup(int box) {
   //  be referred to as SettSelect here, which makes SettSelect off-center because it is not actually
   //  double-wide but is offset as if it were.  Attempting to fix by simply reverting the offset for this
   if (box == PopupBox::TypeOptions || box == PopupBox::TypeGameOptions || box == PopupBox::TypeGameOptions2 || box == PopupBox::TypeGameOptions3
-   || box == PopupBox::TypeEditMapGenerator || box == PopupBox::TypeSettSelect){
+   || box == PopupBox::TypeEditMapGenerator || box == PopupBox::TypeEditMapGenerator2 || box == PopupBox::TypeSettSelect){
      //Log::Debug["interface.cc"] << "inside Interface::open_popup(), for popup type " << box << ", drawing double-wide";
     // double wide, normal height
     popup->set_size(288, 160);

@@ -105,6 +105,7 @@ class PopupBox : public GuiObject {
     TypeGameOptions2,
     TypeGameOptions3,
     TypeEditMapGenerator,
+    TypeEditMapGenerator2,
     TypePleaseWaitSaving,  // added for option_EnableAutoSave
     TypePleaseWaitFogOfWar // added for option_FogOfWar
   } Type;
@@ -249,6 +250,7 @@ class PopupBox : public GuiObject {
   void draw_game_options2_box();
   void draw_game_options3_box();
   void draw_edit_map_generator_box();
+  void draw_edit_map_generator2_box();
   void draw_castle_res_box();
   void draw_mine_output_box();
   void draw_ordered_building_box();
@@ -284,6 +286,7 @@ class PopupBox : public GuiObject {
   void handle_box_game_options2_clk(int x, int y);
   void handle_box_game_options3_clk(int x, int y);
   void handle_box_edit_map_generator_clk(int x, int y);
+  void handle_box_edit_map_generator2_clk(int x, int y);
   void handle_mine_building_clk(int x, int y);
   void handle_basic_building_clk(int x, int y, int flip);
   void handle_adv_1_building_clk(int x, int y);
