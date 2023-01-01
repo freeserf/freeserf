@@ -458,7 +458,9 @@ AI::plot_road(PMap map, unsigned int player_index, MapPos start_pos, MapPos end_
   return direct_road;
 }
 
-
+//
+// MAKE THIS A GENERAL GAME FUNCTION AND NOT AI-SPECIFIC!
+//
 // count how many tiles apart two MapPos are
 int
 AI::get_straightline_tile_dist(PMap map, MapPos start_pos, MapPos end_pos) {

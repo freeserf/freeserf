@@ -465,6 +465,48 @@ Player::available_knights_at_pos(MapPos pos, int index_, int dist) {
 
   if (index_ >= 64) return index_;
 
+  // tlongstretch - can the knights actually REACH the target building from this building??
+  // NOTE that because the knight is currently inside a building, and buildings are not technically
+  //  eligible for traverse, and because pathfinder does a reverse search from end to start, the
+  //  start pos must be the FLAG of the knight building and not the building itself!
+  // ADD NEW OPTION TO DESIGNATE THIS
+  //  option_CheckPathBeforeAttack
+  MapPos start_pos = map->move_down_right(pos);
+  // note that pathfinder_freewalking_serf will reject road solutions that are too long!  
+  Road freewalking_route = pathfinder_freewalking_serf(game->get_map().get(), start_pos, attacked_building_flag_pos);
+  if (freewalking_route.get_length() > 0){
+    //game->set_debug_mark_road(freewalking_route);
+    //Log::Debug["player.cc"] << "inside Player::available_knights_at_pos, attacking building pos " << pos << ", start_pos " << start_pos << ", attacked_building_flag_pos " << attacked_building_flag_pos << ", found freewalking solution to attacked_building_flag_pos, length " << freewalking_route.get_length();
+
+    //
+    // check convolution ratio, if the road is too convoluted it is decreasingly likely that
+    //  freewalking knights will be able to navigate it consistently or at all
+    //
+    //int ideal_length = AI::get_straightline_tile_dist(map, start_pos, target_pos);
+    // function copied from AI::get_straightline_tile_dist, MAKE THIS A GAME FUNCTION INSTEAD OF AI-SPECIFIC!
+    int dist_col = map->dist_x(start_pos, attacked_building_flag_pos);
+    int dist_row = map->dist_y(start_pos, attacked_building_flag_pos);
+    int ideal_length = 0;
+    if ((dist_col > 0 && dist_row > 0) || (dist_col < 0 && dist_row < 0)) {
+      ideal_length = std::max(abs(dist_col), abs(dist_row));
+    }else {
+      ideal_length = abs(dist_col) + abs(dist_row);
+    }
+    // NOTE - to log this properly, AI and main game thread logs must be separated
+    //  as AI calls this also to perform attacks!
+    //Log::Debug["player.cc"] << "inside Player::available_knights_at_pos, attacking building pos " << pos << ", has straight-line tile distance " << ideal_length << " from attacked_building_flag_pos " << attacked_building_flag_pos;
+    //Log::Debug["player.cc"] << "inside Player::available_knights_at_pos, attacking building pos " << pos << ", route from start_pos " << start_pos << " to attacked_building_flag_pos_pos " << attacked_building_flag_pos << " has length " << freewalking_route.get_length();
+    double convolution = static_cast<double>(freewalking_route.get_length()) / static_cast<double>(ideal_length);
+    //Log::Debug["player.cc"] << "inside Player::available_knights_at_pos, attacking building pos " << pos << ", route length: " << freewalking_route.get_length() << ", ideal length: " << ideal_length << ", convolution ratio: " << convolution;
+    if (convolution >= 3.00) {
+      //Log::Info["player.cc"] << "inside Player::available_knights_at_pos, this route solution is too convoluted, rejecting";
+      return index_;
+    }
+  }else{
+    //Log::Debug["player.cc"] << "inside Player::available_knights_at_pos, attacking building pos " << pos << ", attacked_building_flag_pos " << attacked_building_flag_pos << ", cannot reach attacked_building_flag_pos within specified limits";
+    return index_;
+  }
+
   attacking_buildings[index_] = bld_index;
 
   size_t state = building_->get_threat_level();
@@ -472,22 +514,6 @@ Player::available_knights_at_pos(MapPos pos, int index_, int dist) {
   int to_send = knights_present - min_level[knight_occupation[state] & 0xf];
 
   if (to_send > 0) attacking_knights[dist] += to_send;
-
-  // tlongstretch - can the knights actually REACH the target building from this building??
-  // NOTE that because the knight is currently inside a building, and buildings are not technically
-  //  eligible for traverse, and because pathfinder does a reverse search from end to start, the
-  //  start pos must be the FLAG of the knight building and not the building itself!
-  // ADD NEW OPTION TO DESIGNATE THIS
-  //  option_CheckPathBeforeAttack
-  Road junk_road = pathfinder_freewalking_serf(game->get_map().get(), map->move_down_right(pos), attacked_building_flag_pos);
-  if (junk_road.get_length() > 0){
-    Log::Debug["player.cc"] << "inside Player::available_knights_at_pos, attacking building pos " << pos << ", attacked_building_flag_pos " << attacked_building_flag_pos << ", found freewalking solution to attacked_building_flag_pos";
-    //game->set_debug_mark_road(junk_road);
-    //return true;
-  }else{
-    Log::Debug["player.cc"] << "inside Player::available_knights_at_pos, attacking building pos " << pos << ", attacked_building_flag_pos " << attacked_building_flag_pos << ", cannot reach attacked_building_flag_pos";
-    return index_;
-  }
 
   return index_ + 1;
 }

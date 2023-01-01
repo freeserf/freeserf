@@ -70,6 +70,7 @@ bool option_SailorsMoveFaster = true;
 bool option_WaterDepthLuminosity = true;
 bool option_RandomizeInstruments = true;  // only affects DOS music
 bool option_ForesterMonoculture = true;
+bool option_CheckPathBeforeAttack = true;  // this is forced on
 
 // map generator settings
 /*

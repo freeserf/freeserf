@@ -248,8 +248,16 @@ pathfinder_freewalking_serf(Map *map, MapPos start, MapPos end) {
   //unsigned int new_closed_nodes = 0;
   //unsigned int new_open_nodes = 0;
   unsigned int total_pos_considered = 0;
-  static const unsigned int plot_road_max_pos_considered = 10000;  // the maximum number of "nodes" (MapPos) considered as part of a single plot_road call before giving up
-  static const unsigned int plot_road_max_length = 150;  // the maximum length of a road solution for plot_road before giving up
+  // reducing the values that were copied from ai_pathfinder, as this is more sensitive
+  static const unsigned int plot_road_max_pos_considered = 5000;  // the maximum number of "nodes" (MapPos) considered as part of a single plot_road call before giving up
+  static const unsigned int plot_road_max_length = 100;  // the maximum length of a road solution for plot_road before giving up
+  // max ratio of actual road length compared to ideal straight-line length to determine if road is acceptably short
+  //   example, 3.00 means a road of up to 3x the length of a perfectly straight road is acceptable
+  // this only looks at the actual Road.get_length() in tiles for convolution checks
+  static constexpr double max_convolution = 3.00;
+
+  Road solution;
+  solution.start(start);
     
   while (!open.empty()) {
     //Log::Debug["pathfinder.cc"] << "inside pathfinder_freewalking_serf, A";
@@ -258,7 +266,7 @@ pathfinder_freewalking_serf(Map *map, MapPos start, MapPos end) {
     open.pop_back();
 
     if (total_pos_considered >= plot_road_max_pos_considered){
-      Log::Debug["pathfinder.cc"] << "inside pathfinder_freewalking_serf, maximum MapPos POSITIONS-checked reached (plot_road_max_pos) " << total_pos_considered << ", ending search";
+      Log::Info["pathfinder.cc"] << "inside pathfinder_freewalking_serf, maximum MapPos POSITIONS-checked reached (plot_road_max_pos) " << total_pos_considered << ", ending search early";
       break;
     }
     //// PERFORMANCE - try pausing for a very brief time every thousand pos checked to give the CPU a break, see if it fixes frame rate lag
@@ -269,7 +277,7 @@ pathfinder_freewalking_serf(Map *map, MapPos start, MapPos end) {
     total_pos_considered++;
 
     // limit the *length* considered
-    unsigned int current_length = 0;
+    unsigned int current_length = 0;  // this is calculated in full each time, not cumulative, so it can be declared every time
     PSearchNode tmp_length_check_node = node;
     while (tmp_length_check_node->parent) {
       current_length++;
@@ -277,15 +285,15 @@ pathfinder_freewalking_serf(Map *map, MapPos start, MapPos end) {
     }
     //Log::Debug["pathfinder.cc"] << "inside pathfinder_freewalking_serf, current road-length so far for this solution is " << current_length;
     if (current_length >= plot_road_max_length){
-      Log::Debug["pathfinder.cc"] << "inside pathfinder_freewalking_serf, maximum road-length reached (plot_road_max_length) " << current_length << ", ending search";
+      Log::Info["pathfinder.cc"] << "inside pathfinder_freewalking_serf, maximum road-length reached (plot_road_max_length) " << current_length << ", ending search early";
       break;
     }
 
     if (node->pos == start) {
       //Log::Debug["pathfinder.cc"] << "inside pathfinder_freewalking_serf, B  FOUND SOLUTION";
       /* Construct solution */
-      Road solution;
-      solution.start(start);
+      //Road solution;
+      //solution.start(start);
 
       while (node->parent) {
         Direction dir = node->dir;

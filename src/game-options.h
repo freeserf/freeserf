@@ -44,6 +44,7 @@ extern bool option_SailorsMoveFaster;
 extern bool option_WaterDepthLuminosity;
 extern bool option_RandomizeInstruments;  // only affects DOS music
 extern bool option_ForesterMonoculture;
+extern bool option_CheckPathBeforeAttack;  // this is forced on
 
 extern unsigned int mapgen_size;
 extern uint16_t mapgen_trees;

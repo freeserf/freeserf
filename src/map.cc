@@ -1218,14 +1218,14 @@ Map::can_serf_step_into(MapPos pos, Direction dir) const {
   MapPos other_pos = move(pos, dir);
   Object obj = get_obj(other_pos);
   if (Map::map_space_from_obj[obj] >= SpaceSemipassable) {
-    Log::Debug["map.cc"] << "inside Map::can_serf_step_into, from pos " << pos << " in dir " << dir << " to other_pos " << other_pos << ", rejected because other_pos is not passable";
+    //Log::Debug["map.cc"] << "inside Map::can_serf_step_into, from pos " << pos << " in dir " << dir << " to other_pos " << other_pos << ", rejected because other_pos is not passable";
     return false;
   }
   if (is_in_water(other_pos)) {
-    Log::Debug["map.cc"] << "inside Map::can_serf_step_into, from pos " << pos << " in dir " << dir << " to other_pos " << other_pos << ", rejected because other_pos is_in_water";
+    //Log::Debug["map.cc"] << "inside Map::can_serf_step_into, from pos " << pos << " in dir " << dir << " to other_pos " << other_pos << ", rejected because other_pos is_in_water";
     return false;
   }
-  Log::Debug["map.cc"] << "inside Map::can_serf_step_into, from pos " << pos << " in dir " << dir << " to other_pos " << other_pos << ", accepted";
+  //Log::Debug["map.cc"] << "inside Map::can_serf_step_into, from pos " << pos << " in dir " << dir << " to other_pos " << other_pos << ", accepted";
   return true;
 }
 
