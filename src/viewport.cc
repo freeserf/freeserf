@@ -799,7 +799,7 @@ Viewport::draw_path_segment(int lx, int ly, MapPos pos, Direction dir) {
          // do nothing
        }else{
           //frame->draw_masked_sprite(lx, ly, Data::AssetPathMask, mask, Data::AssetMapGround, 32);  // this is the original water terrain sprite
-          frame->draw_masked_sprite(lx, ly, Data::AssetPathMask, mask, Data::AssetMapGround, 40);  // this is the original water terrain sprite
+          frame->draw_masked_sprite(lx, ly, Data::AssetPathMask, mask, Data::AssetMapGround, 40);  // this is the darkest mutated water terrain sprite
           return;
        }
     }
@@ -4035,6 +4035,31 @@ Viewport::draw_debug_overlay() {
     }
     base_pos = map->move_right(base_pos);
   }
+
+
+  //
+  // draw debug_mark_road to highlight any road set for debug display
+  //
+  if (game->get_debug_mark_road()->get_length() > 0){
+    MapPos prevpos = game->get_debug_mark_road()->get_source();
+    for (const auto &dir : game->get_debug_mark_road()->get_dirs()) {
+      MapPos thispos = map->move(prevpos, dir);
+      int prev_sx = 0;
+      int prev_sy = 0;
+      //Log::Info["viewport"] << "calling screen_pix_from_map_coord with FROM MapPos " << prevpos << ", empty x,y " << prev_sx << "," << prev_sy;
+      screen_pix_from_map_coord(prevpos, &prev_sx, &prev_sy);
+      //Log::Info["viewport"] << "called screen_pix_from_map_coord with FROM MapPos " << prevpos << ", got x,y " << prev_sx << "," << prev_sy;
+
+      int this_sx = 0;
+      int this_sy = 0;
+      //Log::Info["viewport"] << "calling screen_pix_from_map_coord with TO MapPos " << thispos << ", empty x,y " << this_sx << "," << this_sy;
+      screen_pix_from_map_coord(thispos, &this_sx, &this_sy);
+      //Log::Info["viewport"] << "called screen_pix_from_map_coord with TO MapPos " << thispos << ", got x,y " << this_sx << "," << this_sy;
+
+      frame->draw_line(prev_sx, prev_sy, this_sx, this_sy, Color::white);
+      prevpos = thispos;
+    }
+  }
   
   // draw player number/color text box
   frame->draw_string(1, 1, "Player" + std::to_string(current_player_index), interface->get_player_color(current_player_index));
@@ -4491,8 +4516,7 @@ Viewport::handle_special_click(int lx, int ly) {
               default: NOT_REACHED(); break;
             }
 
-            int knights =
-                  player->knights_available_for_attack(building->get_position());
+            int knights = player->knights_available_for_attack(building->get_position());
             player->knights_attacking = std::min(knights, max_knights);
             interface->open_popup(PopupBox::TypeStartAttack);
           }

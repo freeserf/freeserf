@@ -197,6 +197,8 @@ Game::Game()
 
   gold_total = 0;
 
+  debug_mark_road = {};
+
   ai_locked = true;
   signal_ai_exit = false;
   ai_threads_remaining = 0;

@@ -168,6 +168,7 @@ class Player : public GameObject {
   int building_attacked;
   int knights_attacking;
   int attacking_building_count;
+  int attacked_building_flag_pos; // tlongstretch - adding attacked building pos to sanity check pathfinding to it
   int attacking_knights[4];
   int total_attacking_knights;
   unsigned int temp_index;

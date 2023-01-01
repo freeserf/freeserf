@@ -763,6 +763,7 @@ class Map {
   Direction remove_road_segment(MapPos *pos, Direction dir);
   bool road_segment_in_water(MapPos pos, Direction dir);
   bool is_road_segment_valid(MapPos pos, Direction dir) const;
+  bool can_serf_step_into(MapPos pos, Direction dir) const;
 
   bool operator == (const Map& rhs) const;
   bool operator != (const Map& rhs) const;

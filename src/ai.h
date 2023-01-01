@@ -83,7 +83,7 @@ class AI {
   bool need_tools;
   unsigned int last_sent_geologist_tick = 0;  // used to throttle sending geologists
   bool have_inventory_building = false;  // used to quit loop early if AI is essentially defeated (has no Castle or Stocks)
-  Road longest_road_so_far; // for debugging only, to help gauge a reasonable limit for maximum road length consideration while calling plot_road
+  //Road longest_road_so_far; // for debugging only, to help gauge a reasonable limit for maximum road length consideration while calling plot_road
 
   std::set<MapPos> new_stocks = {};  // AI STATEFULNESS WARNING - this is used to detect when a stock transitions from completed-but-not-occupied to occupied, and will not trigger if game saved/loaded between
   // Now that multiple economies implemented I think the entire XXX_building_counts are worthless

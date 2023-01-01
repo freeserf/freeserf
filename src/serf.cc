@@ -831,9 +831,43 @@ Serf::insert_before(Serf *knight) {
   s.defending.next_knight = knight->get_index();
 }
 
+/* this might not actually be needed, added this logic to Player::available_knights_at_pos
+
+// work in progress, adding to handle
+//  cases where a serf cannot reach target within reasonable path
+//   such as knights attacking across river
+bool
+Serf::can_reach_pos(MapPos dest_pos){
+  Log::Debug["serf.cc"] << "inside Serf::can_reach_pos, a serf of type " << get_type() << " is considering going to dest pos " << dest_pos;
+  // Road road = pathfinder_map(map.get(), pos, clk_pos,
+  // &interface->get_building_road());
+
+  // FOR NOW, ASSUME SERF IS IN A BUILDING AND SO USE BUILDING FLAG POS AS START POS!
+  MapPos start_pos = get_pos();  // this is serf's pos on map
+  if (game->get_map()->has_building(start_pos)){
+    // this serf is in a building, use the flag pos as the start pos, to be safe
+    start_pos = game->get_map()->move_down_right(get_pos());
+    Log::Debug["serf.cc"] << "inside Serf::can_reach_pos, a serf of type " << get_type() << " is in a building, using its flag pos " << start_pos << " as start pos";
+  }
+
+  //Road junk_road = pathfinder_freewalking_serf(game->get_map().get(), get_pos(), dest);
+  Road junk_road = pathfinder_freewalking_serf(game->get_map().get(), start_pos, dest_pos);
+
+  if (junk_road.get_length() > 0){
+    Log::Debug["serf.cc"] << "inside Serf::can_reach_pos, a serf of type " << get_type() << " found freewalking solution to dest pos " << dest_pos;
+    game->set_debug_mark_road(junk_road);
+    return true;
+  }else{
+    Log::Debug["serf.cc"] << "inside Serf::can_reach_pos, a serf of type " << get_type() << " cannot reach dest pos " << dest_pos;
+    return false;
+  }
+}
+*/
+
+// this says MapPos dest but I think it is actually a flag index!
 void
 Serf::go_out_from_inventory(unsigned int inventory, MapPos dest, int mode) {
-  //Log::Debug["serf.cc"] << "inside Serf::go_out_from_inventory, a serf of type " << get_type() << " is being sent to dest pos " << pos;
+  Log::Debug["serf.cc"] << "inside Serf::go_out_from_inventory, a serf of type " << get_type() << " is being sent to dest pos " << pos;
   set_state(StateReadyToLeaveInventory);
   // 'mode' seems to be simply the initial Dir that the serf goes as it exists the Inventory Flag, or <1 for special cases maybe?  Such as flagsearch not finding a dest??
   //  this is rabbit hole, not sure I understand it and don't feel like figuring it out 

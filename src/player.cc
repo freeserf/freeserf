@@ -427,6 +427,7 @@ Player::promote_serfs_to_knights(int number) {
 
 int
 Player::available_knights_at_pos(MapPos pos, int index_, int dist) {
+  //Log::Debug["player.cc"] << "inside Player::available_knights_at_pos, potential building pos " << pos << ", attacked_building_flag_pos " << attacked_building_flag_pos;
   const int min_level_hut[] = { 1, 1, 2, 2, 3 };
   const int min_level_tower[] = { 1, 2, 3, 4, 6 };
   const int min_level_fortress[] = { 1, 3, 6, 9, 12 };
@@ -437,8 +438,10 @@ Player::available_knights_at_pos(MapPos pos, int index_, int dist) {
       map->type_down(pos) <= Map::TerrainWater3 ||
       map->get_obj(pos) < Map::ObjectSmallBuilding ||
       map->get_obj(pos) > Map::ObjectCastle) {
-    return index_;
+    return index_;  // I guess "return index_" means "no knights available"
   }
+
+  Log::Debug["player.cc"] << "inside Player::available_knights_at_pos, attacking building pos " << pos << ", attacked_building_flag_pos " << attacked_building_flag_pos;
 
   int bld_index = map->get_obj_index(pos);
   for (int i = 0; i < index_; i++) {
@@ -470,6 +473,22 @@ Player::available_knights_at_pos(MapPos pos, int index_, int dist) {
 
   if (to_send > 0) attacking_knights[dist] += to_send;
 
+  // tlongstretch - can the knights actually REACH the target building from this building??
+  // NOTE that because the knight is currently inside a building, and buildings are not technically
+  //  eligible for traverse, and because pathfinder does a reverse search from end to start, the
+  //  start pos must be the FLAG of the knight building and not the building itself!
+  // ADD NEW OPTION TO DESIGNATE THIS
+  //  option_CheckPathBeforeAttack
+  Road junk_road = pathfinder_freewalking_serf(game->get_map().get(), map->move_down_right(pos), attacked_building_flag_pos);
+  if (junk_road.get_length() > 0){
+    Log::Debug["player.cc"] << "inside Player::available_knights_at_pos, attacking building pos " << pos << ", attacked_building_flag_pos " << attacked_building_flag_pos << ", found freewalking solution to attacked_building_flag_pos";
+    //game->set_debug_mark_road(junk_road);
+    //return true;
+  }else{
+    Log::Debug["player.cc"] << "inside Player::available_knights_at_pos, attacking building pos " << pos << ", attacked_building_flag_pos " << attacked_building_flag_pos << ", cannot reach attacked_building_flag_pos";
+    return index_;
+  }
+
   return index_ + 1;
 }
 
@@ -482,6 +501,9 @@ Player::knights_available_for_attack(MapPos pos) {
 
   int count = 0;
   PMap map = game->get_map();
+
+  // tlongstretch - adding this to sanity check if knights can actually reach the target building's flag pos
+  attacked_building_flag_pos = map->move_down_right(pos);
 
   /* Iterate each shell around the position.*/
   for (int i = 0; i < 32; i++) {
