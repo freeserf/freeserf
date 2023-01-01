@@ -8,6 +8,8 @@ Game Information Website
 
 https://forkserf.github.io/
 
+Discord channel 'Forkserf'
+
 Current Release
 ===============
 
