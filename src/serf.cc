@@ -3887,6 +3887,25 @@ Serf::handle_free_walking_common() {
     DirectionLeft,   DirectionNone, DirectionRight,
     DirectionNone,   DirectionDown, DirectionDownRight
   };
+  
+  //
+  // EXPLANATION OF FREE WALKING POS TRACKING -
+  //
+  //  When a serf is first set to a FreeWalking state:
+  //     The dist_col and dist_row are set to the coord of the destination pos, relative to the pos the serf
+  //      is in when it was placed into FreeWalking state (calling "start pos" here) 
+  //     The neg_dist and neg_dist2 are set to the return coordinates, relative to the *destination pos*
+  //      This is how the serf remembers the pos to return to once he reaches his destination
+  //  As a serf travels from start pos to dest pos:
+  //     the dist_col and dist_row coordinates are constantly updated as the serf changes pos,
+  //      so they always indicate the current offset for the serf to reach the dest pos
+  //     The neg_dist and neg_dist2 are *NOT* updated as the serf moves!  They are only relevant once destination reached
+  //  When the serf reaches his destination:
+  //     The dist_col and dist_row, which originally represented the offset to the dest pos, are replaced
+  //      with the values from neg_dist and neg_dist2.  These become the new dest pos.
+  //     The neg_dist and neg_dist2 values are set to -128, 0, or possibly some other values, to indicate
+  //      that the serf has no return pos and to indicate some other state/serf specific information(?)
+  //
 
   /* Directions for moving forwards. Each of the 12 lines represents
      a general direction as shown in the diagram below.

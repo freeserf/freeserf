@@ -117,6 +117,7 @@ class Game {
   bool signal_ai_exit;
   unsigned int ai_threads_remaining;
   ColorDotMap debug_mark_pos;  // list of positions for LayerDebug to mark
+  std::vector<int> debug_mark_serf;    // used to mark serfs on map with status text.  For debugging, when debug overlay is on
   //Road *debug_mark_road = (new Road);  // a road or pseudo-road to mark
   Road debug_mark_road;  // a road or pseudo-road to mark
   std::string mutex_message;  // used for logging why mutex being locked/unlocked
@@ -153,6 +154,7 @@ class Game {
   unsigned int get_game_speed() const { return game_speed; }
   // used for Debug overlay LayerDebug to mark MapPos on screen
   ColorDotMap * get_debug_mark_pos() { return &debug_mark_pos; }
+  std::vector<int> * get_debug_mark_serf() { return &debug_mark_serf; }
   void set_debug_mark_pos(MapPos pos, std::string color){ 
     debug_mark_pos.erase(pos);
     debug_mark_pos.insert(ColorDot(pos, color));
