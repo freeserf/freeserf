@@ -306,8 +306,8 @@ AI::do_place_castle() {
     //   maybe start doing random wait instead?  meh
     AILogDebug["do_place_castle"] << "sleeping " << player_index << "sec so each AI player thread gets different seed for random map pos";
     std::this_thread::sleep_for(std::chrono::milliseconds(2000 * player_index));
-    int maxtries = 500;  // crash if failed to place castle after this many tries, regardless of desperation
-    int lower_standards_tries = 75;  // reduce standards after this many tries (can happen repeatedly)
+    int maxtries = 1500;  // crash if failed to place castle after this many tries, regardless of desperation
+    int lower_standards_tries = 120;  // reduce standards after this many tries (can happen repeatedly)
     int desperation = 0;  // current level of lowered standards
     int x = 0;  // current try
     while (true) {
@@ -328,7 +328,8 @@ AI::do_place_castle() {
         continue;
       }
       // check if area has acceptable resources + building pos, and if so build there
-      if (place_castle(game, pos, spiral_dist(8), desperation)) {
+      //if (place_castle(game, pos, spiral_dist(8), desperation)) {
+      if (place_castle(game, pos, desperation)) {
         AILogDebug["do_place_castle"] << "found acceptable place to build castle, at pos: " << pos;
         mutex_lock("AI::do_place_castle calling game->build_castle");
         bool was_built = game->build_castle(pos, player);
@@ -342,6 +343,9 @@ AI::do_place_castle() {
         }
         AILogDebug["do_place_castle"] << "failed to build castle at pos: " << pos << ", will keep trying";
       }
+
+      //sleep_speed_adjusted(15000);  // TEMP DEBUG TESTING
+
     }
   }
   // on game load, castle_pos is unknown even though castle exists, need to find it

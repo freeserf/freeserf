@@ -867,7 +867,7 @@ Serf::can_reach_pos(MapPos dest_pos){
 // this says MapPos dest but I think it is actually a flag index!
 void
 Serf::go_out_from_inventory(unsigned int inventory, MapPos dest, int mode) {
-  Log::Debug["serf.cc"] << "inside Serf::go_out_from_inventory, a serf of type " << get_type() << " is being sent to dest pos " << pos;
+  //Log::Debug["serf.cc"] << "inside Serf::go_out_from_inventory, a serf of type " << get_type() << " is being sent to dest pos " << pos;
   set_state(StateReadyToLeaveInventory);
   // 'mode' seems to be simply the initial Dir that the serf goes as it exists the Inventory Flag, or <1 for special cases maybe?  Such as flagsearch not finding a dest??
   //  this is rabbit hole, not sure I understand it and don't feel like figuring it out 

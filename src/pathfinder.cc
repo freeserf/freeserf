@@ -227,7 +227,7 @@ pathfinder_map(Map *map, MapPos start, MapPos end, const Road *building_road) {
 /// ideally, make the length an argument to this function
 Road
 pathfinder_freewalking_serf(Map *map, MapPos start, MapPos end) {
-  Log::Debug["pathfinder.cc"] << "inside pathfinder_freewalking_serf, start pos " << start << ", dest pos " << end << ", remember this is a REVERSE SEARCH";
+  //Log::Debug["pathfinder.cc"] << "inside pathfinder_freewalking_serf, start pos " << start << ", dest pos " << end << ", remember this is a REVERSE SEARCH";
   std::vector<PSearchNode> open;
   std::list<PSearchNode> closed;
 

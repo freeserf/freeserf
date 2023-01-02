@@ -2149,8 +2149,8 @@ PopupBox::draw_game_options3_box() {
   draw_green_string(3, 67, "Foresters Create Monocultures");
   draw_popup_icon(1, 64, option_ForesterMonoculture ? 288 : 220);
 
-  draw_green_string(3, 86, "Check Walking Path Before Attack");
-  draw_popup_icon(1, 83, option_CheckPathBeforeAttack);  // this is forced on ? 288 : 220);
+  draw_green_string(3, 86, "Require Clear Route To Attack");
+  draw_popup_icon(1, 83, option_CheckPathBeforeAttack ? 288 : 220);  // this is currently forced on
 
   //draw_green_string(3, 105, "Sailors Move Faster");
   //draw_popup_icon(1, 102, option_SailorsMoveFaster ? 288 : 220);

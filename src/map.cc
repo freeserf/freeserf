@@ -1414,6 +1414,8 @@ Map::del_change_handler(Handler *handler) {
   change_handlers.remove(handler);
 }
 
+// returns true only if ONLY the specified terrain
+//  is found, false if any other type found
 bool
 Map::types_within(MapPos pos, Terrain low, Terrain high) {
   if ((type_up(pos) >= low &&

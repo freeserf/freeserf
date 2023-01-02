@@ -84,18 +84,73 @@ AI::has_terrain_type(PGame game, MapPos pos, Map::Terrain res_start_index, Map::
 //   long term it should also care about resources in the surrounding areas!  including mountains, fishable waters, etc.
 //  desperation is a multiplier
 bool
-AI::place_castle(PGame game, MapPos center_pos, unsigned int distance, unsigned int desperation) {
-  AILogDebug["util_place_castle"] << "inside AI::place_castle, center_pos " << center_pos << ", distance " << distance << ", desperation " << desperation;
+//AI::place_castle(PGame game, MapPos center_pos, unsigned int distance, unsigned int desperation) {
+AI::place_castle(PGame game, MapPos center_pos, unsigned int desperation) {
+  AILogDebug["util_place_castle"] << "inside AI::place_castle, center_pos " << center_pos << ", desperation " << desperation;
   PMap map = game->get_map();
   unsigned int trees = 0;
   unsigned int stones = 0;
   unsigned int building_sites = 0;
-  for (unsigned int i = 0; i < distance; i++) {
+  unsigned int nongrass_tiles_ring0 = 0;
+  unsigned int nongrass_tiles_ring1 = 0;
+  unsigned int nongrass_tiles_ring2 = 0;
+
+  //ai_mark_pos.insert(std::make_pair(center_pos, "green"));
+
+  for (unsigned int i = 0; i < spiral_dist(15); i++) {
     MapPos pos = map->pos_add_extended_spirally(center_pos, i);
+
+    //
+    // avoid areas with too much blocking terrain
+    //
+
+    // check right around the castle itself
+    if (i > AI::spiral_dist(2) && i < AI::spiral_dist(3)){
+     //ai_mark_pos.insert(std::make_pair(pos, "dk_brown"));
+     //sleep_speed_adjusted(15);
+      if (!map->types_within(pos, Map::TerrainGrass0, Map::TerrainGrass3)
+       ||  map->get_owner(pos) != player_index && map->has_owner(pos)){   // also count enemy territory as blocking!
+        //ai_mark_pos.erase(pos);
+        //ai_mark_pos.insert(std::make_pair(pos, "dk_red"));
+        //sleep_speed_adjusted(15);
+        nongrass_tiles_ring0++;
+      }
+    }
+    // check for in the perimeter of the would-be castle borders hexagon
+    if (i > AI::spiral_dist(7) && i < AI::spiral_dist(8)){
+      //ai_mark_pos.insert(std::make_pair(pos, "dk_brown"));
+     //sleep_speed_adjusted(15);
+      if (!map->types_within(pos, Map::TerrainGrass0, Map::TerrainGrass3)
+       ||  map->get_owner(pos) != player_index && map->has_owner(pos)){   // also count enemy territory as blocking!
+        //ai_mark_pos.erase(pos);
+        //ai_mark_pos.insert(std::make_pair(pos, "dk_red"));
+        //sleep_speed_adjusted(15);
+        nongrass_tiles_ring1++;
+      }
+    }
+    // check somewhat further out
+    if (i > AI::spiral_dist(14)){
+      //ai_mark_pos.insert(std::make_pair(pos, "dk_yellow"));
+      //sleep_speed_adjusted(15);
+      if (!map->types_within(pos, Map::TerrainGrass0, Map::TerrainGrass3)
+       ||  map->get_owner(pos) != player_index && map->has_owner(pos)){   // also count enemy territory as blocking!
+        //ai_mark_pos.erase(pos);
+        //ai_mark_pos.insert(std::make_pair(pos, "dk_red"));
+        //sleep_speed_adjusted(25);
+        nongrass_tiles_ring2++;
+      }
+    }
+
+    //
+    // check resources within the castle borders area only
+    //
+    if (i > AI::spiral_dist(8)){
+      continue;
+    }
 
     // don't count resouces that are inside enemy territory
     if (map->get_owner(pos) != player_index && map->has_owner(pos)) {
-      AILogDebug["util_place_castle"] << "enemy territory at pos " << pos << ", not counting these resouces towards requirements";
+      //AILogDebug["util_place_castle"] << "enemy territory at pos " << pos << ", not counting these resouces towards requirements";
       continue;
     }
 
@@ -109,19 +164,38 @@ AI::place_castle(PGame game, MapPos center_pos, unsigned int distance, unsigned 
       stones += stonepile_value;
       //AILogDebug["util_place_castle"] << "adding stones count " << stonepile_value;
     }
-    if (game->can_build_large(pos)) {
-      building_sites += 3;  // large building sites worth 50% more than small ones, but can't use 1.5 and 1.0 because integer
-      //AILogDebug["util_place_castle"] << "adding large building value 3";
-    }
-    else if (game->can_build_small(pos)) {
-      building_sites += 2;
-      //AILogDebug["util_place_castle"] << "adding small building value 1";
+    if (Map::map_space_from_obj[map->get_obj(pos)] == Map::SpaceOpen){
+      if (game->can_build_large(pos)) {
+        building_sites += 3;  // large building sites worth 50% more than small ones, but can't use 1.5 and 1.0 because integer
+        //AILogDebug["util_place_castle"] << "adding large building value 3";
+      }
+      else if (game->can_build_small(pos)) {
+        building_sites += 2;
+        //AILogDebug["util_place_castle"] << "adding small building value 1";
+      }
     }
   }
 
+  int nongrass_tiles_ring0_pct = double(nongrass_tiles_ring0 / double(AI::spiral_dist(3) - AI::spiral_dist(2))) * 100;
+  int nongrass_tiles_ring1_pct = double(nongrass_tiles_ring1 / double(AI::spiral_dist(8) - AI::spiral_dist(7))) * 100;
+  int nongrass_tiles_ring2_pct = double(nongrass_tiles_ring2 / double(AI::spiral_dist(15) - AI::spiral_dist(14))) * 100;
+  AILogDebug["util_place_castle"] << "found non-grass terrain, ring0 pct " << nongrass_tiles_ring0_pct << "%, ring1 pct " << nongrass_tiles_ring1_pct << "%, ring2 pct " << nongrass_tiles_ring2_pct << "%";
   AILogDebug["util_place_castle"] << "found trees: " << trees << ", stones: " << stones << ", building_sites: " << building_sites << " in area " << center_pos << ". Desperation is " << desperation;
 
-  // if good place for castle cannot be found, lower standards by faking an increased amount of resources
+  // if good place for castle cannot be found, lower standards by faking an increased amount of resources and less blocking terrain
+
+  if (nongrass_tiles_ring0_pct > ring0_blocking_terrain_pct_max + desperation*1.5) {
+    AILogDebug["util_place_castle"] << "too much blocking terrain in ring0, " << nongrass_tiles_ring0_pct << "% is blocked, max is " << ring0_blocking_terrain_pct_max << ", returning false.  Desperation is " << desperation;
+    return false;
+  }
+  if (nongrass_tiles_ring1_pct > ring1_blocking_terrain_pct_max + desperation*1.5) {
+    AILogDebug["util_place_castle"] << "too much blocking terrain in ring1, " << nongrass_tiles_ring1_pct << "% is blocked, max is " << ring1_blocking_terrain_pct_max << ", returning false.  Desperation is " << desperation;
+    return false;
+  }
+  if (nongrass_tiles_ring2_pct > ring2_blocking_terrain_pct_max + desperation*1.5) {
+    AILogDebug["util_place_castle"] << "too much blocking terrain in ring2, " << nongrass_tiles_ring2_pct << "% is blocked, max is " << ring2_blocking_terrain_pct_max << ", returning false.  Desperation is " << desperation;
+    return false;
+  }
   if (trees + desperation*4 < near_trees_min * 4) {
     AILogDebug["util_place_castle"] << "not enough trees, min is " << near_trees_min * 4 << ", returning false.  Desperation is " << desperation;
     return false;
@@ -130,10 +204,11 @@ AI::place_castle(PGame game, MapPos center_pos, unsigned int distance, unsigned 
     AILogDebug["util_place_castle"] << "not enough stones, min is " << near_stones_min << ", returning false.  Desperation is " << desperation;
     return false;
   }
-  if (building_sites + desperation*90 < near_building_sites_min) {
+  if (building_sites + desperation*45 < near_building_sites_min) {
     AILogDebug["util_place_castle"] << "not enough building_sites, min is " << near_building_sites_min << ", returning false.  Desperation is " << desperation;
     return false;
   }
+
   AILogDebug["util_place_castle"] << "center_pos: " << center_pos << " is an acceptable building site for a castle.  Desperation is " << desperation;
   AILogDebug["util_place_castle"] << "done AI::place_castle";
   return true;

@@ -219,7 +219,8 @@ class AI {
   // ai_util.cc
   //
   static bool has_terrain_type(PGame, MapPos, Map::Terrain, Map::Terrain);  // why does this need to be static?
-  bool place_castle(PGame, MapPos, unsigned int, unsigned int);
+  //bool place_castle(PGame, MapPos, unsigned int, unsigned int);
+  bool place_castle(PGame, MapPos, unsigned int);  // moving the radius considered into the place_castle function instead of as argument
   static unsigned int spiral_dist(int);   // why does this need to be static?
   //void rebuild_all_roads();  // no longer need this
   // changing these to support *planning* a road without actually building it, prior to placing a new building
@@ -400,6 +401,9 @@ static const unsigned int knights_med = 18;
 static const unsigned int knights_max = 50;
 static const unsigned int knight_occupation_change_buffer = 4; // to avoid repeatedly cycling knights, increase/lower bar to change levels again by this amount
 static const unsigned int near_building_sites_min = 450;   // don't place castle unless this many sites available.  small += 2, large += 3 (meant as small=1, large=1.5)
+static const unsigned int ring0_blocking_terrain_pct_max = 5;  // don't place castle if more than this percent of terrain in a ring right around the castle
+static const unsigned int ring1_blocking_terrain_pct_max = 25;  // don't place castle if more than this percent of terrain in a ring 8 tiles from center is non-grass
+static const unsigned int ring2_blocking_terrain_pct_max = 32;  // don't place castle if more than this percent of terrain in a ring 14 tiles from center is non-grass
 //static const unsigned int gold_bars_max = 50;  // I don't think this is actually used
 static const unsigned int steel_min = 16;   // don't build blacksmith if under this value, unless sufficient iron or an iron mine
 static const unsigned int steel_max = 60;  // don't build steelsmelter if over this value

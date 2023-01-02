@@ -48,7 +48,7 @@
 // deFINE the global game option bools that were deCLARED in game-options.h
 bool option_EnableAutoSave = false;
 //bool option_ImprovedPigFarms = false;  // removing this as it turns out the default behavior for pig farms is to require almost no grain
-bool option_CanTransportSerfsInBoats = true;
+bool option_CanTransportSerfsInBoats = false;  // leaving this off by default because it still has occasional bugs
 bool option_QuickDemoEmptyBuildSites = true;
 //bool option_AdvancedDemolition = true;  // this needs more playtesting  */
 bool option_TreesReproduce = true;
