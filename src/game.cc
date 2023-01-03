@@ -2066,6 +2066,9 @@ Game::build_building(MapPos pos, Building::Type type, Player *player) {
 }
 
 /* Build castle at position. */
+// I saw this return true once, but no castle seemed to be placed
+//  and then a castle appeared far from the suppoesdly placed
+//  very strange
 bool
 Game::build_castle(MapPos pos, Player *player) {
   if (!can_build_castle(pos, player)) {

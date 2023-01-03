@@ -184,15 +184,15 @@ AI::place_castle(PGame game, MapPos center_pos, unsigned int desperation) {
 
   // if good place for castle cannot be found, lower standards by faking an increased amount of resources and less blocking terrain
 
-  if (nongrass_tiles_ring0_pct > ring0_blocking_terrain_pct_max + desperation*1.5) {
+  if (nongrass_tiles_ring0_pct > ring0_blocking_terrain_pct_max + desperation*2) {
     AILogDebug["util_place_castle"] << "too much blocking terrain in ring0, " << nongrass_tiles_ring0_pct << "% is blocked, max is " << ring0_blocking_terrain_pct_max << ", returning false.  Desperation is " << desperation;
     return false;
   }
-  if (nongrass_tiles_ring1_pct > ring1_blocking_terrain_pct_max + desperation*1.5) {
+  if (nongrass_tiles_ring1_pct > ring1_blocking_terrain_pct_max + desperation*2) {
     AILogDebug["util_place_castle"] << "too much blocking terrain in ring1, " << nongrass_tiles_ring1_pct << "% is blocked, max is " << ring1_blocking_terrain_pct_max << ", returning false.  Desperation is " << desperation;
     return false;
   }
-  if (nongrass_tiles_ring2_pct > ring2_blocking_terrain_pct_max + desperation*1.5) {
+  if (nongrass_tiles_ring2_pct > ring2_blocking_terrain_pct_max + desperation*2) {
     AILogDebug["util_place_castle"] << "too much blocking terrain in ring2, " << nongrass_tiles_ring2_pct << "% is blocked, max is " << ring2_blocking_terrain_pct_max << ", returning false.  Desperation is " << desperation;
     return false;
   }
@@ -3009,7 +3009,7 @@ AI::score_enemy_area(MapPos center_pos, unsigned int distance) {
     // enemy buildings
     //
     if (map->get_owner(pos) != player_index && map->has_owner(pos) && map->has_building(pos)){
-      AILogDebug["util_score_enemy_area"] << "potential attack object is " << NameObject[obj] << " with building type " << NameBuilding[game->get_building_at_pos(pos)->get_type()];
+      //AILogDebug["util_score_enemy_area"] << "potential attack area contains a building of type " << NameBuilding[game->get_building_at_pos(pos)->get_type()];
       if (obj == Map::ObjectCastle){
         pos_value += 20;
         //AILogDebug["util_score_enemy_area"] << "adding attack value 20 for enemy castle at pos " << pos;
@@ -3119,12 +3119,14 @@ AI::score_enemy_targets(MapPosSet *scored_targets) {
       continue;
     }
     //ai_mark_pos.clear();
-    AILogDebug["util_score_enemy_targets"] << "looking for enemy buildings to attack near to my building of type " << NameBuilding[building->get_type()] << " at pos " << building->get_position();
+    //AILogDebug["util_score_enemy_targets"] << "looking for enemy buildings to attack near to my building of type " << NameBuilding[building->get_type()] << " at pos " << building->get_position();
     MapPos attacker_pos = building->get_position();
     // compile a list for scoring of each enemy building in attackable radius (which is?? NEED TO FIND OUT)
     //  at 14, seeing some unattackable targets, lowering to 13
     //  trying 12, was seeing unreachable buildings at 13
     //  12 looks good NO I see REACHable buildings that aren't showing as within 12, going back to 13
+    //  I am seeing an attackable building that isn't showing up in this check, may need to switch to
+    //  the actual game logic instead of this guessing...
     for (unsigned int i = 0; i < AI::spiral_dist(13); i++) {
       MapPos pos = map->pos_add_extended_spirally(attacker_pos, i);
       if (!map->has_building(pos) ||
@@ -3140,15 +3142,17 @@ AI::score_enemy_targets(MapPosSet *scored_targets) {
         continue;
       }
       MapPos target_pos = pos;
-      Building::Type target_building_type = building->get_type();
+      Building::Type target_building_type = target_building->get_type();
       size_t target_player_index = map->get_owner(pos);
-      // getting segfault here on loaded game after changing AI to human
-      //  to debug something, for now simply don't use this
-      //  const std::string target_player_face = NamePlayerFace[game->get_player(map->get_owner(pos))->get_face()];
-      //AILogDebug["util_score_enemy_targets"] << "found attackable building of type " << NameBuilding[target_building_type] << " at pos " << target_pos << " belonging to player " << target_player_index << " / " << target_player_face;
-      AILogDebug["util_score_enemy_targets"] << "found attackable building of type " << NameBuilding[target_building_type] << " at pos " << target_pos << " belonging to player " << target_player_index;
+      AILogDebug["util_score_enemy_targets"] << "our building of type " << NameBuilding[building->get_type()] << " at pos " << attacker_pos << " can attack building of type " << NameBuilding[target_building_type] << " at pos " << target_pos << " belonging to player " << target_player_index;
+      // copied from viewport open-attack-window logic, I am not sure exactly what the 
+      //  purpose of this code is, as how could there be more knights available to 
+      //  attack than there are knights in the building?  Except for castle,
+      //  maybe the intent was simply to disallow attacking with more than 20 knights
+      //  at once from the castle, and the others have no effect?  
+      // ... can you even attack directly from the castle?  I forget
       int max_knights = 0;
-      switch (target_building_type) {
+      switch (building->get_type()) {  // limit based on our building, the attacking building
       case Building::TypeHut: max_knights = 3; break;
       case Building::TypeTower: max_knights = 6; break;
       case Building::TypeFortress: max_knights = 12; break;
@@ -3159,10 +3163,10 @@ AI::score_enemy_targets(MapPosSet *scored_targets) {
       attacking_knights = std::min(attacking_knights, max_knights);
       //AILogDebug["util_score_enemy_targets"] << "send up to " << attacking_knights << " knights to attack enemy building of type " << NameBuilding[target_building_type]
       //  << " at pos " << target_pos << " belonging to player " << target_player_index << " / " << target_player_face;
-      AILogDebug["util_score_enemy_targets"] << "send up to " << attacking_knights << " knights to attack enemy building of type " << NameBuilding[target_building_type]
+      AILogDebug["util_score_enemy_targets"] << "our building of type " << NameBuilding[building->get_type()] << " at pos " << attacker_pos << " can attack with up to " << attacking_knights << " knights to attack enemy building of type " << NameBuilding[target_building_type]
         << " at pos " << target_pos << " belonging to player " << target_player_index;
       if (attacking_knights <= 0) {
-        AILogDebug["util_score_enemy_targets"] << "cannot send any knights, not marking target for scoring";
+        AILogDebug["util_score_enemy_targets"] << "our building of type " << NameBuilding[building->get_type()] << " at pos " << attacker_pos << " cannot send any knights, not marking target for scoring";
         continue;
       }
       if (target_building_type == Building::TypeCastle){

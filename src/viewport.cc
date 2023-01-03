@@ -4312,7 +4312,7 @@ Viewport::handle_left_click(int lx, int ly, int modifier) {
     // with AI overlay on, mark any serf that is clicked on (for debugging serf states)
     Serf *serf = interface->get_game()->get_serf_at_pos(clk_pos);
     if (serf == nullptr || serf->get_type() == Serf::TypeNone || serf->get_type() == Serf::TypeTransporterInventory){
-      Log::Debug["viewport"] << "no active serf found at CTRL-clicked pos " << clk_pos;
+      Log::Info["viewport.cc"] << "no active serf found at CTRL-clicked pos " << clk_pos;
     } else {
       /*
       unsigned int current_player_index = interface->get_player()->get_index();
@@ -4333,14 +4333,14 @@ Viewport::handle_left_click(int lx, int ly, int modifier) {
       for (int x=0; x<game_debug_mark_serf->size(); x++){
         if (game_debug_mark_serf->at(x) == serf->get_index()){
           // this serf already in list, remove him instead
-          Log::Info["viewport"] << "removing CTRL-clicked serf of type " << NameSerf[serf->get_type()] << " at pos " << clk_pos << " from debug_mark_serf";
+          Log::Info["viewport.cc"] << "removing CTRL-clicked serf of type " << NameSerf[serf->get_type()] << " at pos " << clk_pos << " from debug_mark_serf";
           game_debug_mark_serf->erase(std::next(game_debug_mark_serf->begin(), x));
           found = true;
           break;
         }
       }
       if (!found){
-        Log::Info["viewport"] << "adding CTRL-clicked serf of type " << NameSerf[serf->get_type()] << " at pos " << clk_pos << " to debug_mark_serf";
+        Log::Info["viewport.cc"] << "adding CTRL-clicked serf of type " << NameSerf[serf->get_type()] << " at pos " << clk_pos << " to debug_mark_serf";
         game_debug_mark_serf->push_back(serf->get_index());
       }
       

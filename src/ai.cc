@@ -3790,7 +3790,7 @@ AI::do_attack() {
     // NEEDS LOGIC TO BEELINE TO CASTLE!!!
   }
   else if (idle_knights >= 2*knights_max) {
-    AILogDebug["do_attack"] << "idle_knights is DOUBLE max value, but morale may be low, attack anything";
+    AILogDebug["do_attack"] << "idle_knights is DOUBLE max value, though morale could be low, attack anything";
     AI::attack_nearest_target(&scored_targets, 0,  0);  // attack the best scoring target found, regardless of morale, defender ratio
   }
   else if ((idle_knights >= knights_max && morale >= morale_min) || (morale >= morale_max && idle_knights >= knights_med) ) {
@@ -3798,15 +3798,15 @@ AI::do_attack() {
     AI::attack_nearest_target(&scored_targets, 25, 1.00);  // attack medium-high scoring targets, if at least even attacker-defender ratio
   }
   else if (idle_knights >= knights_max || (morale >= morale_min && idle_knights >= knights_med)) {
-    AILogDebug["do_attack"] << "idle_knights " << idle_knights << " is above max OR (morale " << morale << " is above min && idle_knights above med), attack only high value targets";
+    AILogDebug["do_attack"] << "idle_knights " << idle_knights << " is above max or (morale " << morale << " is above min && idle_knights above med), attack only high value targets";
     AI::attack_nearest_target(&scored_targets, 50, min_knight_ratio_attack); // attack high scoring targets, and only if attackers > defender ratio
   }
-  else if (idle_knights >= knights_med || morale >= morale_min) {
-    AILogDebug["do_attack"] << "idle_knights " << idle_knights << " is above med OR morale " << morale << " is above min, attack only very high value targets";
+  else if (idle_knights >= knights_med && morale >= morale_min) {
+    AILogDebug["do_attack"] << "idle_knights " << idle_knights << " is above med and morale " << morale << " is above min, attack only very high value targets";
     AI::attack_nearest_target(&scored_targets, 75, min_knight_ratio_attack); // attack very high scoring targets, and only if attackers > defender ratio
   }
   else if (idle_knights >= knights_min && morale >= morale_min) {
-    AILogDebug["do_attack"] << "idle_knights " << idle_knights << " is above min, attack only in extremely desperate situations (NONE YET DO NOT ATTACK)";
+    AILogDebug["do_attack"] << "idle_knights " << idle_knights << " is above min and morale is above min, attack only in extremely desperate situations (NONE YET DO NOT ATTACK)";
     // insert attack logic here... maybe only attack if unable to expand and missing a resource?
   }
   else if (idle_knights >= knights_min) {
