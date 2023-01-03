@@ -263,6 +263,7 @@ AI::next_loop(){
     
 
     do_demolish_excess_lumberjacks();
+    do_demolish_excess_foresters();
 	  do_demolish_excess_food_buildings();
     do_send_geologists(); sleep_speed_adjusted(1000);
     do_spiderweb_roads(); sleep_speed_adjusted(1000);
@@ -2176,7 +2177,7 @@ AI::do_demolish_excess_lumberjacks() {
         }
         else {
           AILogDebug["do_demolish_excess_lumberjacks"] << inventory_pos << " burning lumberjack at pos " << pos;
-          mutex_lock("AI::do_demolish_excess_lumberjacks calling game->get_player_buildings(player)");
+          mutex_lock("AI::do_demolish_excess_lumberjacks calling game->demolish_building()");
           game->demolish_building(pos, player);
           mutex_unlock();
           // do NOT mark as bad pos
@@ -2189,6 +2190,51 @@ AI::do_demolish_excess_lumberjacks() {
   }
   else {
         AILogDebug["do_demolish_excess_lumberjacks"] << inventory_pos << " planks_max not yet reached or no excess lumberjacks, skipping";
+  }
+}
+
+// burn forester/rangers if planks > max, to avoid creating blocking forests
+void
+AI::do_demolish_excess_foresters() {
+  AILogDebug["do_demolish_excess_foresters"] << inventory_pos << " inside do_demolish_excess_foresters";
+  ai_status.assign("do_demolish_excess_foresters");
+  if(get_stock_inv() == nullptr)
+    return;
+  unsigned int wood_count = get_stock_inv()->get_count_of(Resource::TypePlank) + stock_res_sitting_at_flags.at(inventory_pos)[Resource::TypePlank];
+  wood_count += get_stock_inv()->get_count_of(Resource::TypeLumber) + stock_res_sitting_at_flags.at(inventory_pos)[Resource::TypeLumber];
+  if (wood_count >= (planks_max + anti_flapping_buffer)) {
+    AILogDebug["do_demolish_excess_foresters"] << inventory_pos << " planks_max reached.  Burning any forester that has few open positions nearby";
+    Game::ListBuildings buildings = game->get_player_buildings(player);
+    for (Building *building : buildings) {
+      if (building == nullptr || building->get_type() != Building::TypeForester)
+        continue;
+      MapPos forester_pos = building->get_position();
+      if (find_nearest_inventory(map, player_index, building->get_position(), DistType::FlagOnly, &ai_mark_pos) != inventory_pos)
+        continue;
+      // check number of open positions around the forester
+      int open_positions = 0;
+      for (unsigned int x = 0; x < AI::spiral_dist(6); x++) {
+        MapPos pos = map->pos_add_extended_spirally(forester_pos, x);
+        if (map->get_obj(pos) == Map::ObjectNone
+         || map->map_space_from_obj[pos] == Map::SpaceOpen){
+           open_positions++;
+        }
+      }
+      if (open_positions > min_open_positions_burn_excess_forester){
+        AILogDebug["do_demolish_excess_foresters"] << inventory_pos << "forester hut at pos " << forester_pos << " has " << open_positions << " open_positions within its work radius, this is greater than min of " << min_open_positions_burn_excess_forester << ", not burning it yet";
+        // do not burn this one yet
+        continue;
+      }
+      AILogDebug["do_demolish_excess_foresters"] << inventory_pos << "forester hut at pos " << forester_pos << " has " << open_positions << " open_positions within its work radius, this is below min of " << min_open_positions_burn_excess_forester << ", burning it to avoid crowding";
+      AILogDebug["do_demolish_excess_foresters"] << inventory_pos << " burning forester at pos " << forester_pos;
+      mutex_lock("AI::do_demolish_excess_foresters calling game->demolish_building()");
+      game->demolish_building(forester_pos, player);
+      mutex_unlock();
+      sleep_speed_adjusted(3000); // sleep to appear more human
+    }
+  }
+  else {
+        AILogDebug["do_demolish_excess_foresters"] << inventory_pos << " planks_max not yet reached, skipping";
   }
 }
 
@@ -2767,10 +2813,18 @@ AI::do_build_sawmill_lumberjacks() {
   unsigned int wood_count = get_stock_inv()->get_count_of(Resource::TypePlank) + stock_res_sitting_at_flags.at(inventory_pos)[Resource::TypePlank];
   // include raw logs as they will become planks
   wood_count += get_stock_inv()->get_count_of(Resource::TypeLumber) + stock_res_sitting_at_flags.at(inventory_pos)[Resource::TypeLumber];
-  int sawmill_count = 0;
+
+  // DEBUG 
+  //AILogDebug["do_build_sawmill_lumberjacks"] << inventory_pos << " aggregate wood_count " << wood_count;
+  //AILogDebug["do_build_sawmill_lumberjacks"] << inventory_pos << " planks in inv " << get_stock_inv()->get_count_of(Resource::TypePlank);
+  //AILogDebug["do_build_sawmill_lumberjacks"] << inventory_pos << " planks at flags " << stock_res_sitting_at_flags.at(inventory_pos)[Resource::TypePlank];
+  //AILogDebug["do_build_sawmill_lumberjacks"] << inventory_pos << " logs in inv " << get_stock_inv()->get_count_of(Resource::TypeLumber);
+  //AILogDebug["do_build_sawmill_lumberjacks"] << inventory_pos << " logs at flags " << stock_res_sitting_at_flags.at(inventory_pos)[Resource::TypeLumber];
+
+  // require at least one sawmill no matter what
+  int sawmill_count = stock_building_counts.at(inventory_pos).count[Building::TypeSawmill];
   int lumberjack_count = 0;
-  if (wood_count < (planks_max - anti_flapping_buffer)) {
-    sawmill_count = stock_building_counts.at(inventory_pos).count[Building::TypeSawmill];
+  if (wood_count < (planks_max - anti_flapping_buffer) || sawmill_count == 0) {
     lumberjack_count = stock_building_counts.at(inventory_pos).count[Building::TypeLumberjack];
     if (sawmill_count >= 1 && lumberjack_count >= 2) {
       AILogDebug["do_build_sawmill_lumberjacks"] << inventory_pos << " Already placed sawmill and lumberjacks, not building more";
@@ -3805,6 +3859,8 @@ AI::do_attack() {
     AILogDebug["do_attack"] << "idle_knights " << idle_knights << " is above med and morale " << morale << " is above min, attack only very high value targets";
     AI::attack_nearest_target(&scored_targets, 75, min_knight_ratio_attack); // attack very high scoring targets, and only if attackers > defender ratio
   }
+  // it feels like an Aggressive AI might consider attacking in these below situations, while a cautious one would not
+  // Consider this for future Character/face implementatin
   else if (idle_knights >= knights_min && morale >= morale_min) {
     AILogDebug["do_attack"] << "idle_knights " << idle_knights << " is above min and morale is above min, attack only in extremely desperate situations (NONE YET DO NOT ATTACK)";
     // insert attack logic here... maybe only attack if unable to expand and missing a resource?

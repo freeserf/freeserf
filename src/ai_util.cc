@@ -3235,6 +3235,8 @@ AI::attack_nearest_target(MapPosSet *scored_targets, unsigned int min_score, dou
     if (target_building == nullptr){
       continue;
     }
+    // NOTE - it seems an enemy castle shows '255' knights as defending, even if actual number is much less
+    //  not doing anything with this knowledge yet
     unsigned int defending_knights = target_building->get_knight_count();  // this function says it returns waiting_planks but it might just be stock[0] is knights for a military building?? need to check
     double attack_ratio = static_cast<double>(attacking_knights) / static_cast<double>(defending_knights);
     AILogDebug["util_attack_nearest_target"] << "attacking_knights=" << attacking_knights << ", defending_knights=" << defending_knights << ", attack_ratio=" << attack_ratio;
