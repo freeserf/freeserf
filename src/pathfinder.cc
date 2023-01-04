@@ -235,7 +235,8 @@ pathfinder_freewalking_serf(Map *map, MapPos start, MapPos end) {
   PSearchNode node(new SearchNode);
   node->pos = end;
   node->g_score = 0;
-  node->f_score = heuristic_cost(map, start, end);
+  //node->f_score = heuristic_cost(map, start, end);
+  node->f_score = 0;
 
   open.push_back(node);
 
@@ -373,7 +374,8 @@ pathfinder_freewalking_serf(Map *map, MapPos start, MapPos end) {
           in_open = true;
           if (n->g_score >= node->g_score + cost) {
             n->g_score = node->g_score + cost;
-            n->f_score = n->g_score + heuristic_cost(map, new_pos, start);
+            //n->f_score = n->g_score + heuristic_cost(map, new_pos, start);
+            n->f_score = n->g_score;
             n->parent = node;
             n->dir = d;
 
@@ -391,8 +393,9 @@ pathfinder_freewalking_serf(Map *map, MapPos start, MapPos end) {
 
         new_node->pos = new_pos;
         new_node->g_score = node->g_score + cost;
-        new_node->f_score = new_node->g_score +
-                            heuristic_cost(map, new_pos, start);
+        //new_node->f_score = new_node->g_score +
+        //                    heuristic_cost(map, new_pos, start);
+        new_node->f_score = new_node->g_score;
         new_node->parent = node;
         new_node->dir = d;
 

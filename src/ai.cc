@@ -2209,23 +2209,34 @@ AI::do_demolish_excess_foresters() {
       if (building == nullptr || building->get_type() != Building::TypeForester)
         continue;
       MapPos forester_pos = building->get_position();
-      if (find_nearest_inventory(map, player_index, building->get_position(), DistType::FlagOnly, &ai_mark_pos) != inventory_pos)
+      // CANNOT USE this search because Foresters are usually disconnected from Inventory!
+      //if (find_nearest_inventory(map, player_index, building->get_position(), DistType::FlagOnly, &ai_mark_pos) != inventory_pos)
+      // trying straightline instead
+      if (find_nearest_inventory(map, player_index, building->get_position(), DistType::StraightLineOnly, &ai_mark_pos) != inventory_pos)
         continue;
       // check number of open positions around the forester
       int open_positions = 0;
-      for (unsigned int x = 0; x < AI::spiral_dist(6); x++) {
+      int possible_positions = 0;
+      for (unsigned int x = 0; x < AI::spiral_dist(4); x++) {
         MapPos pos = map->pos_add_extended_spirally(forester_pos, x);
+        // trees (and non-mine buildings) can only be planted on grass)
+        if (!map->types_within(pos, Map::TerrainGrass0, Map::TerrainGrass3)){
+          continue;
+        }
+        possible_positions++;
         if (map->get_obj(pos) == Map::ObjectNone
          || map->map_space_from_obj[pos] == Map::SpaceOpen){
            open_positions++;
         }
       }
-      if (open_positions > min_open_positions_burn_excess_forester){
-        AILogDebug["do_demolish_excess_foresters"] << inventory_pos << "forester hut at pos " << forester_pos << " has " << open_positions << " open_positions within its work radius, this is greater than min of " << min_open_positions_burn_excess_forester << ", not burning it yet";
+      // percent of grass tiles that are still open
+      if (possible_positions > 0
+        && (open_positions / possible_positions * 100) > min_pct_open_positions_burn_excess_forester){
+        AILogDebug["do_demolish_excess_foresters"] << inventory_pos << " forester hut at pos " << forester_pos << " has " << open_positions << " open_positions within its work radius out of " << possible_positions << " possible_positions, this is greater than min of " << min_pct_open_positions_burn_excess_forester << "%, not burning it yet";
         // do not burn this one yet
         continue;
       }
-      AILogDebug["do_demolish_excess_foresters"] << inventory_pos << "forester hut at pos " << forester_pos << " has " << open_positions << " open_positions within its work radius, this is below min of " << min_open_positions_burn_excess_forester << ", burning it to avoid crowding";
+      AILogDebug["do_demolish_excess_foresters"] << inventory_pos << " forester hut at pos " << forester_pos << " has " << open_positions << " open_positions within its work radius out of " << possible_positions << " possible_positions, this is below min of " << min_pct_open_positions_burn_excess_forester << "%, burning it to avoid crowding";
       AILogDebug["do_demolish_excess_foresters"] << inventory_pos << " burning forester at pos " << forester_pos;
       mutex_lock("AI::do_demolish_excess_foresters calling game->demolish_building()");
       game->demolish_building(forester_pos, player);

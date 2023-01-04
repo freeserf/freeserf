@@ -641,9 +641,9 @@ Map::obj_height_for_slope_darken[] = {
   0,  //ObjectSeeds0, /* 105 */
   0,  //ObjectSeeds1,
   0,  //ObjectSeeds2,
-  0,  //ObjectSeeds3,
-  1,  //ObjectSeeds4,
-  1,  //ObjectSeeds5, /* 110 */
+  1,  //ObjectSeeds3,
+  2,  //ObjectSeeds4,
+  2,  //ObjectSeeds5, /* 110 */
   0,  //ObjectFieldExpired,
   2,  //ObjectSignLargeGold,
   2,  //ObjectSignSmallGold,
@@ -929,10 +929,10 @@ Map::update_public(MapPos pos, Random *rnd) {
         // if set, it is half as likely for a tree to grow up
         //  regardless if it was planted or spontaneously grew from TreesReproduce feature
         if ((r % 2 == 0)){ 
-          Log::Debug["map"] << "inside Map::update_public, BabyTreesMatureSlowly feature on, r = " << r << ", NOT maturing this Pine at pos " << pos;
+          //Log::Debug["map"] << "inside Map::update_public, BabyTreesMatureSlowly feature on, r = " << r << ", NOT maturing this Pine at pos " << pos;
           break;
         }
-        Log::Debug["map"] << "inside Map::update_public, BabyTreesMatureSlowly feature on, r = " << r << ", maturing this Pine at pos " << pos;
+        //Log::Debug["map"] << "inside Map::update_public, BabyTreesMatureSlowly feature on, r = " << r << ", maturing this Pine at pos " << pos;
       }
       // I believe this r & 7 sets a random "animation-state" subtype of Pine0 through Pine7
       set_object(pos, (Object)(ObjectPine0 + (r & 7)), -1);
@@ -953,10 +953,10 @@ Map::update_public(MapPos pos, Random *rnd) {
         // if set, it is half as likely for a tree to grow up
         //  regardless if it was planted or spontaneously grew from TreesReproduce feature
         if ((r % 2 == 0)){ 
-          Log::Debug["map"] << "inside Map::update_public, BabyTreesMatureSlowly feature on, r = " << r << ", NOT maturing this Tree at pos " << pos;
+          //Log::Debug["map"] << "inside Map::update_public, BabyTreesMatureSlowly feature on, r = " << r << ", NOT maturing this Tree at pos " << pos;
           break;
         }
-        Log::Debug["map"] << "inside Map::update_public, BabyTreesMatureSlowly feature on, r = " << r << ", maturing this Tree at pos " << pos;
+        //Log::Debug["map"] << "inside Map::update_public, BabyTreesMatureSlowly feature on, r = " << r << ", maturing this Tree at pos " << pos;
       }
 
       if (get_obj(pos) >= ObjectNewTree0 && get_obj(pos) <= ObjectNewTree7){
@@ -986,10 +986,10 @@ Map::update_public(MapPos pos, Random *rnd) {
   // - Harvested fields are destroyed immediately?
   case ObjectSeeds0: case ObjectSeeds1:
     if (option_AdvancedFarming && season == 1){
-      Log::Debug["map"] << "option_AdvancedFarming on, and it is Summer, this young Seed-field at pos " << pos << " is now being destroyed (too hot for immature seedlings)";
+      //Log::Debug["map"] << "option_AdvancedFarming on, and it is Summer, this young Seed-field at pos " << pos << " is now being destroyed (too hot for immature seedlings)";
       set_object(pos, ObjectFieldExpired, -1);
     }else if (option_AdvancedFarming && season == 3){
-      Log::Debug["map"] << "option_AdvancedFarming on, and it is Winter, this Seed-field at pos " << pos << " is not advancing this update (too cold for seeds to grow)";
+      //Log::Debug["map"] << "option_AdvancedFarming on, and it is Winter, this Seed-field at pos " << pos << " is not advancing this update (too cold for seeds to grow)";
     }else{
       set_object(pos, (Object)(get_obj(pos) + 1), -1);
     }
@@ -997,7 +997,7 @@ Map::update_public(MapPos pos, Random *rnd) {
   case ObjectSeeds2: case ObjectSeeds3:
   case ObjectSeeds4:
     if (option_AdvancedFarming && season == 3){
-      Log::Debug["map"] << "option_AdvancedFarming on, and it is Winter, this Seed-field at pos " << pos << " is not advancing this update (too cold for seeds to grow)";
+      //Log::Debug["map"] << "option_AdvancedFarming on, and it is Winter, this Seed-field at pos " << pos << " is not advancing this update (too cold for seeds to grow)";
     }else{
       set_object(pos, (Object)(get_obj(pos) + 1), -1);
     }
@@ -1006,7 +1006,7 @@ Map::update_public(MapPos pos, Random *rnd) {
   case ObjectField2: case ObjectField3:
   case ObjectField4:
     if (option_AdvancedFarming && (season >= 3 || (season >=2 && subseason >= 8))){
-      Log::Debug["map"] << "option_AdvancedFarming on, and it is past mid-Fall, this Field at pos " << pos << " is now being destroyed";
+      //Log::Debug["map"] << "option_AdvancedFarming on, and it is past mid-Fall, this Field at pos " << pos << " is now being destroyed";
       set_object(pos, ObjectFieldExpired, -1);
     }else{
       set_object(pos, (Object)(get_obj(pos) + 1), -1);
@@ -1014,7 +1014,7 @@ Map::update_public(MapPos pos, Random *rnd) {
     break;
   case ObjectSeeds5:
     if (option_AdvancedFarming && (season >= 3 || (season >=2 && subseason >= 8))){
-      Log::Debug["map"] << "option_AdvancedFarming on, and it is past mid-Fall, this Seeds5-field at pos " << pos << " is now being destroyed instead of progressing to Field0";
+      //Log::Debug["map"] << "option_AdvancedFarming on, and it is past mid-Fall, this Seeds5-field at pos " << pos << " is now being destroyed instead of progressing to Field0";
       set_object(pos, ObjectFieldExpired, -1);
     }else{
       set_object(pos, ObjectField0, -1);

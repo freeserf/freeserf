@@ -436,7 +436,7 @@ Serf::path_splited(unsigned int flag_1, Direction dir_1,
 
   //
   // debug stuck serf issues with StateWaitIdleOnPath
-  Log::Debug["serf.cc"] << "debug StateWaitIdleOnPath issues: inside Serf::path_splited, a serf of type " << get_type() << " at pos " << get_pos() << " is MERGE/SPLIT TAINTED";
+  //Log::Debug["serf.cc"] << "debug StateWaitIdleOnPath issues: inside Serf::path_splited, a serf of type " << get_type() << " at pos " << get_pos() << " is MERGE/SPLIT TAINTED";
   split_merge_tainted = true;
   //  WHY AM I SEEING THIS MESSAGE REPEATED MANY TIMES OVER FOR THE SAME FLAG/SERF FOR THE SAME SPLIT??  is this some kind of bug?
   //   why would path_splited be called repeatedly?  this was at game speed 30 if it matters
@@ -571,7 +571,7 @@ Serf::path_merged2(unsigned int flag_1, Direction dir_1,
 
   //
   // debug stuck serf issues with StateWaitIdleOnPath
-  Log::Debug["serf.cc"] << "debugging StateWaitIdleOnPath issues: inside Serf::path_merged2, a serf of type " << get_type() << " at pos " << get_pos() << " is MERGE/SPLIT TAINTED";
+  //Log::Debug["serf.cc"] << "debugging StateWaitIdleOnPath issues: inside Serf::path_merged2, a serf of type " << get_type() << " at pos " << get_pos() << " is MERGE/SPLIT TAINTED";
   split_merge_tainted = true;
   //
   //
@@ -3785,12 +3785,27 @@ Serf::handle_free_walking_follow_edge() {
   int dir_index = -1;
   const Direction *dir_arr = NULL;
 
+  // it seems that even serfs that are not blocked by any large obstacles like lakes are
+  //  very often put into this follow_edge state, possibly all of them?  this isn't useful to debug that issue
+
+  // "what if I just flip it?"
+  //flipping the left/right follow seems to fix it in all the cases I tried,
+  //  except it results in a stuck serf sometimes. 
+  // I think it isn't possible to just flip it, when a serf encounters water, the left or right hand direction
+  //  he should follow should be determined by a A* pathfind call and not by whatever the internal logic is
+  //  that just tries to "get a step closer"
+  //
+  //here is example of serf being stuck after flipping left/right hand arrays:
+  //freewalking-edge-test.save.gz
+  //
   if (BIT_TEST(s.free_walking.flags, 3)) {
-    /* Follow right-hand edge */
+    // Follow left-hand edge
+    Log::Debug["serf.cc"] << "serf with index # " << get_index() << " in FreeWalking follow_edge state is following LEFTHAND edge";
     dir_arr = dir_left_edge;
     dir_index = (s.free_walking.flags & 7)-1;
   } else {
-    /* Follow right-hand edge */
+    // Follow right-hand edge
+    Log::Debug["serf.cc"] << "serf with index # " << get_index() << " in FreeWalking follow_edge state is following RIGHTHAND edge";
     dir_arr = dir_right_edge;
     dir_index = (s.free_walking.flags & 7)-1;
   }
@@ -3961,7 +3976,11 @@ Serf::handle_free_walking_common() {
 
   if ((s.free_walking.flags & 7) != 0) {
     /* Obstacle encountered, follow along the edge */
+    // which edge?  if BIT_TEST(3) it goes left, if not, goes right
     int r = handle_free_walking_follow_edge();
+    // this happens WAY more often than I initially suspected, basically ANY obstacle, not just large ones like lakes
+    Log::Debug["serf.cc"] << "found a serf with index # " << get_index() << " in FreeWalking follow_edge state, auto-marking on debug_serf display";
+    //game->get_debug_mark_serf()->push_back(get_index());
     if (r >= 0) return;
   }
 
@@ -4020,6 +4039,16 @@ Serf::handle_free_walking_common() {
   Direction dir = (Direction)a0[0];
   PMap map = game->get_map();
   MapPos new_pos = map->move(pos, dir);
+  //
+  // NEW LOGIC TO PREVENT SERFS FROM GETTING CONFUSED WHEN ENCOUNTERING BODIES OF WATER
+  //
+  // if this is NOT a sailor, but the next pos is in water...
+  bool found_water_obstacle = false;
+  if (!water && map->is_in_water(new_pos)){
+    //trigger new logic here
+    Log::Debug["serf.cc"] << "inside Serf::handle_free_walking_common, a free-walking serf has encountered water!  ADD LOGIC TO HELP HIM REACH HIS DESTINATION!";
+    found_water_obstacle = true;
+  }
   if (((water && map->get_obj(new_pos) == 0) ||
        (!water && !map->is_in_water(new_pos) &&
         can_pass_map_pos(new_pos))) &&
@@ -4125,8 +4154,64 @@ Serf::handle_free_walking_common() {
   }
 
   int edge = 0;
-  if (BIT_TEST(dir_index ^ i0, 0)) edge = 1;
+  if (BIT_TEST(dir_index ^ i0, 0)) edge = 1;  // it looks like this is where left vs right dir is set
   int upper = (i0/2) + 1;
+
+
+  //
+  // fix for original game "defect" 
+  //
+  //  because the original game doesn't seem to actually have any pathfinding
+  //  it instead relies on step-by-step "am I getting closer to the target?"
+  //  while freewalking, and when a large obstacle such as a lake is encountered
+  //  the game cannot tell which way around is faster, so it just picks one
+  //  and sometimes sends the serf the long way around.
+  // FURTHER, even if the serf goes the best way around, it is often unreasonably
+  //  long distance and the serf should reconsider if possible
+  //
+  // for now, the fix is to detect a large water obstacle that puts a serf into
+  //  follow left/right edge pattern, and run a pathfinder check.  Force the serf
+  //  to follow the shortest way around
+  //
+  // NEXT, need to add a check if even the best path around is unreasonably long
+  //  and have the serf take some other action if possible
+  //
+  // FINALLY, it seems sometimes lost serfs appear to choose totally random
+  //  positions with zero logic that send them all over the map.  Figure out
+  //  what is responsible for this and try to fix it
+  //  it may be totally unrelated to this edge problem
+  //
+  MapPos chosen_pos = map->move(pos, Direction(dir));
+  if (found_water_obstacle){
+    //game->set_debug_mark_pos(chosen_pos, "cyan");
+
+    int current_col = map->pos_col(pos);
+    int current_row = map->pos_row(pos);
+    int destination_col = current_col + s.free_walking.dist_col;
+    int destination_row = current_row + s.free_walking.dist_row;
+    MapPos dest_pos = map->pos(destination_col, destination_row);
+    //if (edge == 1){
+    //  game->set_debug_mark_pos(pos, "green");
+    //}else{
+    //  game->set_debug_mark_pos(pos, "yellow");
+    //}
+    //game->set_debug_mark_pos(dest_pos, "red");
+    Road path_around_lake = pathfinder_freewalking_serf(map.get(), pos, dest_pos);
+    if (path_around_lake.get_length() > 0){
+      //game->set_debug_mark_road(path_around_lake);
+      Direction dir_to_go = path_around_lake.get_first();  
+      if (dir != dir_to_go){
+        Log::Debug["serf.cc"] << "inside Serf::handle_free_walking_common, a free-walking serf has encountered water and chosen the wrong way around it, correcting him";
+        dir = dir_to_go;
+        //game->set_debug_mark_pos(map->move(pos, dir), "coral");
+        // reverse the follow_edge direction by flipping "edge"
+        edge = !edge;
+      }
+
+    }else{
+      throw ExceptionFreeserf("inside Serf::handle_free_walking_common, could not find a path around water/lake obstacle for freewalking serf!");
+    }
+  } // end of defect fix
 
   s.free_walking.flags = (upper << 4) | (edge << 3) | (dir+1);
 
@@ -6434,7 +6519,7 @@ Serf::handle_serf_wake_on_path_state() {
   
   // DEBUG stuck serfs 
   if (split_merge_tainted){
-    Log::Debug["serf"] << "debugging StateWaitIdleOnPath issues: inside handle_serf_wake_on_path_state, a serf of type " << NameSerf[get_type()] << " at pos " << get_pos() << " is MERGE/SPLIT TAINTED";
+    //Log::Debug["serf"] << "debugging StateWaitIdleOnPath issues: inside handle_serf_wake_on_path_state, a serf of type " << NameSerf[get_type()] << " at pos " << get_pos() << " is MERGE/SPLIT TAINTED";
   }
 
   for (Direction d : cycle_directions_ccw()) {
@@ -7780,6 +7865,8 @@ Serf::print_state() {
       res << "neg_dist" << "\t" << s.free_walking.neg_dist1 << "\n";
       res << "neg_dist2" << "\t" << s.free_walking.neg_dist2 << "\n";
       res << "flags" << "\t" << s.free_walking.flags << "\n";
+      // help determine direction
+      res << "animation" << "\t" << animation << "\n";
       break;
 
     case Serf::StateSawing:
