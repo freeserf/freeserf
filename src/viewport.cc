@@ -1017,7 +1017,7 @@ Viewport::draw_serf(int lx, int ly, const Color &color, int head, int body) {
 void
 Viewport::draw_shadow_and_building_sprite(int lx, int ly, int index, const Color &color, int mutate) {
   
-  Log::Info["viewport"] << "inside Viewport::draw_shadow_and_building_sprite for sprite index " << index << ", mutate int is " << mutate;
+  //Log::Info["viewport"] << "inside Viewport::draw_shadow_and_building_sprite for sprite index " << index << ", mutate int is " << mutate;
   //frame->draw_sprite(lx, ly, Data::AssetMapShadow, index, true);
   frame->draw_sprite(lx, ly, Data::AssetMapShadow, index, true, Color::transparent, 1.f);
   //frame->draw_sprite(lx, ly, Data::AssetMapObject, index, true, color);
@@ -1768,14 +1768,14 @@ Viewport::draw_map_objects_row(MapPos pos, int y_base, int cols, int x_base, int
     }
     //if (map->get_obj(pos) == Map::ObjectNone) continue;  // uncomment this if trying to draw red dot overlay to show focus area
     if (map->get_obj(pos) < Map::ObjectTree0) {
-      Log::Debug["viewport.cc"] << "inside draw_map_objects, pos " << pos << " has flag/building/castle sprite type" << map->get_obj(pos);
+      //Log::Debug["viewport.cc"] << "inside draw_map_objects, pos " << pos << " has flag/building/castle sprite type" << map->get_obj(pos);
       if (map->get_obj(pos) == Map::ObjectFlag) {
         draw_flag_and_res(pos, x_base, ly);
       } else if (map->get_obj(pos) <= Map::ObjectCastle) {
         draw_building(pos, x_base, ly);
       }
     } else {
-      Log::Debug["viewport.cc"] << "inside draw_map_objects, pos " << pos << " has sprite " << map->get_obj(pos) - Map::ObjectTree0;
+      //Log::Debug["viewport.cc"] << "inside draw_map_objects, pos " << pos << " has sprite " << map->get_obj(pos) - Map::ObjectTree0;
       int sprite = map->get_obj(pos) - Map::ObjectTree0;  // THIS IS IMPORTANT - sprite index is always 8 lower (-8) than map_object index!
       bool use_custom_set = false;  // messing with weather/seasons/palette tiles
       // if this is some kind of tree...
@@ -2171,11 +2171,11 @@ Viewport::draw_map_objects_row(MapPos pos, int y_base, int cols, int x_base, int
 
       // draw the sprite
       if (use_custom_set){  // use_custom_set now basically just means "use special shadow ruleset"
-        Log::Debug["viewport.cc"] << "inside Viewport::draw_map_objects_row, calling draw_map_sprite_special()";
+        //Log::Debug["viewport.cc"] << "inside Viewport::draw_map_objects_row, calling draw_map_sprite_special()";
         //draw_map_sprite_special(x_base, ly, sprite, pos, map->get_obj(pos));
         draw_map_sprite_special(x_base, ly, sprite, Color::transparent, mutate);
       }else{
-        Log::Debug["viewport.cc"] << "inside Viewport::draw_map_objects_row, calling draw_shadow_and_building_sprite(), mutate int is " << mutate;
+        //Log::Debug["viewport.cc"] << "inside Viewport::draw_map_objects_row, calling draw_shadow_and_building_sprite(), mutate int is " << mutate;
         //draw_shadow_and_building_sprite(x_base, ly, sprite);
         draw_shadow_and_building_sprite(x_base, ly, sprite, Color::transparent, mutate);
       }

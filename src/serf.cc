@@ -3216,7 +3216,7 @@ Serf::handle_serf_delivering_state() {
     if (s.transporting.res != Resource::TypeNone) {
       Resource::Type res = s.transporting.res;
       Building *building = game->get_building_at_pos(game->get_map()->move_up_left(pos));
-      if (building->requested_resource_delivered(res)){
+      if (building == nullptr || building->requested_resource_delivered(res)){
         s.transporting.res = Resource::TypeNone;
       }else{
         Log::Debug["serf.cc"] << " serf's attempted delivery of resource type " << NameResource[res] << " was rejected, dropping it at flag and/or sending it back";
