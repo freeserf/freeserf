@@ -787,9 +787,8 @@ DataSourceDOS::SpriteDosTransparent::SpriteDosTransparent(PBuffer _data,
         if (res == Data::AssetMapObject){
           // I haven't bothered to check how the sprite indexes are numbered, there must be some offset
           //  for each data type, instead I found through trial and error, only need one as a reference point
-          int base = 1241;
-          if ((index >= base + 97 && index <= base + 103)    // ObjectSeeds0 - ObjectFieldExpired 
-           || (index >= base + 113 && index <= base + 118)){  // ObjectField0 - ObjectField0
+          int base = 1250;
+          if (index >= base + 97 && index <= base + 100){    // ObjectSeeds0 - ObjectSeeds3  (4+ has no green)    SPRITE 97 - 100
             if (color.r < 200){  // is *NOT* red (i.e., is yellow or green, or blue I guess)
             //if (color.g > color.r && color.g > color.b){  // is green
               //if (color.g + color.r + color.b > 158){ // is bright

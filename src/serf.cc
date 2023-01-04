@@ -1603,6 +1603,10 @@ Serf::enter_building(int field_B, int join_pos) {
   if (join_pos) game->get_map()->set_serf_index(pos, get_index());
 
   Building *building = game->get_building_at_pos(pos);
+  if (building == nullptr){
+    Log::Warn["serf.cc"] << "inside Serf::enter_building, serf with index " << get_index() << " at pos " << get_pos() << " is trying to enter a building, but Building is unexpectedly a nullptr!";
+    throw ExceptionFreeserf("inside Serf::enter_building, building is unexpectedly a nullptr!");
+  }
   int slope = road_building_slope[building->get_type()];
   if (!building->is_done()) slope = 1;
   s.entering_building.slope_len = (slope * counter) >> 5;
@@ -4261,14 +4265,19 @@ Serf::handle_serf_planting_state() {
     //   though others serfs may plant other types
     // to avoid having to create a new variable, and add to save/load, use
     //  the serf's index to determine the tree type
-    //Map::Object new_obj = (Map::Object)(game->random_int());
-    Map::Object new_obj = (Map::Object)(get_index()); // this is the SERF's index, being used as a consistent random number
-    if (new_obj % 16 > 7){
-      // pine, only one type
-      new_obj = (Map::Object)(Map::ObjectNewPine);
+    Map::Object new_obj;
+    if (option_ForesterMonoculture){
+      Map::Object new_obj = (Map::Object)(get_index()); // this is the SERF's index, being used as a consistent random number
+      if (new_obj % 16 > 7){
+        // pine, only one type
+        new_obj = (Map::Object)(Map::ObjectNewPine);
+      }else{
+        // deciduous tree, choose from one of 8 types (orig == 0, plus 7 new types)
+        new_obj = (Map::Object)(Map::ObjectNewTree0 + (new_obj % 8));
+      }
     }else{
-      // deciduous tree, choose from one of 8 types (orig == 0, plus 7 new types)
-      new_obj = (Map::Object)(Map::ObjectNewTree0 + (new_obj % 8));
+      // normal behavior, random chance of either tree type, which will mature into random subtype
+      new_obj = (Map::Object)(Map::ObjectNewPine + (game->random_int() & 1));
     }
 
     if (map->paths(pos) == 0 && map->get_obj(pos) == Map::ObjectNone) {
