@@ -63,6 +63,19 @@ class Viewport : public GuiObject, public Map::Handler {
   unsigned int last_tick;
   Data::PSource data_source;
 
+  // these are all used for determing which sounds should play (when viewport is large)
+  bool in_ambient_focus; // this is the final check set true if both col and row true
+  bool row_in_ambient_focus;   // this must be shared between parent and child functions
+  //bool col_in_ambient_focus;  // this is local to the drawing function
+  const int focus_cols = 18;
+  //int center_col;  // this is local to the drawing function
+  //int leftmost_focus_col;  // this is local to the drawing function
+  //int rightmost_focus_col;  // this is local to the drawing function
+  const int focus_y_pixels = 480;
+  int center_y;
+  int topmost_focus_y;
+  int lowest_focus_y;
+
   PMap map;
 
  public:
@@ -122,15 +135,17 @@ class Viewport : public GuiObject, public Map::Handler {
   void draw_water_waves(MapPos pos, int x, int y);
   void draw_water_waves_row(MapPos pos, int y_base, int cols, int x_base);
   void draw_flag_and_res(MapPos pos, int x, int y);
-  //void draw_map_objects_row(MapPos pos, int y_base, int cols, int x_base);
+  void draw_map_objects_row(MapPos pos, int y_base, int cols, int x_base);
   // add passing ly to this function to allow determination of y/row location
   //  inside the viewport so that a focus area can be selected for ambient sounds
-  void draw_map_objects_row(MapPos pos, int y_base, int cols, int x_base, int ly);
+  //void draw_map_objects_row(MapPos pos, int y_base, int cols, int x_base, int debug_ly);
   void draw_row_serf(int x, int y, bool shadow, const Color &color, int body);
   int serf_get_body(Serf *serf);
   void draw_active_serf(Serf *serf, MapPos pos, int x_base, int y_base);
   void draw_serf_row(MapPos pos, int y_base, int cols, int x_base);
+  //void draw_serf_row(MapPos pos, int y_base, int cols, int x_base, int debug_ly);
   void draw_serf_row_behind(MapPos pos, int y_base, int cols, int x_base);
+  //void draw_serf_row_behind(MapPos pos, int y_base, int cols, int x_base, int debug_ly);
   void draw_game_objects(int layers);
   void draw_map_cursor_sprite(MapPos pos, int sprite);
   void draw_map_cursor_possible_build();

@@ -4596,18 +4596,13 @@ Serf::handle_serf_lost_state() {
             was_lost = true;  // store this information so the handle_walking state and onward can allow the serf to clear from non-Inventory buildings
           }
 
-          //*****************************************************************
-          // wait, is it really this simple?  just set it here?  adding this
-          // no... this results in all the serfs walking southwest ??
-          // try doing it once they reach a road instead
-          //s.walking.dest = flag->get_index();
-          //*****************************************************************
-
           counter = 0;
           return;
         }
       }
     }
+
+    Log::Info["serf.cc"] << "serf #" << get_index() << " at pos " << get_pos() << " is lost and could not find a friendly flag within 8 tiles, he will walk randomly forever until he does!  This is normal game behavior";
 
     /* Choose a random destination */
     unsigned int size = 16;

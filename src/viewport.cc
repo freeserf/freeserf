@@ -1223,7 +1223,7 @@ Viewport::draw_unharmed_building(Building *building, int lx, int ly) {
         if ((((interface->get_game()->get_tick() +
                reinterpret_cast<uint8_t*>(&pos)[1]) >> 3) & 7) == 0
             && random.random() < 40000) {
-          play_sound(Audio::TypeSfxElevator);
+          if (in_ambient_focus){play_sound(Audio::TypeSfxElevator);}
         }
       }
       draw_shadow_and_building_sprite(lx, ly, map_building_sprite[type]);
@@ -1255,7 +1255,7 @@ Viewport::draw_unharmed_building(Building *building, int lx, int ly) {
         if (building->is_playing_sfx()){
           // throttle oinking so it doesn't happen too fast
           if (limit_tick % 8 == 0){
-            play_sound(Audio::TypeSfxPigOink);
+            if (in_ambient_focus){play_sound(Audio::TypeSfxPigOink);}
           }
           // allow up to a few oinks if >1 pig in stock
           if (pigs_count == 1 || limit_tick % 4 == 0){
@@ -1296,7 +1296,7 @@ Viewport::draw_unharmed_building(Building *building, int lx, int ly) {
           building->stop_playing_sfx();
         } else if (!building->is_playing_sfx()) {
           building->start_playing_sfx();
-          play_sound(Audio::TypeSfxMillGrinding);
+          if (in_ambient_focus){play_sound(Audio::TypeSfxMillGrinding);}
         }
         draw_shadow_and_building_sprite(lx, ly, map_building_sprite[type] +
                                 ((interface->get_game()->get_tick() >> 4) & 3));
@@ -1317,8 +1317,8 @@ Viewport::draw_unharmed_building(Building *building, int lx, int ly) {
         int i = (interface->get_game()->get_tick() >> 3) & 7;
         if (i == 0 || (i == 7 && !building->is_playing_sfx())) {
           building->start_playing_sfx();
-          //play_sound(Audio::TypeSfxGoldBoils);
-          play_sound(Audio::TypeSfxGoldBoils, DataSourceType::Amiga);  // the DOS sound is bugged in freeserf, Amiga sound is better anyway
+          //if (in_ambient_focus){play_sound(Audio::TypeSfxGoldBoils);}
+          if (in_ambient_focus){play_sound(Audio::TypeSfxGoldBoils, DataSourceType::Amiga);}  // the DOS sound is bugged in freeserf, Amiga sound is better anyway
         } else if (i != 7) {
           building->stop_playing_sfx();
         }
@@ -1352,8 +1352,8 @@ Viewport::draw_unharmed_building(Building *building, int lx, int ly) {
         int i = (interface->get_game()->get_tick() >> 3) & 7;
         if (i == 0 || (i == 7 && !building->is_playing_sfx())) {
           building->start_playing_sfx();
-          //play_sound(Audio::TypeSfxGoldBoils);
-          play_sound(Audio::TypeSfxGoldBoils, DataSourceType::Amiga);  // the DOS sound is bugged in freeserf, Amiga sound is better anyway
+          //if (in_ambient_focus){play_sound(Audio::TypeSfxGoldBoils);}
+          if (in_ambient_focus){play_sound(Audio::TypeSfxGoldBoils, DataSourceType::Amiga);}  // the DOS sound is bugged in freeserf, Amiga sound is better anyway
         } else if (i != 7) {
           building->stop_playing_sfx();
         }
@@ -1590,8 +1590,8 @@ Viewport::draw_burning_building(Building *building, int lx, int ly) {
   if (((building->get_burning_counter() >> 3) & 3) == 3 &&
       !building->is_playing_sfx()) {
     building->start_playing_sfx();
-    play_sound(Audio::TypeSfxBurning, DataSourceType::DOS);  //this sounds kind of weird, try amiga
-    //play_sound(Audio::TypeSfxBurning, DataSourceType::Amiga);  // this is weird too :(
+    if (in_ambient_focus){play_sound(Audio::TypeSfxBurning, DataSourceType::DOS);}  //this sounds kind of weird, try amiga
+    //if (in_ambient_focus){play_sound(Audio::TypeSfxBurning, DataSourceType::Amiga);}  // this is weird too :(
   } else {
     building->stop_playing_sfx();
   }
@@ -1719,24 +1719,16 @@ Viewport::draw_flag_and_res(MapPos pos, int lx, int ly) {
 }
 
 void
-//Viewport::draw_map_objects_row(MapPos pos, int y_base, int cols, int x_base) {
-Viewport::draw_map_objects_row(MapPos pos, int y_base, int cols, int x_base, int ly) {
+Viewport::draw_map_objects_row(MapPos pos, int y_base, int cols, int x_base) {
+//Viewport::draw_map_objects_row(MapPos pos, int y_base, int cols, int x_base, int debug_ly) {
   //Log::Debug["viewport.cc"] << "inside Viewport::draw_map_objects_row";
-  // for determining "in view" objects for ambient sound generation,
-  //  only consider a roughly 640x480px area in the center of the 
-  //  viewport, otherwise there are too many ambient sounds and for
-  //  things such as deserts, water, that are near edges of viewport
-  // note that X is in cols, and Y is in pixels, because it is easier to code this way
-  int focus_cols = 18;
-  int center_col = cols / 2;
-  int leftmost_focus_col = center_col - (focus_cols / 2);
-  int rightmost_focus_col = center_col + (focus_cols / 2);
-  int focus_y_pixels = 480;
-  int center_y = height / 2;
-  int topmost_focus_y = center_y - (focus_y_pixels / 2);
-  int lowest_focus_y = center_y + (focus_y_pixels / 2);
 
   int mutate = 0;  // odd numbered mutate indicates this is a darkened tile
+
+  // for determining ambient_focus for sound triggers
+  const int center_col = cols / 2;
+  const int leftmost_focus_col = center_col - (focus_cols / 2);
+  const int rightmost_focus_col = center_col + (focus_cols / 2);
 
   //Log::Debug["viewport.cc"] << "inside draw_map_objects, pos " << pos << ", cols: " << cols << ", focus_cols: " << focus_cols << ", center_col: " << center_col << ", left: " << leftmost_focus_col << ", right: " << rightmost_focus_col;
   //Log::Debug["viewport.cc"] << "inside draw_map_objects, pos " << pos << ", map height: " << height << ", ly: " << ly << ", center_y: " << center_y << ", top: " << topmost_focus_y << ", bottom: " << lowest_focus_y;
@@ -1744,6 +1736,8 @@ Viewport::draw_map_objects_row(MapPos pos, int y_base, int cols, int x_base, int
        i++, x_base += MAP_TILE_WIDTH, pos = map->move_right(pos)) {
 
     if (map->get_obj(pos) == Map::ObjectNone){continue;}  // comment this out if trying to draw red dot overlay to show focus area
+
+    int ly = y_base - 4 * map->get_height(pos);
 
     // option_FogOfWar
     //   do not draw objects outside of shroud/FoW
@@ -1757,16 +1751,21 @@ Viewport::draw_map_objects_row(MapPos pos, int y_base, int cols, int x_base, int
 
     //Log::Debug["viewport.cc"] << "inside draw_map_objects, pos " << pos << " has sprite " << map->get_obj(pos) - Map::ObjectTree0;
 
-    int ly = y_base - 4 * map->get_height(pos);
-    bool in_ambient_focus = false;
-    if (i >= leftmost_focus_col && i <= rightmost_focus_col && ly >= topmost_focus_y && ly <= lowest_focus_y){
-      // debug - show area in focus for ambient sounds with red dots
-      //   note for this to show a full rectangle the "continue if ObjectNone" must be moved to BELOW this if statement
-      //frame->fill_rect(x_base - 7, ly + 0, 6, 6, colors.at("red"));
-      //frame->fill_rect(x_base - 9, ly + 1, 12, 12, colors.at("red"));
+    in_ambient_focus = false;
+    if (row_in_ambient_focus && i >= leftmost_focus_col && i <= rightmost_focus_col){
       in_ambient_focus = true;
     }
+
+    // DEBUG
+    ////if (in_ambient_focus){
+    //  // debug - show area in focus for ambient sounds with red dots
+    //  //   note for this to show a full rectangle the "continue if ObjectNone" must be moved to BELOW this if statement
+    //  frame->fill_rect(x_base - 7, ly + 0, 6, 6, colors.at("red"));
+    //  frame->fill_rect(x_base - 9, ly + 1, 12, 12, colors.at("red"));
+    //}
+
     //if (map->get_obj(pos) == Map::ObjectNone) continue;  // uncomment this if trying to draw red dot overlay to show focus area
+
     if (map->get_obj(pos) < Map::ObjectTree0) {
       //Log::Debug["viewport.cc"] << "inside draw_map_objects, pos " << pos << " has flag/building/castle sprite type" << map->get_obj(pos);
       if (map->get_obj(pos) == Map::ObjectFlag) {
@@ -2374,8 +2373,8 @@ Viewport::serf_get_body(Serf *serf) {
       if (((t & 7) == 4 && !serf->playing_sfx()) ||
           (t & 7) == 3) {
         serf->start_playing_sfx();
-        //play_sound(Audio::TypeSfxRowing);
-        play_sound(Audio::TypeSfxRowing, DataSourceType::DOS);  // DOS sound is a little better
+        //if (in_ambient_focus){play_sound(Audio::TypeSfxRowing);}
+        if (in_ambient_focus){play_sound(Audio::TypeSfxRowing, DataSourceType::DOS);}  // DOS sound is a little better
       } else {
         serf->stop_playing_sfx();
       }
@@ -2389,8 +2388,8 @@ Viewport::serf_get_body(Serf *serf) {
         if (((t & 7) == 4 && !serf->playing_sfx()) ||
             (t & 7) == 3) {
           serf->start_playing_sfx();
-          //play_sound(Audio::TypeSfxRowing);
-          play_sound(Audio::TypeSfxRowing, DataSourceType::DOS);  // DOS sound is a little better
+          //if (in_ambient_focus){play_sound(Audio::TypeSfxRowing);}
+          if (in_ambient_focus){play_sound(Audio::TypeSfxRowing, DataSourceType::DOS);}  // DOS sound is a little better
         } else {
           serf->stop_playing_sfx();
         }
@@ -2422,8 +2421,8 @@ Viewport::serf_get_body(Serf *serf) {
         if (((t & 7) == 4 && !serf->playing_sfx()) ||
             (t & 7) == 3) {
           serf->start_playing_sfx();
-          //play_sound(Audio::TypeSfxRowing);
-          play_sound(Audio::TypeSfxRowing, DataSourceType::DOS);  // DOS sound is a little better
+          //if (in_ambient_focus){play_sound(Audio::TypeSfxRowing);}
+          if (in_ambient_focus){play_sound(Audio::TypeSfxRowing, DataSourceType::DOS);}  // DOS sound is a little better
         } else {
           serf->stop_playing_sfx();
         }
@@ -2440,7 +2439,7 @@ Viewport::serf_get_body(Serf *serf) {
     } else if (t == 0x83 || t == 0x84) {
       if (t == 0x83 || !serf->playing_sfx()) {
         serf->start_playing_sfx();
-        play_sound(Audio::TypeSfxDigging);
+        if (in_ambient_focus){play_sound(Audio::TypeSfxDigging);}
       }
       t += 0x380;
     } else {
@@ -2458,7 +2457,7 @@ Viewport::serf_get_body(Serf *serf) {
     } else if ((t & 7) == 4 || (t & 7) == 5) {
       if ((t & 7) == 4 || !serf->playing_sfx()) {
         serf->start_playing_sfx();
-        play_sound(Audio::TypeSfxHammerBlow);
+        if (in_ambient_focus){play_sound(Audio::TypeSfxHammerBlow);}
       }
       t += 0x580;
     } else {
@@ -2486,13 +2485,13 @@ Viewport::serf_get_body(Serf *serf) {
     } else if ((t == 0x86 && !serf->playing_sfx()) ||
          t == 0x85) {
       serf->start_playing_sfx();
-      play_sound(Audio::TypeSfxAxBlow);
+      if (in_ambient_focus){play_sound(Audio::TypeSfxAxBlow);}
       /* TODO Dangerous reference to unknown state vars.
          It is probably free walking. */
       if (serf->get_free_walking_neg_dist2() == 0 &&
           serf->get_counter() < 64) {
-        //play_sound(Audio::TypeSfxTreeFall);
-        play_sound(Audio::TypeSfxTreeFall, DataSourceType::DOS);  // DOS sound is better
+        //if (in_ambient_focus){play_sound(Audio::TypeSfxTreeFall);}
+        if (in_ambient_focus){play_sound(Audio::TypeSfxTreeFall, DataSourceType::DOS);}  // DOS sound is better
       }
       t += 0xe80;
     } else if (t != 0x86) {
@@ -2515,10 +2514,10 @@ Viewport::serf_get_body(Serf *serf) {
           (!serf->playing_sfx() && (t == 0xb7 || t == 0xbf ||
                 t == 0xc7 || t == 0xcf))) {
         serf->start_playing_sfx();
-        //play_sound(Audio::TypeSfxSawing);
-        //play_sound(Audio::TypeSfxSawing, DataSourceType::Amiga);  // Amiga sound is better for sawmill
+        //if (in_ambient_focus){play_sound(Audio::TypeSfxSawing);}
+        //if (in_ambient_focus){play_sound(Audio::TypeSfxSawing, DataSourceType::Amiga);}  // Amiga sound is better for sawmill
         //  actually, I am now thinking the Amiga sound is too grating, trying DOS again..
-        play_sound(Audio::TypeSfxSawing, DataSourceType::DOS);
+        if (in_ambient_focus){play_sound(Audio::TypeSfxSawing, DataSourceType::DOS);}
       } else if (t != 0xb7 && t != 0xbf && t != 0xc7 && t != 0xcf) {
         serf->stop_playing_sfx();
       }
@@ -2538,7 +2537,7 @@ Viewport::serf_get_body(Serf *serf) {
       }
     } else if (t == 0x85 || (t == 0x86 && !serf->playing_sfx())) {
       serf->start_playing_sfx();
-      play_sound(Audio::TypeSfxPickBlow);
+      if (in_ambient_focus){play_sound(Audio::TypeSfxPickBlow);}
       t += 0x1280;
     } else if (t != 0x86) {
       serf->stop_playing_sfx();
@@ -2550,7 +2549,7 @@ Viewport::serf_get_body(Serf *serf) {
       t += 0xe00;
     } else if (t == 0x86 || (t == 0x87 && !serf->playing_sfx())) {
       serf->start_playing_sfx();
-      play_sound(Audio::TypeSfxPlanting);
+      if (in_ambient_focus){play_sound(Audio::TypeSfxPlanting);}
       t += 0x1080;
     } else if (t != 0x87) {
       serf->stop_playing_sfx();
@@ -2621,7 +2620,7 @@ Viewport::serf_get_body(Serf *serf) {
       }
     } else {
       if (t != 0x80 && t != 0x87 && t != 0x88 && t != 0x8f) {
-        play_sound(Audio::TypeSfxFishingRodReel);
+        if (in_ambient_focus){play_sound(Audio::TypeSfxFishingRodReel);}
       }
 
       /* TODO no check for state */
@@ -2659,7 +2658,7 @@ Viewport::serf_get_body(Serf *serf) {
       if ((t == 0xb2 || t == 0xba || t == 0xc2 || t == 0xca) &&
           !serf->playing_sfx()) {
         serf->start_playing_sfx();
-        play_sound(Audio::TypeSfxBackswordBlow);
+        if (in_ambient_focus){play_sound(Audio::TypeSfxBackswordBlow);}
       } else if (t != 0xb2 && t != 0xba && t != 0xc2 && t != 0xca) {
         serf->stop_playing_sfx();
       }
@@ -2681,7 +2680,7 @@ Viewport::serf_get_body(Serf *serf) {
         t += 0x3d80;
       } else if (t == 0x83 || (t == 0x84 && !serf->playing_sfx())) {
         serf->start_playing_sfx();
-        play_sound(Audio::TypeSfxMowing);
+        if (in_ambient_focus){play_sound(Audio::TypeSfxMowing);}
         t += 0x3e80;
       } else if (t != 0x83 && t != 0x84) {
         serf->stop_playing_sfx();
@@ -2729,7 +2728,7 @@ Viewport::serf_get_body(Serf *serf) {
     } else if (t == 0x84 || t == 0x85) {
       if (t == 0x84 || !serf->playing_sfx()) {
         serf->start_playing_sfx();
-        play_sound(Audio::TypeSfxWoodHammering);
+        if (in_ambient_focus){play_sound(Audio::TypeSfxWoodHammering);}
       }
       t += 0x4e80;
     } else {
@@ -2761,11 +2760,11 @@ Viewport::serf_get_body(Serf *serf) {
       /* edi10 += 4; */
       if (t == 0x83 || (t == 0xb2 && !serf->playing_sfx())) {
         serf->start_playing_sfx();
-        //play_sound(Audio::TypeSfxSawing); 
-        play_sound(Audio::TypeSfxSawing, DataSourceType::DOS);  // DOS sound better for hand-saw?  uses same sound ID as sawmill
+        //if (in_ambient_focus){play_sound(Audio::TypeSfxSawing); }
+        if (in_ambient_focus){play_sound(Audio::TypeSfxSawing, DataSourceType::DOS); } // DOS sound better for hand-saw?  uses same sound ID as sawmill
       } else if (t == 0x87 || (t == 0xb6 && !serf->playing_sfx())) {
         serf->start_playing_sfx();
-        play_sound(Audio::TypeSfxWoodHammering);
+        if (in_ambient_focus){play_sound(Audio::TypeSfxWoodHammering);}
       } else if (t != 0xb2 && t != 0xb6) {
         serf->stop_playing_sfx();
       }
@@ -2789,7 +2788,7 @@ Viewport::serf_get_body(Serf *serf) {
       /* edi10 += 4; */
       if (t == 0x83 || (t == 0x84 && !serf->playing_sfx())) {
         serf->start_playing_sfx();
-        play_sound(Audio::TypeSfxMetalHammering);
+        if (in_ambient_focus){play_sound(Audio::TypeSfxMetalHammering);}
       } else if (t != 0x84) {
         serf->stop_playing_sfx();
       }
@@ -2802,14 +2801,14 @@ Viewport::serf_get_body(Serf *serf) {
     } else if (t == 0x83 || t == 0x84 || t == 0x86) {
       if (t == 0x83 || !serf->playing_sfx()) {
         serf->start_playing_sfx();
-        //play_sound(Audio::TypeSfxGeologistSampling);
-        play_sound(Audio::TypeSfxGeologistSampling, DataSourceType::DOS);  // I thought I prefered the Amiga sound but it is grating, annoying.  use DOS
+        //if (in_ambient_focus){play_sound(Audio::TypeSfxGeologistSampling);}
+        if (in_ambient_focus){play_sound(Audio::TypeSfxGeologistSampling, DataSourceType::DOS);}  // I thought I prefered the Amiga sound but it is grating, annoying.  use DOS
       }
       t += 0x4c80;
     } else if (t == 0x8c || t == 0x8d) {
       if (t == 0x8c || !serf->playing_sfx()) {
         serf->start_playing_sfx();
-        play_sound(Audio::TypeSfxResourceFound);
+        //if (in_ambient_focus){if (in_ambient_focus){play_sound(Audio::TypeSfxResourceFound);}
       }
       t += 0x4c80;
     } else {
@@ -2835,12 +2834,12 @@ Viewport::serf_get_body(Serf *serf) {
           serf->start_playing_sfx();
           if (serf->get_attacking_field_D() == 0 ||
               serf->get_attacking_field_D() == 4) {
-            play_sound(Audio::TypeSfxFight01);
+            if (in_ambient_focus){play_sound(Audio::TypeSfxFight01);}
           } else if (serf->get_attacking_field_D() == 2) {
             /* TODO when is TypeSfxFight02 played? */
-            play_sound(Audio::TypeSfxFight03);
+            if (in_ambient_focus){play_sound(Audio::TypeSfxFight03);}
           } else {
-            play_sound(Audio::TypeSfxFight04);
+            if (in_ambient_focus){play_sound(Audio::TypeSfxFight04);}
           }
         }
       }
@@ -2856,7 +2855,7 @@ Viewport::serf_get_body(Serf *serf) {
          (t == 2 || t == 5)) ||
         (t == 1 || t == 4)) {
       serf->start_playing_sfx();
-      play_sound(Audio::TypeSfxSerfDying);
+      if (in_ambient_focus){play_sound(Audio::TypeSfxSerfDying);}
     } else {
       serf->stop_playing_sfx();
     }
@@ -3236,6 +3235,7 @@ Viewport::draw_active_serf(Serf *serf, MapPos pos, int x_base, int y_base) {
 void
 Viewport::
 draw_serf_row(MapPos pos, int y_base, int cols, int x_base) {
+//draw_serf_row(MapPos pos, int y_base, int cols, int x_base, int debug_ly) {
   const int arr_1[] = {
     0x240, 0x40, 0x380, 0x140, 0x300, 0x80, 0x180, 0x200,
     0, 0x340, 0x280, 0x100, 0x1c0, 0x2c0, 0x3c0, 0xc0
@@ -3271,6 +3271,12 @@ draw_serf_row(MapPos pos, int y_base, int cols, int x_base) {
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
   };
 
+
+  // for determining ambient_focus for sound triggers
+  const int center_col = cols / 2;
+  const int leftmost_focus_col = center_col - (focus_cols / 2);
+  const int rightmost_focus_col = center_col + (focus_cols / 2);
+
   for (int i = 0; i < cols;
        i++, x_base += MAP_TILE_WIDTH, pos = map->move_right(pos)) {
 #if 0
@@ -3287,6 +3293,19 @@ draw_serf_row(MapPos pos, int y_base, int cols, int x_base) {
     if (option_FogOfWar && !map->is_visible(pos, interface->get_player()->get_index())){
       continue;
     }
+
+    in_ambient_focus = false;
+    if (row_in_ambient_focus && i >= leftmost_focus_col && i <= rightmost_focus_col){
+      in_ambient_focus = true;
+    }
+
+    // DEBUG
+    ////if (in_ambient_focus){
+    //  // debug - show area in focus for ambient sounds with red dots
+    //  //   note for this to show a full rectangle the "continue if ObjectNone" must be moved to BELOW this if statement
+    //  frame->fill_rect(x_base - 7, ly + 0, 6, 6, colors.at("red"));
+    //  frame->fill_rect(x_base - 9, ly + 1, 12, 12, colors.at("red"));
+    //}
 
     /* Active serf */
     if (map->has_serf(pos)) {
@@ -3395,6 +3414,13 @@ draw_serf_row(MapPos pos, int y_base, int cols, int x_base) {
 // UPDATE - adding Sailor Rowing serfs here to draw them behind the reeds/cattails
 void
 Viewport::draw_serf_row_behind(MapPos pos, int y_base, int cols, int x_base) {
+//Viewport::draw_serf_row_behind(MapPos pos, int y_base, int cols, int x_base, int debug_ly) {
+  
+  // for determining ambient_focus for sound triggers
+  const int center_col = cols / 2;
+  const int leftmost_focus_col = center_col - (focus_cols / 2);
+  const int rightmost_focus_col = center_col + (focus_cols / 2);
+
   for (int i = 0; i < cols;
        i++, x_base += MAP_TILE_WIDTH, pos = map->move_right(pos)) {
 
@@ -3403,6 +3429,19 @@ Viewport::draw_serf_row_behind(MapPos pos, int y_base, int cols, int x_base) {
     if (option_FogOfWar && !map->is_visible(pos, interface->get_player()->get_index())){
       continue;
     }
+
+    in_ambient_focus = false;
+    if (row_in_ambient_focus && i >= leftmost_focus_col && i <= rightmost_focus_col){
+      in_ambient_focus = true;
+    }
+
+    //// DEBUG
+    ////if (in_ambient_focus){
+    //  // debug - show area in focus for ambient sounds with red dots
+    //  //   note for this to show a full rectangle the "continue if ObjectNone" must be moved to BELOW this if statement
+    //  frame->fill_rect(x_base - 7, ly + 0, 6, 6, colors.at("red"));
+    //  frame->fill_rect(x_base - 9, ly + 1, 12, 12, colors.at("red"));
+    //}
 
     /* Active serf */
     if (map->has_serf(pos)) {
@@ -3490,19 +3529,37 @@ Viewport::draw_game_objects(int layers_) {
   row_0 = (offset_y/MAP_TILE_HEIGHT) & map->get_row_mask();
   pos = map->pos(col_0, row_0);
 
+  // for determining "in view" objects for ambient sound generation,
+  //  only consider a roughly 640x480px area in the center of the 
+  //  viewport, otherwise there are too many ambient sounds and for
+  //  things such as deserts, water, that are near edges of viewport
+  // note that X is in cols, and Y is in pixels, because it is easier to code this way
+  center_y = height / 2;
+  topmost_focus_y = center_y - (focus_y_pixels / 2);
+  lowest_focus_y = center_y + (focus_y_pixels / 2);
+
   /* Loop until objects drawn fall outside the frame. */
   while (1) {
+    // for determining "in view" objects for ambient sound generation,
+
+    row_in_ambient_focus = false;
+    if (ly >= topmost_focus_y && ly <= lowest_focus_y){
+      row_in_ambient_focus = true;
+    }
+
     /* short row */
     //if (draw_landscape) draw_water_waves_row(pos, ly, short_row_len, lx);
     if (draw_serfs) {
       draw_serf_row_behind(pos, ly, short_row_len, lx);
+      //draw_serf_row_behind(pos, ly, short_row_len, lx, ly);  // passing ly to help draw debug ambient_focus view (could probably calculate it)
     }
     if (draw_objects) {
-      //draw_map_objects_row(pos, ly, short_row_len, lx);
-      draw_map_objects_row(pos, ly, short_row_len, lx, ly);
+      draw_map_objects_row(pos, ly, short_row_len, lx);
+      //draw_map_objects_row(pos, ly, short_row_len, lx, ly);  // passing ly to help draw debug ambient_focus view (could probably calculate it)
     }
     if (draw_serfs) {
       draw_serf_row(pos, ly, short_row_len, lx);
+      //draw_serf_row(pos, ly, short_row_len, lx, ly);  // passing ly to help draw debug ambient_focus view (could probably calculate it)
     } 
 
     ly += MAP_TILE_HEIGHT;
@@ -3510,19 +3567,27 @@ Viewport::draw_game_objects(int layers_) {
 
     pos = map->move_down(pos);
 
+    // check again for ambient_focus here
+    row_in_ambient_focus = false;
+    if (ly >= topmost_focus_y && ly <= lowest_focus_y){
+      row_in_ambient_focus = true;
+    }
+
     /* long row */
     //if (draw_landscape) {
     //  draw_water_waves_row(pos, ly, long_row_len, lx - 16);
     //}
     if (draw_serfs) {
       draw_serf_row_behind(pos, ly, long_row_len, lx - 16);
+      //draw_serf_row_behind(pos, ly, long_row_len, lx - 16, ly);  // passing ly to help draw debug ambient_focus view (could probably calculate it)
     }
     if (draw_objects) {
-      //draw_map_objects_row(pos, ly, long_row_len, lx - 16);
-      draw_map_objects_row(pos, ly, long_row_len, lx - 16, ly);
+      draw_map_objects_row(pos, ly, long_row_len, lx - 16);
+      //draw_map_objects_row(pos, ly, long_row_len, lx - 16, ly);  // passing ly to help draw debug ambient_focus view (could probably calculate it)
     }
     if (draw_serfs) {
       draw_serf_row(pos, ly, long_row_len, lx - 16);
+      //draw_serf_row(pos, ly, long_row_len, lx - 16, ly);  // passing ly to help draw debug ambient_focus view (could probably calculate it)
     }
 
     ly += MAP_TILE_HEIGHT;
@@ -3554,28 +3619,28 @@ Viewport::draw_game_objects(int layers_) {
     if (!interface->is_playing_birdsfx && birdsound_chance > tick_rand && limit_tick % 8 == 0){
       uint16_t foo_rand = (random.random() * tick_rand) & 0x7f;
       if (foo_rand < 20) {
-        play_sound(Audio::TypeSfxBirdChirp3, DataSourceType::DOS);
+        if (in_ambient_focus){play_sound(Audio::TypeSfxBirdChirp3, DataSourceType::DOS);}
         //Log::Info["viewport.cc"] << "birdsongsfx debug: CHIRP!  DOS 3";  // short chirp 
       } else if (foo_rand < 40) {
-        play_sound(Audio::TypeSfxBirdChirp1, DataSourceType::DOS);
+        if (in_ambient_focus){play_sound(Audio::TypeSfxBirdChirp1, DataSourceType::DOS);}
         //Log::Info["viewport.cc"] << "birdsongsfx debug: CHIRP!  DOS 1";  // short chirp
       } else if (foo_rand < 60) {
-        play_sound(Audio::TypeSfxBirdChirp0, DataSourceType::DOS);
+        if (in_ambient_focus){play_sound(Audio::TypeSfxBirdChirp0, DataSourceType::DOS);}
         //Log::Info["viewport.cc"] << "birdsongsfx debug: CHIRP!  DOS 0";  // short chirp
       } else if (foo_rand < 75) {
-        play_sound(Audio::TypeSfxBirdChirp2, DataSourceType::DOS);
+        if (in_ambient_focus){play_sound(Audio::TypeSfxBirdChirp2, DataSourceType::DOS);}
         //Log::Info["viewport.cc"] << "birdsongsfx debug: CHIRP!  DOS 2";  // medium chirp
       } else if (foo_rand < 82) {
-        play_sound(Audio::TypeSfxBirdChirp3, DataSourceType::Amiga);  
+        if (in_ambient_focus){play_sound(Audio::TypeSfxBirdChirp3, DataSourceType::Amiga);}  
         //Log::Info["viewport.cc"] << "birdsongsfx debug: CHIRP!  Amiga 3";  // long chirp
       } else if (foo_rand < 90) {
-        play_sound(Audio::TypeSfxBirdChirp1, DataSourceType::Amiga);  // long chirp
+        if (in_ambient_focus){play_sound(Audio::TypeSfxBirdChirp1, DataSourceType::Amiga);}  // long chirp
         //Log::Info["viewport.cc"] << "birdsongsfx debug: CHIRP!  Amiga 1";
       } else if (foo_rand < 120) {
-        play_sound(Audio::TypeSfxBirdChirp0, DataSourceType::Amiga);  // short chirp
+        if (in_ambient_focus){play_sound(Audio::TypeSfxBirdChirp0, DataSourceType::Amiga);}  // short chirp
         //Log::Info["viewport.cc"] << "birdsongsfx debug: CHIRP!  Amiga 0";
       } else {
-        play_sound(Audio::TypeSfxBirdChirp2, DataSourceType::Amiga);  // long chirp
+        if (in_ambient_focus){play_sound(Audio::TypeSfxBirdChirp2, DataSourceType::Amiga);}  // long chirp
         //Log::Info["viewport.cc"] << "birdsongsfx debug: CHIRP!  Amiga 2";  
       }
       // allow up to a few birdsounds
@@ -3610,7 +3675,7 @@ Viewport::draw_game_objects(int layers_) {
     if (!interface->is_playing_desertsfx && windsound_chance > tick_rand && limit_tick % 8 == 0){
       uint16_t foo_rand = (random.random() * tick_rand) & 0x7f;
       if (foo_rand < 25) {
-        play_sound(Audio::TypeSfxUnknown29);
+        if (in_ambient_focus){play_sound(Audio::TypeSfxUnknown29);}
       }
       interface->is_playing_desertsfx = true;
     }else{
@@ -3631,8 +3696,8 @@ Viewport::draw_game_objects(int layers_) {
     if (!interface->is_playing_watersfx && wavesound_chance > tick_rand && limit_tick % 8 == 0){
       uint16_t foo_rand = (random.random() * tick_rand) & 0x7f;
       if (foo_rand < 25) {
-        play_sound(Audio::TypeSfxUnknown28);
-        //play_sound(Audio::TypeSfxUnknown28, DataSourceType::DOS);  // DOS is a little better
+        if (in_ambient_focus){play_sound(Audio::TypeSfxUnknown28);}
+        //if (in_ambient_focus){play_sound(Audio::TypeSfxUnknown28, DataSourceType::DOS);}  // DOS is a little better
       }
       interface->is_playing_watersfx = true;
     }else{
