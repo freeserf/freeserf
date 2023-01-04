@@ -488,8 +488,8 @@ class Serf : public GameObject {
   unsigned int get_walking_dest() const { return s.walking.dest; }
   unsigned int get_recent_dest() const { return recent_dest; } // flag index of the most recent dest flag when serf last left an Inv
 
-  //// to help avoid sending serfs to places they cannot reach in a reasonable way
-  //bool can_reach_pos(MapPos dest);    // this logic moved to Player::
+  // to help avoid sending serfs to places they cannot reach in a reasonable way
+  bool can_reach_pos(MapPos dest, int max_dist);
 
   // Commands
   // the go_out_from_inventory declaration says arg2 is a MapPos, but src->get_index() returns a Flag index not a Map Pos, wtf??

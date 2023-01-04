@@ -87,6 +87,6 @@ actual_cost(Map *map, MapPos pos, Direction dir) {
 
 Road pathfinder_map(Map *map, MapPos start, MapPos end, const Road *building_road = nullptr);
 //Road pathfinder_freewalking_serf(Map *map, MapPos start, MapPos end, const Road *building_road = nullptr);
-Road pathfinder_freewalking_serf(Map *map, MapPos start, MapPos end);
+Road pathfinder_freewalking_serf(Map *map, MapPos start, MapPos end, int max_dist);
 
 #endif  // SRC_PATHFINDER_H_

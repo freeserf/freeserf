@@ -831,38 +831,37 @@ Serf::insert_before(Serf *knight) {
   s.defending.next_knight = knight->get_index();
 }
 
-/* this might not actually be needed, added this logic to Player::available_knights_at_pos
+// this might not actually be needed, added this logic to Player::available_knights_at_pos
+//  keeping to use for other FreeWalking types
 
 // work in progress, adding to handle
 //  cases where a serf cannot reach target within reasonable path
 //   such as knights attacking across river
 bool
-Serf::can_reach_pos(MapPos dest_pos){
-  Log::Debug["serf.cc"] << "inside Serf::can_reach_pos, a serf of type " << get_type() << " is considering going to dest pos " << dest_pos;
+Serf::can_reach_pos(MapPos dest_pos, int max_dist){
+  Log::Debug["serf.cc"] << "inside Serf::can_reach_pos, a serf of type " << get_type() << " is considering going to dest pos " << dest_pos << ", max_dist " << max_dist;
   // Road road = pathfinder_map(map.get(), pos, clk_pos,
   // &interface->get_building_road());
 
-  // FOR NOW, ASSUME SERF IS IN A BUILDING AND SO USE BUILDING FLAG POS AS START POS!
+  // it is common for the serf to be in a building, if so use its flag
   MapPos start_pos = get_pos();  // this is serf's pos on map
   if (game->get_map()->has_building(start_pos)){
-    // this serf is in a building, use the flag pos as the start pos, to be safe
     start_pos = game->get_map()->move_down_right(get_pos());
     Log::Debug["serf.cc"] << "inside Serf::can_reach_pos, a serf of type " << get_type() << " is in a building, using its flag pos " << start_pos << " as start pos";
   }
 
   //Road junk_road = pathfinder_freewalking_serf(game->get_map().get(), get_pos(), dest);
-  Road junk_road = pathfinder_freewalking_serf(game->get_map().get(), start_pos, dest_pos);
+  Road junk_road = pathfinder_freewalking_serf(game->get_map().get(), start_pos, dest_pos, 20);
 
   if (junk_road.get_length() > 0){
     Log::Debug["serf.cc"] << "inside Serf::can_reach_pos, a serf of type " << get_type() << " found freewalking solution to dest pos " << dest_pos;
-    game->set_debug_mark_road(junk_road);
+    //game->set_debug_mark_road(junk_road);
     return true;
   }else{
-    Log::Debug["serf.cc"] << "inside Serf::can_reach_pos, a serf of type " << get_type() << " cannot reach dest pos " << dest_pos;
+    Log::Debug["serf.cc"] << "inside Serf::can_reach_pos, a serf of type " << get_type() << " cannot reach dest pos " << dest_pos << " in less than max_dist " << max_dist << " tiles";
     return false;
   }
 }
-*/
 
 // this says MapPos dest but I think it is actually a flag index!
 void
@@ -4196,7 +4195,9 @@ Serf::handle_free_walking_common() {
     //  game->set_debug_mark_pos(pos, "yellow");
     //}
     //game->set_debug_mark_pos(dest_pos, "red");
-    Road path_around_lake = pathfinder_freewalking_serf(map.get(), pos, dest_pos);
+    // logic has been updated for Fisher to not even attempt to send a serf to a fishing pos that is more than 20 tiles-by-pathfinding away, so it is
+    //  okay for this to be a higher value in case a serf is free walking for some other reason (lost?)
+    Road path_around_lake = pathfinder_freewalking_serf(map.get(), pos, dest_pos, 100);   
     if (path_around_lake.get_length() > 0){
       //game->set_debug_mark_road(path_around_lake);
       Direction dir_to_go = path_around_lake.get_first();  
@@ -4279,6 +4280,11 @@ Serf::handle_serf_planning_logging_state() {
       s.leaving_building.dest2 = -Map::get_spiral_pattern()[2 * dist] + 1;
       s.leaving_building.dir = -Map::get_spiral_pattern()[2 * dist + 1] + 1;
       s.leaving_building.next_state = StateFreeWalking;
+      // sanity check to ensure the dest pos is reachable within reasonable distance of this hut
+      if (!can_reach_pos(pos_, 20)){
+        Log::Debug["serf.cc"] << "inside Serf::handle_serf_planning_logging_state, serf cannot reach the chosen dest pos " << pos_ << " in less than 20 tiles, skipping this pos";
+        continue;
+      }
       Log::Verbose["serf"] << "planning logging: tree found, dist "
                            << s.leaving_building.field_B << ", "
                            << s.leaving_building.dest << ".";
@@ -4305,6 +4311,11 @@ Serf::handle_serf_planning_planting_state() {
         map->type_down(pos_) == Map::TerrainGrass1 &&
         map->type_up(map->move_up_left(pos_)) == Map::TerrainGrass1 &&
         map->type_down(map->move_up_left(pos_)) == Map::TerrainGrass1) {
+      // sanity check to ensure the dest pos is reachable within reasonable distance of this hut
+      if (!can_reach_pos(pos_, 20)){
+        Log::Debug["serf.cc"] << "inside Serf::handle_serf_planning_planting_state, serf cannot reach the chosen dest pos " << pos_ << " in less than 20 tiles, skipping this pos";
+        continue;
+      }
       set_state(StateReadyToLeave);
       s.leaving_building.field_B = Map::get_spiral_pattern()[2 * dist] - 1;
       s.leaving_building.dest = Map::get_spiral_pattern()[2 * dist + 1] - 1;
@@ -4958,6 +4969,11 @@ Serf::handle_serf_planning_fishing_state() {
           map->type_up(map->move_up_left(dest)) >= Map::TerrainGrass0) ||
          (map->type_down(map->move_left(dest)) <= Map::TerrainWater3 &&
           map->type_up(map->move_up(dest)) >= Map::TerrainGrass0))) {
+      // sanity check to ensure the dest pos is reachable within reasonable distance of this hut
+      if (!can_reach_pos(dest, 20)){
+        Log::Debug["serf.cc"] << "inside Serf::handle_serf_planning_fishing_state, serf cannot reach the chosen dest pos " << dest << " in less than 20 tiles, skipping this pos";
+        continue;
+      }
       set_state(StateReadyToLeave);
       s.leaving_building.field_B = Map::get_spiral_pattern()[2 * dist] - 1;
       s.leaving_building.dest = Map::get_spiral_pattern()[2 * dist + 1] - 1;
@@ -5073,6 +5089,14 @@ Serf::handle_serf_planning_farming_state() {
           (map->get_obj(dest) >= Map::ObjectField0 &&
           map->get_obj(dest) <= Map::ObjectField5)) {
         send_farmer_out = true;
+      }
+    }
+
+    // sanity check to ensure the dest pos is reachable within reasonable distance of this hut
+    if (send_farmer_out){
+      if (!can_reach_pos(dest, 20)){
+        Log::Debug["serf.cc"] << "inside Serf::handle_serf_planning_farming_state, serf cannot reach the chosen dest pos " << dest << " in less than 20 tiles, skipping this pos";
+        send_farmer_out = false;
       }
     }
 

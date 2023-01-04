@@ -221,13 +221,10 @@ pathfinder_map(Map *map, MapPos start, MapPos end, const Road *building_road) {
 //  NOTE - MAKE SURE THAT THE end POS IS NOT ACTUALLY A BUILDING AS IT WILL BE REJECTED!
 //   if the target is a building, the building's flag should be used as the end pos!!!
 //
-
-
-// THIS WORKS NOW - but need to limit it to some reasonable length before giving up
-/// ideally, make the length an argument to this function
+// note that this ignores terrain height heuristic
 Road
-pathfinder_freewalking_serf(Map *map, MapPos start, MapPos end) {
-  //Log::Debug["pathfinder.cc"] << "inside pathfinder_freewalking_serf, start pos " << start << ", dest pos " << end << ", remember this is a REVERSE SEARCH";
+pathfinder_freewalking_serf(Map *map, MapPos start, MapPos end, int max_dist) {
+  Log::Debug["pathfinder.cc"] << "inside pathfinder_freewalking_serf, start pos " << start << ", dest pos " << end << ", max_dist " << max_dist << ", remember this is a REVERSE SEARCH";
   std::vector<PSearchNode> open;
   std::list<PSearchNode> closed;
 
@@ -251,7 +248,8 @@ pathfinder_freewalking_serf(Map *map, MapPos start, MapPos end) {
   unsigned int total_pos_considered = 0;
   // reducing the values that were copied from ai_pathfinder, as this is more sensitive
   static const unsigned int plot_road_max_pos_considered = 5000;  // the maximum number of "nodes" (MapPos) considered as part of a single plot_road call before giving up
-  static const unsigned int plot_road_max_length = 100;  // the maximum length of a road solution for plot_road before giving up
+  //static const unsigned int plot_road_max_length = 100;  // the maximum length of a road solution for plot_road before giving up
+  static const unsigned int plot_road_max_length = max_dist;  // this is now a configurable argument
   // max ratio of actual road length compared to ideal straight-line length to determine if road is acceptably short
   //   example, 3.00 means a road of up to 3x the length of a perfectly straight road is acceptable
   // this only looks at the actual Road.get_length() in tiles for convolution checks
@@ -313,7 +311,9 @@ pathfinder_freewalking_serf(Map *map, MapPos start, MapPos end) {
     for (Direction d : cycle_directions_cw()) {
       //Log::Debug["pathfinder.cc"] << "inside pathfinder_freewalking_serf, D  Dir: " << d;
       MapPos new_pos = map->move(node->pos, d);
-      unsigned int cost = actual_cost(map, node->pos, d);
+      //unsigned int cost = actual_cost(map, node->pos, d);
+      // default to lowest value (255), ignore heuristics
+      unsigned int cost = 255;
 
       //
       // I THINK THIS IS THE ONLY PART THAT NEEDS TO CHANGE
