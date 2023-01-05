@@ -464,12 +464,17 @@ EventLoopSDL::run() {
 void
 EventLoopSDL::zoom(float delta) {
   Graphics &gfx = Graphics::get_instance();
+  //unsigned int oldwidth = 0;
+  //unsigned int oldheight = 0;
+  //gfx.get_resolution(&oldwidth, &oldheight);
+  //Log::Debug["event_loop-sdl.cc"] << "inside EventLoopSDL::zoom, zoom_factor was " << gfx.get_zoom_factor() << ", resolution was " << oldwidth << " w / " << oldheight << " h ";
   float factor = gfx.get_zoom_factor();
   if (gfx.set_zoom_factor(factor + delta)) {
     zoom_factor = gfx.get_zoom_factor();
     unsigned int width = 0;
     unsigned int height = 0;
     gfx.get_resolution(&width, &height);
+    //Log::Debug["event_loop-sdl.cc"] << "inside EventLoopSDL::zoom, zoom_factor is now " << gfx.get_zoom_factor() << ", resolution is now " << width << " w / " << height << " h ";
     notify_resize(width, height);
   }
 }

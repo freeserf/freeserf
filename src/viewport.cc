@@ -1735,7 +1735,7 @@ Viewport::draw_map_objects_row(MapPos pos, int y_base, int cols, int x_base) {
   for (int i = 0; i < cols;
        i++, x_base += MAP_TILE_WIDTH, pos = map->move_right(pos)) {
 
-    if (map->get_obj(pos) == Map::ObjectNone){continue;}  // comment this out if trying to draw red dot overlay to show focus area
+    //if (map->get_obj(pos) == Map::ObjectNone){continue;}  // comment this out if trying to draw red dot overlay to show focus area
 
     int ly = y_base - 4 * map->get_height(pos);
 
@@ -1757,14 +1757,14 @@ Viewport::draw_map_objects_row(MapPos pos, int y_base, int cols, int x_base) {
     }
 
     // DEBUG
-    ////if (in_ambient_focus){
+    //if (in_ambient_focus){
     //  // debug - show area in focus for ambient sounds with red dots
     //  //   note for this to show a full rectangle the "continue if ObjectNone" must be moved to BELOW this if statement
     //  frame->fill_rect(x_base - 7, ly + 0, 6, 6, colors.at("red"));
     //  frame->fill_rect(x_base - 9, ly + 1, 12, 12, colors.at("red"));
     //}
 
-    //if (map->get_obj(pos) == Map::ObjectNone) continue;  // uncomment this if trying to draw red dot overlay to show focus area
+    if (map->get_obj(pos) == Map::ObjectNone) continue;  // uncomment this if trying to draw red dot overlay to show focus area
 
     if (map->get_obj(pos) < Map::ObjectTree0) {
       //Log::Debug["viewport.cc"] << "inside draw_map_objects, pos " << pos << " has flag/building/castle sprite type" << map->get_obj(pos);
@@ -3531,6 +3531,7 @@ Viewport::draw_game_objects(int layers_) {
 
   // for determining "in view" objects for ambient sound generation,
   //  only consider a roughly 640x480px area in the center of the 
+  //     UPDATE-  INCREASED AREA BY ABOUT 40%  
   //  viewport, otherwise there are too many ambient sounds and for
   //  things such as deserts, water, that are near edges of viewport
   // note that X is in cols, and Y is in pixels, because it is easier to code this way

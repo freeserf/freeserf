@@ -224,7 +224,7 @@ pathfinder_map(Map *map, MapPos start, MapPos end, const Road *building_road) {
 // note that this ignores terrain height heuristic
 Road
 pathfinder_freewalking_serf(Map *map, MapPos start, MapPos end, int max_dist) {
-  Log::Debug["pathfinder.cc"] << "inside pathfinder_freewalking_serf, start pos " << start << ", dest pos " << end << ", max_dist " << max_dist << ", remember this is a REVERSE SEARCH";
+  //Log::Debug["pathfinder.cc"] << "inside pathfinder_freewalking_serf, start pos " << start << ", dest pos " << end << ", max_dist " << max_dist << ", remember this is a REVERSE SEARCH";
   std::vector<PSearchNode> open;
   std::list<PSearchNode> closed;
 

@@ -3799,12 +3799,12 @@ Serf::handle_free_walking_follow_edge() {
   //
   if (BIT_TEST(s.free_walking.flags, 3)) {
     // Follow left-hand edge
-    Log::Debug["serf.cc"] << "serf with index # " << get_index() << " in FreeWalking follow_edge state is following LEFTHAND edge";
+    //Log::Debug["serf.cc"] << "serf with index # " << get_index() << " in FreeWalking follow_edge state is following LEFTHAND edge";
     dir_arr = dir_left_edge;
     dir_index = (s.free_walking.flags & 7)-1;
   } else {
     // Follow right-hand edge
-    Log::Debug["serf.cc"] << "serf with index # " << get_index() << " in FreeWalking follow_edge state is following RIGHTHAND edge";
+    //Log::Debug["serf.cc"] << "serf with index # " << get_index() << " in FreeWalking follow_edge state is following RIGHTHAND edge";
     dir_arr = dir_right_edge;
     dir_index = (s.free_walking.flags & 7)-1;
   }
@@ -3978,7 +3978,7 @@ Serf::handle_free_walking_common() {
     // which edge?  if BIT_TEST(3) it goes left, if not, goes right
     int r = handle_free_walking_follow_edge();
     // this happens WAY more often than I initially suspected, basically ANY obstacle, not just large ones like lakes
-    Log::Debug["serf.cc"] << "found a serf with index # " << get_index() << " in FreeWalking follow_edge state, auto-marking on debug_serf display";
+    //Log::Debug["serf.cc"] << "found a serf with index # " << get_index() << " in FreeWalking follow_edge state, auto-marking on debug_serf display";
     //game->get_debug_mark_serf()->push_back(get_index());
     if (r >= 0) return;
   }
@@ -4208,9 +4208,10 @@ Serf::handle_free_walking_common() {
         // reverse the follow_edge direction by flipping "edge"
         edge = !edge;
       }
-
     }else{
-      throw ExceptionFreeserf("inside Serf::handle_free_walking_common, could not find a path around water/lake obstacle for freewalking serf!");
+      // saw this once, changing to Warn for now
+      //throw ExceptionFreeserf("inside Serf::handle_free_walking_common, could not find a path around water/lake obstacle for freewalking serf!");
+      Log::Warn["serf.cc"] << "inside Serf::handle_free_walking_common, could not find a path around water/lake obstacle for freewalking serf!";
     }
   } // end of defect fix
 

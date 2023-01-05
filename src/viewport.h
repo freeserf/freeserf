@@ -67,11 +67,15 @@ class Viewport : public GuiObject, public Map::Handler {
   bool in_ambient_focus; // this is the final check set true if both col and row true
   bool row_in_ambient_focus;   // this must be shared between parent and child functions
   //bool col_in_ambient_focus;  // this is local to the drawing function
-  const int focus_cols = 18;
+  //const int focus_cols = 18;
+  //const int focus_cols = 24;
+  const int focus_cols = 30;
   //int center_col;  // this is local to the drawing function
   //int leftmost_focus_col;  // this is local to the drawing function
   //int rightmost_focus_col;  // this is local to the drawing function
-  const int focus_y_pixels = 480;
+  //const int focus_y_pixels = 480;
+  const int focus_y_pixels = 640;
+  //const int focus_y_pixels = 800;
   int center_y;
   int topmost_focus_y;
   int lowest_focus_y;

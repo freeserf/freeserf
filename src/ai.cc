@@ -200,10 +200,17 @@ AI::next_loop(){
   // rename this to Inventories instead of Stocks
   update_stocks_pos();
 
+  do_check_resource_needs();
+
   for (MapPos this_inventory_pos : stocks_pos) {
     inventory_pos = this_inventory_pos;
+    
+    AILogDebug["next_loop"] << inventory_pos << " inside next_loop AA, needs_wood bool is " << stock_building_counts.at(inventory_pos).needs_wood;
+
     AILogDebug["next_loop"] << "Starting economy loop for Inventory at pos " << inventory_pos;
     update_buildings();
+
+    AILogDebug["next_loop"] << inventory_pos << " inside next_loop A, needs_wood bool is " << stock_building_counts.at(inventory_pos).needs_wood;
 
     // debug, log buildings
     //AILogDebug["next_loop"] << "stock at pos " << inventory_pos << " has all/completed/occupied buildings: ";
@@ -215,11 +222,20 @@ AI::next_loop(){
     do_get_inventory(inventory_pos);
     do_promote_serfs_to_knights();  // this is actually done per-stock in AI, not per-realm like the button does
     do_count_resources_sitting_at_flags(inventory_pos);
+
+    AILogDebug["next_loop"] << inventory_pos << " inside next_loop B-2, needs_wood bool is " << stock_building_counts.at(inventory_pos).needs_wood;
+
     do_check_resource_needs();
+
+    AILogDebug["next_loop"] << inventory_pos << " inside next_loop B-1, needs_wood bool is " << stock_building_counts.at(inventory_pos).needs_wood;
 
     do_create_star_roads_for_new_warehouses();
 
+    AILogDebug["next_loop"] << inventory_pos << " inside next_loop B0, needs_wood bool is " << stock_building_counts.at(inventory_pos).needs_wood;
+
     do_build_sawmill_lumberjacks(); sleep_speed_adjusted(1000);  // crash here?  after do_build_sawmill_lumberjacks returned, bad malloc error
+
+    AILogDebug["next_loop"] << inventory_pos << " inside next_loop B, needs_wood bool is " << stock_building_counts.at(inventory_pos).needs_wood;
 
     if(do_can_build_knight_huts())
       expand_borders(); sleep_speed_adjusted(1000);
@@ -233,6 +249,8 @@ AI::next_loop(){
     // if this is the Castle, don't place any other buildings until these have their materials
     if (inventory_pos == castle_flag_pos && do_wait_until_sawmill_lumberjacks_built() == false)
         break;
+
+    AILogDebug["next_loop"] << inventory_pos << " inside next_loop C, needs_wood bool is " << stock_building_counts.at(inventory_pos).needs_wood;
 
     do_build_stonecutter(); sleep_speed_adjusted(1000);
     do_build_rangers(); sleep_speed_adjusted(1000);
@@ -261,6 +279,8 @@ AI::next_loop(){
     if(do_can_build_other())
       {do_build_gold_smelter_and_connect_gold_mines(); sleep_speed_adjusted(1000);}
     
+
+    AILogDebug["next_loop"] << inventory_pos << " inside next_loop D, needs_wood bool is " << stock_building_counts.at(inventory_pos).needs_wood;
 
     do_demolish_excess_lumberjacks();
     do_demolish_excess_foresters();
@@ -1676,26 +1696,33 @@ AI::do_build_rangers() {
   AILogDebug["do_build_rangers"] << "inside do_build_rangers";
   //
   // build ranger near lumberjacks that have few trees and no ranger nearby
-   //
+  //
   AILogDebug["do_build_rangers"] << "HouseKeeping: build rangers near lumberjacks that have few trees and no ranger nearby";
   ai_status.assign("HOUSEKEEPING - build rangers");
-  Game::ListBuildings buildings = game->get_player_buildings(player);
-  for (Building *building : buildings) {
-    if (building == nullptr)
-      continue;
-    if (building->get_type() != Building::TypeLumberjack)
-      continue;
-    MapPos pos = building->get_position();
-    unsigned int count = AI::count_objects_near_pos(pos, AI::spiral_dist(4), Map::ObjectTree0, Map::ObjectPine7, "lt_green");
-    AILogDebug["do_build_rangers"] << "lumberjack trees nearby count: " << count << ", min acceptable is " << near_trees_min;
-    if (count >= near_trees_min)
-      continue;
-    if (AI::building_exists_near_pos(pos, AI::spiral_dist(6), Building::TypeForester))
-      continue;
-    AILogDebug["do_build_rangers"] << "lumberjack at " << pos << " has < min trees and no ranger nearby, trying to place ranger";
-    MapPos built_pos = AI::build_near_pos(pos, AI::spiral_dist(6), Building::TypeForester);
-    if (built_pos != bad_map_pos && built_pos != notplaced_pos)
-      AILogDebug["do_build_rangers"] << "built ranger at pos " << built_pos;
+  if (stock_building_counts.at(inventory_pos).needs_wood) {
+    AILogInfo["do_build_stonecutter"] << inventory_pos << " need wood, considering building rangers";
+    Game::ListBuildings buildings = game->get_player_buildings(player);
+    for (Building *building : buildings) {
+      if (building == nullptr)
+        continue;
+      if (building->get_type() != Building::TypeLumberjack)
+        continue;
+      if (find_nearest_inventory(map, player_index, building->get_position(), DistType::FlagOnly, &ai_mark_pos) != inventory_pos)
+          continue;
+      MapPos pos = building->get_position();
+      unsigned int count = AI::count_objects_near_pos(pos, AI::spiral_dist(4), Map::ObjectTree0, Map::ObjectPine7, "lt_green");
+      AILogDebug["do_build_rangers"] << "lumberjack trees nearby count: " << count << ", min acceptable is " << near_trees_min;
+      if (count >= near_trees_min)
+        continue;
+      if (AI::building_exists_near_pos(pos, AI::spiral_dist(8), Building::TypeForester))
+        continue;
+      AILogDebug["do_build_rangers"] << "lumberjack at " << pos << " has < min trees and no ranger nearby, trying to place ranger";
+      MapPos built_pos = AI::build_near_pos(pos, AI::spiral_dist(6), Building::TypeForester);
+      if (built_pos != bad_map_pos && built_pos != notplaced_pos)
+        AILogDebug["do_build_rangers"] << "built ranger at pos " << built_pos;
+    }
+  }else{
+    AILogInfo["do_build_stonecutter"] << inventory_pos << " have sufficient wood, not considering building rangers";
   }
   AILogDebug["do_build_rangers"] << "done do_build_rangers";
 }
@@ -2155,12 +2182,20 @@ void
 AI::do_demolish_excess_lumberjacks() {
   AILogDebug["do_demolish_excess_lumberjacks"] << inventory_pos << " inside do_demolish_excess_lumberjacks";
   ai_status.assign("do_demolish_excess_lumberjacks");
-  int lumberjack_count = stock_building_counts.at(inventory_pos).count[Building::TypeLumberjack];
   if(get_stock_inv() == nullptr)
     return;
-  unsigned int wood_count = get_stock_inv()->get_count_of(Resource::TypePlank) + stock_res_sitting_at_flags.at(inventory_pos)[Resource::TypePlank];
-  wood_count += get_stock_inv()->get_count_of(Resource::TypeLumber) + stock_res_sitting_at_flags.at(inventory_pos)[Resource::TypeLumber];
-  if (wood_count >= (planks_max + anti_flapping_buffer) && lumberjack_count > 1) {
+
+  int lumberjack_count = stock_building_counts.at(inventory_pos).count[Building::TypeLumberjack];
+
+  //unsigned int wood_count = get_stock_inv()->get_count_of(Resource::TypePlank) + stock_res_sitting_at_flags.at(inventory_pos)[Resource::TypePlank];
+  //wood_count += get_stock_inv()->get_count_of(Resource::TypeLumber) + stock_res_sitting_at_flags.at(inventory_pos)[Resource::TypeLumber];
+  //if (wood_count >= (planks_max + anti_flapping_buffer) && lumberjack_count > 1) {
+  
+  AILogDebug["do_demolish_excess_lumberjacks"] << inventory_pos << " inside do_demolish_excess_lumberjacks, needs_wood bool is " << stock_building_counts.at(inventory_pos).needs_wood;
+  AILogDebug["do_demolish_excess_lumberjacks"] << inventory_pos << " inside do_demolish_excess_lumberjacks, lumberjack count is " << lumberjack_count;
+
+  if (stock_building_counts.at(inventory_pos).needs_wood == false && lumberjack_count > 1) {
+    
     AILogDebug["do_demolish_excess_lumberjacks"] << inventory_pos << " planks_max reached and lumberjack_count is " << lumberjack_count << ".  Burning all but one lumberjack (nearest to this stock)";
     bool first_one_found = false;
     Game::ListBuildings buildings = game->get_player_buildings(player);
@@ -2200,9 +2235,12 @@ AI::do_demolish_excess_foresters() {
   ai_status.assign("do_demolish_excess_foresters");
   if(get_stock_inv() == nullptr)
     return;
-  unsigned int wood_count = get_stock_inv()->get_count_of(Resource::TypePlank) + stock_res_sitting_at_flags.at(inventory_pos)[Resource::TypePlank];
-  wood_count += get_stock_inv()->get_count_of(Resource::TypeLumber) + stock_res_sitting_at_flags.at(inventory_pos)[Resource::TypeLumber];
-  if (wood_count >= (planks_max + anti_flapping_buffer)) {
+  
+  //unsigned int wood_count = get_stock_inv()->get_count_of(Resource::TypePlank) + stock_res_sitting_at_flags.at(inventory_pos)[Resource::TypePlank];
+  //wood_count += get_stock_inv()->get_count_of(Resource::TypeLumber) + stock_res_sitting_at_flags.at(inventory_pos)[Resource::TypeLumber];
+  //if (wood_count >= (planks_max + anti_flapping_buffer)) {
+
+  if (stock_building_counts.at(inventory_pos).needs_wood != true){
     AILogDebug["do_demolish_excess_foresters"] << inventory_pos << " planks_max reached.  Burning any forester that has few open positions nearby";
     Game::ListBuildings buildings = game->get_player_buildings(player);
     for (Building *building : buildings) {
@@ -2823,13 +2861,13 @@ AI::do_build_sawmill_lumberjacks() {
     return;
   // don't include planks at flags, it is critical to have planks available in the Inventory
   //unsigned int wood_count = get_stock_inv()->get_count_of(Resource::TypePlank) + stock_res_sitting_at_flags.at(inventory_pos)[Resource::TypePlank];
-  unsigned int wood_count = get_stock_inv()->get_count_of(Resource::TypePlank);
+  //unsigned int wood_count = get_stock_inv()->get_count_of(Resource::TypePlank);
   // include raw logs as they will become planks, but only if:
   // - at least planks_min planks stored in Inventory already
   // - one connected sawmill
-  if (wood_count >= planks_min && stock_building_counts.at(inventory_pos).connected_count[Building::TypeSawmill] > 0){
-    wood_count += get_stock_inv()->get_count_of(Resource::TypeLumber) + stock_res_sitting_at_flags.at(inventory_pos)[Resource::TypeLumber];
-  }
+  //if (wood_count >= planks_min && stock_building_counts.at(inventory_pos).connected_count[Building::TypeSawmill] > 0){
+  //  wood_count += get_stock_inv()->get_count_of(Resource::TypeLumber) + stock_res_sitting_at_flags.at(inventory_pos)[Resource::TypeLumber];
+  //}
 
   // DEBUG 
   //AILogDebug["do_build_sawmill_lumberjacks"] << inventory_pos << " aggregate wood_count " << wood_count;
@@ -2840,7 +2878,8 @@ AI::do_build_sawmill_lumberjacks() {
 
   int sawmill_count = 0;
   int lumberjack_count = 0;
-  if (wood_count < (planks_max - anti_flapping_buffer)) {
+  //if (wood_count < (planks_max - anti_flapping_buffer)) {
+  if (stock_building_counts.at(inventory_pos).needs_wood == true){
     sawmill_count = stock_building_counts.at(inventory_pos).count[Building::TypeSawmill];
     lumberjack_count = stock_building_counts.at(inventory_pos).count[Building::TypeLumberjack];
     if (sawmill_count >= 1 && lumberjack_count >= 2) {
@@ -2894,7 +2933,9 @@ AI::do_build_sawmill_lumberjacks() {
         AILogInfo["do_build_sawmill_lumberjacks"] << inventory_pos << " want to build lumberjack";
         MapPosVector search_positions = AI::sort_by_val_desc(count_by_corner);
         //  push the location of the sawmill (built_pos) to the front of the search path to help keep lumberjacks close
-        search_positions.insert(search_positions.begin(), built_pos);
+        if (built_pos != bad_map_pos){
+          search_positions.insert(search_positions.begin(), built_pos);
+        }
         for (MapPos search_pos : search_positions) {
           //AILogDebug["do_build_sawmill_lumberjacks"] << inventory_pos << " debug checking search_pos " << search_pos;
           // try to build two
@@ -4209,16 +4250,33 @@ AI::do_check_resource_needs(){
   //
   if(get_stock_inv() == nullptr)
     return;
+  /*
   unsigned int wood_count = get_stock_inv()->get_count_of(Resource::TypePlank) + stock_res_sitting_at_flags.at(inventory_pos)[Resource::TypePlank];
   //   include raw logs that will be processed into planks at SawMill
   wood_count += get_stock_inv()->get_count_of(Resource::TypeLumber) + stock_res_sitting_at_flags.at(inventory_pos)[Resource::TypeLumber];
-  if (wood_count < planks_max) {
-    AILogDebug["do_check_resource_needs"] << inventory_pos << "  wood";
-    if (stock_building_counts.at(inventory_pos).count[Building::TypeSawmill] < 1 || stock_building_counts.at(inventory_pos).count[Building::TypeLumberjack] < 2) {
-      AILogDebug["do_check_resource_needs"] << inventory_pos << "desire more wood buildings";
-      stock_building_counts.at(inventory_pos).needs_wood = true;
+  */
+
+  // don't include planks at flags, it is critical to have planks available *in* the Inventory
+  //unsigned int wood_count = get_stock_inv()->get_count_of(Resource::TypePlank) + stock_res_sitting_at_flags.at(inventory_pos)[Resource::TypePlank];
+  unsigned int wood_count = get_stock_inv()->get_count_of(Resource::TypePlank);
+
+  // include raw logs as they will become planks, but only if:
+  // - at least planks_min planks stored in Inventory already
+  // - one connected sawmill
+  if (wood_count >= planks_min && stock_building_counts.at(inventory_pos).connected_count[Building::TypeSawmill] > 0){
+    wood_count += get_stock_inv()->get_count_of(Resource::TypeLumber) + stock_res_sitting_at_flags.at(inventory_pos)[Resource::TypeLumber];
+  }
+
+  //if (wood_count < planks_max) {
+  stock_building_counts.at(inventory_pos).needs_wood = false;
+  if (wood_count < (planks_max + anti_flapping_buffer)) {
+    AILogDebug["do_check_resource_needs"] << inventory_pos << " desire more wood";
+    stock_building_counts.at(inventory_pos).needs_wood = true;
+    //if (stock_building_counts.at(inventory_pos).count[Building::TypeSawmill] < 1 || stock_building_counts.at(inventory_pos).count[Building::TypeLumberjack] < 2) {
+    //  AILogDebug["do_check_resource_needs"] << inventory_pos << " desire more wood buildings";
+    //  stock_building_counts.at(inventory_pos).needs_wood = true;
       expand_towards.insert("trees");
-    }
+    //}
   }
 
   //
@@ -4227,13 +4285,15 @@ AI::do_check_resource_needs(){
   // don't include stones at flags, it is critical to have stones available in Inventory
   //unsigned int stones_count = get_stock_inv()->get_count_of(Resource::TypeStone) + stock_res_sitting_at_flags.at(inventory_pos)[Resource::TypeStone];
   unsigned int stones_count = get_stock_inv()->get_count_of(Resource::TypeStone);
+  stock_building_counts.at(inventory_pos).needs_stone = false;
   if (stones_count < stones_max) {
     AILogDebug["do_check_resource_needs"] << inventory_pos << " desire more stones";
-    if (stock_building_counts.at(inventory_pos).count[Building::TypeStonecutter] < 1) {
-      AILogDebug["do_check_resource_needs"] << inventory_pos << " desire more stone buildings";
-      stock_building_counts.at(inventory_pos).needs_stone = true;
+    stock_building_counts.at(inventory_pos).needs_stone = true;
+    //if (stock_building_counts.at(inventory_pos).count[Building::TypeStonecutter] < 1) {
+    //  AILogDebug["do_check_resource_needs"] << inventory_pos << " desire more stone buildings";
+    //  stock_building_counts.at(inventory_pos).needs_stone = true;
       expand_towards.insert("stones");
-    }
+    //}
   }
 
   //
@@ -4709,12 +4769,14 @@ AI::do_build_3rd_lumberjack() {
   unsigned int lumberjack_count = stock_building_counts.at(inventory_pos).count[Building::TypeLumberjack];
   if(get_stock_inv() == nullptr)
     return;
-  unsigned int planks_count = get_stock_inv()->get_count_of(Resource::TypePlank);
-  unsigned int wood_count = get_stock_inv()->get_count_of(Resource::TypePlank) + stock_res_sitting_at_flags.at(inventory_pos)[Resource::TypePlank];
-  //   include raw logs that will be processed into planks at SawMill
-  wood_count += get_stock_inv()->get_count_of(Resource::TypeLumber) + stock_res_sitting_at_flags.at(inventory_pos)[Resource::TypeLumber];
-  AILogDebug["do_build_3rd_lumberjack"] << inventory_pos << " debug current lumberjack count: " << lumberjack_count << ", sawmill_count: " << sawmill_count << ", planks_count: " << planks_count << ", planks_max: " << planks_max << " adjusted wood_count: " << wood_count;
-  if (wood_count < planks_max && sawmill_count > 0 && planks_count <= planks_max && lumberjack_count < 3) {
+
+  //unsigned int planks_count = get_stock_inv()->get_count_of(Resource::TypePlank);
+  //unsigned int wood_count = get_stock_inv()->get_count_of(Resource::TypePlank) + stock_res_sitting_at_flags.at(inventory_pos)[Resource::TypePlank];
+  ////   include raw logs that will be processed into planks at SawMill
+  //wood_count += get_stock_inv()->get_count_of(Resource::TypeLumber) + stock_res_sitting_at_flags.at(inventory_pos)[Resource::TypeLumber];
+  //AILogDebug["do_build_3rd_lumberjack"] << inventory_pos << " debug current lumberjack count: " << lumberjack_count << ", sawmill_count: " << sawmill_count << ", planks_count: " << planks_count << ", planks_max: " << planks_max << " adjusted wood_count: " << wood_count;
+  //if (wood_count < planks_max && sawmill_count > 0 && planks_count <= planks_max && lumberjack_count < 3) {
+  if (stock_building_counts.at(inventory_pos).needs_wood == true && lumberjack_count < 3) {
     AILogDebug["do_build_3rd_lumberjack"] << inventory_pos << " wood not maxed, have sawmill, and have few than three lumberjacks, build a third";
     // count trees near military buildings,
     //   the third lumberjack doesn't need to be near sawmill, if there is a spot with many trees that is fine
