@@ -279,11 +279,13 @@ add_custom_command(TARGET Forkserf POST_BUILD
 
 set(PROFILER_SOURCES profiler.cc
                      version.cc
-                     command_line.cc)
+                     command_line.cc
+                     pathfinder.cc)
 
 set(PROFILER_HEADERS profiler.h
                      version.h
-                     command_line.h)
+                     command_line.h
+                     pathfinder.h)
 
 add_executable(profiler ${PROFILER_SOURCES} ${PROFILER_HEADERS})
 target_check_style(profiler)

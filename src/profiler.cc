@@ -28,6 +28,7 @@
 #include "src/log.h"
 #include "src/version.h"
 #include "src/game-manager.h"
+//#include "src/pathfinder.h"  // for player.cc pathfinder_freewalking_serf check
 
 int
 main(int argc, char *argv[]) {

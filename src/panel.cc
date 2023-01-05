@@ -451,7 +451,7 @@ PanelBar::handle_dbl_click(int lx, int ly, Event::Button button) {
   if (button != Event::ButtonLeft){
     return false;
   }
-  handle_special_click(lx, ly);
+  return handle_special_click(lx, ly);
 }
 
 bool
