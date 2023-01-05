@@ -399,7 +399,7 @@ EventLoopSDL::run() {
           unsigned int height = event.window.data2;
           gfx.set_resolution(width, height, gfx.is_fullscreen());
           gfx.get_screen_factor(&screen_factor_x, &screen_factor_y);
-          zoom(0); // this re-applies any existing zoom but does not adjust
+          zoom(0.0); // this re-applies any existing zoom but does not adjust
           notify_resize(width, height);
         }
         break;

@@ -783,24 +783,26 @@ DataSourceDOS::SpriteDosTransparent::SpriteDosTransparent(PBuffer _data,
       //Log::Debug["data-source-dos.cc"] << "inside DataSourceDOS::SpriteDosTransparent constructor, color is " << int(color.r) << "," << int(color.g) << "," << int(color.b);
 
       // testing FourSeasons manipulating Seeds / Field sprites
+      //  and castle sprite!  it has a bright green pile that looks odd in winter
       if (option_FourSeasons && season == 3){
         if (res == Data::AssetMapObject){
           // I haven't bothered to check how the sprite indexes are numbered, there must be some offset
           //  for each data type, instead I found through trial and error, only need one as a reference point
           int base = 1250;
-          if (index >= base + 97 && index <= base + 100){    // ObjectSeeds0 - ObjectSeeds3  (4+ has no green)    SPRITE 97 - 100
-            if (color.r < 200){  // is *NOT* red (i.e., is yellow or green, or blue I guess)
-            //if (color.g > color.r && color.g > color.b){  // is green
+          if (index >= base + 97 && index <= base + 100    // ObjectSeeds0 - ObjectSeeds3  (4+ has no green)    SPRITE 97 - 100
+           || index == base + 178){   // Castle sprite
+            //if (color.r < 200){  // is *NOT* red (i.e., is yellow or green, or blue I guess)
+            if (color.g > color.r && color.g > color.b){  // is green
               //if (color.g + color.r + color.b > 158){ // is bright
                 // make more gray
-                int tmpr = color.r + 50; if (tmpr < 1){ tmpr = 0;} if (tmpr >255){ tmpr = 255;} color.r=tmpr;
-                int tmpg = color.g - 45; if (tmpg < 1){ tmpg = 0;} if (tmpg >255){ tmpg = 255;} color.g=tmpg;
+                int tmpr = color.r + 45; if (tmpr < 1){ tmpr = 0;} if (tmpr >255){ tmpr = 255;} color.r=tmpr;
+                int tmpg = color.g - 40; if (tmpg < 1){ tmpg = 0;} if (tmpg >255){ tmpg = 255;} color.g=tmpg;
                 int tmpb = color.b +  0; if (tmpb < 1){ tmpb = 0;} if (tmpb >255){ tmpb = 255;} color.b=tmpb;
                 // make black
                 //color.r = 0;
                 //color.g = 0;
                 //color.b = 0;
-            //  }         
+              //}         
             }
           }
         }

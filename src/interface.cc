@@ -1643,6 +1643,8 @@ Interface::clear_custom_graphics_cache() {
     for (int unknown_index=Map::ObjectTree0 - 8; unknown_index <= Map::ObjectField5 - 8; unknown_index++){
       to_purge.insert( Data::Sprite::create_id(Data::AssetMapObject, unknown_index, Data::AssetNone, 0, {0,0,0,0}) );
     }
+    // purge castle sprite as its green pile is adjusted in colder months
+    to_purge.insert( Data::Sprite::create_id(Data::AssetMapObject, 178, Data::AssetNone, 0, {0,0,0,0}) );
   }
 
   //for (uint64_t id : to_purge){

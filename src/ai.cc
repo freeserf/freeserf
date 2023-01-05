@@ -1569,12 +1569,12 @@ AI::do_send_geologists() {
       AILogDebug["do_send_geologists"] << inventory_pos << " trying to build flags & send geologists near pos " << corner_pos;
       for (unsigned int i = 0; i < AI::spiral_dist(4); i++) {
         MapPos pos = map->pos_add_extended_spirally(corner_pos, i);
-        AILogDebug["do_send_geologists"] << inventory_pos << " checking terrain type to see if can build flag at pos " << pos;
+        //AILogDebug["do_send_geologists"] << inventory_pos << " checking terrain type to see if can build flag at pos " << pos;
         if (!AI::has_terrain_type(game, pos, Map::TerrainTundra0, Map::TerrainSnow0))
           continue;
         // build flags for geologists
         bool built_new_flag_for_geologist = false;
-        AILogDebug["do_send_geologists"] << inventory_pos << " checking to see if can build flag at pos " << pos << ". this poas owner " << map->get_owner(pos) << " and my player index is " << player->get_index() << ", has_owner is " << map->has_owner(pos);
+        //AILogDebug["do_send_geologists"] << inventory_pos << " checking to see if can build flag at pos " << pos << ". this pos has owner " << map->get_owner(pos) << " and my player index is " << player->get_index() << ", has_owner is " << map->has_owner(pos);
         if (game->can_build_flag(pos, player)) {
           AILogDebug["do_send_geologists"] << inventory_pos << " can build flag at pos " << pos << ", checking to see if any other flags nearby...";
           unsigned int other_flags = 0;
