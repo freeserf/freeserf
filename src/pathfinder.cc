@@ -26,6 +26,9 @@
 #include <algorithm>
 #include <memory>
 
+#include <chrono>   // for function performance timing
+#include <ctime>  // for function performance timing
+
 // moved to pathfinder.h
 /*
 class SearchNode;
@@ -224,7 +227,16 @@ pathfinder_map(Map *map, MapPos start, MapPos end, const Road *building_road) {
 // note that this ignores terrain height heuristic
 Road
 pathfinder_freewalking_serf(Map *map, MapPos start, MapPos end, int max_dist) {
-  //Log::Debug["pathfinder.cc"] << "inside pathfinder_freewalking_serf, start pos " << start << ", dest pos " << end << ", max_dist " << max_dist << ", remember this is a REVERSE SEARCH";
+  Log::Debug["pathfinder.cc"] << "inside pathfinder_freewalking_serf, start pos " << start << ", dest pos " << end << ", max_dist " << max_dist << ", remember this is a REVERSE SEARCH";
+
+  if (start == bad_map_pos || end == bad_map_pos){
+    Log::Error["pathfinder.cc"] << "inside pathfinder_freewalking_serf, either start pos " << start << " or end pos " << end << " is bad_map_pos " << bad_map_pos;
+    throw ExceptionFreeserf("inside pathfinder_freewalking_serf, either start pos or end pos is bad_map_pos!");
+  }
+
+  // time this function for debugging
+  std::clock_t start_pathfinder_freewalking_serf = std::clock();
+
   std::vector<PSearchNode> open;
   std::list<PSearchNode> closed;
 
@@ -257,15 +269,25 @@ pathfinder_freewalking_serf(Map *map, MapPos start, MapPos end, int max_dist) {
 
   Road solution;
   solution.start(start);
-    
+
+  //game->clear_debug_mark_pos();
+
   while (!open.empty()) {
     //Log::Debug["pathfinder.cc"] << "inside pathfinder_freewalking_serf, A";
     std::pop_heap(open.begin(), open.end(), search_node_less);
     node = open.back();
     open.pop_back();
 
+    if (node->pos == bad_map_pos){
+      Log::Error["pathfinder.cc"] << "inside pathfinder_freewalking_serf, node->pos " << node->pos << " is bad_map_pos " << bad_map_pos;
+      throw ExceptionFreeserf("inside pathfinder_freewalking_serf, node->pos is bad_map_pos!");
+    }
+
+
+    //game->set_debug_mark_pos(node->pos(), "green");
+
     if (total_pos_considered >= plot_road_max_pos_considered){
-      Log::Info["pathfinder.cc"] << "inside pathfinder_freewalking_serf, maximum MapPos POSITIONS-checked reached (plot_road_max_pos) " << total_pos_considered << ", ending search early";
+      //Log::Info["pathfinder.cc"] << "inside pathfinder_freewalking_serf, maximum MapPos POSITIONS-checked reached (plot_road_max_pos) " << total_pos_considered << ", ending search early";
       break;
     }
     //// PERFORMANCE - try pausing for a very brief time every thousand pos checked to give the CPU a break, see if it fixes frame rate lag
@@ -284,7 +306,7 @@ pathfinder_freewalking_serf(Map *map, MapPos start, MapPos end, int max_dist) {
     }
     //Log::Debug["pathfinder.cc"] << "inside pathfinder_freewalking_serf, current road-length so far for this solution is " << current_length;
     if (current_length >= plot_road_max_length){
-      Log::Info["pathfinder.cc"] << "inside pathfinder_freewalking_serf, maximum road-length reached (plot_road_max_length) " << current_length << ", ending search early";
+      //Log::Info["pathfinder.cc"] << "inside pathfinder_freewalking_serf, maximum road-length reached (plot_road_max_length) " << current_length << ", ending search early";
       break;
     }
 
@@ -300,6 +322,10 @@ pathfinder_freewalking_serf(Map *map, MapPos start, MapPos end, int max_dist) {
         node = node->parent;
       }
 
+
+       double duration = (std::clock() - start_pathfinder_freewalking_serf) / static_cast<double>(CLOCKS_PER_SEC);
+       //Log::Debug["pathfinder_freewalking_serf"] << "done pathfinder_freewalking_serf, call took " << duration << ", considered " << total_pos_considered << " positions";
+
       return solution;
     }
 
@@ -311,9 +337,9 @@ pathfinder_freewalking_serf(Map *map, MapPos start, MapPos end, int max_dist) {
     for (Direction d : cycle_directions_cw()) {
       //Log::Debug["pathfinder.cc"] << "inside pathfinder_freewalking_serf, D  Dir: " << d;
       MapPos new_pos = map->move(node->pos, d);
-      //unsigned int cost = actual_cost(map, node->pos, d);
+      unsigned int cost = actual_cost(map, node->pos, d);
       // default to lowest value (255), ignore heuristics
-      unsigned int cost = 255;
+      //unsigned int cost = 255;
 
       //
       // I THINK THIS IS THE ONLY PART THAT NEEDS TO CHANGE
@@ -374,8 +400,8 @@ pathfinder_freewalking_serf(Map *map, MapPos start, MapPos end, int max_dist) {
           in_open = true;
           if (n->g_score >= node->g_score + cost) {
             n->g_score = node->g_score + cost;
-            //n->f_score = n->g_score + heuristic_cost(map, new_pos, start);
-            n->f_score = n->g_score;
+            n->f_score = n->g_score + heuristic_cost(map, new_pos, start);
+            //n->f_score = n->g_score;
             n->parent = node;
             n->dir = d;
 
@@ -393,9 +419,8 @@ pathfinder_freewalking_serf(Map *map, MapPos start, MapPos end, int max_dist) {
 
         new_node->pos = new_pos;
         new_node->g_score = node->g_score + cost;
-        //new_node->f_score = new_node->g_score +
-        //                    heuristic_cost(map, new_pos, start);
-        new_node->f_score = new_node->g_score;
+        new_node->f_score = new_node->g_score + heuristic_cost(map, new_pos, start);
+        //new_node->f_score = new_node->g_score;
         new_node->parent = node;
         new_node->dir = d;
 
@@ -404,6 +429,9 @@ pathfinder_freewalking_serf(Map *map, MapPos start, MapPos end, int max_dist) {
       }
     }
   }
+
+  double duration = (std::clock() - start_pathfinder_freewalking_serf) / static_cast<double>(CLOCKS_PER_SEC);
+  Log::Debug["pathfinder_freewalking_serf"] << "done pathfinder_freewalking_serf, call took " << duration;
 
   return Road();
 }

@@ -630,6 +630,8 @@ class Map {
 
   Terrain type_up(MapPos pos) const { return landscape_tiles[pos].type_up; }
   Terrain type_down(MapPos pos) const { return landscape_tiles[pos].type_down; }
+
+  unsigned int get_landscape_tiles_size() const { return landscape_tiles.size(); } // for debugging out of range map pos
   
   //
   //  DO NOT MESS WITH THIS HERE, INSTEAD CHANGE THE TILES IN Viewport::draw_triangle_up/down

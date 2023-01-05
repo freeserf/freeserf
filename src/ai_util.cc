@@ -3011,7 +3011,7 @@ AI::score_enemy_area(MapPos center_pos, unsigned int distance) {
     if (map->get_owner(pos) != player_index && map->has_owner(pos) && map->has_building(pos)){
       //AILogDebug["util_score_enemy_area"] << "potential attack area contains a building of type " << NameBuilding[game->get_building_at_pos(pos)->get_type()];
       if (obj == Map::ObjectCastle){
-        pos_value += 20;
+        pos_value += 25;  // this needs to be high enough to ensure that a nearly-isolated castle is still worth isolating even if no resources nearby
         //AILogDebug["util_score_enemy_area"] << "adding attack value 20 for enemy castle at pos " << pos;
       }
       if (obj == Map::ObjectLargeBuilding && game->get_building_at_pos(pos)->get_type() == Building::TypeStock){
@@ -3109,7 +3109,13 @@ AI::score_enemy_targets(MapPosSet *scored_targets) {
   // foreach my hut in range of attacking enemy
   //    foreach enemy hut within range of attack
   //      score
+  std::clock_t this_item_start = std::clock();
   for (Building *building : buildings) {
+    double duration_so_far = (std::clock() - start) / static_cast<double>(CLOCKS_PER_SEC);
+    double duration_last_item = (std::clock() - this_item_start) / static_cast<double>(CLOCKS_PER_SEC);
+    AILogDebug["util_score_enemy_targets"] << "inside score_enemy_targets, total time spent so far " << duration_so_far << ", last item took " << duration_last_item;
+    this_item_start = std::clock();
+    
     if (building == nullptr)
       continue;
     if (!building->is_done() ||
@@ -3185,6 +3191,8 @@ AI::score_enemy_targets(MapPosSet *scored_targets) {
       }
     }
   }
+
+  AILogDebug["util_score_enemy_targets"] << "done finding targets, unique_enemy_targets contains " << unique_enemy_targets.size() << " items";
 
   // score the targets found
   for (MapPos target_pos : unique_enemy_targets){

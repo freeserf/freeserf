@@ -1603,8 +1603,10 @@ Serf::enter_building(int field_B, int join_pos) {
 
   Building *building = game->get_building_at_pos(pos);
   if (building == nullptr){
-    Log::Warn["serf.cc"] << "inside Serf::enter_building, serf with index " << get_index() << " at pos " << get_pos() << " is trying to enter a building, but Building is unexpectedly a nullptr!";
-    throw ExceptionFreeserf("inside Serf::enter_building, building is unexpectedly a nullptr!");
+    Log::Warn["serf.cc"] << "inside Serf::enter_building, serf with index " << get_index() << " at pos " << get_pos() << " is trying to enter a building, but Building is unexpectedly a nullptr! setting serf to Lost";
+    //throw ExceptionFreeserf("inside Serf::enter_building, building is unexpectedly a nullptr!");
+    set_lost_state();
+    return;
   }
   int slope = road_building_slope[building->get_type()];
   if (!building->is_done()) slope = 1;
@@ -2212,6 +2214,19 @@ void
 Serf::enter_inventory() {
   game->get_map()->set_serf_index(pos, 0);
   Building *building = game->get_building_at_pos(pos);
+  if (building == nullptr){
+    Log::Warn["serf.cc"] << "inside Serf::enter_inventory, serf with index " << get_index() << " at pos " << get_pos() << " is trying to enter an INVENTORY, but Building is unexpectedly a nullptr! setting serf to Lost";
+    //throw ExceptionFreeserf("inside Serf::enter_building, building is unexpectedly a nullptr!");
+    set_lost_state();
+    return;
+  }
+
+  if (building->get_inventory() == nullptr){
+    Log::Warn["serf.cc"] << "inside Serf::enter_inventory, serf with index " << get_index() << " at pos " << get_pos() << " is trying to enter an INVENTORY, but Building's INVENTORY object is unexpectedly a nullptr! setting serf to Lost";
+    //throw ExceptionFreeserf("inside Serf::enter_building, building is unexpectedly a nullptr!");
+    set_lost_state();
+    return;
+  }
 
   set_state(StateIdleInStock);
   /*serf->s.idle_in_stock.field_B = 0;
@@ -4184,34 +4199,52 @@ Serf::handle_free_walking_common() {
   if (found_water_obstacle){
     //game->set_debug_mark_pos(chosen_pos, "cyan");
 
-    int current_col = map->pos_col(pos);
-    int current_row = map->pos_row(pos);
+    //int current_col = map->pos_col(pos);
+    int current_col = map->pos_col(chosen_pos);
+    int highest_row = map->get_rows();  // rows/cols wrap around once they hit max, cannot do map->pos(col/row) with negative values!)
+    //int current_row = map->pos_row(pos);
+    int current_row = map->pos_row(chosen_pos);
+    int highest_col = map->get_cols();  // rows/cols wrap around once they hit max, cannot do map->pos(col/row) with negative values!)
     int destination_col = current_col + s.free_walking.dist_col;
+    if (destination_col < 0){
+      destination_col += highest_col;
+    }
     int destination_row = current_row + s.free_walking.dist_row;
+    if (destination_row < 0){
+      destination_row += highest_row;
+    }
     MapPos dest_pos = map->pos(destination_col, destination_row);
-    //if (edge == 1){
-    //  game->set_debug_mark_pos(pos, "green");
-    //}else{
-    //  game->set_debug_mark_pos(pos, "yellow");
-    //}
-    //game->set_debug_mark_pos(dest_pos, "red");
-    // logic has been updated for Fisher to not even attempt to send a serf to a fishing pos that is more than 20 tiles-by-pathfinding away, so it is
-    //  okay for this to be a higher value in case a serf is free walking for some other reason (lost?)
-    Road path_around_lake = pathfinder_freewalking_serf(map.get(), pos, dest_pos, 100);   
-    if (path_around_lake.get_length() > 0){
-      //game->set_debug_mark_road(path_around_lake);
-      Direction dir_to_go = path_around_lake.get_first();  
-      if (dir != dir_to_go){
-        Log::Debug["serf.cc"] << "inside Serf::handle_free_walking_common, a free-walking serf has encountered water and chosen the wrong way around it, correcting him";
-        dir = dir_to_go;
-        //game->set_debug_mark_pos(map->move(pos, dir), "coral");
-        // reverse the follow_edge direction by flipping "edge"
-        edge = !edge;
-      }
+    if (dest_pos > map->get_landscape_tiles_size()){
+      Log::Error["serf.cc"] << "inside Serf::handle_free_walking_common, dest_pos is out of range!  dest_pos " << dest_pos << ", landscape_tiles size " << map->get_landscape_tiles_size() << ", current_col " << current_col  << ", current_row " << current_row << ", dest_col " << destination_col << ", dest_row " << destination_row;
+      game->get_debug_mark_serf()->push_back(get_index());
+      game->set_debug_mark_pos(get_pos(), "green");
+      game->set_debug_mark_pos(dest_pos, "red");
+      game->pause();
     }else{
-      // saw this once, changing to Warn for now
-      //throw ExceptionFreeserf("inside Serf::handle_free_walking_common, could not find a path around water/lake obstacle for freewalking serf!");
-      Log::Warn["serf.cc"] << "inside Serf::handle_free_walking_common, could not find a path around water/lake obstacle for freewalking serf!";
+      //if (edge == 1){
+      //  game->set_debug_mark_pos(pos, "green");
+      //}else{
+      //  game->set_debug_mark_pos(pos, "yellow");
+      //}
+      //game->set_debug_mark_pos(dest_pos, "red");
+      // logic has been updated for Fisher to not even attempt to send a serf to a fishing pos that is more than 20 tiles-by-pathfinding away, so it is
+      //  okay for this to be a higher value in case a serf is free walking for some other reason (lost?)
+      Road path_around_lake = pathfinder_freewalking_serf(map.get(), pos, dest_pos, 100);   
+      if (path_around_lake.get_length() > 0){
+        //game->set_debug_mark_road(path_around_lake);
+        Direction dir_to_go = path_around_lake.get_first();  
+        if (dir != dir_to_go){
+          Log::Debug["serf.cc"] << "inside Serf::handle_free_walking_common, a free-walking serf has encountered water and chosen the wrong way around it, correcting him";
+          dir = dir_to_go;
+          //game->set_debug_mark_pos(map->move(pos, dir), "coral");
+          // reverse the follow_edge direction by flipping "edge"
+          edge = !edge;
+        }
+      }else{
+        // saw this once, changing to Warn for now
+        //throw ExceptionFreeserf("inside Serf::handle_free_walking_common, could not find a path around water/lake obstacle for freewalking serf!");
+        Log::Warn["serf.cc"] << "inside Serf::handle_free_walking_common, could not find a path around water/lake obstacle for freewalking serf!";
+      }
     }
   } // end of defect fix
 

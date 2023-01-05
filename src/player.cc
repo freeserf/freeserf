@@ -441,7 +441,7 @@ Player::available_knights_at_pos(MapPos pos, int index_, int dist) {
     return index_;  // I guess "return index_" means "no knights available"
   }
 
-  //Log::Debug["player.cc"] << "inside Player::available_knights_at_pos, attacking building pos " << pos << ", attacked_building_flag_pos " << attacked_building_flag_pos;
+  Log::Debug["player.cc"] << "inside Player::available_knights_at_pos, attacking building pos " << pos << ", attacked_building_flag_pos " << attacked_building_flag_pos;
 
   int bld_index = map->get_obj_index(pos);
   for (int i = 0; i < index_; i++) {
