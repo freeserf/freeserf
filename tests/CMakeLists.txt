@@ -4,9 +4,8 @@ find_package(Threads REQUIRED)
 
 include(ExternalProject)
 ExternalProject_Add(googletest
-                    URL https://github.com/google/googletest/archive/release-1.11.0.tar.gz
+                    URL https://github.com/google/googletest/archive/release-1.12.1.tar.gz
                     CMAKE_ARGS -Dgtest_force_shared_crt=ON
-                               -DBUILD_GTEST=ON
                                -DBUILD_GMOCK=OFF
                                -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}
                     SOURCE_DIR ${CMAKE_CURRENT_BINARY_DIR}/googletest_src
@@ -14,20 +13,20 @@ ExternalProject_Add(googletest
                     INSTALL_COMMAND "")
 ExternalProject_Get_Property(googletest SOURCE_DIR BINARY_DIR)
 include_directories(${INCLUDE_DIRECTORIES} "${SOURCE_DIR}/googletest/include")
-set(GTEST_BIN_DIR "${BINARY_DIR}/${CMAKE_CFG_INTDIR}")
+set(GTEST_BIN_DIR "${BINARY_DIR}/${CMAKE_CFG_INTDIR}/lib")
 
-if(CMAKE_BUILD_TYPE STREQUAL "Debug")
-  set(LIBRARY_DEBUG_SUFFIX "d")
+if("${CMAKE_BUILD_TYPE}" STREQUAL "")
+  set(GTEST_BIN_DIR "${CMAKE_CURRENT_BINARY_DIR}/googletest_bin/lib/${CMAKE_CFG_INTDIR}")
 endif()
 
 add_library(gtest STATIC IMPORTED)
 set_target_properties(gtest PROPERTIES
-                      IMPORTED_LOCATION "${GTEST_BIN_DIR}/lib/${CMAKE_STATIC_LIBRARY_PREFIX}gtest${LIBRARY_DEBUG_SUFFIX}${CMAKE_STATIC_LIBRARY_SUFFIX}")
+                      IMPORTED_LOCATION "${GTEST_BIN_DIR}/${CMAKE_STATIC_LIBRARY_PREFIX}gtest${CMAKE_STATIC_LIBRARY_SUFFIX}")
 add_dependencies(gtest googletest)
 
 add_library(gtest_main STATIC IMPORTED)
 set_target_properties(gtest_main PROPERTIES
-                      IMPORTED_LOCATION "${GTEST_BIN_DIR}/lib/${CMAKE_STATIC_LIBRARY_PREFIX}gtest_main${LIBRARY_DEBUG_SUFFIX}${CMAKE_STATIC_LIBRARY_SUFFIX}")
+                      IMPORTED_LOCATION "${GTEST_BIN_DIR}/${CMAKE_STATIC_LIBRARY_PREFIX}gtest_main${CMAKE_STATIC_LIBRARY_SUFFIX}")
 add_dependencies(gtest_main googletest)
 
 include(GoogleTest)
