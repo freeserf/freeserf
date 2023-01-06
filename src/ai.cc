@@ -342,6 +342,43 @@ AI::do_place_castle() {
           castle_pos = pos;
           castle_flag_pos = map->move_down_right(castle_pos);
           AILogDebug["do_place_castle"] << "castle has position " << castle_pos << ", with castle_flag_pos " << castle_flag_pos;
+          // store the "forbidden zone" to prevent creation of paths blocking the castle flag
+          //            22
+          //            --\2
+          //     castle_   \2
+          //  2/\2 /\cc/\   \2 
+          // 2/_2\/cc\/cc\   \2
+          // 2\--2\cc/\cc/\1  \2
+          //  2\  2\/__\/__\1  \2  castle flag area, double lines are forbidden paths
+          //   2\  1\  /\  /1  /2            NOTE that ring1 pos can connect to ring2 pos, 
+          //    2\  1\/__\/1  /2                   but ring1-to-ring1 and ring2-to-ring2 disallowed
+          //     2\   1111   /2
+          //      2\________/2
+          //        22222222
+          //
+          // and path segment with both ends in forbidden list must be rejected
+          // first ring
+          MapPos forbidden_pos = map->move_left(castle_flag_pos); castle_forbidden_paths_ring1.push_back(forbidden_pos);// ai_mark_pos.insert(ColorDot(forbidden_pos, "cyan"));
+          forbidden_pos = map->move_down_right(forbidden_pos); castle_forbidden_paths_ring1.push_back(forbidden_pos);// ai_mark_pos.insert(ColorDot(forbidden_pos, "cyan"));
+          forbidden_pos = map->move_right(forbidden_pos); castle_forbidden_paths_ring1.push_back(forbidden_pos);// ai_mark_pos.insert(ColorDot(forbidden_pos, "cyan"));
+          forbidden_pos = map->move_up(forbidden_pos); castle_forbidden_paths_ring1.push_back(forbidden_pos);// ai_mark_pos.insert(ColorDot(forbidden_pos, "cyan"));
+          forbidden_pos = map->move_up_left(forbidden_pos); castle_forbidden_paths_ring1.push_back(forbidden_pos);// ai_mark_pos.insert(ColorDot(forbidden_pos, "cyan"));
+          // second ring
+          forbidden_pos = map->move_up_left(map->move_left(castle_flag_pos)); castle_forbidden_paths_ring2.push_back(forbidden_pos);// ai_mark_pos.insert(ColorDot(forbidden_pos, "dk_cyan"));
+          forbidden_pos = map->move_up_left(forbidden_pos); castle_forbidden_paths_ring2.push_back(forbidden_pos);// ai_mark_pos.insert(ColorDot(forbidden_pos, "dk_cyan"));
+          forbidden_pos = map->move_down(forbidden_pos); castle_forbidden_paths_ring2.push_back(forbidden_pos);// ai_mark_pos.insert(ColorDot(forbidden_pos, "dk_cyan"));
+          forbidden_pos = map->move_down_right(forbidden_pos);// ai_mark_pos.insert(ColorDot(forbidden_pos, "dk_cyan"));
+          //forbidden_pos = map->move_down(forbidden_pos); castle_forbidden_paths_ring2.push_back(forbidden_pos); ai_mark_pos.insert(ColorDot(forbidden_pos, "dk_cyan"));
+          forbidden_pos = map->move_down_right(forbidden_pos); castle_forbidden_paths_ring2.push_back(forbidden_pos);// ai_mark_pos.insert(ColorDot(forbidden_pos, "dk_cyan"));
+          forbidden_pos = map->move_down_right(forbidden_pos); castle_forbidden_paths_ring2.push_back(forbidden_pos);// ai_mark_pos.insert(ColorDot(forbidden_pos, "dk_cyan"));
+          forbidden_pos = map->move_right(forbidden_pos); castle_forbidden_paths_ring2.push_back(forbidden_pos);// ai_mark_pos.insert(ColorDot(forbidden_pos, "dk_cyan"));
+          forbidden_pos = map->move_right(forbidden_pos); castle_forbidden_paths_ring2.push_back(forbidden_pos);// ai_mark_pos.insert(ColorDot(forbidden_pos, "dk_cyan"));
+          forbidden_pos = map->move_up(forbidden_pos); castle_forbidden_paths_ring2.push_back(forbidden_pos);// ai_mark_pos.insert(ColorDot(forbidden_pos, "dk_cyan"));
+          forbidden_pos = map->move_up(forbidden_pos); castle_forbidden_paths_ring2.push_back(forbidden_pos);// ai_mark_pos.insert(ColorDot(forbidden_pos, "dk_cyan"));
+          forbidden_pos = map->move_up_left(forbidden_pos); castle_forbidden_paths_ring2.push_back(forbidden_pos);// ai_mark_pos.insert(ColorDot(forbidden_pos, "dk_cyan"));
+          forbidden_pos = map->move_up_left(forbidden_pos); castle_forbidden_paths_ring2.push_back(forbidden_pos);// ai_mark_pos.insert(ColorDot(forbidden_pos, "dk_cyan"));
+          forbidden_pos = map->move_left(forbidden_pos); castle_forbidden_paths_ring2.push_back(forbidden_pos);// ai_mark_pos.insert(ColorDot(forbidden_pos, "dk_cyan"));
+          //sleep_speed_adjusted(15000);  // TEMP DEBUG TESTING
           return;
         }
         AILogDebug["do_place_castle"] << "failed to build castle at pos: " << pos << ", will keep trying";

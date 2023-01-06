@@ -1038,6 +1038,7 @@ Game::update_game_stats() {
 
     resource_history_index = index+1 < 120 ? index+1 : 0;
   }
+
 }
 
 /* Update game state after tick increment. */

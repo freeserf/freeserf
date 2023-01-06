@@ -266,6 +266,7 @@ class Game {
   int get_player_history_index(size_t scale) const {
     return player_history_index[scale]; }
   int get_resource_history_index() const { return resource_history_index; }
+  //void set_resource_history_index(int res) { resource_history_index = res; }
 
   int next_search_id();
 

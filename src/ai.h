@@ -70,6 +70,8 @@ class AI {
   //bool stop_building;
   MapPos castle_pos;
   MapPos castle_flag_pos;
+  MapPosVector castle_forbidden_paths_ring1 = {};
+  MapPosVector castle_forbidden_paths_ring2 = {};
   FlagDirTimer no_transporter_timers;
   SerfWaitTimer serf_wait_timers;
   SerfWaitTimer serf_wait_idle_on_road_timers;

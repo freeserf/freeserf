@@ -70,6 +70,17 @@ flagsearch_node_less(const PFlagSearchNode &left, const PFlagSearchNode &right) 
 // the road returned is the DIRECT road if found
 //  however, if no direct road is found the calling function could still check for the new-flag splitting
 //   options found
+
+// the castle flag must have a surrounding "forbidden zone" to prevent creation of paths blocking the castle flag
+//     ____
+//    /\xx/\  castle
+//   /xx\/xx\
+//   \xx/\xx/\\
+//    \/__\/__\\   castle flag area, double lines are forbidden paths
+//    \\  /\  //
+//     \\/__\//
+//       ----
+// any path segment with both ends in forbidden list must be rejected
 Road
 // adding support for HoldBuildingPos
 //AI::plot_road(PMap map, unsigned int player_index, MapPos start_pos, MapPos end_pos, Roads * const &potential_roads) {
@@ -215,6 +226,41 @@ AI::plot_road(PMap map, unsigned int player_index, MapPos start_pos, MapPos end_
     //for (Direction d : cycle_directions_cw()) {
     for (Direction d : cycle_directions_rand_cw()) {
       MapPos new_pos = map->move(node->pos, d);
+
+      // prevent building any path segment in the outside of the hexagon
+      //  immediately surrounding the flag pos, to prevent blocking other
+      //  castle flag paths
+      if (node->parent){
+        uint8_t forbidden_ends = 0;
+        for (MapPos forbidden_pos : castle_forbidden_paths_ring1){
+          if (node->pos == forbidden_pos){
+            AILogDebug["plot_road"] << "node->pos " << node->pos << " is on the castle_forbidden_paths_ring1 list";
+            forbidden_ends++;
+          }else if(node->parent->pos == forbidden_pos){
+            AILogDebug["plot_road"] << "node->parent->pos " << node->pos << " is on the castle_forbidden_paths_ring1 list";
+            forbidden_ends++;
+          }
+        }
+        if (forbidden_ends > 1){
+          AILogDebug["plot_road"] << "rejecting direction " << d << " / " << NameDirection[d] << " because it crosses the forbidden partial-hexagon-perimeter of castle flag ring1";
+          continue;
+        }
+        forbidden_ends = 0;
+        for (MapPos forbidden_pos : castle_forbidden_paths_ring2){
+          if (node->pos == forbidden_pos){
+            AILogDebug["plot_road"] << "node->pos " << node->pos << " is on the castle_forbidden_paths_ring2 list";
+            forbidden_ends++;
+          }else if(node->parent->pos == forbidden_pos){
+            AILogDebug["plot_road"] << "node->parent->pos " << node->pos << " is on the castle_forbidden_paths_ring2 list";
+            forbidden_ends++;
+          }
+        }
+        if (forbidden_ends > 1){
+          AILogDebug["plot_road"] << "rejecting direction " << d << " / " << NameDirection[d] << " because it crosses the forbidden partial-hexagon-perimeter of castle flag ring2";
+          continue;
+        }
+      }
+
       unsigned int cost = actual_cost(map.get(), node->pos, d);
       //ai_mark_road->extend(d);
       //ai_mark_pos.insert(ColorDot(new_pos, "blue"));

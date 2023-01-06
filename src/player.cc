@@ -1022,8 +1022,26 @@ Player::update() {
 
 void
 Player::update_stats(int res) {
-  resource_count_history[res][index] = resource_count[res];
+  //std::string histogram = NameResource[res] + ": ";
+  //for (int i = 0; i < 120; i++){
+  //  histogram = histogram + std::to_string(resource_count_history[res][i]);
+  //}
+  //Log::Debug["game.cc"] << "inside Player::update_stats, was " << histogram;
+
+  // shift array right
+  for (int z=119; z>0; z--){
+    resource_count_history[res][z] = resource_count_history[res][z-1]; 
+  }
+  // new data goes into first element
+  resource_count_history[res][0] = resource_count[res];
+  // reset the "now" res value to zero
   resource_count[res] = 0;
+
+  //std::string histogram2 = NameResource[res] + ": ";
+  //for (int i = 0; i < 120; i++){
+  //  histogram2 = histogram2 + std::to_string(resource_count_history[res][i]);
+  //}
+  //Log::Debug["game.cc"] << "inside Player::update_stats, is now " << histogram2;
 }
 
 void

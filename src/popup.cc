@@ -1068,6 +1068,7 @@ PopupBox::draw_stat_8_box() {
   }
 }
 
+// this is the box that shows graphs of production history for reach resource type
 void
 PopupBox::draw_stat_7_box() {
   const int layout[] = {
@@ -1116,7 +1117,9 @@ PopupBox::draw_stat_7_box() {
 
   draw_custom_icon_box(layout);
 
-  Resource::Type item = (Resource::Type)(current_stat_7_item-1);
+  //Resource::Type item = (Resource::Type)(current_stat_7_item-1);
+  Resource::Type item = (Resource::Type)(interface->get_current_stat_7_item());
+  //Log::Debug["popup.cc"] << "inside PopupBox::draw_stat_7_box, item is " << item << " / " << NameResource[item];
 
   /* Draw background of chart */
   for (int iy = 0; iy < 64; iy += 16) {
@@ -1136,8 +1139,7 @@ PopupBox::draw_stat_7_box() {
     historical_data[i] = 0;
     int j = index;
     for (int k = 0; k < 9; k++) {
-      historical_data[i] += sample_weights[k]*interface->
-                              get_player()->get_resource_count_history(item)[j];
+      historical_data[i] += sample_weights[k]*interface->get_player()->get_resource_count_history(item)[j];
       j = j > 0 ? j-1 : 119;
     }
 
@@ -3591,7 +3593,10 @@ PopupBox::handle_action(int action, int x_, int /*y_*/) {
   case ACTION_STAT_7_SELECT_PINCER:
   case ACTION_STAT_7_SELECT_SWORD:
   case ACTION_STAT_7_SELECT_SHIELD:
-    interface->set_current_stat_7_item(action - ACTION_STAT_7_SELECT_FISH + 1);
+    //Log::Debug["popup.cc"] << "inside PopupBox::handle_action, type ACTION_STAT_7_SELECT_res, res type " << action - ACTION_STAT_7_SELECT_FISH << " / " << NameResource[action - ACTION_STAT_7_SELECT_FISH];
+    //interface->set_current_stat_7_item(action - ACTION_STAT_7_SELECT_FISH + 1);
+    interface->set_current_stat_7_item(action - ACTION_STAT_7_SELECT_FISH);
+    //Log::Debug["popup.cc"] << "inside PopupBox::handle_action, type ACTION_STAT_7_SELECT_res, interface current stat7 type is " << interface->get_current_stat_7_item() << " / " << NameResource[interface->get_current_stat_7_item()];
     break;
   case ACTION_ATTACKING_KNIGHTS_DEC:
     player->knights_attacking = std::max(player->knights_attacking-1, 0);
@@ -4755,6 +4760,7 @@ PopupBox::handle_stat_7_click(int cx, int cy) {
     ACTION_STAT_7_SELECT_LUMBER, 0, 75, 16, 16,
     ACTION_STAT_7_SELECT_PLANK, 16, 75, 16, 16,
     ACTION_STAT_7_SELECT_STONE, 32, 75, 16, 16,
+
     ACTION_STAT_7_SELECT_COAL, 0, 91, 16, 16,
     ACTION_STAT_7_SELECT_IRONORE, 16, 91, 16, 16,
     ACTION_STAT_7_SELECT_GOLDORE, 32, 91, 16, 16,
