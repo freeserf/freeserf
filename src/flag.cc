@@ -1353,7 +1353,7 @@ Flag::merge_paths(MapPos pos_) {
   SerfPathInfo path_1_data;
   SerfPathInfo path_2_data;
 
-  Log::Debug["flag"] << "inside merge_paths, flag removed from pos " << pos << ", about to call fill_path_serf_info ";
+  //Log::Debug["flag"] << "inside merge_paths, flag removed from pos " << pos << ", about to call fill_path_serf_info ";
   fill_path_serf_info(game, pos_, path_1_dir, &path_1_data);
   fill_path_serf_info(game, pos_, path_2_dir, &path_2_data);
 

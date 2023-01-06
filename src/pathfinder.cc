@@ -227,7 +227,7 @@ pathfinder_map(Map *map, MapPos start, MapPos end, const Road *building_road) {
 // note that this ignores terrain height heuristic
 Road
 pathfinder_freewalking_serf(Map *map, MapPos start, MapPos end, int max_dist) {
-  Log::Debug["pathfinder.cc"] << "inside pathfinder_freewalking_serf, start pos " << start << ", dest pos " << end << ", max_dist " << max_dist << ", remember this is a REVERSE SEARCH";
+ // Log::Debug["pathfinder.cc"] << "inside pathfinder_freewalking_serf, start pos " << start << ", dest pos " << end << ", max_dist " << max_dist << ", remember this is a REVERSE SEARCH";
 
   if (start == bad_map_pos || end == bad_map_pos){
     Log::Error["pathfinder.cc"] << "inside pathfinder_freewalking_serf, either start pos " << start << " or end pos " << end << " is bad_map_pos " << bad_map_pos;
@@ -431,7 +431,7 @@ pathfinder_freewalking_serf(Map *map, MapPos start, MapPos end, int max_dist) {
   }
 
   double duration = (std::clock() - start_pathfinder_freewalking_serf) / static_cast<double>(CLOCKS_PER_SEC);
-  Log::Debug["pathfinder_freewalking_serf"] << "done pathfinder_freewalking_serf, call took " << duration;
+  //Log::Debug["pathfinder_freewalking_serf"] << "done pathfinder_freewalking_serf, call took " << duration;
 
   return Road();
 }

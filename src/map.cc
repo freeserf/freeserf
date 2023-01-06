@@ -1153,7 +1153,7 @@ Map::update_environment(MapPos pos, Random *rnd) {
     //if ( map_types_within(pos, Map::TerrainGrass0, Map::TerrainGrass3) && newtype == Map::ObjectNewTree)
     //  || map_types_within(pos, Map::TerrainGrass0, Map::TerrainGrass3)
     if (types_within(p, Map::TerrainGrass0, Map::TerrainGrass3)){
-      Log::Debug["map"] << "option_TreesReproduce is on, placing a baby tree of type " << NameObject[newtype] << ", at pos " << p << ", which is near parent tree pos " << pos;
+      //Log::Debug["map"] << "option_TreesReproduce is on, placing a baby tree of type " << NameObject[newtype] << ", at pos " << p << ", which is near parent tree pos " << pos;
       set_object(p, newtype, 0);
       return;
     }

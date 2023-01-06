@@ -328,6 +328,10 @@ class AI {
   void do_demolish_excess_food_buildings();
   void do_manage_tool_priorities();
   void do_manage_mine_food_priorities();
+  void do_disconnect_or_demolish_excess_mines(std::string, Building::Type);
+  void do_disconnect_or_demolish_excess_coal_mines(); //wrapper around do_disconnect_excess_mines
+  void do_disconnect_or_demolish_excess_iron_mines(); //wrapper around do_disconnect_excess_mines
+  void do_disconnect_or_demolish_excess_gold_mines(); //wrapper around do_disconnect_excess_mines
   void do_balance_sword_shield_priorities();
   void do_attack();
   void do_manage_knight_occupation_levels();

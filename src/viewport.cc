@@ -4051,6 +4051,7 @@ Viewport::draw_ai_overlay() {
   //    got a segfault drawing this string once, I think the status string changed while iterating over its chars?
   //  got it again same day, trying questionable work-around
   //  still getting it, work-around not fixing, check Visual Studio on windows debugger
+  //  still getting it in 2023!
   frame->draw_string(65, 1, status, Color::white);
 
 /*  this is causing exceptions frequently, not sure why, disabling for now
@@ -4064,10 +4065,10 @@ Viewport::draw_ai_overlay() {
   */
 
   // draw Inventory pos
-  frame->draw_string(450, 1, "Inv " + std::to_string(ai->get_ai_inventory_pos()), Color::white);
+  frame->draw_string(0, 10, "Inv " + std::to_string(ai->get_ai_inventory_pos()), Color::white);
 
   // draw current loop count
-  frame->draw_string(800, 10, "AI loop: " + std::to_string(ai->get_loop_count()), Color::white);
+  frame->draw_string(0, 20, "AI loop: " + std::to_string(ai->get_loop_count()), Color::white);
 
 }
 
@@ -4150,11 +4151,11 @@ Viewport::draw_debug_overlay() {
 
   // draw cursor map click position
   if (debug_overlay_clicked_pos != bad_map_pos) {
-    frame->draw_string(600, 1, "clicked on " + std::to_string(debug_overlay_clicked_pos), Color::white);
+    frame->draw_string(485, 1, "clicked on " + std::to_string(debug_overlay_clicked_pos), Color::white);
   }
 
   // draw current game speed
-  frame->draw_string(800, 1, "game speed: " + std::to_string(game->get_game_speed()), Color::white);
+  frame->draw_string(685, 1, "game speed: " + std::to_string(game->get_game_speed()), Color::white);
 
 }
 

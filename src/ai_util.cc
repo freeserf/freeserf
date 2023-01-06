@@ -2969,8 +2969,8 @@ AI::score_enemy_area(MapPos center_pos, unsigned int distance) {
     if (obj == Map::ObjectCastle && map->get_owner(pos) == player_index){
       AILogDebug["util_score_enemy_area"] << "found our own castle in attack area!  scoring this area highly to reduce risk of our castle flag paths becoming blocked";
       if (obj == Map::ObjectCastle){
-        pos_value += 50;
-        //AILogDebug["util_score_enemy_area"] << "adding attack value 20 for enemy castle at pos " << pos;
+        pos_value += 75;
+        //AILogDebug["util_score_enemy_area"] << "adding attack value 75 for enemy building near our own castle at pos " << pos;
         continue;
       }
     }
