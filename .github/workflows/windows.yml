@@ -17,7 +17,7 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
         with:
           submodules: 'recursive'
 
@@ -29,9 +29,9 @@ jobs:
       - name: Install dependencies
         uses: lukka/run-vcpkg@v7.3
         with:
-          vcpkgGitCommitId: '44d94c2edbd44f0c01d66c2ad95eb6982a9a61bc'
+          vcpkgGitCommitId: '12c2a93b4007612b5ffa980c9d2235eb0bcac10f'
           vcpkgTriplet: ${{ matrix.architecture }}-windows
-          vcpkgArguments: 'sdl2 sdl2-mixer[core,dynamic-load,libmodplug,nativemidi] sdl2-image'
+          vcpkgArguments: 'sdl2 sdl2-mixer[core,libmodplug,nativemidi] sdl2-image'
 
       - name: Configure FreeSerf
         run: |
@@ -56,7 +56,7 @@ jobs:
           nmake package
 
       - name: Upload artifact
-        uses: actions/upload-artifact@v1
+        uses: actions/upload-artifact@v3
         with:
           name: FreeSerf-${{ matrix.architecture }}-${{ matrix.buildtype }}
           path: ./build/FreeSerf-${{ matrix.architecture }}-${{ matrix.buildtype }}.exe
