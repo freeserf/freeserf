@@ -1,7 +1,8 @@
-cmake_minimum_required(VERSION 3.1 FATAL_ERROR)
+cmake_minimum_required(VERSION 3.14 FATAL_ERROR)
 
 find_package(Threads REQUIRED)
 
+cmake_policy(SET CMP0135 NEW)
 include(ExternalProject)
 ExternalProject_Add(googletest
                     URL https://github.com/google/googletest/archive/release-1.12.1.tar.gz
