@@ -498,7 +498,7 @@ AI::plot_road(PMap map, unsigned int player_index, MapPos start_pos, MapPos end_
   //AILogDebug["plot_road"] << "plot_road call considered " << pos_considered << " MapPos, took " << duration;
   //AILogDebug["plot_road"] << "plot_road call with start_pos " << start_pos << ", end_pos " << end_pos << ", considered " << total_pos_considered << " MapPos, took " << duration << ", cache_hits " << cache_hits << ", cache_hit_ratio " << cache_hit_ratio << "%";
   //AILogDebug["plot_road"] << "plot_road call with start_pos " << start_pos << ", end_pos " << end_pos << ", considered " << total_pos_considered << " MapPos, took " << duration << ", pos_per_sec " << pos_per_second << "k/sec";
-  AILogDebug["plot_road"] << "plot_road call with start_pos " << start_pos << ", end_pos " << end_pos << ", considered " << total_pos_considered << " MapPos, took " << duration;
+  AILogDebug["plot_road"] << "plot_road call with start_pos " << start_pos << ", end_pos " << end_pos << ", considered " << total_pos_considered << " MapPos, took " << duration << ", NOTE THAT IT MAY SLEEP FOR LONG SOLUTIONS";
 
   //sleep_speed_adjusted(2000);
   return direct_road;
@@ -1120,7 +1120,7 @@ AI::identify_arterial_roads(PMap map){
 
   AILogDebug["util_identify_arterial_roads"] << "inside AI::identify_arterial_roads";
   // time this function for debugging
-  std::clock_t start;
+  std::clock_t start = std::clock();
   double duration;
 
   // store the number of times each flag appears in the best path to the
@@ -1391,7 +1391,6 @@ AI::identify_arterial_roads(PMap map){
     AILogDebug["util_identify_arterial_roads"] << "done retracing solutions - Inventory at pos " << inv_flag_pos << " has a path in Dir " << NameDirection[dir] << " / " << dir;
   }
 
-  start = std::clock();
   duration = (std::clock() - start) / static_cast<double>(CLOCKS_PER_SEC);
   AILogDebug["util_identify_arterial_roads"] << "done AI::identify_arterial_roads, call took " << duration;
 }

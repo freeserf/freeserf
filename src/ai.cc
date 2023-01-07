@@ -181,7 +181,7 @@ AI::next_loop(){
   //      rather it should be done after first few buildings/roads placed
   //-----------------------------------------------------------
 
-  do_connect_disconnected_flags(); // except unfinished mines
+  do_connect_disconnected_flags(); // except mines
   do_connect_disconnected_road_networks();
   do_build_better_roads_for_important_buildings();  // is this working?  I still see pretty inefficient roads for important buildings
   do_pollute_castle_area_roads_with_flags(); // CHANGE THIS TO USE ARTERIAL ROADS  (nah, it works well enough as it is, do that later)
@@ -220,6 +220,7 @@ AI::next_loop(){
     do_build_sawmill_lumberjacks(); sleep_speed_adjusted(1000);  // crash here?  after do_build_sawmill_lumberjacks returned, bad malloc error
 
     if(do_can_build_knight_huts())
+      do_remove_road_stubs();  // run this again to minimize creation of daisy-chained knight hut paths that can no longer qualify as stubs
       expand_borders(); sleep_speed_adjusted(1000);
 
     // PLACE MINES EARLY - but do not connect them to roads so they do not actually get built until later
@@ -479,7 +480,7 @@ AI::do_update_clear_reset() {
 
 void
 AI::do_get_serfs() {
-  ai_status.assign("do_get_serfs");
+  //ai_status.assign("do_get_serfs");  // don't set this status because it is called by at least one other function
   // time this function for debugging
   std::clock_t start;
   double duration;
@@ -487,7 +488,7 @@ AI::do_get_serfs() {
 
   AILogDebug["do_get_serfs"] << "inside do_get_serfs";
   AILogDebug["do_get_serfs"] << "getting serfs";
-  mutex_lock("AI::do_get_sefs getting serfs at AI loop start");
+  mutex_lock("AI::do_get_serfs getting serfs at AI loop start");
   serfs_idle = player->get_stats_serfs_idle();
   serfs_potential = player->get_stats_serfs_potential();
   serfs_total = player->get_serfs();
@@ -618,9 +619,9 @@ AI::do_connect_disconnected_flags() {
       if ((flag->get_building()->get_type() == Building::TypeCoalMine
         || flag->get_building()->get_type() == Building::TypeIronMine
         || flag->get_building()->get_type() == Building::TypeGoldMine
-        || flag->get_building()->get_type() == Building::TypeStoneMine)
-        && !flag->get_building()->is_done()) {
-        AILogDebug["do_connect_disconnected_flags"] << "disconnected flag at pos " << flag->get_position() << " is attached to an incomplete Mine, skipping - it will be dealt with later";
+        || flag->get_building()->get_type() == Building::TypeStoneMine)){
+        //&& !flag->get_building()->is_done()) {  // removing the "is_done" check now that excess mines may be disconnected rather than demolished
+        AILogDebug["do_connect_disconnected_flags"] << "disconnected flag at pos " << flag->get_position() << " is attached to Mine, skipping - it will be dealt with later";
         continue;
       }
       if (flag->get_building()->get_type() == Building::TypeForester &&
@@ -1016,10 +1017,10 @@ AI::do_fix_stuck_serfs() {
         //throw ExceptionFreeserf("SerfWaitTimer detected WAIT_IDLE_ON_PATH STUCK SERF at pos - I THOUGHT I FIXED THIS");
 
         // don't erase timer if problem isn't fixed yet, keep checking each AI loop
-        //AILogWarn["do_fix_stuck_serfs"] << "WARNING - SerfWaitTimer attempting to set serf to lost state, updating marking to purple";
-        //ai_mark_pos.erase(serf->get_pos());
-        //ai_mark_pos.insert(ColorDot(serf->get_pos(), "purple"));
-        //game->pause();
+        AILogWarn["do_fix_stuck_serfs"] << "WARNING - SerfWaitTimer attempting to set serf to lost state, updating marking to purple";
+        ai_mark_pos.erase(serf->get_pos());
+        ai_mark_pos.insert(ColorDot(serf->get_pos(), "purple"));
+        game->pause();
         
         Serf::Type serf_job = serf->get_type();
         // got a nullptr here for flag->get_position, maybe break it up and mutex lock?
@@ -2207,19 +2208,9 @@ AI::do_demolish_excess_lumberjacks() {
   ai_status.assign("do_demolish_excess_lumberjacks");
   if(get_stock_inv() == nullptr)
     return;
-
   int lumberjack_count = stock_building_counts.at(inventory_pos).count[Building::TypeLumberjack];
-
-  //unsigned int wood_count = get_stock_inv()->get_count_of(Resource::TypePlank) + stock_res_sitting_at_flags.at(inventory_pos)[Resource::TypePlank];
-  //wood_count += get_stock_inv()->get_count_of(Resource::TypeLumber) + stock_res_sitting_at_flags.at(inventory_pos)[Resource::TypeLumber];
-  //if (wood_count >= (planks_max + anti_flapping_buffer) && lumberjack_count > 1) {
-  
-  AILogDebug["do_demolish_excess_lumberjacks"] << inventory_pos << " inside do_demolish_excess_lumberjacks, needs_wood bool is " << stock_building_counts.at(inventory_pos).needs_wood;
-  AILogDebug["do_demolish_excess_lumberjacks"] << inventory_pos << " inside do_demolish_excess_lumberjacks, lumberjack count is " << lumberjack_count;
-
-  if (stock_building_counts.at(inventory_pos).needs_wood == false && lumberjack_count > 1) {
-    
-    AILogDebug["do_demolish_excess_lumberjacks"] << inventory_pos << " planks_max reached and lumberjack_count is " << lumberjack_count << ".  Burning all but one lumberjack (nearest to this stock)";
+  if (stock_building_counts.at(inventory_pos).excess_wood == true && lumberjack_count > 1) {
+    AILogDebug["do_demolish_excess_lumberjacks"] << inventory_pos << " excess_wood true and lumberjack_count is " << lumberjack_count << ".  Burning all but one lumberjack (nearest to this stock)";
     bool first_one_found = false;
     Game::ListBuildings buildings = game->get_player_buildings(player);
     for (Building *building : buildings) {
@@ -2263,8 +2254,8 @@ AI::do_demolish_excess_foresters() {
   //wood_count += get_stock_inv()->get_count_of(Resource::TypeLumber) + stock_res_sitting_at_flags.at(inventory_pos)[Resource::TypeLumber];
   //if (wood_count >= (planks_max + anti_flapping_buffer)) {
 
-  if (stock_building_counts.at(inventory_pos).needs_wood != true){
-    AILogDebug["do_demolish_excess_foresters"] << inventory_pos << " planks_max reached.  Burning any forester that has few open positions nearby";
+  if (stock_building_counts.at(inventory_pos).excess_wood == true){
+    AILogDebug["do_demolish_excess_foresters"] << inventory_pos << " excess_wood true.  Burning any forester that has few open positions nearby";
     Game::ListBuildings buildings = game->get_player_buildings(player);
     for (Building *building : buildings) {
       if (building == nullptr || building->get_type() != Building::TypeForester)
@@ -2318,50 +2309,10 @@ void
 AI::do_demolish_excess_food_buildings() {
   AILogDebug["do_demolish_excess_food_buildings"] << inventory_pos << " inside do_demolish_excess_food_buildings for stock at pos " << inventory_pos;
   ai_status.assign("do_demolish_excess_food_buildings");
-  unsigned int stored_food_count = 0;
-  // most important are read-to-use food items stored in Inventory
   if(get_stock_inv() == nullptr)
     return;
-  stored_food_count += get_stock_inv()->get_count_of(Resource::TypeBread) + stock_res_sitting_at_flags.at(inventory_pos)[Resource::TypeBread];
-  stored_food_count += get_stock_inv()->get_count_of(Resource::TypeMeat) + stock_res_sitting_at_flags.at(inventory_pos)[Resource::TypeMeat];
-  stored_food_count += get_stock_inv()->get_count_of(Resource::TypeFish) + stock_res_sitting_at_flags.at(inventory_pos)[Resource::TypeFish];
-  // include pigs, wheat, and flour because they ultimately will become food, but cap the amount they can contribute to the total
-  //  to avoid situation where the processing buildings are missing
-  unsigned int potential_food_count = 0;
-  potential_food_count += get_stock_inv()->get_count_of(Resource::TypePig) + stock_res_sitting_at_flags.at(inventory_pos)[Resource::TypePig];
-  potential_food_count += get_stock_inv()->get_count_of(Resource::TypeWheat) + stock_res_sitting_at_flags.at(inventory_pos)[Resource::TypeWheat];
-  potential_food_count += get_stock_inv()->get_count_of(Resource::TypeFlour) + stock_res_sitting_at_flags.at(inventory_pos)[Resource::TypeFlour];
-  if (potential_food_count > ((food_max + 1) / 2)){
-    AILogDebug["do_demolish_excess_food_buildings"] << inventory_pos << " capping contribution of potential_food_count to half of food_max";
-    potential_food_count = (food_max + 1) / 2;
-  }
-  // include food and potential food sitting at flags nearby, but cap the amount they can contribute to the total
-  //   in case they are stock in congestion or some other problem
-  unsigned int food_at_flags = 0;
-  food_at_flags += stock_res_sitting_at_flags.at(inventory_pos)[Resource::TypeBread];
-  food_at_flags += stock_res_sitting_at_flags.at(inventory_pos)[Resource::TypeMeat];
-  food_at_flags += stock_res_sitting_at_flags.at(inventory_pos)[Resource::TypeFish];
-  food_at_flags += stock_res_sitting_at_flags.at(inventory_pos)[Resource::TypePig];
-  food_at_flags += stock_res_sitting_at_flags.at(inventory_pos)[Resource::TypeWheat];
-  food_at_flags += stock_res_sitting_at_flags.at(inventory_pos)[Resource::TypeFlour];
-  if (food_at_flags > ((food_max + 1) / 2)){
-    AILogDebug["do_demolish_excess_food_buildings"] << inventory_pos << " capping contribution of food_at_flags to half of food_max";
-    food_at_flags = (food_max + 1) / 2;
-  }
-
-  unsigned int adjusted_food_count = stored_food_count;
-  if (food_at_flags + potential_food_count > ((food_max + 1) / 3)*2 ){
-    // the COMBINED contribution of potential food and food-at-flags can't be more than 75% of food_max
-    AILogDebug["do_demolish_excess_food_buildings"] << inventory_pos << " capping combined contribution of potential_food_count and food_at_flags to 66% of food_max";
-    adjusted_food_count += ((food_max + 1) / 3)*2;
-  }else{
-    // not capped
-    adjusted_food_count += food_at_flags + potential_food_count;
-  }
-  AILogDebug["do_demolish_excess_food_buildings"] << inventory_pos << " debug: stored_food_count " << stored_food_count << ", potential_food_count " << potential_food_count << ", food_at_flags " << food_at_flags << ", adjusted_food_count " << adjusted_food_count << ", food_max " << food_max;
-  AILogDebug["do_demolish_excess_food_buildings"] << inventory_pos << " adjusted food_count at inventory_pos " << inventory_pos << ": " << adjusted_food_count;
-  if (adjusted_food_count > (food_max + anti_flapping_buffer)) {
-    AILogDebug["do_demolish_excess_food_buildings"] << inventory_pos << " food_max reached at inventory_pos " << inventory_pos << ", burning all food buildings attached to this stock";
+  if (stock_building_counts.at(inventory_pos).excess_foods == true){
+    AILogDebug["do_demolish_excess_food_buildings"] << inventory_pos << " excess_foods is true, burning all food buildings attached to this stock";
     Game::ListBuildings buildings = game->get_player_buildings(player);
     for (Building *building : buildings) {
       if (building == nullptr)
@@ -2381,7 +2332,7 @@ AI::do_demolish_excess_food_buildings() {
     }
   }
   else {
-    AILogDebug["do_demolish_excess_food_buildings"] << inventory_pos << " food_max not yet reached at inventory_pos " << inventory_pos << ", skipping";
+    AILogDebug["do_demolish_excess_food_buildings"] << inventory_pos << " excess_foods not yet reached at inventory_pos " << inventory_pos << ", skipping";
   }
   AILogDebug["do_demolish_excess_food_buildings"] << inventory_pos << " done do_demolish_excess_food_buildings";
 }
@@ -2443,8 +2394,8 @@ void
 AI::do_disconnect_or_demolish_excess_coal_mines() {
   ai_status.assign("do_disconnect_or_demolish_excess_coal_mines");
   AILogDebug["do_disconnect_or_demolish_excess_coal_mines"] << inventory_pos << " inside do_disconnect_or_demolish_excess_coal_mines()";
-  if (!stock_building_counts.at(inventory_pos).needs_coal) {
-    AILogDebug["do_disconnect_or_demolish_excess_coal_mines"] << inventory_pos << " needs_coal is false, calling do_disconnect_or_demolish_excess_mines()";
+  if (stock_building_counts.at(inventory_pos).excess_coal) {
+    AILogDebug["do_disconnect_or_demolish_excess_coal_mines"] << inventory_pos << " excess_wood is true, calling do_disconnect_or_demolish_excess_mines()";
     do_disconnect_or_demolish_excess_mines("coal", Building::TypeCoalMine);
   }else {
     AILogDebug["do_disconnect_or_demolish_excess_coal_mines"] << inventory_pos << " needs more coal and/or coal buildings, skipping";
@@ -2456,8 +2407,8 @@ void
 AI::do_disconnect_or_demolish_excess_iron_mines() {
   ai_status.assign("do_disconnect_or_demolish_excess_iron_mines");
   AILogDebug["do_disconnect_or_demolish_excess_iron_mines"] << inventory_pos << " inside do_disconnect_or_demolish_excess_iron_mines()";
-  if (!stock_building_counts.at(inventory_pos).needs_iron_ore) {
-    AILogDebug["do_disconnect_or_demolish_excess_iron_mines"] << inventory_pos << " needs_iron is false, calling do_disconnect_or_demolish_excess_mines()";
+  if (stock_building_counts.at(inventory_pos).excess_iron_ore) {
+    AILogDebug["do_disconnect_or_demolish_excess_iron_mines"] << inventory_pos << " excess_iron_ore is true, calling do_disconnect_or_demolish_excess_mines()";
     do_disconnect_or_demolish_excess_mines("iron", Building::TypeIronMine);
   }else {
     AILogDebug["do_disconnect_or_demolish_excess_iron_mines"] << inventory_pos << " needs more iron and/or iron buildings, skipping";
@@ -2469,8 +2420,8 @@ void
 AI::do_disconnect_or_demolish_excess_gold_mines() {
   ai_status.assign("do_disconnect_or_demolish_excess_gold_mines");
   AILogDebug["do_disconnect_or_demolish_excess_gold_mines"] << inventory_pos << " inside do_disconnect_or_demolish_excess_gold_mines()";
-  if (!stock_building_counts.at(inventory_pos).needs_gold_ore) {
-    AILogDebug["do_disconnect_or_demolish_excess_gold_mines"] << inventory_pos << " needs_gold is false, calling do_disconnect_or_demolish_excess_mines()";
+  if (stock_building_counts.at(inventory_pos).excess_gold_ore) {
+    AILogDebug["do_disconnect_or_demolish_excess_gold_mines"] << inventory_pos << " excess_gold_ore is true, calling do_disconnect_or_demolish_excess_mines()";
     do_disconnect_or_demolish_excess_mines("gold", Building::TypeGoldMine);
   }else {
     AILogDebug["do_disconnect_or_demolish_excess_gold_mines"] << inventory_pos << " needs more gold and/or gold buildings, skipping";
@@ -3309,6 +3260,10 @@ AI::do_build_toolmaker_steelsmelter() {
 void
 AI::do_build_food_buildings() {
   AILogDebug["do_build_food_buildings"] << inventory_pos << " Main Loop - food";
+  // time this function for debugging
+  std::clock_t start;
+  double duration;
+  start = std::clock();
   ai_status.assign("do_build_food_buildings");
 
   if (!stock_building_counts.at(inventory_pos).needs_foods){
@@ -3544,6 +3499,8 @@ AI::do_build_food_buildings() {
       farm_centers.erase(farm_centers.begin(), farm_centers.begin() + 1);
       // add current inventory_pos back to the end
       farm_centers.push_back(inventory_pos);
+      // NOTE - this should really be a sorted list of military building centers based on their distance from the farm
+      //  so that it at least uses a relatively close fallback if it cannot build right near the farm
 
       MapPosSet count_by_corner;
       for (MapPos center_pos : farm_centers) {
@@ -3593,12 +3550,22 @@ AI::do_build_food_buildings() {
   //   in waiting for wheat fields results in unacceptable road congestion and poor
   //   road connections between the mill/baker and wheat farm sometimes
   if (farm_count >= 1) {
+
+    // append occupied_military_pos list as a fallback in case these could not be placed
+    //  near existing farm buildings
+    MapPosVector centers = stock_building_counts.at(inventory_pos).occupied_military_pos;
+    // remove first element, which is always inv-flag/castle_pos  (NOT castle_flag_pos, which might make more sense)
+    centers.erase(centers.begin(), centers.begin() + 1);
+    // add current inventory_pos back to the end
+    centers.push_back(inventory_pos);
+    farm_buildings.insert(farm_buildings.end(), centers.begin(), centers.end());
+
+    // build grain mill
     for (MapPos farm_building_pos : farm_buildings){
-      // build grain mill
       if (stock_building_counts.at(inventory_pos).count[Building::TypeMill] < 1) {
         MapPos built_pos = bad_map_pos;
-        AILogDebug["do_build_food_buildings"] << inventory_pos << " try to build grain mill near farm_building at pos " << farm_pos;
-        built_pos = AI::build_near_pos(farm_pos, AI::spiral_dist(12), Building::TypeMill);
+        AILogDebug["do_build_food_buildings"] << inventory_pos << " try to build grain mill near farm_building (or fallback center) at pos " << farm_building_pos;
+        built_pos = AI::build_near_pos(farm_building_pos, AI::spiral_dist(12), Building::TypeMill);
         if (built_pos != bad_map_pos && built_pos != notplaced_pos) {
           AILogDebug["do_build_food_buildings"] << inventory_pos << " built grain mill at pos " << built_pos;
           stock_building_counts.at(inventory_pos).count[Building::TypeMill]++;
@@ -3608,8 +3575,8 @@ AI::do_build_food_buildings() {
       // build bakery
       if (stock_building_counts.at(inventory_pos).count[Building::TypeBaker] < 1) {
         MapPos built_pos = bad_map_pos;
-        AILogDebug["do_build_food_buildings"] << inventory_pos << " try to build bakery near farm at pos " << farm_pos;
-        built_pos = AI::build_near_pos(farm_pos, AI::spiral_dist(12), Building::TypeBaker);
+        AILogDebug["do_build_food_buildings"] << inventory_pos << " try to build bakery near farm (or fallback center) at pos " << farm_building_pos;
+        built_pos = AI::build_near_pos(farm_building_pos, AI::spiral_dist(12), Building::TypeBaker);
         if (built_pos != bad_map_pos && built_pos != notplaced_pos) {
           AILogDebug["do_build_food_buildings"] << inventory_pos << " built bakery at pos " << built_pos;
           stock_building_counts.at(inventory_pos).count[Building::TypeBaker]++;
@@ -3619,6 +3586,8 @@ AI::do_build_food_buildings() {
     } // foreach farm_building
   } // if any wheat farms, build mill and baker
   
+  duration = (std::clock() - start) / static_cast<double>(CLOCKS_PER_SEC);
+  AILogDebug["do_build_food_buildings"] << "done AI::do_build_food_buildings, call took " << duration;
 } // end do_build_food_buildings
 
 
@@ -4376,9 +4345,9 @@ AI::do_check_resource_needs(){
     wood_count += get_stock_inv()->get_count_of(Resource::TypeLumber) + stock_res_sitting_at_flags.at(inventory_pos)[Resource::TypeLumber];
   }
 
-  //if (wood_count < planks_max) {
   stock_building_counts.at(inventory_pos).needs_wood = false;
-  if (wood_count < (planks_max + anti_flapping_buffer)) {
+  stock_building_counts.at(inventory_pos).excess_wood = false;
+  if (wood_count < planks_max) {
     AILogDebug["do_check_resource_needs"] << inventory_pos << " desire more wood";
     stock_building_counts.at(inventory_pos).needs_wood = true;
     //if (stock_building_counts.at(inventory_pos).count[Building::TypeSawmill] < 1 || stock_building_counts.at(inventory_pos).count[Building::TypeLumberjack] < 2) {
@@ -4386,6 +4355,9 @@ AI::do_check_resource_needs(){
     //  stock_building_counts.at(inventory_pos).needs_wood = true;
       expand_towards.insert("trees");
     //}
+  }else if (wood_count > planks_max + anti_flapping_buffer) {
+    AILogDebug["do_check_resource_needs"] << inventory_pos << " has excess wood, should stop production";
+    stock_building_counts.at(inventory_pos).excess_wood = true;
   }
 
   //
@@ -4395,6 +4367,7 @@ AI::do_check_resource_needs(){
   //unsigned int stones_count = get_stock_inv()->get_count_of(Resource::TypeStone) + stock_res_sitting_at_flags.at(inventory_pos)[Resource::TypeStone];
   unsigned int stones_count = get_stock_inv()->get_count_of(Resource::TypeStone);
   stock_building_counts.at(inventory_pos).needs_stone = false;
+  stock_building_counts.at(inventory_pos).excess_stone = false;
   if (stones_count < stones_max) {
     AILogDebug["do_check_resource_needs"] << inventory_pos << " desire more stones";
     stock_building_counts.at(inventory_pos).needs_stone = true;
@@ -4403,6 +4376,9 @@ AI::do_check_resource_needs(){
     //  stock_building_counts.at(inventory_pos).needs_stone = true;
       expand_towards.insert("stones");
     //}
+  }else if (stones_count > stones_max + anti_flapping_buffer) {
+    AILogDebug["do_check_resource_needs"] << inventory_pos << " has excess stones, should stop production";
+    stock_building_counts.at(inventory_pos).excess_stone = true;
   }
 
   //
@@ -4466,6 +4442,8 @@ AI::do_check_resource_needs(){
   }
   //AILogDebug["do_check_resource_needs"] << inventory_pos << " debug: stored_food_count " << stored_food_count << ", potential_food_count " << potential_food_count << ", food_at_flags " << food_at_flags << ", adjusted_food_count " << adjusted_food_count << ", food_max " << food_max;
   //AILogDebug["do_check_resource_needs"] << inventory_pos << " adjusted food_count at inventory_pos " << inventory_pos << ": " << adjusted_food_count;
+  stock_building_counts.at(inventory_pos).needs_foods = false;
+  stock_building_counts.at(inventory_pos).excess_foods = false;
   if (adjusted_food_count < food_max) {
     AILogDebug["do_check_resource_needs"] << inventory_pos << " desire more food";
     // don't check for food buildings because the do_food_buildings function does, and the checks are too complex to move into here
@@ -4474,6 +4452,9 @@ AI::do_check_resource_needs(){
       stock_building_counts.at(inventory_pos).needs_foods = true;
       expand_towards.insert("foods");
     //}
+  }else if (adjusted_food_count > food_max + anti_flapping_buffer) {
+    AILogDebug["do_check_resource_needs"] << inventory_pos << " has excess foods, should stop production";
+    stock_building_counts.at(inventory_pos).excess_foods = true;
   }
 
 
@@ -4483,6 +4464,8 @@ AI::do_check_resource_needs(){
   if(get_stock_inv() == nullptr)
     return;
   unsigned int coal_count = get_stock_inv()->get_count_of(Resource::TypeCoal) + stock_res_sitting_at_flags.at(inventory_pos)[Resource::TypeCoal];
+  stock_building_counts.at(inventory_pos).needs_coal = false;
+  stock_building_counts.at(inventory_pos).excess_coal = false;
   if (coal_count < coal_max) {
     AILogDebug["do_check_resource_needs"] << inventory_pos << " desire more coal";
     stock_building_counts.at(inventory_pos).needs_coal = true;
@@ -4492,7 +4475,11 @@ AI::do_check_resource_needs(){
       expand_towards.insert("hills");
       expand_towards.insert("coal");
     //}
+  }else if (coal_count > coal_max + anti_flapping_buffer) {
+    AILogDebug["do_check_resource_needs"] << inventory_pos << " has excess coal, should stop production";
+    stock_building_counts.at(inventory_pos).excess_coal = true;
   }
+
 
 
   //
@@ -4502,6 +4489,8 @@ AI::do_check_resource_needs(){
   if(get_stock_inv() == nullptr)
     return;
   unsigned int steel_count = get_stock_inv()->get_count_of(Resource::TypeSteel) + stock_res_sitting_at_flags.at(inventory_pos)[Resource::TypeSteel];
+  stock_building_counts.at(inventory_pos).needs_iron_ore = false;
+  stock_building_counts.at(inventory_pos).excess_iron_ore = false;
   if (steel_count < steel_max){
     AILogDebug["do_check_resource_needs"] << inventory_pos << " desire more steel";
     //if (stock_building_counts.at(inventory_pos).count[Building::TypeSteelSmelter] < 1) {
@@ -4518,8 +4507,12 @@ AI::do_check_resource_needs(){
         expand_towards.insert("hills");
         expand_towards.insert("iron");
       //}
+    }else if (iron_ore_count > iron_ore_max + anti_flapping_buffer) {
+      AILogDebug["do_check_resource_needs"] << inventory_pos << " has excess iron ore, should stop production";
+      stock_building_counts.at(inventory_pos).excess_iron_ore = true;
     }
   }
+
 
 
   //
@@ -4532,6 +4525,8 @@ AI::do_check_resource_needs(){
   if(get_stock_inv() == nullptr)
     return;
   unsigned int gold_ore_count = get_stock_inv()->get_count_of(Resource::TypeGoldOre) + stock_res_sitting_at_flags.at(inventory_pos)[Resource::TypeGoldOre];
+  stock_building_counts.at(inventory_pos).needs_gold_ore = false;
+  stock_building_counts.at(inventory_pos).excess_gold_ore = false;
   if (gold_ore_count < gold_ore_max) {
     AILogDebug["do_check_resource_needs"] << inventory_pos << " desire more gold ore";
     stock_building_counts.at(inventory_pos).needs_gold_ore = true;
@@ -4541,8 +4536,10 @@ AI::do_check_resource_needs(){
       expand_towards.insert("hills");
       expand_towards.insert("gold");
     //}
+  }else if (gold_ore_count > gold_ore_max + anti_flapping_buffer) {
+    AILogDebug["do_check_resource_needs"] << inventory_pos << " has excess gold ore, should stop production";
+    stock_building_counts.at(inventory_pos).excess_gold_ore = true;
   }
-
 }
 
 

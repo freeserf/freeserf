@@ -1207,8 +1207,13 @@ change_transporter_state_at_pos(Game *game, MapPos pos, Serf::State state) {
   for (Serf *serf : game->get_serfs_at_pos(pos)) {
     // originally this function was trying to call change_transporter_state_at_pos on ANY serf
     //  at the post that had one of the four wait states, occasionally causing non-transporters to become stuck forever
-    if (!serf->get_type() == Serf::TypeTransporter)
-      continue;
+    // WAIT, by why would this ever be called on a non-transporter?  maybe this check is masking another bug
+    if (serf->get_type() != Serf::TypeTransporter){
+      //  continue;
+      Log::Warn["flag.cc"] << "inside change_transporter_state_at_pos, a non-transporter serf of type " << serf->get_type() << " is being targeted by this transporter-specific call, find out why!";
+      game->set_debug_mark_pos(pos, "green");
+      game->pause();
+    }
     if (serf->change_transporter_state_at_pos(pos, state)) {
       return serf->get_index();
     }
@@ -1280,7 +1285,7 @@ Flag::fill_path_serf_info(Game *game, MapPos pos, Direction dir,
     /* Check if there is a transporter waiting here. */
     if (map->get_idle_serf(pos)) {
       //Log::Info["flag"] << "debug: calling wake_transporter_on_path for pos " << pos;
-      // this is the only place where a serf can enter into StateWakeOnPath
+      // this is the only place where a serf can enter into StateWakeOnPath, which leads to StateWaitIdleOnPath
       int index = wake_transporter_on_path(game, pos);
       if (index >= 0) data->serfs[serf_count++] = index;
     }

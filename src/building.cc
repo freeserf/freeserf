@@ -41,6 +41,7 @@ Building::Building(Game *game, unsigned int index)
   owner = 0;
   serf_requested = false;
   serf_request_failed = false;
+  //serf_req_timeout_tick = 0;
   burning = false;
   active = false;
   holder = false;
@@ -1138,10 +1139,39 @@ Building::request_serf_if_needed() {
     {Serf::TypeNone       , Resource::TypeNone   , Resource::TypeNone  },
   };
 
+  /*
+
+  SO, the problem I was trying to solve here was a building not being completed.  It looks like the building thinks it has a holder,
+  and the holder is a Digger to level the site.  However the digger is nowhere to be found, he probably became Lost and didn't clear
+  the building so that another could be requested.  I think this is a known issue of the stuck serf booting logic, and should be fixed
+  there.  The problem with trying to catch this after the fact is that as far as I know there is no Serf variable that stores the
+  building that the serf is holder to.  So to determine if a serf is missing, a check would have to be done to find the serf, but for
+  serfs that FreeWalk around it would require checking the serfs dest_col/row or neg_dist values to determine which pos it is going to
+  or from to try to determine if there is actually a serf working there.  This seems fairly difficult.  I think a better approach is to
+  add a variable to each Serf that indicates what building he is currently holder to, and updating it any time it changes.  This can be
+  used a cross-reference to detect missing serfs.  
+
+
+  // check any existing timeout
+  if (serf_req_timeout_tick > 0){
+    Log::Debug["building.cc"] << "inside Building::request_serf_if_needed(), a serf request timeout is set for this building of type " << NameBuilding[get_type()] << " at pos " << get_position();
+    if (game->get_tick() > serf_req_timeout_tick){
+      Log::Warn["building.cc"] << "inside Building::request_serf_if_needed(), triggering serf request timeout for building of type " << NameBuilding[get_type()] << " at pos " << get_position() << "!";
+      game->pause();
+    }
+  }
+  */
+
   if (!serf_request_failed && !holder && !serf_requested) {
     if (requests[type].serf_type != Serf::TypeNone) {
       //Log::Debug["building.cc"] << "inside Building::request_serf_if_needed(), found a request of serf_type " << NameSerf[requests[type].serf_type] << ", calling send_serf_to_building to this building of type " << NameBuilding[get_type()] << " at pos " << get_position();
       serf_request_failed = !send_serf_to_building(requests[type].serf_type, requests[type].res_type_1, requests[type].res_type_2);
+
+      /*
+      // set expiration tick, add a minimum tick timeout padding so short roads don't timeout so easily
+      //  using 21 as "dist_from_inv" based on some other function that sets timeouts without knowing distance from inv
+      serf_req_timeout_tick = game->get_tick() + (21 * TIMEOUT_SECS_PER_TILE * 1000/tick_length);
+      */
     }
   }
 }

@@ -115,6 +115,7 @@ class Building : public GameObject {
   bool playing_sfx;
   bool serf_request_failed;
   bool serf_requested;
+  //int serf_req_timeout_tick;  // adding support for serf request timeouts/retries
   bool burning;
   bool active;
   bool holder;

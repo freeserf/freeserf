@@ -484,9 +484,9 @@ Player::available_knights_at_pos(MapPos pos, int index_, int dist) {
   //  option_CheckPathBeforeAttack
   MapPos start_pos = map->move_down_right(pos);
   // note that pathfinder_freewalking_serf will reject road solutions that are too long!  
-  std::clock_t pathfinder_free_start = std::clock();
+  //std::clock_t pathfinder_free_start = std::clock();
   Road freewalking_route = pathfinder_freewalking_serf(game->get_map().get(), start_pos, attacked_building_flag_pos, 100);
-  Log::Debug["player.cc"] << "inside Player::available_knights_at_pos, this pathfinder_freewalking_serf call took " << (std::clock() - pathfinder_free_start) / static_cast<double>(CLOCKS_PER_SEC);;
+  //Log::Debug["player.cc"] << "inside Player::available_knights_at_pos, this pathfinder_freewalking_serf call took " << (std::clock() - pathfinder_free_start) / static_cast<double>(CLOCKS_PER_SEC);;
 
   if (freewalking_route.get_length() > 0){
     //game->set_debug_mark_road(freewalking_route);

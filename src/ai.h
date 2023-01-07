@@ -286,12 +286,19 @@ class AI {
     int unfinished_count;
     int unfinished_hut_count;
     bool needs_wood = false;
+    bool excess_wood = false;
     bool needs_stone = false;
+    bool excess_stone = false;
     bool needs_foods = false;
+    bool excess_foods = false;
     bool needs_steel = false;
+    bool excess_steel = false;
     bool needs_coal = false;
+    bool excess_coal = false;
     bool needs_iron_ore = false;
+    bool excess_iron_ore = false;
     bool needs_gold_ore = false;
+    bool excess_gold_ore = false;
     MapPosVector occupied_military_pos;
   };
 
@@ -432,7 +439,7 @@ static const unsigned int iron_ore_min = 10; // don't build blacksmith if under 
 static const unsigned int iron_ore_max = 25; // don't build iron mine if over this value, don't give food to mine over this value
 static const unsigned int gold_ore_min = 10;    // don't build gold smelter if under this value and no gold min.  Also, de-prioritize gold miner's food supply if over this value
 static const unsigned int gold_ore_max = 35;  // don't build gold mine over this value (is this implemented?),   don't give food to mine over this value
-static const unsigned int hills_min = 9;   // don't send geologists unless substantial hills
+static const unsigned int hills_min = 4;   // don't send geologists unless substantial hills  I think this is misguided, resources can be found in even small hills
 static const unsigned int waters_min = 16;  // don't build fisherman unless substantial waters
 static const unsigned int hammers_min = 6; // don't create geologists unless this many hammers in reserve
 static const unsigned int geologists_max = 2; // UPDATE this is now not a fixed value at all, it is now: 2+(geologists_max*number of Inventories (castle/stock))

@@ -235,7 +235,7 @@ pathfinder_freewalking_serf(Map *map, MapPos start, MapPos end, int max_dist) {
   }
 
   // time this function for debugging
-  std::clock_t start_pathfinder_freewalking_serf = std::clock();
+  //std::clock_t start_pathfinder_freewalking_serf = std::clock();
 
   std::vector<PSearchNode> open;
   std::list<PSearchNode> closed;
@@ -323,7 +323,7 @@ pathfinder_freewalking_serf(Map *map, MapPos start, MapPos end, int max_dist) {
       }
 
 
-       double duration = (std::clock() - start_pathfinder_freewalking_serf) / static_cast<double>(CLOCKS_PER_SEC);
+       //double duration = (std::clock() - start_pathfinder_freewalking_serf) / static_cast<double>(CLOCKS_PER_SEC);
        //Log::Debug["pathfinder_freewalking_serf"] << "done pathfinder_freewalking_serf, call took " << duration << ", considered " << total_pos_considered << " positions";
 
       return solution;
@@ -430,7 +430,7 @@ pathfinder_freewalking_serf(Map *map, MapPos start, MapPos end, int max_dist) {
     }
   }
 
-  double duration = (std::clock() - start_pathfinder_freewalking_serf) / static_cast<double>(CLOCKS_PER_SEC);
+  //double duration = (std::clock() - start_pathfinder_freewalking_serf) / static_cast<double>(CLOCKS_PER_SEC);
   //Log::Debug["pathfinder_freewalking_serf"] << "done pathfinder_freewalking_serf, call took " << duration;
 
   return Road();

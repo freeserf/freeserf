@@ -182,6 +182,11 @@ class Serf : public GameObject {
   //
   bool split_merge_tainted = false;    // note if serf has ever been involved in a fill_path_data call from a merged/split road
   unsigned int recent_dest = 0;  // store the most recent destination for each serf, in case they become Lost, try to send another serf.  Flag index
+  //
+  // TODO - add a variable that stores the index of the building this Serf is holder to, if he has oen
+  //   this variable then can be used to cross-check for missing serfs.  Currently it is very difficult to
+  //   identify that a serf is missing if the game thinks he is still there
+  //
 
   union s {
     struct {
