@@ -960,7 +960,7 @@ Building::burnup() {
     game->demolish_flag(flag_pos, player);
   }
 
-  Log::Debug["building.cc"] << "done Building::burnup, returning true";
+  //Log::Debug["building.cc"] << "done Building::burnup, returning true";
   return true;
 }
 

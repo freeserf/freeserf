@@ -444,6 +444,7 @@ Player::available_knights_at_pos(MapPos pos, int index_, int dist) {
   //Log::Debug["player.cc"] << "inside Player::available_knights_at_pos, attacking building pos " << pos << ", attacked_building_flag_pos " << attacked_building_flag_pos;
 
   int bld_index = map->get_obj_index(pos);
+  // check if this building already considered?
   for (int i = 0; i < index_; i++) {
     if (attacking_buildings[i] == bld_index) {
       return index_;
@@ -451,6 +452,7 @@ Player::available_knights_at_pos(MapPos pos, int index_, int dist) {
   }
 
   Building *building_ = game->get_building(bld_index);
+  // reject if building is not active
   if (!building_->is_done() || building_->is_burning()) {
     return index_;
   }
@@ -463,7 +465,16 @@ Player::available_knights_at_pos(MapPos pos, int index_, int dist) {
     default: return index_; break;
   }
 
+  // verify index isn't out of range (attacking_buildings[] max is 63)
   if (index_ >= 64) return index_;
+
+  // first verify there are enough knights to send
+  size_t state = building_->get_threat_level();
+  int knights_present = building_->get_knight_count();
+  int to_send = knights_present - min_level[knight_occupation[state] & 0xf];
+  if (to_send < 1){
+    return index_;  // I guess "return index_" means "no knights available"
+  }
 
   // tlongstretch - can the knights actually REACH the target building from this building??
   // NOTE that because the knight is currently inside a building, and buildings are not technically
@@ -473,7 +484,10 @@ Player::available_knights_at_pos(MapPos pos, int index_, int dist) {
   //  option_CheckPathBeforeAttack
   MapPos start_pos = map->move_down_right(pos);
   // note that pathfinder_freewalking_serf will reject road solutions that are too long!  
+  std::clock_t pathfinder_free_start = std::clock();
   Road freewalking_route = pathfinder_freewalking_serf(game->get_map().get(), start_pos, attacked_building_flag_pos, 100);
+  Log::Debug["player.cc"] << "inside Player::available_knights_at_pos, this pathfinder_freewalking_serf call took " << (std::clock() - pathfinder_free_start) / static_cast<double>(CLOCKS_PER_SEC);;
+
   if (freewalking_route.get_length() > 0){
     //game->set_debug_mark_road(freewalking_route);
     //Log::Debug["player.cc"] << "inside Player::available_knights_at_pos, attacking building pos " << pos << ", start_pos " << start_pos << ", attacked_building_flag_pos " << attacked_building_flag_pos << ", found freewalking solution to attacked_building_flag_pos, length " << freewalking_route.get_length();
@@ -508,16 +522,18 @@ Player::available_knights_at_pos(MapPos pos, int index_, int dist) {
   }
 
   attacking_buildings[index_] = bld_index;
-
-  size_t state = building_->get_threat_level();
-  int knights_present = building_->get_knight_count();
-  int to_send = knights_present - min_level[knight_occupation[state] & 0xf];
-
   if (to_send > 0) attacking_knights[dist] += to_send;
-
   return index_ + 1;
 }
 
+// check the area in a 32 tile radius around the specified pos
+//  (which should be an attackable enemy military building) and
+//  return the number of knights that are available to attack it
+//  Broken into four groups based on distance, each maps to the
+//  knight distance icon in the attack popup
+//
+// this is a relatively heavy call!  a 32-radius check is very large
+//  so avoid running it excessively
 int
 Player::knights_available_for_attack(MapPos pos) {
   /* Reset counters. */
@@ -529,6 +545,7 @@ Player::knights_available_for_attack(MapPos pos) {
   PMap map = game->get_map();
 
   // tlongstretch - adding this to sanity check if knights can actually reach the target building's flag pos
+  //  it is used inside available_knights_at_pos
   attacked_building_flag_pos = map->move_down_right(pos);
 
   /* Iterate each shell around the position.*/

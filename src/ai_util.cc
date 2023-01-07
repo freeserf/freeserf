@@ -3031,7 +3031,7 @@ AI::score_enemy_area(MapPos center_pos, unsigned int distance) {
         //AILogDebug["util_score_enemy_area"] << "adding additional attack value 12 for building of type " << NameBuilding[game->get_building_at_pos(pos)->get_type()] << " at pos " << pos;
       }
       if (obj == Map::ObjectSmallBuilding && game->get_building_at_pos(pos)->get_type() == Building::TypeGoldMine) {
-        pos_value += 18;
+        pos_value += 25;
         //AILogDebug["util_score_enemy_area"] << "adding additional attack value 18 for building of type " << NameBuilding[game->get_building_at_pos(pos)->get_type()] << " at pos " << pos;
       }
       if (obj == Map::ObjectSmallBuilding && !game->get_building_at_pos(pos)->is_military()) {
@@ -3144,13 +3144,16 @@ AI::score_enemy_targets(MapPosSet *scored_targets) {
         AILogDebug["util_score_enemy_targets"] << "target_building is nullptr!  at pos " << pos;
         continue;
       }
-      if (!target_building->is_military() || !target_building->is_active()) {
+      if (!target_building->is_military() || !target_building->is_active() || !building->get_threat_level() == 3){
         continue;
       }
       MapPos target_pos = pos;
       Building::Type target_building_type = target_building->get_type();
       size_t target_player_index = map->get_owner(pos);
       AILogDebug["util_score_enemy_targets"] << "our building of type " << NameBuilding[building->get_type()] << " at pos " << attacker_pos << " can attack building of type " << NameBuilding[target_building_type] << " at pos " << target_pos << " belonging to player " << target_player_index;
+
+      /* UPDATE - this call is quite slow, moving it to AFTER score_area and sorting
+         is done to see if that is actually faster
       // copied from viewport open-attack-window logic, I am not sure exactly what the 
       //  purpose of this code is, as how could there be more knights available to 
       //  attack than there are knights in the building?  Except for castle,
@@ -3165,7 +3168,10 @@ AI::score_enemy_targets(MapPosSet *scored_targets) {
       case Building::TypeCastle: max_knights = 20; break;
       default: NOT_REACHED(); break;
       }
+      std::clock_t foo = std::clock();
       int attacking_knights = player->knights_available_for_attack(target_pos);
+      AILogDebug["util_score_enemy_targets"] << "inside score_enemy_targets, this player->knights_available_for_attack(" << target_pos << ") took " << (std::clock() - foo) / static_cast<double>(CLOCKS_PER_SEC);
+
       attacking_knights = std::min(attacking_knights, max_knights);
       //AILogDebug["util_score_enemy_targets"] << "send up to " << attacking_knights << " knights to attack enemy building of type " << NameBuilding[target_building_type]
       //  << " at pos " << target_pos << " belonging to player " << target_player_index << " / " << target_player_face;
@@ -3175,6 +3181,7 @@ AI::score_enemy_targets(MapPosSet *scored_targets) {
         AILogDebug["util_score_enemy_targets"] << "our building of type " << NameBuilding[building->get_type()] << " at pos " << attacker_pos << " cannot send any knights, not marking target for scoring";
         continue;
       }
+      */
       if (target_building_type == Building::TypeCastle){
         //
         // DO SOMETHING HERE IF TARGET IS ENEMY CASTLE - EITHER NEVER ATTACK IT OR ALWAYS ATTACK IT
@@ -3224,40 +3231,118 @@ AI::score_enemy_targets(MapPosSet *scored_targets) {
 
 
 void
-//AI::attack_nearest_target(MapPosSet *scored_targets) {
-AI::attack_nearest_target(MapPosSet *scored_targets, unsigned int min_score, double min_ratio) {
-  AILogDebug["util_attack_nearest_target"] << "inside AI::attack_nearest_target with min_score " << min_score << " and min attack ratio " << min_ratio;
-  for (std::pair<MapPos, unsigned int> target : *(scored_targets)) {
-    MapPos target_pos = target.first;
-    unsigned int target_score = target.second;
-    AILogDebug["util_attack_nearest_target"] << "found target with target_pos " << target_pos << " and score " << target_score;
-    if (target_score < min_score){
-      AILogDebug["util_attack_nearest_target"] << "target with target_pos " << target_pos << " has a score too low for attack, min is " << min_score << ", skipping";
-      continue;
+//AI::attack_best_target(MapPosSet *scored_targets) {
+//AI::attack_best_target(MapPosSet *scored_targets, unsigned int min_score, double min_ratio) {
+AI::attack_best_target(MapPosSet *scored_targets, int loss_tolerance) {
+  AILogDebug["util_attack_best_target"] << "inside AI::attack_best_target with loss_tolerance " << loss_tolerance;
+
+  MapPosVector sorted_scored_targets = sort_by_val_desc(*(scored_targets));
+
+  for (MapPos target_pos : sorted_scored_targets) {
+    // get the score for this target
+    unsigned int target_score = 0;
+    for (std::pair<MapPos, unsigned int> target : *(scored_targets)){
+      if (target.first == target_pos){
+        target_score = target.second;
+        break;
+      }
     }
-    int attacking_knights = player->knights_available_for_attack(target_pos);
-    AILogDebug["util_attack_nearest_target"] << "can send up to " << attacking_knights << " knights to attack enemy building at pos " << target_pos;
-    //AILogDebug["util_attack_nearest_target"] << "ENEMY military_score = " << game->get_player(target_player_index)->get_military_score() << ",  ENEMY knight_morale = " << game->get_player(target_player_index)->get_knight_morale();
-    // enemy knight morale does NOT MATTER when attacking because it is always 100% for defenders (even if their attack morale is higher!)
+
+    AILogDebug["util_attack_best_target"] << "target with target_pos " << target_pos << " has score " << target_score;
+
     Building *target_building = game->get_building_at_pos(target_pos);
     if (target_building == nullptr){
+      AILogWarn["util_attack_best_target"] << "target building at pos " << target_pos << " is now nullptr!  skipping";
       continue;
     }
-    // NOTE - it seems an enemy castle shows '255' knights as defending, even if actual number is much less
-    //  not doing anything with this knowledge yet
-    unsigned int defending_knights = target_building->get_knight_count();  // this function says it returns waiting_planks but it might just be stock[0] is knights for a military building?? need to check
-    double attack_ratio = static_cast<double>(attacking_knights) / static_cast<double>(defending_knights);
-    AILogDebug["util_attack_nearest_target"] << "attacking_knights=" << attacking_knights << ", defending_knights=" << defending_knights << ", attack_ratio=" << attack_ratio;
-    if (attack_ratio >= min_ratio) {
-      AILogDebug["util_attack_nearest_target"] << "attack_ratio " << attack_ratio << " is >= to min_ratio " << min_ratio << ", PROCEEDING WITH THE ATTACK!";
-      player->building_attacked = game->get_building_at_pos(target_pos)->get_index();
-      player->attacking_building_count = attacking_knights;
-      AILogDebug["util_attack_nearest_target"] << "calling player->start_attack()";
-      player->start_attack();
-      AILogDebug["util_attack_nearest_target"] << "DONE calling player->start_attack()";
+
+    int estimated_defenders = target_building->get_knight_count();  // this might be "exact number of defenders" now, oh well
+    AILogDebug["util_attack_best_target"] << "target_building of type " << NameBuilding[target_building->get_type()] << " has estimated_defenders " << estimated_defenders;
+
+
+    // copied from viewport open-attack-window logic, I am not sure exactly what the 
+    //  purpose of this code is, as how could there be more knights available to 
+    //  attack than there are knights in the building?  Except for castle,
+    //  maybe the intent was simply to disallow attacking with more than 20 knights
+    //  at once from the castle, and the others have no effect?  
+    // ... can you even attack directly from the castle?  I forget
+    int max_knights = 0;
+    switch (target_building->get_type()) {  // limit based on our building, the attacking building
+      case Building::TypeHut: max_knights = 3; break;
+      case Building::TypeTower: max_knights = 6; break;
+      case Building::TypeFortress: max_knights = 12; break;
+      case Building::TypeCastle: max_knights = 20; break;
+      default: NOT_REACHED(); break;
     }
+
+    // this call is quite slow, time it.  Originally I was doing it PRIOR to scoring, but it was slow enough that
+    //  I tried moving it here, after scoring
+    std::clock_t foo = std::clock();
+    int attacking_knights = player->knights_available_for_attack(target_pos);
+    AILogDebug["util_attack_best_target"] << "this player->knights_available_for_attack(" << target_pos << ") took " << (std::clock() - foo) / static_cast<double>(CLOCKS_PER_SEC);
+
+    attacking_knights = std::min(attacking_knights, max_knights);
+    if (attacking_knights <= 0) {
+      AILogDebug["util_attack_best_target"] << "to target_building pos " << target_building->get_position() << ", we cannot send any knights, skipping it";
+      continue;
+    }
+    AILogDebug["util_attack_best_target"] << "can send up to " << attacking_knights << " knights to attack enemy building at pos " << target_pos;
+    
+    //AILogDebug["util_attack_best_target"] << "ENEMY military_score = " << game->get_player(target_player_index)->get_military_score() << ",  ENEMY knight_morale = " << game->get_player(target_player_index)->get_knight_morale();
+    // enemy knight morale does NOT MATTER when attacking because it is always 100% for defenders (even if their attack morale is higher!)
+    double enemy_morale = 100.00;
+    double morale = (100*player->get_knight_morale())/0x1000;  // this should be % morale, not the integer that defaults to 4096
+    // NOTE that this completely ignores knight experience level, because
+    //  for enemies it is unknown (though it is technically possible to track it if knights are observed entering/leaving)
+    //  and for friendly buildings it is not obvious, though it could be determined by checking each building within range
+    //  and accounting for the "send strong/weak to battle" setting
+    // if our morale is > 100, our expected losses are less than one knight per defender
+    // if our morale is < 100, our expected losses are more than one knight per defender
+    unsigned int expected_losses = double(enemy_morale / morale) * estimated_defenders;
+    if (expected_losses < 1){expected_losses = 1;} // avoid divide by zero error
+    AILogDebug["util_attack_best_target"] << "enemy_morale " << enemy_morale << ", our morale " << morale << ", expected_losses to attack this building are " << expected_losses;
+
+    if (loss_tolerance == 3){
+      if (target_score > 100 && attacking_knights > 1 * expected_losses){
+        AILogDebug["util_attack_best_target"] << "loss_tolerance is high, this target has an exceptionally high score of " << target_score << " and victory is possible, will attack";
+      }else if (target_score / expected_losses > 15 && attacking_knights > 1.25 * expected_losses){
+        AILogDebug["util_attack_best_target"] << "loss_tolerance is high, this target_score / expected_losses ratio " << target_score / expected_losses << ":1 is over 15, an acceptable risk, and victory is likely, will attack";
+      }else{
+        AILogDebug["util_attack_best_target"] << "loss_tolerance is high, this target_score / expected_losses ratio " << target_score / expected_losses << ":1 is too low, OR we are not likely to capture it, skipping target";
+        continue;
+      }
+    }else if (loss_tolerance == 2){
+      if (target_score > 100 && attacking_knights > 1.5 * expected_losses){
+        AILogDebug["util_attack_best_target"] << "loss_tolerance is moderate, this target has an exceptionally high score of " << target_score << " and victory is possible, will attack";
+      }else if (target_score / expected_losses > 25 && attacking_knights > 1.5 * expected_losses){
+        AILogDebug["util_attack_best_target"] << "loss_tolerance is moderate, this target_score / expected_losses ratio " << target_score / expected_losses << ":1 is over 25, a worthy risk, and victory is likely, will attack";
+      }else{
+        AILogDebug["util_attack_best_target"] << "loss_tolerance is moderate, this target_score / expected_losses ratio " << target_score / expected_losses << ":1 is too low, OR we are not likely to capture it, skipping target";
+        continue;
+      }
+    }else if (loss_tolerance == 1){
+      if (target_score > 100 && attacking_knights > 2 * expected_losses){
+        AILogDebug["util_attack_best_target"] << "loss_tolerance is low, this target has an exceptionally high score of " << target_score << " and victory is likely, will attack";
+      }else if (target_score / expected_losses > 40 && attacking_knights > 2 * expected_losses){
+        AILogDebug["util_attack_best_target"] << "loss_tolerance is low, this target_score / expected_losses ratio " << target_score / expected_losses << ":1 is over 40, a worthy risk, and victory is likely, will attack";
+      }else{
+        AILogDebug["util_attack_best_target"] << "loss_tolerance is low, this target_score / expected_losses ratio " << target_score / expected_losses << ":1 is too low, OR we are not likely to capture it, skipping target";
+        continue;
+      }
+    }else{
+      throw ExceptionFreeserf("AI::attack_best_target was called with loss_tolerance of <1 or >3, this should not happen");
+    }
+    AILogDebug["util_attack_best_target"] << "PROCEEDING WITH THE ATTACK on target_pos " << target_pos;
+    player->building_attacked = target_building->get_index();
+    player->attacking_building_count = attacking_knights;
+    AILogDebug["util_attack_best_target"] << "calling player->start_attack()";
+    player->start_attack();
+    AILogDebug["util_attack_best_target"] << "DONE calling player->start_attack()";
+
+    AILogDebug["util_attack_best_target"] << "only doing one attack per AI loop";
+    break;
   }
-  AILogDebug["util_attack_nearest_target"] << "done AI::attack_nearest_target";
+  AILogDebug["util_attack_best_target"] << "done AI::attack_best_target";
 }
 
 

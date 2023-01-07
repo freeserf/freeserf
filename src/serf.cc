@@ -839,7 +839,7 @@ Serf::insert_before(Serf *knight) {
 //   such as knights attacking across river
 bool
 Serf::can_reach_pos(MapPos dest_pos, int max_dist){
-  Log::Debug["serf.cc"] << "inside Serf::can_reach_pos, a serf of type " << get_type() << " is considering going to dest pos " << dest_pos << ", max_dist " << max_dist;
+  //Log::Debug["serf.cc"] << "inside Serf::can_reach_pos, a serf of type " << get_type() << " is considering going to dest pos " << dest_pos << ", max_dist " << max_dist;
   // Road road = pathfinder_map(map.get(), pos, clk_pos,
   // &interface->get_building_road());
 
@@ -847,18 +847,18 @@ Serf::can_reach_pos(MapPos dest_pos, int max_dist){
   MapPos start_pos = get_pos();  // this is serf's pos on map
   if (game->get_map()->has_building(start_pos)){
     start_pos = game->get_map()->move_down_right(get_pos());
-    Log::Debug["serf.cc"] << "inside Serf::can_reach_pos, a serf of type " << get_type() << " is in a building, using its flag pos " << start_pos << " as start pos";
+    //Log::Debug["serf.cc"] << "inside Serf::can_reach_pos, a serf of type " << get_type() << " is in a building, using its flag pos " << start_pos << " as start pos";
   }
 
   //Road junk_road = pathfinder_freewalking_serf(game->get_map().get(), get_pos(), dest);
   Road junk_road = pathfinder_freewalking_serf(game->get_map().get(), start_pos, dest_pos, 20);
 
   if (junk_road.get_length() > 0){
-    Log::Debug["serf.cc"] << "inside Serf::can_reach_pos, a serf of type " << get_type() << " found freewalking solution to dest pos " << dest_pos;
+    //Log::Debug["serf.cc"] << "inside Serf::can_reach_pos, a serf of type " << get_type() << " found freewalking solution to dest pos " << dest_pos;
     //game->set_debug_mark_road(junk_road);
     return true;
   }else{
-    Log::Debug["serf.cc"] << "inside Serf::can_reach_pos, a serf of type " << get_type() << " cannot reach dest pos " << dest_pos << " in less than max_dist " << max_dist << " tiles";
+    //Log::Debug["serf.cc"] << "inside Serf::can_reach_pos, a serf of type " << get_type() << " cannot reach dest pos " << dest_pos << " in less than max_dist " << max_dist << " tiles";
     return false;
   }
 }

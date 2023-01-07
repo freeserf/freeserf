@@ -267,8 +267,9 @@ class AI {
   ResourceMap realm_inv;
   MapPos inventory_pos;
   void score_enemy_targets(MapPosSet*);
-  //void attack_nearest_target(MapPosSet*);
-  void attack_nearest_target(MapPosSet*, unsigned int min_score, double min_ratio);
+  //void attack_best_target(MapPosSet*);
+  //void attack_best_target(MapPosSet*, unsigned int min_score, double min_ratio);
+  void attack_best_target(MapPosSet*, int loss_tolerance);
   bool flag_and_road_suitable_for_removal(PGame game, PMap map, MapPos flag_pos, Direction *road_dir);
   // cache of PSearchNode results from recent searches, indexed by start flag
   //  RE-EVALUATE THE ENTIRE RoadBuilder CLASS, SEE IF IT CAN BE ELIMINATED

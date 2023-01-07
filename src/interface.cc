@@ -1137,20 +1137,26 @@ Interface::update() {
     }
 */
 
+    // keep track of current season & subseason even if option_FourSeasons is off
+    //  but do not flush cache unless it is on
     if (last_subseason != subseason){
       if (last_season != season){
-        Log::Info["interface.cc"] << "FourSeasons: changing season to " << NameSeason[season];
+        if (option_FourSeasons){
+          Log::Info["interface.cc"] << "FourSeasons: changing season to " << NameSeason[season];
+        }
         last_season = season;
       }
       last_subseason = subseason;
-      // handle fade at start of new seasons
-      if (subseason <= 2 && season != 1){ // if fading into a new season (and not Summer which has no changes), flush tile cache
-        Log::Debug["interface.cc"] << "FourSeasons: changing subseason to " << subseason << " and clearing tile cache because this season has tile changes";
-        clear_custom_graphics_cache();
-      }else{
-        Log::Debug["interface.cc"] << "FourSeasons: changing subseason to " << subseason << " and NOT clearing tile cache, because this season/subseason has no tile changes";
+      if (option_FourSeasons){
+        // handle fade at start of new seasons
+        if (subseason <= 2 && season != 1){ // if fading into a new season (and not Summer which has no changes), flush tile cache
+          Log::Debug["interface.cc"] << "FourSeasons: changing subseason to " << subseason << " and clearing tile cache because this season has tile changes";
+          clear_custom_graphics_cache();
+        }else{
+          Log::Debug["interface.cc"] << "FourSeasons: changing subseason to " << subseason << " and NOT clearing tile cache, because this season/subseason has no tile changes";
+        }
+        viewport->set_size(width, height);  // this does the magic refresh without affecting popups (as Interface->layout() does)
       }
-      viewport->set_size(width, height);  // this does the magic refresh without affecting popups (as Interface->layout() does)
     }
 
   }

@@ -1448,7 +1448,7 @@ Game::remove_road_forwards(MapPos pos, Direction dir) {
       Serf *serf = get_serf_at_pos(pos);
       if (!map->has_flag(pos)) {
         serf->set_lost_state();
-        Log::Debug["game"] << "about to call set_lost_state on serf at pos " << pos << " case1, map says no flag here";;
+        //Log::Debug["game"] << "about to call set_lost_state on serf at pos " << pos << " case1, map says no flag here";;
       } else {
         /* Handle serf close to flag, where
            it should only be lost if walking

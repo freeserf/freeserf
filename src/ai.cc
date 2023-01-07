@@ -4010,8 +4010,6 @@ AI::do_attack() {
   ai_status.assign("do_attack");
   MapPosSet scored_targets = {};
   AILogDebug["do_attack"] << "calling score_enemy_targets...";
-  score_enemy_targets(&scored_targets);
-  AILogDebug["do_attack"] << "score_enemy_targets call found " << scored_targets.size() << " targets";
 
   // this is the %morale drawn in the sett8 popup
   //draw_green_number(6, 63, (100*player->get_knight_morale())/0x1000);
@@ -4022,48 +4020,28 @@ AI::do_attack() {
   unsigned int idle_knights = serfs_idle[Serf::TypeKnight0] + serfs_idle[Serf::TypeKnight1] + serfs_idle[Serf::TypeKnight2] + serfs_idle[Serf::TypeKnight3] + serfs_idle[Serf::TypeKnight4];
   AILogDebug["do_attack"] << "idle_knights: " << idle_knights << ", morale%: " << morale;
 
-  if (idle_knights >= knights_max && morale >= morale_max) {
-    AILogDebug["do_attack"] << "idle_knights and morale both maxed! beeline for enemy castle (NOT IMPLEMENTED YET, COMING SOON)";
-    AI::attack_nearest_target(&scored_targets, 0,  0);  // attack the best scoring target found, regardless of morale, defender ratio
-    // NEEDS LOGIC TO BEELINE TO CASTLE!!!
+  score_enemy_targets(&scored_targets);
+  AILogDebug["do_attack"] << "score_enemy_targets call found " << scored_targets.size() << " targets";
+
+  int loss_tolerance = 0;
+  if (idle_knights >= knights_max){
+    loss_tolerance = 3;
+    AILogDebug["do_attack"] << "idle_knights " << idle_knights << " is at least knights_max " << knights_max << ", loss tolerance is " << loss_tolerance;
+  }else if (idle_knights >= knights_med){
+    loss_tolerance = 2;
+    AILogDebug["do_attack"] << "idle_knights " << idle_knights << " is at least knights_med " << knights_med << ", loss tolerance is " << loss_tolerance;
+  }else if (idle_knights >= knights_min){
+    loss_tolerance = 1;
+    AILogDebug["do_attack"] << "idle_knights " << idle_knights << " is at least knights_min " << knights_min << ", loss tolerance is " << loss_tolerance;
+  }else{
+    AILogDebug["do_attack"] << "idle_knights " << idle_knights << " is at below knights_min " << knights_min << ", loss tolerance is " << loss_tolerance << ", NOT ATTACKING";
   }
-  else if (idle_knights >= 2*knights_max) {
-    AILogDebug["do_attack"] << "idle_knights is DOUBLE max value, though morale could be low, attack anything";
-    AI::attack_nearest_target(&scored_targets, 0,  0);  // attack the best scoring target found, regardless of morale, defender ratio
+
+  if (loss_tolerance > 0){
+    AI::attack_best_target(&scored_targets, loss_tolerance);
   }
-  else if ((idle_knights >= knights_max && morale >= morale_min) || (morale >= morale_max && idle_knights >= knights_med) ) {
-    AILogDebug["do_attack"] << "(idle_knights > max && morale > min ) OR (morale > max && idle_knights > med), attack liberally";
-    AI::attack_nearest_target(&scored_targets, 25, 1.00);  // attack medium-high scoring targets, if at least even attacker-defender ratio
-  }
-  else if (idle_knights >= knights_max || (morale >= morale_min && idle_knights >= knights_med)) {
-    AILogDebug["do_attack"] << "idle_knights " << idle_knights << " is above max or (morale " << morale << " is above min && idle_knights above med), attack only high value targets";
-    AI::attack_nearest_target(&scored_targets, 50, min_knight_ratio_attack); // attack high scoring targets, and only if attackers > defender ratio
-  }
-  else if (idle_knights >= knights_med && morale >= morale_min) {
-    AILogDebug["do_attack"] << "idle_knights " << idle_knights << " is above med and morale " << morale << " is above min, attack only very high value targets";
-    AI::attack_nearest_target(&scored_targets, 75, min_knight_ratio_attack); // attack very high scoring targets, and only if attackers > defender ratio
-  }
-  // it feels like an Aggressive AI might consider attacking in these below situations, while a cautious one would not
-  // Consider this for future Character/face implementatin
-  else if (idle_knights >= knights_min && morale >= morale_min) {
-    AILogDebug["do_attack"] << "idle_knights " << idle_knights << " is above min and morale is above min, attack only in extremely desperate situations (NONE YET DO NOT ATTACK)";
-    // insert attack logic here... maybe only attack if unable to expand and missing a resource?
-  }
-  else if (idle_knights >= knights_min) {
-    AILogDebug["do_attack"] << "idle_knights " << idle_knights << " is above min, but morale is below min, do not attack";
-    // insert attack logic here... maybe only attack if unable to expand and missing a resource?
-  }
-  else if (idle_knights < knights_min) {
-    AILogDebug["do_attack"] << "idle_knights " << idle_knights << " is below minimum, DO NOT ATTACK";
-    // do not attack.  Also, cannot attack at this level of occupation (min/min)
-  }
-  else{
-    AILogWarn["do_attack"] << "no do_attack conditions were true!  this is actually unexpected";
-  }
+
   AILogDebug["do_attack"] << "done do_attack";
-  // TEMP TEST
-  //AILogDebug["do_attack"] << "TEMP SHORTCUT FORCE ATTACK do_attack";
-  //AI::attack_nearest_target(&scored_targets);
 }
 
 

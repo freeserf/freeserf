@@ -223,7 +223,7 @@ class Building : public GameObject {
   unsigned int get_tick() const { return u.tick; }
   void set_tick(unsigned int tick) { u.tick = tick; }
 
-  unsigned int get_knight_count() const { return waiting_planks(); }  // wtf is this???
+  unsigned int get_knight_count() const { return waiting_planks(); }  // wtf is this???  it seems this function does what it says, but not sure why planks
 
   unsigned int waiting_stone() const {
     return stock[1].available; }  // Stone always in stock #1
