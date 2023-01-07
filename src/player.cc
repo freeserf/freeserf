@@ -938,6 +938,7 @@ Player::update() {
 
 void
 Player::update_stats(int res) {
+  int index = game->get_resource_history_index();
   resource_count_history[res][index] = resource_count[res];
   resource_count[res] = 0;
 }
