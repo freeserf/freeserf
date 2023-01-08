@@ -261,7 +261,10 @@ EventLoopSDL::run() {
           unsigned int height = event.window.data2;
           gfx.set_resolution(width, height, gfx.is_fullscreen());
           gfx.get_screen_factor(&screen_factor_x, &screen_factor_y);
+          float factor = (gfx.get_zoom_factor() - 1);
+          zoom(-factor);
           notify_resize(width, height);
+          zoom(factor);
         }
         break;
       case SDL_USEREVENT:
