@@ -66,6 +66,7 @@ extern uint16_t mapgen_junk_water_trees;
 extern uint16_t mapgen_junk_desert_cadavers;
 extern uint16_t mapgen_junk_desert_cacti;
 extern uint16_t mapgen_junk_desert_palm_trees;
+extern uint16_t mapgen_junk_water_reeds_cattails;
 
 extern int season;
 extern int last_season;

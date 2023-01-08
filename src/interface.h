@@ -104,7 +104,7 @@ class Interface : public GuiObject, public GameManager::Handler {
   SpriteLoc map_cursor_sprites[7];
 
   int current_stat_8_mode;
-  int current_stat_7_item;
+  Resource::Type current_stat_7_item;
 
   int return_timeout;
   int return_pos;
@@ -143,8 +143,8 @@ class Interface : public GuiObject, public GameManager::Handler {
 
   int get_current_stat_8_mode() const { return current_stat_8_mode; }
   void set_current_stat_8_mode(int mode) { current_stat_8_mode = mode; }
-  int get_current_stat_7_item() const { return current_stat_7_item; }
-  void set_current_stat_7_item(int item) { current_stat_7_item = item; }
+  Resource::Type get_current_stat_7_item() const { return current_stat_7_item; }
+  void set_current_stat_7_item(Resource::Type item) { current_stat_7_item = item; }
 
   BuildPossibility get_build_possibility() const { return build_possibility; }
 
@@ -221,6 +221,7 @@ class Interface : public GuiObject, public GameManager::Handler {
   double get_custom_map_generator_junk_desert_cadavers(){ return slider_double_to_uint16(custom_map_generator_options.opt[CustomMapGeneratorOption::JunkDesertAnimalCadavers]); }
   double get_custom_map_generator_junk_desert_cacti(){ return slider_double_to_uint16(custom_map_generator_options.opt[CustomMapGeneratorOption::JunkDesertCacti]); }
   double get_custom_map_generator_junk_desert_palm_trees(){ return slider_double_to_uint16(custom_map_generator_options.opt[CustomMapGeneratorOption::JunkDesertPalmTrees]); }
+  double get_custom_map_generator_junk_water_reeds_cattails(){ return uint16_t(4096 * custom_map_generator_options.opt[CustomMapGeneratorOption::JunkWaterReedsCattails]); }
 
   // this is a dumb hack using globals to allow the game-options class to indirectly interact with the Interface
   //  to support save/load of map generator options to disk
@@ -260,6 +261,8 @@ class Interface : public GuiObject, public GameManager::Handler {
   void set_custom_map_generator_junk_desert_cadavers(uint16_t val){ custom_map_generator_options.opt[CustomMapGeneratorOption::JunkDesertAnimalCadavers] = slider_uint16_to_double(val); }
   void set_custom_map_generator_junk_desert_cacti(uint16_t val){ custom_map_generator_options.opt[CustomMapGeneratorOption::JunkDesertCacti] = slider_uint16_to_double(val); }
   void set_custom_map_generator_junk_desert_palm_trees(uint16_t val){ custom_map_generator_options.opt[CustomMapGeneratorOption::JunkDesertPalmTrees] = slider_uint16_to_double(val); }
+  
+  void set_custom_map_generator_junk_water_reeds_cattails(uint16_t val){ custom_map_generator_options.opt[CustomMapGeneratorOption::JunkWaterReedsCattails] = double(val) / double(4096); }
 
   // used to trigger ambient bird/wind/wave sounds
   int trees_in_view;

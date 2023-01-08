@@ -153,6 +153,7 @@ GameOptions::load_options_from_file(){
   mapgen_junk_desert_cadavers = meta_main->value("mapgen", "junkdesertcadavers", mapgen_junk_desert_cadavers);
   mapgen_junk_desert_cacti = meta_main->value("mapgen", "junkdesertcacti", mapgen_junk_desert_cacti);
   mapgen_junk_desert_palm_trees = meta_main->value("mapgen", "junkdesertpalmtrees", mapgen_junk_desert_palm_trees);
+  mapgen_junk_water_reeds_cattails = meta_main->value("mapgen", "junkwaterreedscattails", mapgen_junk_water_reeds_cattails);
 
 }
 
@@ -239,6 +240,7 @@ GameOptions::save_options_to_file(){
   file << "JunkDesertCadavers=" << mapgen_junk_desert_cadavers << "\n";
   file << "JunkDesertCacti=" << mapgen_junk_desert_cacti << "\n";
   file << "JunkDesertPalmTrees=" << mapgen_junk_desert_palm_trees << "\n";
+  file << "JunkWaterReedsCattails=" << mapgen_junk_water_reeds_cattails << "\n";
 
   Log::Debug["game-options.cc"] << "inside GameOptions::save_options_to_file, done saving options";
 }

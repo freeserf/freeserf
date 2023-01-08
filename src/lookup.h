@@ -714,6 +714,7 @@ typedef enum CustomMapGeneratorOption {
   JunkDesertCacti,
   JunkWaterSubmergedBoulders,
   JunkDesertPalmTrees,
+  JunkWaterReedsCattails,
 } CustomMapGeneratorOption;
 
 typedef struct CustomMapGeneratorOptions { double opt[23]; } CustomMapGeneratorOptions;

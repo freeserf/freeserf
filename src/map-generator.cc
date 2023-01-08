@@ -1045,7 +1045,7 @@ ClassicMapGenerator::create_paired_random_object_clusters(int num_clusters,
 
 void
 ClassicMapGenerator::create_cattails(int num_clusters) {
-  //Log::Debug["map-generator.cc"] << "inside ClassicMapGenerator::create_cattails, num_clusters " << num_clusters;
+  Log::Debug["map-generator.cc"] << "inside ClassicMapGenerator::create_cattails, num_clusters " << num_clusters;
   for (int i = 0; i < num_clusters; i++) {
     //Log::Debug["map-generator.cc"] << "inside ClassicMapGenerator::create_cattails, on cluster number " << i;
     MapPos rnd_pos = map.get_rnd_coord(NULL, NULL, &rnd);
@@ -1543,7 +1543,8 @@ CustomMapGenerator::create_objects() {
                                                      1, 19, Map::TerrainGrass1, Map::TerrainGrass2, Map::ObjectFlowerGroupB0, 2);
   create_random_object_clusters(regions, 6, 0x3f, Map::TerrainGrass1, Map::TerrainGrass2, Map::ObjectFlowerGroupB0, 6);
 
-  create_cattails(18);
+  create_cattails(18 * custom_map_generator_options.opt[JunkWaterReedsCattails]);
+  //create_cattails(180 * custom_map_generator_options.opt[JunkWaterReedsCattails]);
   //create_random_object_clusters(regions, 45, 0x3f, Map::TerrainWater2, Map::TerrainWater3, Map::ObjectCattail0, 0);
 
   // new submerged boulders using partially drawn sprites of other stone types

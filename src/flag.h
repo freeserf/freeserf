@@ -27,12 +27,12 @@
 #include "src/building.h"
 #include "src/objects.h"
 
-typedef struct SerfPathInfo {
+typedef struct SerfPathInfo {   // this is only used for merge/split flags on roads, by restore_path_serf_info
   int path_len;
   int serf_count;
   int flag_index;
   Direction flag_dir;
-  int serfs[16];
+  int serfs[16];  // what if there are more than 16 serfs on the path?!???!
 } SerfPathInfo;
 
 /* Max number of resources waiting at a flag */

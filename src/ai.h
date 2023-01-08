@@ -83,7 +83,7 @@ class AI {
   Serf::SerfMap serfs_potential;
   int *serfs_total;
   bool need_tools;
-  unsigned int last_sent_geologist_tick = 0;  // used to throttle sending geologists
+  //unsigned int last_sent_geologist_tick = 0;  // used to throttle sending geologists.   moved to inside stock_buildings
   bool have_inventory_building = false;  // used to quit loop early if AI is essentially defeated (has no Castle or Stocks)
   //Road longest_road_so_far; // for debugging only, to help gauge a reasonable limit for maximum road length consideration while calling plot_road
 
@@ -299,6 +299,7 @@ class AI {
     bool excess_iron_ore = false;
     bool needs_gold_ore = false;
     bool excess_gold_ore = false;
+    unsigned int last_sent_geologist_tick = 0;  // used to throttle sending geologists
     MapPosVector occupied_military_pos;
   };
 
@@ -449,7 +450,7 @@ static const unsigned int blacksmiths_max = 1; // if this many blacksmith serfs 
 // deprioritize sending geologists to area where signs density is over this amount (prefer send geologists to unevaluated areas)
 static constexpr double geologist_sign_density_deprio = 0.40;
 // never send geologists to a flag that has a sign_density over this amount
-static constexpr double geologist_sign_density_max = 0.65;
+static constexpr double geologist_sign_density_max = 0.60;
 
 // don't build mines on Small resource signs until this ratio of potential resource signs are placed.
 //    until this % of signs placed, only build if you find a Large resource sign
@@ -491,7 +492,8 @@ static constexpr double max_convolution = 3.00;
 
 
 // NEED TO ADD EXCEPTION IF straight_line_dist is very long also, indicating a long road is required!
-static const unsigned int plot_road_max_pos_considered = 10000;  // the maximum number of "nodes" (MapPos) considered as part of a single plot_road call before giving up
+//static const unsigned int plot_road_max_pos_considered = 10000;  // the maximum number of "nodes" (MapPos) considered as part of a single plot_road call before giving up
+static const unsigned int plot_road_max_pos_considered = 4000;  // the maximum number of "nodes" (MapPos) considered as part of a single plot_road call before giving up
 static const unsigned int plot_road_max_length = 150;  // the maximum length of a road solution for plot_road before giving up
 // NEED TO ADD EXCEPTION IF straight_line_dist is very long also, indicating a long road is required!
 

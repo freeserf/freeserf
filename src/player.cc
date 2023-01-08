@@ -1045,12 +1045,16 @@ Player::update_stats(int res) {
   //}
   //Log::Debug["game.cc"] << "inside Player::update_stats, was " << histogram;
 
+  /*
   // shift array right
   for (int z=119; z>0; z--){
     resource_count_history[res][z] = resource_count_history[res][z-1]; 
   }
   // new data goes into first element
   resource_count_history[res][0] = resource_count[res];
+  */
+  // instead using Pyrdacor's logic from https://github.com/freeserf/freeserf/issues/469#issuecomment-1374200624
+  resource_count_history[res][game->get_resource_history_index()] = resource_count[res];
   // reset the "now" res value to zero
   resource_count[res] = 0;
 

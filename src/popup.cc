@@ -334,7 +334,8 @@ typedef enum Action {
   ACTION_MAPGEN_ADJUST_LAKES,
   ACTION_MAPGEN_ADJUST_JUNK_OBJ_GRASS,
   ACTION_MAPGEN_ADJUST_JUNK_OBJ_WATER,
-  ACTION_MAPGEN_ADJUST_JUNK_OBJ_DESERT
+  ACTION_MAPGEN_ADJUST_JUNK_OBJ_DESERT,
+  ACTION_MAPGEN_ADJUST_JUNK_OBJ_REEDS_CATTAILS
 } Action;
 
 PopupBox::PopupBox(Interface *_interface)
@@ -346,7 +347,6 @@ PopupBox::PopupBox(Interface *_interface)
 
   current_sett_5_item = 8;
   current_sett_6_item = 15;
-  current_stat_7_item = 7;
   current_stat_8_mode = 0;
 
   /* Initialize minimap */
@@ -2292,14 +2292,14 @@ PopupBox::draw_edit_map_generator2_box() {
   CustomMapGeneratorOptions generator_options = interface->get_custom_map_generator_options();
 
   // uint16_t slider_double_to_uint16(double val){ return uint16_t(val * 32750); }
-  // reasonable values for trees are 0.00-4.00, so divide max slider 65500 by 4 to get 16375 and let 1.00 == 16375
-  draw_colored_slide_bar(1,  5, generator_options.opt[CustomMapGeneratorOption::Trees] * 16375, Color::blue);
+  // reasonable values for trees are 0.00-18.00, so divide max slider 65500 by 18 to get 4096 and let 1.00 == 16375
+  draw_colored_slide_bar(1,  5, generator_options.opt[CustomMapGeneratorOption::JunkWaterReedsCattails] * 4096, Color::blue);
   draw_green_string(10, 4, "Reeds or Cattails");
 
-  draw_colored_slide_bar(1, 18, slider_double_to_uint16(CustomMapGeneratorOption::Trees), Color::blue);
+  draw_colored_slide_bar(1, 18, slider_double_to_uint16(CustomMapGeneratorOption::JunkWaterSubmergedTrees), Color::blue);
   draw_green_string(10, 18, "Submerged Trees");
   
-  draw_colored_slide_bar(1, 32, slider_double_to_uint16(CustomMapGeneratorOption::StonepileDense), Color::blue);
+  draw_colored_slide_bar(1, 32, slider_double_to_uint16(CustomMapGeneratorOption::JunkWaterSubmergedBoulders), Color::blue);
   draw_green_string(10, 32, "Submerged Stones");
 
 
@@ -3592,12 +3592,12 @@ PopupBox::handle_action(int action, int x_, int /*y_*/) {
   case ACTION_STAT_7_SELECT_PICK:
   case ACTION_STAT_7_SELECT_PINCER:
   case ACTION_STAT_7_SELECT_SWORD:
-  case ACTION_STAT_7_SELECT_SHIELD:
-    //Log::Debug["popup.cc"] << "inside PopupBox::handle_action, type ACTION_STAT_7_SELECT_res, res type " << action - ACTION_STAT_7_SELECT_FISH << " / " << NameResource[action - ACTION_STAT_7_SELECT_FISH];
-    //interface->set_current_stat_7_item(action - ACTION_STAT_7_SELECT_FISH + 1);
-    interface->set_current_stat_7_item(action - ACTION_STAT_7_SELECT_FISH);
-    //Log::Debug["popup.cc"] << "inside PopupBox::handle_action, type ACTION_STAT_7_SELECT_res, interface current stat7 type is " << interface->get_current_stat_7_item() << " / " << NameResource[interface->get_current_stat_7_item()];
+  case ACTION_STAT_7_SELECT_SHIELD: {
+    Resource::Type resource = Resource::Type(action - ACTION_STAT_7_SELECT_FISH);
+    interface->set_current_stat_7_item(resource);
+    set_redraw();
     break;
+  }
   case ACTION_ATTACKING_KNIGHTS_DEC:
     player->knights_attacking = std::max(player->knights_attacking-1, 0);
     break;
@@ -4202,6 +4202,12 @@ PopupBox::handle_action(int action, int x_, int /*y_*/) {
     mapgen_junk_desert_palm_trees = gui_get_slider_click_value(x_);
     GameOptions::get_instance().save_options_to_file();
     break;
+  case ACTION_MAPGEN_ADJUST_JUNK_OBJ_REEDS_CATTAILS:
+    Log::Info["popup"] << "ACTION_MAPGEN_ADJUST_JUNK_OBJ_REEDS_CATTAILS x_ = " << x_ << ", gui_get_slider_click_value(x_) = " << gui_get_slider_click_value(x_) << ", unint16_t(gui_get_slider_click_value(x_)) = " << uint16_t(gui_get_slider_click_value(x_));
+    interface->set_custom_map_generator_junk_water_reeds_cattails(gui_get_slider_click_value(x_));
+    mapgen_junk_water_reeds_cattails = gui_get_slider_click_value(x_);
+    GameOptions::get_instance().save_options_to_file();
+    break;
   case ACTION_SETT_8_CYCLE:
     player->cycle_knights();
     play_sound(Audio::TypeSfxAccepted);
@@ -4604,22 +4610,22 @@ PopupBox::handle_box_edit_map_generator_clk(int cx, int cy) {
 void
 PopupBox::handle_box_edit_map_generator2_clk(int cx, int cy) {
   const int clkmap[] = {
-    ACTION_MAPGEN_ADJUST_TREES,             7,   7, 64, 6,
-    ACTION_MAPGEN_ADJUST_STONEPILES,        7,  22, 64, 6,
+    ACTION_MAPGEN_ADJUST_JUNK_OBJ_REEDS_CATTAILS, 7,   7, 64, 6,
+    //ACTION_MAPGEN_ADJUST_JUNK_OBJ_WATER,        7,  22, 64, 6,
     
-    ACTION_MAPGEN_ADJUST_FISH,  199,  13, 64, 6,
+    //ACTION_MAPGEN_ADJUST_FISH,  199,  13, 64, 6,
 
-    ACTION_MAPGEN_ADJUST_MINE_RES_GOLD,   199,  36, 64, 6,
-    ACTION_MAPGEN_ADJUST_MINE_RES_IRON,   199,  44, 64, 6,
-    ACTION_MAPGEN_ADJUST_MINE_RES_COAL,   199,  53, 64, 6,
-    ACTION_MAPGEN_ADJUST_MINE_RES_STONE,  199,  60, 64, 6,
+    //ACTION_MAPGEN_ADJUST_MINE_RES_GOLD,   199,  36, 64, 6,
+    //ACTION_MAPGEN_ADJUST_MINE_RES_IRON,   199,  44, 64, 6,
+    //ACTION_MAPGEN_ADJUST_MINE_RES_COAL,   199,  53, 64, 6,
+    //ACTION_MAPGEN_ADJUST_MINE_RES_STONE,  199,  60, 64, 6,
 
-    ACTION_MAPGEN_ADJUST_DESERTS,           7,  69, 64, 6,
-    ACTION_MAPGEN_ADJUST_LAKES,             7,  84, 64, 6,
+    //ACTION_MAPGEN_ADJUST_DESERTS,           7,  69, 64, 6,
+    //ACTION_MAPGEN_ADJUST_LAKES,             7,  84, 64, 6,
     
-    ACTION_MAPGEN_ADJUST_JUNK_OBJ_GRASS,  199,  95, 64, 6,
-    ACTION_MAPGEN_ADJUST_JUNK_OBJ_WATER,  199, 103, 64, 6,
-    ACTION_MAPGEN_ADJUST_JUNK_OBJ_DESERT, 199, 111, 64, 6,
+    //ACTION_MAPGEN_ADJUST_JUNK_OBJ_GRASS,  199,  95, 64, 6,
+    //ACTION_MAPGEN_ADJUST_JUNK_OBJ_WATER,  199, 103, 64, 6,
+    //ACTION_MAPGEN_ADJUST_JUNK_OBJ_DESERT, 199, 111, 64, 6,
     
 
     ACTION_RESET_MAPGEN_DEFAULTS, 128, 124, 16, 16,

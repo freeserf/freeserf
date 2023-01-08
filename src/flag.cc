@@ -1209,10 +1209,16 @@ change_transporter_state_at_pos(Game *game, MapPos pos, Serf::State state) {
     //  at the post that had one of the four wait states, occasionally causing non-transporters to become stuck forever
     // WAIT, by why would this ever be called on a non-transporter?  maybe this check is masking another bug
     if (serf->get_type() != Serf::TypeTransporter){
+      // this function only returns true if the serf->change_transporter_state_at_pos succeeds,
+      //  and I made a change to that function so that it ONLY applies the new state if the
+      //  serf's CURRENT STATE is a valid transporter state.  So, now it should be safe to
+      //  make this call on a serf that happens to be standing in the same pos as an idle transporter
+      //  serf, because it should not do anything if the serf is not an idle transporter working the road
+
       //  continue;
       Log::Warn["flag.cc"] << "inside change_transporter_state_at_pos, a non-transporter serf of type " << serf->get_type() << " is being targeted by this transporter-specific call, find out why!";
-      game->set_debug_mark_pos(pos, "green");
-      game->pause();
+      //game->set_debug_mark_pos(pos, "green");
+      //game->pause();
     }
     if (serf->change_transporter_state_at_pos(pos, state)) {
       return serf->get_index();
@@ -1232,6 +1238,7 @@ static int
 wake_transporter_on_path(Game *game, MapPos pos) {
  //Log::Info["serf"] << "debug: inside Serf::wake_transporter_on_path, pos " << pos;
   // this appears to be the only function that sets the state WakeOnPath
+  // normally, transporters are woken up in the handle_serf_idle_on_path state
   return change_transporter_state_at_pos(game, pos, Serf::StateWakeOnPath);
 }
 
@@ -1297,7 +1304,7 @@ Flag::fill_path_serf_info(Game *game, MapPos pos, Direction dir,
       if (serf->get_state() == Serf::StateTransporting &&
           serf->get_walking_wait_counter() != -1) {
         serf->set_walking_wait_counter(0);
-        data->serfs[serf_count++] = serf->get_index();
+        data->serfs[serf_count++] = serf->get_index();  // what if there are more than 16 serfs on the path?!???! the struct.serfs array is size 16
       }
     }
   }
@@ -1316,6 +1323,11 @@ Flag::fill_path_serf_info(Game *game, MapPos pos, Direction dir,
         data->serfs[serf_count++] = serf->get_index();
       }
     }
+  }
+
+  if (serf_count > 15){
+    Log::Error["flag.cc"] << "inside Flag::fill_path_serf_info, the serfs array only has size 16, but serf_count " << serf_count << " is more than 15!  why is the array so small? increase it?";
+    throw ExceptionFreeserf("the Flag::fill_path_serf_info serfs array only has size 16, but serfs_count is more than 16!  why is the array so small? increase it?");
   }
 
   /* Fill the rest of the struct. */
@@ -1391,6 +1403,14 @@ Flag::merge_paths(MapPos pos_) {
 
     if (serf_count > max_serfs) {
       /* TODO 59B8B */
+      throw ExceptionFreeserf("inside Flag::merge_paths, unexpected condition, wondering what this means.  'TODO 59B8B'");
+      // note that restore_path_serf_info does this:
+      //          if (data->serf_count > max_serfs) {
+      //            for (int i = 0; i < data->serf_count - max_serfs; i++) {
+      //              Serf *serf = game->get_serf(data->serfs[i]);
+      //              serf->restore_path_serf_info();
+      //            }
+      //          }
     }
 
     flag_1->length[dir_1] += serf_count;

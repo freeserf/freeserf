@@ -160,7 +160,6 @@ class PopupBox : public GuiObject {
 
   int current_sett_5_item;
   int current_sett_6_item;
-  int current_stat_7_item;
   int current_stat_8_mode;
 
   // function-as-parameter style copied from RandomText::TextInput in game-init.cc

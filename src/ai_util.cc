@@ -1103,7 +1103,7 @@ AI::build_best_road(MapPos start_pos, RoadOptions road_options, Road *built_road
       // now check the list of splitting flag solutions that were likely found by the plot_road call directly
       //  preceeding this, disqualify any that are already unacceptable, and include the rest as potential solutions
       //                                      maybe make this a recursive call instead?
-      // IDEA TO POSSIBLY, MAJORLY IMPROVE ROAD SPLITTING:
+      // IDEA TO POSSIBLY, MAJORLY IMPROVE PERFORMANCE OF ROAD SPLITTING:
       //  instead of evaluating each split individually, when there could be MANY on an existing road
       //   consider the two end flags of the existing road, if either is unacceptable then don't consider splits
       //   along this road because the split can only be worse (right?).
@@ -2627,7 +2627,7 @@ AI::build_near_pos(MapPos center_pos, unsigned int distance, Building::Type buil
       continue;
     }
 
-    AILogDebug["util_build_near_pos"] << "successfully built and connected a building of type " << NameBuilding[building_type] << " at pos " << pos;
+    AILogDebug["util_build_near_pos"] << "successfully placed and connected (unless it was a mine) a building of type " << NameBuilding[building_type] << " at pos " << pos;
 
     duration = (std::clock() - start) / static_cast<double>(CLOCKS_PER_SEC);
     AILogDebug["util_build_near_pos"] << "successful util_build_near_pos, built building of type " << NameBuilding[building_type] << " at pos " << pos << ", call took " << duration;
@@ -3057,9 +3057,15 @@ AI::score_enemy_area(MapPos center_pos, unsigned int distance) {
 bool
 AI::is_bad_building_pos(MapPos pos, Building::Type building_type) {
   //AILogDebug["util_is_bad_building_pos"] << "inside AI::is_bad_building_pos";
+  // time this function for debugging
+  std::clock_t start;
+  double duration;
+  start = std::clock();
   if (bad_building_pos.find(std::make_pair(pos, building_type)) != bad_building_pos.end()) {
     return true;
   }
+  duration = (std::clock() - start) / static_cast<double>(CLOCKS_PER_SEC);
+  AILogDebug["util_score_enemy_area"] << "is_bad_building_pos call took " << duration << ", bad_building_pos has " << bad_building_pos.size() << " elements";
   return false;
 }
 

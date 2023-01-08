@@ -680,12 +680,19 @@ Serf::building_deleted(MapPos building_pos) {
   }
 }
 
-
+// this function appears to ONLY be used for road/splitting, and not normal transporter activity
 bool
 Serf::change_transporter_state_at_pos(MapPos pos_, Serf::State _state) {
   if (pos == pos_ &&
-      (_state == StateWakeAtFlag || _state == StateWakeOnPath ||
-       _state == StateWaitIdleOnPath || _state == StateIdleOnPath)) {
+      //!!!! is this the cause of the WaitIdleOnRoad bug?   !!!!!
+      // it seems silly that this function would check if the ARGUMENT is a valid state
+      //  before assigning it, but it WOULD make sense if it is meant to be checking the
+      //  serf's CURRENT STATE to see if it is a valid state to change
+      // trying this...
+      //(_state == StateWakeAtFlag || _state == StateWakeOnPath ||
+      // _state == StateWaitIdleOnPath || _state == StateIdleOnPath)) {
+      (get_state() == StateWakeAtFlag || get_state() == StateWakeOnPath ||
+       get_state() == StateWaitIdleOnPath || get_state() == StateIdleOnPath)) {
     set_state(_state);
     return true;
   }
@@ -6459,7 +6466,7 @@ Serf::handle_serf_idle_on_path_state() {
   if (!map->has_serf(pos)) {
     map->clear_idle_serf(pos);
     map->set_serf_index(pos, index);
-    int dir = s.idle_on_path.field_E;
+    int dir = s.idle_on_path.field_E;  // what is the purpose of setting int dir if it isn't used?
     set_state(StateTransporting);
     s.transporting.res = Resource::TypeNone;
     s.transporting.wait_counter = 0;
@@ -6469,8 +6476,8 @@ Serf::handle_serf_idle_on_path_state() {
   } else {
     // there is already a serf at this pos, so this idle/passthru serf cannot take this spot and must wait
     //  this is what StateWaitIdleOnPath indicates
-    //Log::Info["serf"] << "debug: inside handle_serf_idle_on_path_state, a serf of type " << NameSerf[get_type()] << " at pos " << pos << " is about to be set to StateWaitIdleOnPath because it was called to wake but there is another serf at this pos.  The other serf has type " << NameSerf[game->get_serf_at_pos(pos)->get_type()] << ", index " << game->get_serf_at_pos(pos)->get_index() << ", pos " << game->get_serf_at_pos(pos)->get_pos();
-    //set_state(StateWaitIdleOnPath);
+    Log::Info["serf"] << "debug: inside handle_serf_idle_on_path_state, a serf of type " << NameSerf[get_type()] << " at pos " << pos << " is about to be set to StateWaitIdleOnPath because it was called to wake but there is another serf at this pos.  The other serf has type " << NameSerf[game->get_serf_at_pos(pos)->get_type()] << ", index " << game->get_serf_at_pos(pos)->get_index() << ", pos " << game->get_serf_at_pos(pos)->get_pos();
+    set_state(StateWaitIdleOnPath);
 
     // DEBUG stuck serfs 
     if (split_merge_tainted){
@@ -6512,9 +6519,7 @@ Serf::handle_serf_wait_idle_on_path_state() {
     /* Duplicate code from handle_serf_idle_on_path_state() */
     map->clear_idle_serf(pos);
     map->set_serf_index(pos, index);
-
-    int dir = s.idle_on_path.field_E;
-
+    int dir = s.idle_on_path.field_E;  // what is the point of setting int dir if it is not used?
     set_state(StateTransporting);
     s.transporting.res = Resource::TypeNone;
     s.transporting.wait_counter = 0;
@@ -6614,7 +6619,8 @@ Serf::handle_serf_wake_on_path_state() {
 
   for (Direction d : cycle_directions_ccw()) {
     if (BIT_TEST(game->get_map()->paths(pos), d)) {
-      s.idle_on_path.field_E = d;
+      s.idle_on_path.field_E = d;  // this appears to be the Dir that the serf is to face/start walking on wake to go to one of the end flags
+                                   // how does it know which of the two directions is the correct one???
       break;
     }
   }

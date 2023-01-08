@@ -119,6 +119,7 @@ uint16_t mapgen_junk_water_trees = 32750;
 uint16_t mapgen_junk_desert_cadavers = 32750;
 uint16_t mapgen_junk_desert_cacti = 32750;
 uint16_t mapgen_junk_desert_palm_trees = 32750;
+uint16_t mapgen_junk_water_reeds_cattails = 4096;
 
 
 int season = 1;  // default to Summer
@@ -1453,6 +1454,15 @@ Game::remove_road_forwards(MapPos pos, Direction dir) {
         /* Handle serf close to flag, where
            it should only be lost if walking
            in the wrong direction. */
+        // I think I understand what this code is doing now:
+        // When a road is removed, any serfs ON the road are made lost
+        // If there is a serf in the very last pos, the flag pos,
+        //  he can be allowed to continue without becoming lost if
+        //  he is walking away from the now-destroyed road, but if
+        //  he is walking towards the now-destroyed road he should be
+        //  made lost.  
+        // HOWEVER, there is some bug that causes transporters to be unintentionally removed
+        //  so I have suppressed this behavior
         int d = serf->get_walking_dir();
         if (d < 0) d += 6;
         if (d == reverse_direction(dir)) {

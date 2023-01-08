@@ -58,7 +58,7 @@ AI::AI(PGame current_game, unsigned int _player_index) {
   realm_res_sitting_at_flags = {};
   change_buffer = 0;
   previous_knight_occupation_level = -1;
-  last_sent_geologist_tick = 0;  // used to throttle sending geologists
+  //last_sent_geologist_tick = 0;  // used to throttle sending geologists
   have_inventory_building = false; // used to quit loop early if AI is essentially defeated (has no Castle or Stocks)
   std::string mutex_message = "";  // used for logging why mutex being locked/unlocked
   clock_t mutex_timer_start = 0;  // used for logging how much time spent with mutex lock
@@ -148,9 +148,10 @@ AI::next_loop(){
 
   AILogDebug["next_loop"] << "starting AI loop #" << loop_count;
   // time entire loop
-  std::clock_t loop_clock_start;
-  double loop_clock_duration;
-  loop_clock_start = std::clock();
+  //std::clock_t loop_clock_start;
+  //loop_clock_start = std::clock();
+  std::time_t loop_clock_start = std::time(0);
+  int loop_clock_duration;
 
   // place castle if this is start of new game
   do_place_castle();  
@@ -196,6 +197,14 @@ AI::next_loop(){
   do_balance_sword_shield_priorities();
   do_attack();
   do_manage_knight_occupation_levels();
+  do_send_geologists();
+
+  // MUST CALL do_send_geologists OFTEN, and place_mines also 
+  //  As the game progresses, the AI loops get longer and longer 
+  //  Because only a single geologist is sent at time per Inventory (because of issues with creating too many)
+  //   the AI doesn't send enough out at high game speeds.  To mitigate this, spam calls to the send_geo function
+  //   after most AI do_actions.  The send_geologists function will only actualy run if so many ticks have passed
+  // AND need to run place mines often, because the signs may fade between AI loops!
 
   // rename this to Inventories instead of Stocks
   update_stocks_pos();
@@ -217,56 +226,68 @@ AI::next_loop(){
     do_count_resources_sitting_at_flags(inventory_pos);
     do_check_resource_needs();
     do_create_star_roads_for_new_warehouses();
-    do_build_sawmill_lumberjacks(); sleep_speed_adjusted(1000);  // crash here?  after do_build_sawmill_lumberjacks returned, bad malloc error
+    do_send_geologists();
+
+    do_build_sawmill_lumberjacks(); sleep_speed_adjusted(1000); do_send_geologists();
 
     if(do_can_build_knight_huts())
-      do_remove_road_stubs();  // run this again to minimize creation of daisy-chained knight hut paths that can no longer qualify as stubs
-      expand_borders(); sleep_speed_adjusted(1000);
+      //do_remove_road_stubs();  // run this again to minimize creation of daisy-chained knight hut paths that can no longer qualify as stubs
+      expand_borders(); sleep_speed_adjusted(1000); do_send_geologists();
 
     // PLACE MINES EARLY - but do not connect them to roads so they do not actually get built until later
     //   this is to secure good placement when resources are found, before the signs fade
-    do_place_coal_mines(); sleep_speed_adjusted(1000);
-    do_place_iron_mines(); sleep_speed_adjusted(1000);
-    do_place_gold_mines(); sleep_speed_adjusted(1000);
+    do_place_coal_mines(); sleep_speed_adjusted(1000); do_send_geologists();
+    do_place_iron_mines(); sleep_speed_adjusted(1000); do_send_geologists();
+    do_place_gold_mines(); sleep_speed_adjusted(1000); do_send_geologists();
 
     // if this is the Castle, don't place any other buildings until these have their materials
     if (inventory_pos == castle_flag_pos && do_wait_until_sawmill_lumberjacks_built() == false)
         break;
 
-    do_build_stonecutter(); sleep_speed_adjusted(1000);
-    do_build_rangers(); sleep_speed_adjusted(1000);
+    do_build_stonecutter(); sleep_speed_adjusted(1000); do_send_geologists();
+    do_build_rangers(); sleep_speed_adjusted(1000); do_send_geologists();
 
     if(do_can_build_other())
-      {do_build_toolmaker_steelsmelter(); sleep_speed_adjusted(1000);}
+      {do_build_toolmaker_steelsmelter(); sleep_speed_adjusted(1000); do_send_geologists();}
 
     if(do_can_build_other())
-      {do_build_food_buildings(); sleep_speed_adjusted(1000);}
+      {do_build_food_buildings(); sleep_speed_adjusted(1000); do_send_geologists();}
+
+    // do this often because signs fade
+    do_place_coal_mines(); sleep_speed_adjusted(1000); do_send_geologists();
+    do_place_iron_mines(); sleep_speed_adjusted(1000); do_send_geologists();
+    do_place_gold_mines(); sleep_speed_adjusted(1000); do_send_geologists();
 
     if(do_can_build_other())
-      {do_build_3rd_lumberjack(); sleep_speed_adjusted(1000);}
+      {do_build_3rd_lumberjack(); sleep_speed_adjusted(1000); do_send_geologists();}
 
     if(do_can_build_other())
-      {do_connect_coal_mines(); sleep_speed_adjusted(1000);}
+      {do_connect_coal_mines(); sleep_speed_adjusted(1000); do_send_geologists();}
 
     if(do_can_build_other())
-      {do_connect_iron_mines(); sleep_speed_adjusted(1000);}
+      {do_connect_iron_mines(); sleep_speed_adjusted(1000); do_send_geologists();}
 
     if(do_can_build_other())
-      {do_build_steelsmelter(); sleep_speed_adjusted(1000);}
+      {do_build_steelsmelter(); sleep_speed_adjusted(1000); do_send_geologists();}
 
     if(do_can_build_other())
-      {do_build_blacksmith(); sleep_speed_adjusted(1000);}
+      {do_build_blacksmith(); sleep_speed_adjusted(1000); do_send_geologists();}
 
     if(do_can_build_other())
-      {do_build_gold_smelter_and_connect_gold_mines(); sleep_speed_adjusted(1000);}
+      {do_build_gold_smelter_and_connect_gold_mines(); sleep_speed_adjusted(1000); do_send_geologists();}
+
+    // do this often because signs fade
+    do_place_coal_mines(); sleep_speed_adjusted(1000); do_send_geologists();
+    do_place_iron_mines(); sleep_speed_adjusted(1000); do_send_geologists();
+    do_place_gold_mines(); sleep_speed_adjusted(1000); do_send_geologists();
     
-    do_demolish_excess_lumberjacks();
-    do_demolish_excess_foresters();
-	  do_demolish_excess_food_buildings();
+    do_demolish_excess_lumberjacks(); do_send_geologists();
+    do_demolish_excess_foresters(); do_send_geologists();
+	  do_demolish_excess_food_buildings(); do_send_geologists();
     if (stocks_pos.size() > 1){  // if only have the initial castle, instead use the food slider to manage excess mine output
-      do_disconnect_or_demolish_excess_coal_mines();
-      do_disconnect_or_demolish_excess_iron_mines();
-      do_disconnect_or_demolish_excess_gold_mines();
+      do_disconnect_or_demolish_excess_coal_mines(); do_send_geologists();
+      do_disconnect_or_demolish_excess_iron_mines(); do_send_geologists();
+      do_disconnect_or_demolish_excess_gold_mines(); do_send_geologists();
     }
     do_send_geologists(); sleep_speed_adjusted(1000);
     do_spiderweb_roads(); sleep_speed_adjusted(1000);
@@ -275,12 +296,12 @@ AI::next_loop(){
   }
 
   // create parallel infrastructure!
-  do_build_warehouse(); sleep_speed_adjusted(1000);
+  do_build_warehouse(); sleep_speed_adjusted(1000); do_send_geologists();
 
   AILogDebug["next_loop"] << "Done AI Loop #" << loop_count;
   ai_status.assign("END OF LOOP");
   AILogDebug["next_loop"] << "loop complete, sleeping 2sec";
-  loop_clock_duration = (std::clock() - loop_clock_start) / static_cast<double>(CLOCKS_PER_SEC);
+  loop_clock_duration = std::time(0) - loop_clock_start;
   AILogDebug["next_loop"] << "done next_loop, loop took " << loop_clock_duration;
   sleep_speed_adjusted(2000);
 }
@@ -721,7 +742,7 @@ AI::do_spiderweb_roads() {
   // only do this every X loops, and only add one new road per run
   unsigned int completed_huts = stock_building_counts.at(inventory_pos).completed_count[Building::TypeHut];
   if (inventory_pos == castle_flag_pos){
-    if ( loop_count % 30 != 0 || completed_huts < 8 || completed_huts > 20) {
+    if ( loop_count % 30 != 0 || completed_huts < 8 || completed_huts > 25) {
       AILogDebug["do_spiderweb_roads"] << inventory_pos << " skipping spider-web roads for castle, only running every 30 loops and completed knight huts " << completed_huts << " is >8 or <20";
       return;
     }
@@ -1085,7 +1106,7 @@ AI::do_fix_stuck_serfs() {
         AILogDebug["do_fix_stuck_serfs"] << "SerfWaitTimer WAIT_IDLE_ON_PATH DETECTED setting countdown serf_wait_idle_on_road_timer for serf with index " << serf->get_index();
         serf_wait_idle_on_road_timers.insert(std::make_pair(serf->get_index(), game->get_tick() + 10000));
         AILogDebug["do_fix_stuck_serfs"] << "SerfWaitTimer WAIT_IDLE_ON_PATH DETECTED marking serf on AI overlay";
-        ai_mark_serf.push_back(serf->get_index());
+        //ai_mark_serf.push_back(serf->get_index());
         //sleep_speed_adjusted(12000);
       }
       else {
@@ -1372,6 +1393,7 @@ AI::do_send_geologists() {
   //
   // send geologists to hills
   //
+
   // time this function for debugging
   std::clock_t start;
   double duration;
@@ -1382,8 +1404,8 @@ AI::do_send_geologists() {
   // throttle sending geologists after game progresses a bit
   int occupied_huts = realm_occupied_building_count[Building::TypeHut];
   if (occupied_huts >= 6){
-    if (last_sent_geologist_tick + 10000 > game->get_tick()){
-      AILogDebug["do_send_geologists"] << "it has been less than 10000 ticks since a geologist was last sent, not sending any now.  last_sent_geologist_tick " << last_sent_geologist_tick << ", current tick " << game->get_tick();
+    if (stock_building_counts.at(inventory_pos).last_sent_geologist_tick + 10000 > game->get_tick()){
+      AILogDebug["do_send_geologists"] << inventory_pos << " it has been less than 10000 ticks since a geologist was last sent to this Inventory area, not sending any now.  last_sent_geologist_tick " << stock_building_counts.at(inventory_pos).last_sent_geologist_tick << ", current tick " << game->get_tick();
       return;
     }
   }
@@ -1589,6 +1611,7 @@ AI::do_send_geologists() {
         AILogDebug["do_send_geologists"] << inventory_pos << " found at least two geologists in the vicinity of corner_pos " << corner_pos << ", skipping this corner";
         break;
       }
+
       AILogDebug["do_send_geologists"] << inventory_pos << " trying to build flags & send geologists near pos " << corner_pos;
       for (unsigned int i = 0; i < AI::spiral_dist(4); i++) {
         MapPos pos = map->pos_add_extended_spirally(corner_pos, i);
@@ -1693,7 +1716,8 @@ AI::do_send_geologists() {
             //AILogDebug["do_send_geologists"] << inventory_pos << " sent a geologist to pos " << pos << ", not sending any more geologists until next call of this function";
 
             // ugh still to many no matter what I do
-            last_sent_geologist_tick = game->get_tick();
+            stock_building_counts.at(inventory_pos).last_sent_geologist_tick = game->get_tick();
+
             return;
             //AILogDebug["do_send_geologists"] << inventory_pos << " sent a geologist to pos " << pos;
           }
@@ -1861,7 +1885,7 @@ AI::do_remove_road_stubs() {
     //  - if sign density is > max
     //  - if another flag on a mountain tile is very close
     bool eligible = false;
-    if (AI::count_geologist_sign_density(flag_pos, AI::spiral_dist(4)) > geologist_sign_density_max){
+    if (AI::count_geologist_sign_density(flag_pos, AI::spiral_dist(4)) > geologist_sign_density_max + 0.10f){  // adding anti-flapping buffer
       AILogDebug["do_remove_road_stubs"] << "flag at pos " << flag_pos << " is eligible because sign_density > max";
       eligible = true;
     }
@@ -2347,6 +2371,8 @@ AI::do_disconnect_or_demolish_excess_mines(std::string type, Building::Type buil
       continue;
     if (building->get_type() != building_type)
       continue;
+    if (find_nearest_inventory(map, player_index, building->get_position(), DistType::FlagOnly, &ai_mark_pos) != inventory_pos)
+      continue;
 
     AILogDebug["do_disconnect_excess_mines"] << inventory_pos << " excess " << type << " mine found at pos " << building->get_position();
     Flag *bld_flag = game->get_flag(building->get_flag_index());
@@ -2395,7 +2421,7 @@ AI::do_disconnect_or_demolish_excess_coal_mines() {
   ai_status.assign("do_disconnect_or_demolish_excess_coal_mines");
   AILogDebug["do_disconnect_or_demolish_excess_coal_mines"] << inventory_pos << " inside do_disconnect_or_demolish_excess_coal_mines()";
   if (stock_building_counts.at(inventory_pos).excess_coal) {
-    AILogDebug["do_disconnect_or_demolish_excess_coal_mines"] << inventory_pos << " excess_wood is true, calling do_disconnect_or_demolish_excess_mines()";
+    AILogDebug["do_disconnect_or_demolish_excess_coal_mines"] << inventory_pos << " excess_coal is true, calling do_disconnect_or_demolish_excess_mines()";
     do_disconnect_or_demolish_excess_mines("coal", Building::TypeCoalMine);
   }else {
     AILogDebug["do_disconnect_or_demolish_excess_coal_mines"] << inventory_pos << " needs more coal and/or coal buildings, skipping";
@@ -3149,6 +3175,16 @@ AI::do_build_stonecutter() {
       for (MapPos corner_pos : search_positions) {
         //ai_mark_pos.clear();
         AILogDebug["do_build_stonecutter"] << inventory_pos << " try to build stonecutter near corner pos " << corner_pos;
+        // for performance, don't waste time checking each pos
+        //  if the center pos is too far from a Stock inventory
+        //  and all attempts will be rejected by build_near_pos check
+        if (inventory_pos != castle_flag_pos){
+          //AILogDebug["do_build_stonecutter"] << inventory_pos << " to avoid wasting time, doing straightline-dist-to-Stock check on the center pos";
+          if (get_straightline_tile_dist(map, center_pos, inventory_pos) > 25 + 8){
+            AILogDebug["do_build_stonecutter"] << inventory_pos << " to avoid wasting time, rejecting center_pos " << center_pos << " because too far from Stock";
+            continue;
+          }
+        }
         // to avoid infinite loop bug where stonecutter is built a bit to far from stones and immediately demolished, need to check each potential build pos for suitability
         for (unsigned int i = 0; i < AI::spiral_dist(4); i++) {
           MapPos pos = map->pos_add_extended_spirally(corner_pos, i);
@@ -3168,6 +3204,7 @@ AI::do_build_stonecutter() {
           }
           // if couldn't build, add to bad_building_pos list so it doesn't keep trying every loop
           bad_building_pos.insert(std::make_pair(pos, Building::TypeStonecutter));
+          AILogDebug["do_build_stonecutter"] << inventory_pos << " DEBUG - bad_building_pos has " << bad_building_pos.size() << " items";
         }
         if (built_pos != bad_map_pos && built_pos != notplaced_pos) { break; }
       }
@@ -3587,7 +3624,7 @@ AI::do_build_food_buildings() {
   } // if any wheat farms, build mill and baker
   
   duration = (std::clock() - start) / static_cast<double>(CLOCKS_PER_SEC);
-  AILogDebug["do_build_food_buildings"] << "done AI::do_build_food_buildings, call took " << duration;
+  AILogDebug["do_build_food_buildings"] << inventory_pos << " done AI::do_build_food_buildings, call took " << duration;
 } // end do_build_food_buildings
 
 
