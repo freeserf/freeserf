@@ -1543,13 +1543,16 @@ CustomMapGenerator::create_objects() {
                                                      1, 19, Map::TerrainGrass1, Map::TerrainGrass2, Map::ObjectFlowerGroupB0, 2);
   create_random_object_clusters(regions, 6, 0x3f, Map::TerrainGrass1, Map::TerrainGrass2, Map::ObjectFlowerGroupB0, 6);
 
-  create_cattails(18 * custom_map_generator_options.opt[JunkWaterReedsCattails]);
+  create_cattails(10 * custom_map_generator_options.opt[JunkWaterReedsCattails]);
   //create_cattails(180 * custom_map_generator_options.opt[JunkWaterReedsCattails]);
   //create_random_object_clusters(regions, 45, 0x3f, Map::TerrainWater2, Map::TerrainWater3, Map::ObjectCattail0, 0);
 
   // new submerged boulders using partially drawn sprites of other stone types
-  create_random_object_clusters(1, 1, 1, Map::TerrainWater0, Map::TerrainWater0, Map::ObjectNewWaterStone0, 2);  // NOTE WITH THIS AN EVEN NUMBER, the 2nd TYPE WILL NEVER APPEAR!
-  //create_random_object_clusters(regions, 6, 0x3f, Map::TerrainWater0, Map::TerrainWater3, Map::ObjectNewWaterStone0, 0);  // NewWaterStone1 looks bad, 2+ don't exist, needs work
+  if (custom_map_generator_options.opt[JunkWaterSubmergedBoulders] > 0){
+    // only create one, and only if SubmergedBoulders isn't off
+    create_random_object_clusters(1, 1, 1, Map::TerrainWater0, Map::TerrainWater0, Map::ObjectNewWaterStone0, 2);  // NOTE WITH THIS AN EVEN NUMBER, the 2nd TYPE WILL NEVER APPEAR!
+    //create_random_object_clusters(regions, 6, 0x3f, Map::TerrainWater0, Map::TerrainWater3, Map::ObjectNewWaterStone0, 0);  // NewWaterStone1 looks bad, 2+ don't exist, needs work
+  }
   
 }
 

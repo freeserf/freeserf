@@ -1730,8 +1730,9 @@ Interface::reset_custom_map_generator_options(){
   set_custom_map_generator_junk_grass_small_boulders(slider_double_to_uint16(1.00)); 
   set_custom_map_generator_junk_grass_stub_trees(slider_double_to_uint16(1.00)); 
   set_custom_map_generator_junk_grass_dead_trees(slider_double_to_uint16(1.00)); 
-  set_custom_map_generator_junk_water_boulders(slider_double_to_uint16(1.00)); 
-  set_custom_map_generator_junk_water_trees(slider_double_to_uint16(1.00)); 
+  // reasonable values for these are 0.00-18.00, so divide max slider 65500 by 18 to get 4096 and let 1.00 == 4096
+  set_custom_map_generator_junk_water_boulders(uint16_t(4096 * 1.00)); 
+  set_custom_map_generator_junk_water_trees(uint16_t(4096 * 1.00)); 
   set_custom_map_generator_junk_desert_cadavers(slider_double_to_uint16(1.00)); 
   set_custom_map_generator_junk_desert_cacti(slider_double_to_uint16(1.00)); 
   set_custom_map_generator_junk_desert_palm_trees(slider_double_to_uint16(1.00)); 
@@ -1754,8 +1755,8 @@ Interface::reset_custom_map_generator_options(){
   mapgen_junk_grass_small_boulders = 32750;
   mapgen_junk_grass_stub_trees = 32750;
   mapgen_junk_grass_dead_trees = 32750;
-  mapgen_junk_water_boulders = 32750;
-  mapgen_junk_water_trees = 32750;
+  mapgen_junk_water_boulders = 4096;
+  mapgen_junk_water_trees = 4096;
   mapgen_junk_desert_cadavers = 32750;
   mapgen_junk_desert_cacti = 32750;
   mapgen_junk_desert_palm_trees = 32750;

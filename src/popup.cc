@@ -333,9 +333,11 @@ typedef enum Action {
   ACTION_MAPGEN_ADJUST_DESERTS,
   ACTION_MAPGEN_ADJUST_LAKES,
   ACTION_MAPGEN_ADJUST_JUNK_OBJ_GRASS,
-  ACTION_MAPGEN_ADJUST_JUNK_OBJ_WATER,
+  //ACTION_MAPGEN_ADJUST_JUNK_OBJ_WATER,
   ACTION_MAPGEN_ADJUST_JUNK_OBJ_DESERT,
-  ACTION_MAPGEN_ADJUST_JUNK_OBJ_REEDS_CATTAILS
+  ACTION_MAPGEN_ADJUST_JUNK_OBJ_WATER_REEDS_CATTAILS,
+  ACTION_MAPGEN_ADJUST_JUNK_OBJ_WATER_SUBMERGED_TREES,
+  ACTION_MAPGEN_ADJUST_JUNK_OBJ_WATER_SUBMERGED_STONES
 } Action;
 
 PopupBox::PopupBox(Interface *_interface)
@@ -2229,7 +2231,7 @@ PopupBox::draw_edit_map_generator_box() {
   draw_green_string(10, 65, "Deserts");
 
   // Lakes
-  draw_green_string(10, 79, "Lakes");
+  draw_green_string(10, 79, "Water");
   // reasonable values for are 0.00-8.00, so divide max slider 65500 by 4 to get 8187.5 (round to 8188) and let 1.00 == 8188
   draw_colored_slide_bar(1, 79, generator_options.opt[CustomMapGeneratorOption::LakesWaterLevel] * 8188, Color::blue);
 
@@ -2255,12 +2257,14 @@ PopupBox::draw_edit_map_generator_box() {
                           + generator_options.opt[CustomMapGeneratorOption::JunkGrassStubTrees]
                           + generator_options.opt[CustomMapGeneratorOption::JunkGrassSmallBoulders]) / 4;
   draw_colored_slide_bar(25, junk_y, slider_double_to_uint16(junk_trees_mean), Color::green);
+  /* moved to its own sliders on page 2
   //  "water junk"
   //    Create trees submerged in water.
   //    Create boulders submerged in water.
   double junk_water_mean = (generator_options.opt[CustomMapGeneratorOption::JunkWaterSubmergedTrees] 
                           + generator_options.opt[CustomMapGeneratorOption::JunkWaterSubmergedBoulders]) / 2;
   draw_colored_slide_bar(25, junk_y+8, slider_double_to_uint16(junk_water_mean), Color::blue);
+  */
   //  "desert junk"
   //    Create animal cadavers in desert.
   //    Create cacti in desert.
@@ -2296,10 +2300,10 @@ PopupBox::draw_edit_map_generator2_box() {
   draw_colored_slide_bar(1,  5, generator_options.opt[CustomMapGeneratorOption::JunkWaterReedsCattails] * 4096, Color::blue);
   draw_green_string(10, 4, "Reeds or Cattails");
 
-  draw_colored_slide_bar(1, 18, slider_double_to_uint16(CustomMapGeneratorOption::JunkWaterSubmergedTrees), Color::blue);
+  draw_colored_slide_bar(1, 18, generator_options.opt[CustomMapGeneratorOption::JunkWaterSubmergedTrees] * 4096, Color::blue);
   draw_green_string(10, 18, "Submerged Trees");
   
-  draw_colored_slide_bar(1, 32, slider_double_to_uint16(CustomMapGeneratorOption::JunkWaterSubmergedBoulders), Color::blue);
+  draw_colored_slide_bar(1, 32, generator_options.opt[CustomMapGeneratorOption::JunkWaterSubmergedBoulders] * 4096, Color::blue);
   draw_green_string(10, 32, "Submerged Stones");
 
 
@@ -4184,6 +4188,7 @@ PopupBox::handle_action(int action, int x_, int /*y_*/) {
     mapgen_junk_grass_dead_trees = gui_get_slider_click_value(x_);
     GameOptions::get_instance().save_options_to_file();
     break;
+    /* these are now separate sliders on page2
   case ACTION_MAPGEN_ADJUST_JUNK_OBJ_WATER:
     Log::Info["popup"] << "ACTION_MAPGEN_ADJUST_JUNK_OBJ_WATER x_ = " << x_ << ", gui_get_slider_click_value(x_) = " << gui_get_slider_click_value(x_) << ", unint16_t(gui_get_slider_click_value(x_)) = " << uint16_t(gui_get_slider_click_value(x_));
     interface->set_custom_map_generator_junk_water_boulders(gui_get_slider_click_value(x_));
@@ -4192,6 +4197,7 @@ PopupBox::handle_action(int action, int x_, int /*y_*/) {
     mapgen_junk_water_trees = gui_get_slider_click_value(x_);
     GameOptions::get_instance().save_options_to_file();
     break;
+    */
   case ACTION_MAPGEN_ADJUST_JUNK_OBJ_DESERT:
     Log::Info["popup"] << "ACTION_MAPGEN_ADJUST_JUNK_OBJ_DESERT x_ = " << x_ << ", gui_get_slider_click_value(x_) = " << gui_get_slider_click_value(x_) << ", unint16_t(gui_get_slider_click_value(x_)) = " << uint16_t(gui_get_slider_click_value(x_));
     interface->set_custom_map_generator_junk_desert_cadavers(gui_get_slider_click_value(x_));
@@ -4202,10 +4208,22 @@ PopupBox::handle_action(int action, int x_, int /*y_*/) {
     mapgen_junk_desert_palm_trees = gui_get_slider_click_value(x_);
     GameOptions::get_instance().save_options_to_file();
     break;
-  case ACTION_MAPGEN_ADJUST_JUNK_OBJ_REEDS_CATTAILS:
-    Log::Info["popup"] << "ACTION_MAPGEN_ADJUST_JUNK_OBJ_REEDS_CATTAILS x_ = " << x_ << ", gui_get_slider_click_value(x_) = " << gui_get_slider_click_value(x_) << ", unint16_t(gui_get_slider_click_value(x_)) = " << uint16_t(gui_get_slider_click_value(x_));
+  case ACTION_MAPGEN_ADJUST_JUNK_OBJ_WATER_REEDS_CATTAILS:
+    Log::Info["popup"] << "ACTION_MAPGEN_ADJUST_JUNK_OBJ_WATER_REEDS_CATTAILS x_ = " << x_ << ", gui_get_slider_click_value(x_) = " << gui_get_slider_click_value(x_) << ", unint16_t(gui_get_slider_click_value(x_)) = " << uint16_t(gui_get_slider_click_value(x_));
     interface->set_custom_map_generator_junk_water_reeds_cattails(gui_get_slider_click_value(x_));
     mapgen_junk_water_reeds_cattails = gui_get_slider_click_value(x_);
+    GameOptions::get_instance().save_options_to_file();
+    break;
+  case ACTION_MAPGEN_ADJUST_JUNK_OBJ_WATER_SUBMERGED_TREES:
+    Log::Info["popup"] << "ACTION_MAPGEN_ADJUST_JUNK_OBJ_WATER_SUBMERGED_TREES x_ = " << x_ << ", gui_get_slider_click_value(x_) = " << gui_get_slider_click_value(x_) << ", unint16_t(gui_get_slider_click_value(x_)) = " << uint16_t(gui_get_slider_click_value(x_));
+    interface->set_custom_map_generator_junk_water_trees(gui_get_slider_click_value(x_));
+    mapgen_junk_water_trees = gui_get_slider_click_value(x_);
+    GameOptions::get_instance().save_options_to_file();
+    break;
+  case ACTION_MAPGEN_ADJUST_JUNK_OBJ_WATER_SUBMERGED_STONES:
+    Log::Info["popup"] << "ACTION_MAPGEN_ADJUST_JUNK_OBJ_WATER_SUBMERGED_STONES x_ = " << x_ << ", gui_get_slider_click_value(x_) = " << gui_get_slider_click_value(x_) << ", unint16_t(gui_get_slider_click_value(x_)) = " << uint16_t(gui_get_slider_click_value(x_));
+    interface->set_custom_map_generator_junk_water_boulders(gui_get_slider_click_value(x_));
+    mapgen_junk_water_boulders = gui_get_slider_click_value(x_);
     GameOptions::get_instance().save_options_to_file();
     break;
   case ACTION_SETT_8_CYCLE:
@@ -4592,7 +4610,7 @@ PopupBox::handle_box_edit_map_generator_clk(int cx, int cy) {
     ACTION_MAPGEN_ADJUST_LAKES,             7,  84, 64, 6,
     
     ACTION_MAPGEN_ADJUST_JUNK_OBJ_GRASS,  199,  95, 64, 6,
-    ACTION_MAPGEN_ADJUST_JUNK_OBJ_WATER,  199, 103, 64, 6,
+    //ACTION_MAPGEN_ADJUST_JUNK_OBJ_WATER,  199, 103, 64, 6,
     ACTION_MAPGEN_ADJUST_JUNK_OBJ_DESERT, 199, 111, 64, 6,
     
 
@@ -4610,8 +4628,9 @@ PopupBox::handle_box_edit_map_generator_clk(int cx, int cy) {
 void
 PopupBox::handle_box_edit_map_generator2_clk(int cx, int cy) {
   const int clkmap[] = {
-    ACTION_MAPGEN_ADJUST_JUNK_OBJ_REEDS_CATTAILS, 7,   7, 64, 6,
-    //ACTION_MAPGEN_ADJUST_JUNK_OBJ_WATER,        7,  22, 64, 6,
+    ACTION_MAPGEN_ADJUST_JUNK_OBJ_WATER_REEDS_CATTAILS,   7,   7, 64, 6,
+    ACTION_MAPGEN_ADJUST_JUNK_OBJ_WATER_SUBMERGED_TREES,  7,  22, 64, 6,
+    ACTION_MAPGEN_ADJUST_JUNK_OBJ_WATER_SUBMERGED_STONES, 7,  37, 64, 6,
     
     //ACTION_MAPGEN_ADJUST_FISH,  199,  13, 64, 6,
 
