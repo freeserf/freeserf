@@ -297,7 +297,6 @@ PopupBox::PopupBox(Interface *_interface)
 
   current_sett_5_item = 8;
   current_sett_6_item = 15;
-  current_stat_8_mode = 0;
 
   /* Initialize minimap */
   minimap->set_displayed(false);
@@ -916,9 +915,8 @@ PopupBox::draw_stat_8_box() {
     -1
   };
 
-  int mode = interface->get_current_stat_8_mode();
-  int aspect = (mode >> 2) & 3;
-  int scale = mode & 3;
+  Interface::StatScale scale = interface->get_selected_stat_scale();
+  Interface::StatAspect aspect = interface->get_selected_stat_aspect();
 
   /* Draw background */
   draw_box_row(132+aspect, 0);
@@ -954,6 +952,7 @@ PopupBox::draw_stat_8_box() {
     if (game->get_player(GAME_MAX_PLAYER_COUNT-i-1) != nullptr) {
       Player *player = game->get_player(GAME_MAX_PLAYER_COUNT-i-1);
       Color color = interface->get_player_color(GAME_MAX_PLAYER_COUNT-i-1);
+      int mode = (aspect << 2) || scale;
       draw_player_stat_chart(player->get_player_stat_history(mode), index,
                              color);
     }
@@ -3011,36 +3010,28 @@ PopupBox::handle_action(int action, int x_, int /*y_*/) {
     interface->close_popup();
     break;
   case ACTION_SETT_8_SET_ASPECT_ALL:
-    interface->set_current_stat_8_mode((0 << 2) |
-                                    (interface->get_current_stat_8_mode() & 3));
+    interface->set_selected_stat_aspect(Interface::StatAspectAll);
     break;
   case ACTION_SETT_8_SET_ASPECT_LAND:
-    interface->set_current_stat_8_mode((1 << 2) |
-                                    (interface->get_current_stat_8_mode() & 3));
+    interface->set_selected_stat_aspect(Interface::StatAspectLand);
     break;
   case ACTION_SETT_8_SET_ASPECT_BUILDINGS:
-    interface->set_current_stat_8_mode((2 << 2) |
-                                    (interface->get_current_stat_8_mode() & 3));
+    interface->set_selected_stat_aspect(Interface::StatAspectBuildings);
     break;
   case ACTION_SETT_8_SET_ASPECT_MILITARY:
-    interface->set_current_stat_8_mode((3 << 2) |
-                                    (interface->get_current_stat_8_mode() & 3));
+    interface->set_selected_stat_aspect(Interface::StatAspectMilitary);
     break;
   case ACTION_SETT_8_SET_SCALE_30_MIN:
-    interface->set_current_stat_8_mode(
-                              (interface->get_current_stat_8_mode() & 0xc) | 0);
+    interface->set_selected_stat_scale(Interface::StatScale30Min);
     break;
   case ACTION_SETT_8_SET_SCALE_60_MIN:
-    interface->set_current_stat_8_mode(
-                              (interface->get_current_stat_8_mode() & 0xc) | 1);
+    interface->set_selected_stat_scale(Interface::StatScale60Min);
     break;
   case ACTION_SETT_8_SET_SCALE_600_MIN:
-    interface->set_current_stat_8_mode(
-                              (interface->get_current_stat_8_mode() & 0xc) | 2);
+    interface->set_selected_stat_scale(Interface::StatScale600Min);
     break;
   case ACTION_SETT_8_SET_SCALE_3000_MIN:
-    interface->set_current_stat_8_mode(
-                              (interface->get_current_stat_8_mode() & 0xc) | 3);
+    interface->set_selected_stat_scale(Interface::StatScale3000Min);
     break;
   case ACTION_STAT_7_SELECT_FISH:
   case ACTION_STAT_7_SELECT_PIG:
