@@ -846,7 +846,7 @@ Serf::insert_before(Serf *knight) {
 //   such as knights attacking across river
 bool
 Serf::can_reach_pos(MapPos dest_pos, int max_dist){
-  //Log::Debug["serf.cc"] << "inside Serf::can_reach_pos, a serf of type " << get_type() << " is considering going to dest pos " << dest_pos << ", max_dist " << max_dist;
+  //Log::Debug["serf.cc"] << "inside Serf::can_reach_pos, a serf of type " << get_type() << " at pos " << get_pos() << " is considering going to dest pos " << dest_pos << ", max_dist " << max_dist;
   // Road road = pathfinder_map(map.get(), pos, clk_pos,
   // &interface->get_building_road());
 
@@ -854,7 +854,7 @@ Serf::can_reach_pos(MapPos dest_pos, int max_dist){
   MapPos start_pos = get_pos();  // this is serf's pos on map
   if (game->get_map()->has_building(start_pos)){
     start_pos = game->get_map()->move_down_right(get_pos());
-    //Log::Debug["serf.cc"] << "inside Serf::can_reach_pos, a serf of type " << get_type() << " is in a building, using its flag pos " << start_pos << " as start pos";
+    //Log::Debug["serf.cc"] << "inside Serf::can_reach_pos, a serf of type " << get_type() << " at pos " << get_pos() << " is in a building, using its flag pos " << start_pos << " as start pos";
   }
 
   //Road junk_road = pathfinder_freewalking_serf(game->get_map().get(), get_pos(), dest);
@@ -4377,7 +4377,7 @@ Serf::handle_serf_planning_planting_state() {
         map->type_down(map->move_up_left(pos_)) == Map::TerrainGrass1) {
       // sanity check to ensure the dest pos is reachable within reasonable distance of this hut
       if (!can_reach_pos(pos_, 20)){
-        Log::Debug["serf.cc"] << "inside Serf::handle_serf_planning_planting_state, serf cannot reach the chosen dest pos " << pos_ << " in less than 20 tiles, skipping this pos";
+        Log::Debug["serf.cc"] << "inside Serf::handle_serf_planning_planting_state, serf at pos " << get_pos() << " cannot reach the chosen dest pos " << pos_ << " in less than 20 tiles, skipping this pos";
         continue;
       }
       set_state(StateReadyToLeave);

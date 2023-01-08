@@ -101,6 +101,7 @@ class Game {
   int player_history_index[4];
   int player_history_counter[3];
   int resource_history_index;
+  int ticks_since_last_corruption_detection; // for debugging
   uint16_t field_340;
   uint16_t field_342;
   Inventory *field_344;

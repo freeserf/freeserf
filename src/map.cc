@@ -1214,18 +1214,16 @@ Map::update(unsigned int tick, Random *rnd) {
 
 // work in progress, used for pathfinder_freewalking_serf
 bool
-Map::can_serf_step_into(MapPos pos, Direction dir) const {
-  MapPos other_pos = move(pos, dir);
-  Object obj = get_obj(other_pos);
-  if (Map::map_space_from_obj[obj] >= SpaceSemipassable) {
-    //Log::Debug["map.cc"] << "inside Map::can_serf_step_into, from pos " << pos << " in dir " << dir << " to other_pos " << other_pos << ", rejected because other_pos is not passable";
+Map::can_serf_step_into(MapPos check_pos) const {
+  if (Map::map_space_from_obj[get_obj(check_pos)] >= SpaceSemipassable) {
+    //Log::Debug["map.cc"] << "inside Map::can_serf_step_into, check_pos " << check_pos << ", is impassible because of blocking object";
     return false;
   }
-  if (is_in_water(other_pos)) {
-    //Log::Debug["map.cc"] << "inside Map::can_serf_step_into, from pos " << pos << " in dir " << dir << " to other_pos " << other_pos << ", rejected because other_pos is_in_water";
+  if (is_in_water(check_pos)) {
+    //Log::Debug["map.cc"] << "inside Map::can_serf_step_into, check_pos " << check_pos << ", is impassible because it is_in_water";
     return false;
   }
-  //Log::Debug["map.cc"] << "inside Map::can_serf_step_into, from pos " << pos << " in dir " << dir << " to other_pos " << other_pos << ", accepted";
+  //Log::Debug["map.cc"] << "inside Map::can_serf_step_into, check_pos " << check_pos << ", is crossable";
   return true;
 }
 

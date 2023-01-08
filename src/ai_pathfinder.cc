@@ -1572,12 +1572,14 @@ AI::find_flag_path_and_tile_dist_between_flags(PMap map, MapPos start_pos, MapPo
       // get the other Flag in this dir
       Flag *other_end_flag = flag->get_other_end_flag(dir);
       if (other_end_flag == nullptr){
-        AILogError["find_flag_path_and_tile_dist_between_flags"] << "got nullptr for game->get_other_end_flag(" << NameDirection[dir] << ") from flag at pos " << fnode->pos << ", throwing exception";
+        AILogError["find_flag_path_and_tile_dist_between_flags"] << "got nullptr for game->get_other_end_flag(" << NameDirection[dir] << ") from flag at pos " << fnode->pos << ", returning false instead of crashing";
         //ai_mark_pos->erase(map->move(fnode->pos, dir));
         //ai_mark_pos->insert(ColorDot(map->move(fnode->pos, dir), "coral"));
         // update Dec04 2022 - haven't seen this in a long time, removing sleep
         //std::this_thread::sleep_for(std::chrono::milliseconds(30000));
-        throw ExceptionFreeserf("got nullptr for game->get_other_end_flag");
+        // saw this again jan 2023, changing to not crash
+        //throw ExceptionFreeserf("got nullptr for game->get_other_end_flag");
+        return false;
       }
       MapPos other_end_flag_pos = other_end_flag->get_position();
       //AILogDebug["find_flag_path_and_tile_dist_between_flags"] << "other_end_flag_pos is " << other_end_flag_pos;

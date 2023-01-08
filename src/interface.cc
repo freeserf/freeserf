@@ -1504,7 +1504,9 @@ Interface::handle_key_pressed(char key, int modifier) {
     case 'z':
       Log::Info["interface"] << "'z' key pressed, quick-saving game";
       if (modifier & 1) {
+        game->mutex_lock("z pressed, quick saving");
         GameStore::get_instance().quick_save("quicksave", game.get());
+        game->mutex_unlock();
       }
       break;
     case 'n':

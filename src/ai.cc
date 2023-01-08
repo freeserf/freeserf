@@ -3031,7 +3031,7 @@ AI::do_build_sawmill_lumberjacks() {
         //
         // build two lumberjacks near corner where sawmill was built, or corner with most trees
         //
-        AILogInfo["do_build_sawmill_lumberjacks"] << inventory_pos << " want to build lumberjack";
+        AILogDebug["do_build_sawmill_lumberjacks"] << inventory_pos << " want to build lumberjack";
         MapPosVector search_positions = AI::sort_by_val_desc(count_by_corner);
         //  push the location of the sawmill (built_pos) to the front of the search path to help keep lumberjacks close
         if (built_pos != bad_map_pos){

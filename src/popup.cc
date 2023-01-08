@@ -4475,10 +4475,12 @@ PopupBox::handle_action(int action, int x_, int /*y_*/) {
       file_name += ".save";
     }
     std::string file_path = file_list->get_folder_path() + "/" + file_name;
+    interface->get_game()->mutex_lock("saving game");
     if (GameStore::get_instance().save(file_path, interface->get_game().get())) {
       play_sound(Audio::TypeSfxAccepted);
       interface->close_popup();
     }
+    interface->get_game()->mutex_unlock();
     break;
   }
   default:

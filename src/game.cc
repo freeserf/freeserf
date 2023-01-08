@@ -1046,6 +1046,23 @@ Game::update_game_stats() {
 void
 Game::update() {
 
+  // corruption debugging, sometimes save games
+  //  cannot be loaded, because Flag data does not match Map data
+  //  this is an attempt to detect when this happens
+  ticks_since_last_corruption_detection += game_ticks_per_update;
+  if (ticks_since_last_corruption_detection > 20000){
+    Log::Warn["game.cc"] << "inside Game::update, game flag corruption detection running now, tick " << tick;
+    ticks_since_last_corruption_detection = 0;
+    for (Flag *flag : flags) {
+      if (flag->get_index() == 0) continue;
+      if (map->get_obj(flag->get_position()) != Map::ObjectFlag) {
+        Log::Error["game.cc"] << "inside Game::update, CORRUPTION DETECTION, Map data does not match flag, Flag #" << flag->get_index() << " get_pos is " << flag->get_position() << ", but Map says this pos contains obj type " << map->get_obj(flag->get_position());
+        set_debug_mark_pos(flag->get_position(), "yellow");
+        pause();
+      }
+    }
+  }
+
 /*
   Log::Info["game"] << "option_EnableAutoSave is " << option_EnableAutoSave;
   Log::Info["game"] << "option_ImprovedPigFarms is " << option_ImprovedPigFarms;   // removing this as it turns out the default behavior for pig farms is to require almost no grain
