@@ -297,7 +297,6 @@ PopupBox::PopupBox(Interface *_interface)
 
   current_sett_5_item = 8;
   current_sett_6_item = 15;
-  current_stat_7_item = 7;
   current_stat_8_mode = 0;
 
   /* Initialize minimap */
@@ -1009,7 +1008,7 @@ PopupBox::draw_stat_7_box() {
 
   draw_custom_icon_box(layout);
 
-  Resource::Type item = (Resource::Type)(current_stat_7_item-1);
+  Resource::Type item = interface->get_selected_stat_resource();
 
   /* Draw background of chart */
   for (int iy = 0; iy < 64; iy += 16) {
@@ -3068,9 +3067,13 @@ PopupBox::handle_action(int action, int x_, int /*y_*/) {
   case ACTION_STAT_7_SELECT_PICK:
   case ACTION_STAT_7_SELECT_PINCER:
   case ACTION_STAT_7_SELECT_SWORD:
-  case ACTION_STAT_7_SELECT_SHIELD:
-    interface->set_current_stat_7_item(action - ACTION_STAT_7_SELECT_FISH + 1);
+  case ACTION_STAT_7_SELECT_SHIELD: {
+    Resource::Type resource =
+                             Resource::Type(action - ACTION_STAT_7_SELECT_FISH);
+    interface->set_selected_stat_resource(resource);
+    set_redraw();
     break;
+  }
   case ACTION_ATTACKING_KNIGHTS_DEC:
     player->knights_attacking = std::max(player->knights_attacking-1, 0);
     break;

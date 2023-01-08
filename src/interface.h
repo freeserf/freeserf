@@ -100,7 +100,7 @@ class Interface : public GuiObject, public GameManager::Handler {
   SpriteLoc map_cursor_sprites[7];
 
   int current_stat_8_mode;
-  int current_stat_7_item;
+  Resource::Type selected_stat_resource;
 
   int water_in_view;
   int trees_in_view;
@@ -138,8 +138,12 @@ class Interface : public GuiObject, public GameManager::Handler {
 
   int get_current_stat_8_mode() const { return current_stat_8_mode; }
   void set_current_stat_8_mode(int mode) { current_stat_8_mode = mode; }
-  int get_current_stat_7_item() const { return current_stat_7_item; }
-  void set_current_stat_7_item(int item) { current_stat_7_item = item; }
+  Resource::Type get_selected_stat_resource() const {
+      return selected_stat_resource;
+  }
+  void set_selected_stat_resource(Resource::Type item) {
+      selected_stat_resource = item;
+  }
 
   BuildPossibility get_build_possibility() const { return build_possibility; }
 

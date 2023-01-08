@@ -56,7 +56,9 @@ class Resource {
     TypeSword,
     TypeShield,
 
-    GroupFood
+    GroupFood,
+
+    TypesCount
   } Type;
 };
 
