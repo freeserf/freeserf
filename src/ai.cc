@@ -1001,10 +1001,10 @@ AI::do_fix_stuck_serfs() {
         //throw ExceptionFreeserf("SerfWaitTimer detected WAIT_IDLE_ON_PATH STUCK SERF at pos - I THOUGHT I FIXED THIS");
 
         // don't erase timer if problem isn't fixed yet, keep checking each AI loop
-        AILogWarn["do_fix_stuck_serfs"] << "WARNING - SerfWaitTimer attempting to set serf to lost state, updating marking to purple";
-        ai_mark_pos.erase(serf->get_pos());
-        ai_mark_pos.insert(ColorDot(serf->get_pos(), "purple"));
-        game->pause();
+        AILogError["do_fix_stuck_serfs"] << "WARNING - SerfWaitTimer attempting to set serf to lost state, updating marking to purple";
+        //ai_mark_pos.erase(serf->get_pos());
+        //ai_mark_pos.insert(ColorDot(serf->get_pos(), "purple"));
+        //game->pause();
         
         Serf::Type serf_job = serf->get_type();
         // got a nullptr here for flag->get_position, maybe break it up and mutex lock?

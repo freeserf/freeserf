@@ -436,7 +436,7 @@ Serf::path_splited(unsigned int flag_1, Direction dir_1,
 
   //
   // debug stuck serf issues with StateWaitIdleOnPath
-  Log::Debug["serf.cc"] << "debug StateWaitIdleOnPath issues: inside Serf::path_splited, a serf of type " << get_type() << " at pos " << get_pos() << " is MERGE/SPLIT TAINTED";
+  //Log::Debug["serf.cc"] << "debug StateWaitIdleOnPath issues: inside Serf::path_splited, a serf of type " << get_type() << " at pos " << get_pos() << " is MERGE/SPLIT TAINTED";
   split_merge_tainted = true;
   //  WHY AM I SEEING THIS MESSAGE REPEATED MANY TIMES OVER FOR THE SAME FLAG/SERF FOR THE SAME SPLIT??  is this some kind of bug?
   //   why would path_splited be called repeatedly?  this was at game speed 30 if it matters
@@ -571,7 +571,7 @@ Serf::path_merged2(unsigned int flag_1, Direction dir_1,
 
   //
   // debug stuck serf issues with StateWaitIdleOnPath
-  Log::Debug["serf.cc"] << "debugging StateWaitIdleOnPath issues: inside Serf::path_merged2, a serf of type " << get_type() << " at pos " << get_pos() << " is MERGE/SPLIT TAINTED";
+  //Log::Debug["serf.cc"] << "debugging StateWaitIdleOnPath issues: inside Serf::path_merged2, a serf of type " << get_type() << " at pos " << get_pos() << " is MERGE/SPLIT TAINTED";
   split_merge_tainted = true;
   //
   //
@@ -6480,9 +6480,9 @@ Serf::handle_serf_idle_on_path_state() {
     set_state(StateWaitIdleOnPath);
 
     // DEBUG stuck serfs 
-    if (split_merge_tainted){
-      Log::Warn["serf.cc"] << "inside Serf::handle_serf_idle_on_path_state, a serf of type " << NameSerf[get_type()] << " at pos " << pos << " is MERGE/SPLIT TAINTED";
-    }
+    //if (split_merge_tainted){
+      //Log::Debug["serf.cc"] << "inside Serf::handle_serf_idle_on_path_state, a serf of type " << NameSerf[get_type()] << " at pos " << pos << " is MERGE/SPLIT TAINTED";
+    //}
   }
 }
 
@@ -6613,9 +6613,9 @@ Serf::handle_serf_wake_on_path_state() {
   set_state(StateWaitIdleOnPath);
   
   // DEBUG stuck serfs 
-  if (split_merge_tainted){
-    Log::Debug["serf"] << "debugging StateWaitIdleOnPath issues: inside handle_serf_wake_on_path_state, a serf of type " << NameSerf[get_type()] << " at pos " << get_pos() << " is MERGE/SPLIT TAINTED";
-  }
+  //if (split_merge_tainted){
+    //Log::Debug["serf"] << "debugging StateWaitIdleOnPath issues: inside handle_serf_wake_on_path_state, a serf of type " << NameSerf[get_type()] << " at pos " << get_pos() << " is MERGE/SPLIT TAINTED";
+  //}
 
   for (Direction d : cycle_directions_ccw()) {
     if (BIT_TEST(game->get_map()->paths(pos), d)) {

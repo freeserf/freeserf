@@ -51,15 +51,15 @@ bool option_EnableAutoSave = false;
 bool option_CanTransportSerfsInBoats = false;  // leaving this off by default because it still has occasional bugs
 bool option_QuickDemoEmptyBuildSites = true;
 //bool option_AdvancedDemolition = true;  // this needs more playtesting  */
-bool option_TreesReproduce = true;
+bool option_TreesReproduce = false;
 bool option_BabyTreesMatureSlowly = false;  // the AI needs to be improved to handle this being on, it relies too much on Foresters/Rangers
 bool option_ResourceRequestsTimeOut = true;  // this is forced true to indicate that the code to make them optional isn't added yet
 bool option_PrioritizeUsableResources = true;    // this is forced true to indicate that the code to make them optional isn't added yet
 bool option_LostTransportersClearFaster = true;
-bool option_FourSeasons = true;
-bool option_AdvancedFarming = true;
+bool option_FourSeasons = false;
+bool option_AdvancedFarming = false;
 bool option_FishSpawnSlowly = true;
-bool option_FogOfWar = true;
+bool option_FogOfWar = false;
 //bool option_EastSlopesShadeObjects = true;   // make this an option, maybe
 bool option_InvertMouse = false;
 bool option_InvertWheelZoom = false;
@@ -68,7 +68,7 @@ bool option_SpecialClickMiddle = true;
 bool option_SpecialClickDouble = true;
 bool option_SailorsMoveFaster = true;
 bool option_WaterDepthLuminosity = true;
-bool option_RandomizeInstruments = true;  // only affects DOS music
+bool option_RandomizeInstruments = false;  // only affects DOS music
 bool option_ForesterMonoculture = false;  // this looks bad in Spring and Winter, not making default anymore
 bool option_CheckPathBeforeAttack = true;  // this is forced on
 
@@ -99,17 +99,17 @@ bool option_CheckPathBeforeAttack = true;  // this is forced on
     interface->set_custom_map_generator_junk_desert_cacti(slider_double_to_uint16(1.00)); 
     interface->set_custom_map_generator_junk_desert_palm_trees(slider_double_to_uint16(1.00)); 
     */
-unsigned int mapgen_size = 3;
-uint16_t mapgen_trees = 16375;
-uint16_t mapgen_stonepile_dense = 32750;
-uint16_t mapgen_stonepile_sparse = 32750;
-uint16_t mapgen_fish = 16375;
+unsigned int mapgen_size = 4;
+uint16_t mapgen_trees = 16375 * 1.50;
+uint16_t mapgen_stonepile_dense = 32750 * 0.75;
+uint16_t mapgen_stonepile_sparse = 32750 * 0.75;
+uint16_t mapgen_fish = 16375 * 3;
 uint16_t mapgen_mountain_gold = 7278 * 2;
 uint16_t mapgen_mountain_iron = 7278 * 4;
 uint16_t mapgen_mountain_coal = 7278 * 9;
 uint16_t mapgen_mountain_stone = 7278 * 2;
 uint16_t mapgen_desert_frequency = 32750;
-uint16_t mapgen_water_level = 8188;
+uint16_t mapgen_water_level = 8188 * 2.0;
 uint16_t mapgen_junk_grass_sandstone = 32750;
 uint16_t mapgen_junk_grass_small_boulders = 32750;
 uint16_t mapgen_junk_grass_stub_trees = 32750;
@@ -120,7 +120,6 @@ uint16_t mapgen_junk_desert_cadavers = 32750;
 uint16_t mapgen_junk_desert_cacti = 32750;
 uint16_t mapgen_junk_desert_palm_trees = 32750;
 uint16_t mapgen_junk_water_reeds_cattails = 4096;
-
 
 int season = 1;  // default to Summer
 int last_season = 1;  // four seasons

@@ -1714,12 +1714,12 @@ void
 Interface::reset_custom_map_generator_options(){
 
   // reasonable values for trees are 0.00-4.00, so divide max slider 65500 by 4 to get 16375 and let 1.00 == 16375
-  set_custom_map_generator_trees(uint16_t(16375 * 1.00));
-  set_custom_map_generator_stonepile_dense(slider_double_to_uint16(1.00)); 
-  set_custom_map_generator_stonepile_sparse(slider_double_to_uint16(1.00)); 
+  set_custom_map_generator_trees(uint16_t(16375 * 1.50));
+  set_custom_map_generator_stonepile_dense(slider_double_to_uint16(0.75)); 
+  set_custom_map_generator_stonepile_sparse(slider_double_to_uint16(0.75)); 
   //set_custom_map_generator_fish(slider_double_to_uint16(1.00)); 
   // reasonable values for fish are 0.00-4.00, so divide max slider 65500 by 4 to get 16375 and let 1.00 == 16375
-  set_custom_map_generator_fish(uint16_t(16375 * 1.00));
+  set_custom_map_generator_fish(uint16_t(16375 * 3.00));
   set_custom_map_generator_mountain_gold(slider_mineral_double_to_uint16(2.00));   // 2
   set_custom_map_generator_mountain_iron(slider_mineral_double_to_uint16(4.00));   // 4
   set_custom_map_generator_mountain_coal(slider_mineral_double_to_uint16(9.00));   // 9
@@ -1727,7 +1727,7 @@ Interface::reset_custom_map_generator_options(){
   set_custom_map_generator_desert_frequency(slider_double_to_uint16(1.00)); 
   //set_custom_map_generator_lakes_size(slider_double_to_uint16(1.00)); 
   //set_custom_map_generator_lakes_water_level(slider_double_to_uint16(1.00)); 
-  set_custom_map_generator_lakes_water_level(uint16_t(8188 * 1.00)); 
+  set_custom_map_generator_lakes_water_level(uint16_t(8188 * 1.75)); 
   set_custom_map_generator_junk_grass_sandstone(slider_double_to_uint16(1.00)); 
   set_custom_map_generator_junk_grass_small_boulders(slider_double_to_uint16(1.00)); 
   set_custom_map_generator_junk_grass_stub_trees(slider_double_to_uint16(1.00)); 
@@ -1743,16 +1743,16 @@ Interface::reset_custom_map_generator_options(){
 
   // unsigned int mapgen_size = 3;  don't reset map size here
 
-  mapgen_trees = 16375;
-  mapgen_stonepile_dense = 32750;
-  mapgen_stonepile_sparse = 32750;
-  mapgen_fish = 16375;
+  mapgen_trees = 16375 * 1.50;
+  mapgen_stonepile_dense = 32750 * 0.75;
+  mapgen_stonepile_sparse = 32750 * 0.75;
+  mapgen_fish = 16375 * 3;
   mapgen_mountain_gold = 7278 * 2;
   mapgen_mountain_iron = 7278 * 4;
   mapgen_mountain_coal = 7278 * 9;
   mapgen_mountain_stone = 7278 * 2;
   mapgen_desert_frequency = 32750;
-  mapgen_water_level = 8188;
+  mapgen_water_level = 8188 * 1.75;
   mapgen_junk_grass_sandstone = 32750;
   mapgen_junk_grass_small_boulders = 32750;
   mapgen_junk_grass_stub_trees = 32750;

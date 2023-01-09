@@ -1611,7 +1611,7 @@ CustomMapGenerator::create_objects() {
                                                      1, 19, Map::TerrainGrass1, Map::TerrainGrass2, Map::ObjectFlowerGroupB0, 2);
   create_random_object_clusters(regions, 6, 0x3f, Map::TerrainGrass1, Map::TerrainGrass2, Map::ObjectFlowerGroupB0, 6);
 
-  create_cattails(10 * custom_map_generator_options.opt[JunkWaterReedsCattails]);
+  create_cattails(8 * custom_map_generator_options.opt[JunkWaterReedsCattails]);
   //create_cattails(180 * custom_map_generator_options.opt[JunkWaterReedsCattails]);
   //create_random_object_clusters(regions, 45, 0x3f, Map::TerrainWater2, Map::TerrainWater3, Map::ObjectCattail0, 0);
 

@@ -42,12 +42,12 @@ jobs:
           rm -f ./Makefile
           rm -f ./profiler
           chmod 755 ./Forkserf
-          tar -cvf ./Forkserf-0.4.6-Linux-glibc3.4.tar *
+          tar -cvf ./Forkserf-0.4.7-Linux-glibc3.4.tar *
           ls -l
       # it seems the default cmake make package version is 0.1.1, see https://stackoverflow.com/questions/40445763/how-to-idiomatically-set-the-version-number-in-a-cmake-cpack-project
       - name: Upload artifact
         uses: actions/upload-artifact@v2
         with:
-          name: Forkserf-0.4.6-Linux-glibc3.4.tar
-          path: build/src/Forkserf-0.4.6-Linux-glibc3.4.tar
+          name: Forkserf-0.4.7-Linux-glibc3.4.tar
+          path: build/src/Forkserf-0.4.7-Linux-glibc3.4.tar
 
