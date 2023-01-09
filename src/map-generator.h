@@ -117,6 +117,7 @@ class ClassicMapGenerator : public MapGenerator {
                          Map::Terrain new_);
   void change_shore_water_type();
   void change_shore_grass_type();
+  void remove_snakey_grass_paths_through_water();
 
   bool check_desert_down_triangle(MapPos pos);
   bool check_desert_up_triangle(MapPos pos);

@@ -241,12 +241,12 @@ AI::plot_road(PMap map, unsigned int player_index, MapPos start_pos, MapPos end_
       //  castle flag paths
       if (node->parent){
         uint8_t forbidden_ends = 0;
-        for (MapPos forbidden_pos : castle_forbidden_paths_ring1){
+        for (MapPos forbidden_pos : stock_building_counts.at(inventory_pos).forbidden_paths_ring1){
           if (node->pos == forbidden_pos){
-            AILogDebug["plot_road"] << "node->pos " << node->pos << " is on the castle_forbidden_paths_ring1 list";
+            AILogDebug["plot_road"] << "node->pos " << node->pos << " is on the stock_building_counts.at(inventory_pos).forbidden_paths_ring1 list";
             forbidden_ends++;
           }else if(node->parent->pos == forbidden_pos){
-            AILogDebug["plot_road"] << "node->parent->pos " << node->pos << " is on the castle_forbidden_paths_ring1 list";
+            AILogDebug["plot_road"] << "node->parent->pos " << node->pos << " is on the stock_building_counts.at(inventory_pos).forbidden_paths_ring1 list";
             forbidden_ends++;
           }
         }
@@ -255,12 +255,12 @@ AI::plot_road(PMap map, unsigned int player_index, MapPos start_pos, MapPos end_
           continue;
         }
         forbidden_ends = 0;
-        for (MapPos forbidden_pos : castle_forbidden_paths_ring2){
+        for (MapPos forbidden_pos : stock_building_counts.at(inventory_pos).forbidden_paths_ring2){
           if (node->pos == forbidden_pos){
-            AILogDebug["plot_road"] << "node->pos " << node->pos << " is on the castle_forbidden_paths_ring2 list";
+            AILogDebug["plot_road"] << "node->pos " << node->pos << " is on the stock_building_counts.at(inventory_pos).forbidden_paths_ring2 list";
             forbidden_ends++;
           }else if(node->parent->pos == forbidden_pos){
-            AILogDebug["plot_road"] << "node->parent->pos " << node->pos << " is on the castle_forbidden_paths_ring2 list";
+            AILogDebug["plot_road"] << "node->parent->pos " << node->pos << " is on the stock_building_counts.at(inventory_pos).forbidden_paths_ring2 list";
             forbidden_ends++;
           }
         }

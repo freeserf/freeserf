@@ -296,6 +296,19 @@ class Map {
   typedef struct LandscapeTile {
     // Landscape filds
     unsigned int height;
+   //  type_up/type_down refer to ONLY THESE triangles in a given hexagonal map pos:
+   //  *         1    0
+   //  *    2   ________   11
+   //  *       /\      /\
+   //  *      /  \    /  \
+   //  *  3  /    \  /    \  10
+   //  *    /______\/______\
+   //  *    \      /\      /
+   //  *  4  \    /  \down/  9
+   //  *      \  / up \  /
+   //  *       \/______\/
+   //  *    5             8
+   //  *         6    7
     Terrain type_up;
     Terrain type_down;
     Minerals mineral;

@@ -495,6 +495,7 @@ AI::update_stocks_pos() {
     };*/
     stock_building_counts[stock_flag_pos] = { {0},{0},{0},{0},0,0,{} };
     stock_attached_buildings[stock_flag_pos] = {};
+    AI::set_forbidden_pos_around_inventory(stock_flag_pos);
   }
   AILogDebug["util_update_stocks_pos"] << "done AI::update_stocks_pos";
   duration = (std::clock() - start) / static_cast<double>(CLOCKS_PER_SEC);
@@ -3015,7 +3016,7 @@ AI::score_enemy_area(MapPos center_pos, unsigned int distance) {
         //AILogDebug["util_score_enemy_area"] << "adding attack value 20 for enemy castle at pos " << pos;
       }
       if (obj == Map::ObjectLargeBuilding && game->get_building_at_pos(pos)->get_type() == Building::TypeStock){
-        pos_value += 12;
+        pos_value += 25;
         //AILogDebug["util_score_enemy_area"] << "adding additional attack value 12 for enemy stock/warehouse at pos " << pos;
       }
       if (obj == Map::ObjectLargeBuilding && !game->get_building_at_pos(pos)->is_military()) {
@@ -3455,6 +3456,48 @@ AI::flag_and_road_suitable_for_removal(PGame game, PMap map, MapPos flag_pos, Di
   // flag must be eligible if this point reached
   AILogDebug["util_flag_and_road_suitable_for_removal"] << "flag at pos " << flag_pos << " is eligible for removal, road dir is " << *(road_dir) << " / " << NameDirection[*(road_dir)] << ", returning true";
   return true;
+}
+
+//
+// store the "forbidden zone" to prevent creation of paths blocking the castle or a stock flag
+//
+void
+AI::set_forbidden_pos_around_inventory(MapPos inventory_flag_pos){
+  //            22
+  //            --\2
+  //     castle_   \2
+  //  2/\2 /\cc/\   \2 
+  // 2/_2\/cc\/cc\   \2
+  // 2\--2\cc/\cc/\1  \2
+  //  2\  2\/__\/__\1  \2  castle/stock flag area, double lines are forbidden paths
+  //   2\  1\  /\  /1  /2            NOTE that ring1 pos can connect to ring2 pos, 
+  //    2\  1\/__\/1  /2                   but ring1-to-ring1 and ring2-to-ring2 disallowed
+  //     2\   1111   /2
+  //      2\________/2
+  //        22222222
+  //
+  // and path segment with both ends in forbidden list must be rejected
+  // first ring
+  MapPos forbidden_pos = map->move_left(inventory_flag_pos); stock_building_counts.at(inventory_flag_pos).forbidden_paths_ring1.push_back(forbidden_pos);// ai_mark_pos.insert(ColorDot(forbidden_pos, "cyan"));
+  forbidden_pos = map->move_down_right(forbidden_pos); stock_building_counts.at(inventory_flag_pos).forbidden_paths_ring1.push_back(forbidden_pos);// ai_mark_pos.insert(ColorDot(forbidden_pos, "cyan"));
+  forbidden_pos = map->move_right(forbidden_pos); stock_building_counts.at(inventory_flag_pos).forbidden_paths_ring1.push_back(forbidden_pos);// ai_mark_pos.insert(ColorDot(forbidden_pos, "cyan"));
+  forbidden_pos = map->move_up(forbidden_pos); stock_building_counts.at(inventory_flag_pos).forbidden_paths_ring1.push_back(forbidden_pos);// ai_mark_pos.insert(ColorDot(forbidden_pos, "cyan"));
+  forbidden_pos = map->move_up_left(forbidden_pos); stock_building_counts.at(inventory_flag_pos).forbidden_paths_ring1.push_back(forbidden_pos);// ai_mark_pos.insert(ColorDot(forbidden_pos, "cyan"));
+  // second ring
+  forbidden_pos = map->move_up_left(map->move_left(inventory_flag_pos)); stock_building_counts.at(inventory_flag_pos).forbidden_paths_ring2.push_back(forbidden_pos);// ai_mark_pos.insert(ColorDot(forbidden_pos, "dk_cyan"));
+  forbidden_pos = map->move_up_left(forbidden_pos); stock_building_counts.at(inventory_flag_pos).forbidden_paths_ring2.push_back(forbidden_pos);// ai_mark_pos.insert(ColorDot(forbidden_pos, "dk_cyan"));
+  forbidden_pos = map->move_down(forbidden_pos); stock_building_counts.at(inventory_flag_pos).forbidden_paths_ring2.push_back(forbidden_pos);// ai_mark_pos.insert(ColorDot(forbidden_pos, "dk_cyan"));
+  forbidden_pos = map->move_down_right(forbidden_pos);// ai_mark_pos.insert(ColorDot(forbidden_pos, "dk_cyan"));
+  //forbidden_pos = map->move_down(forbidden_pos); stock_building_counts.at(inventory_flag_pos).forbidden_paths_ring2.push_back(forbidden_pos); ai_mark_pos.insert(ColorDot(forbidden_pos, "dk_cyan"));
+  forbidden_pos = map->move_down_right(forbidden_pos); stock_building_counts.at(inventory_flag_pos).forbidden_paths_ring2.push_back(forbidden_pos);// ai_mark_pos.insert(ColorDot(forbidden_pos, "dk_cyan"));
+  forbidden_pos = map->move_down_right(forbidden_pos); stock_building_counts.at(inventory_flag_pos).forbidden_paths_ring2.push_back(forbidden_pos);// ai_mark_pos.insert(ColorDot(forbidden_pos, "dk_cyan"));
+  forbidden_pos = map->move_right(forbidden_pos); stock_building_counts.at(inventory_flag_pos).forbidden_paths_ring2.push_back(forbidden_pos);// ai_mark_pos.insert(ColorDot(forbidden_pos, "dk_cyan"));
+  forbidden_pos = map->move_right(forbidden_pos); stock_building_counts.at(inventory_flag_pos).forbidden_paths_ring2.push_back(forbidden_pos);// ai_mark_pos.insert(ColorDot(forbidden_pos, "dk_cyan"));
+  forbidden_pos = map->move_up(forbidden_pos); stock_building_counts.at(inventory_flag_pos).forbidden_paths_ring2.push_back(forbidden_pos);// ai_mark_pos.insert(ColorDot(forbidden_pos, "dk_cyan"));
+  forbidden_pos = map->move_up(forbidden_pos); stock_building_counts.at(inventory_flag_pos).forbidden_paths_ring2.push_back(forbidden_pos);// ai_mark_pos.insert(ColorDot(forbidden_pos, "dk_cyan"));
+  forbidden_pos = map->move_up_left(forbidden_pos); stock_building_counts.at(inventory_flag_pos).forbidden_paths_ring2.push_back(forbidden_pos);// ai_mark_pos.insert(ColorDot(forbidden_pos, "dk_cyan"));
+  forbidden_pos = map->move_up_left(forbidden_pos); stock_building_counts.at(inventory_flag_pos).forbidden_paths_ring2.push_back(forbidden_pos);// ai_mark_pos.insert(ColorDot(forbidden_pos, "dk_cyan"));
+  forbidden_pos = map->move_left(forbidden_pos); stock_building_counts.at(inventory_flag_pos).forbidden_paths_ring2.push_back(forbidden_pos);// ai_mark_pos.insert(ColorDot(forbidden_pos, "dk_cyan"));
 }
 
 

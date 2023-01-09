@@ -652,6 +652,8 @@ ClassicMapGenerator::change_shore_water_type() {
     Map::TerrainWater0, Map::TerrainWater2, Map::TerrainWater1);
 }
 
+
+
 // Change grass type of shore to TerrainGrass0.
 //
 // Change type from TerrainGrass1 to TerrainGrass0 where the tiles are
@@ -662,6 +664,70 @@ ClassicMapGenerator::change_shore_grass_type() {
   seed_terrain_type(
     Map::TerrainGrass1, Map::TerrainWater3, Map::TerrainGrass0);
 }
+
+void
+ClassicMapGenerator::remove_snakey_grass_paths_through_water() {
+
+   //  type_up/type_down refer to ONLY THESE triangles in a given hexagonal map pos:
+   //  *         1    0
+   //  *    2   ________   11
+   //  *       /\      /\
+   //  *      /  \    /  \
+   //  *  3  /    \  /    \  10
+   //  *    /______\/______\
+   //  *    \      /\      /
+   //  *  4  \    /  \down/  9
+   //  *      \  / up \  /
+   //  *       \/______\/
+   //  *    5             8
+   //  *         6    7
+
+  std::vector<MapPos> tiles_to_make_water = {};
+  for (MapPos pos_ : map.geom()) {
+    // horizontal snakes
+    //  if this tile is both grass
+    if (tiles[pos_].type_down == Map::TerrainGrass0 && tiles[pos_].type_up == Map::TerrainGrass0
+      // and the left & right tiles are both grass
+      && tiles[map.move_left(pos_)].type_down       == Map::TerrainGrass0 && tiles[map.move_left(pos_)].type_up == Map::TerrainGrass0
+      && tiles[map.move_right(pos_)].type_down      == Map::TerrainGrass0 && tiles[map.move_right(pos_)].type_up == Map::TerrainGrass0
+      // and all other dirs are both water
+      && tiles[map.move_up(pos_)].type_down         == Map::TerrainWater3 && tiles[map.move_up(pos_)].type_up == Map::TerrainWater3
+      && tiles[map.move_up_left(pos_)].type_down    == Map::TerrainWater3 && tiles[map.move_up_left(pos_)].type_up == Map::TerrainWater3
+      && tiles[map.move_down(pos_)].type_down       == Map::TerrainWater3 && tiles[map.move_down(pos_)].type_up == Map::TerrainWater3
+      && tiles[map.move_down_right(pos_)].type_down == Map::TerrainWater3 && tiles[map.move_down_right(pos_)].type_up == Map::TerrainWater3
+          ){
+      Log::Debug["map-generator.cc"] << " found a horizontal snake tile at pos " <<  pos_ << ", marking this for conversion";
+      tiles_to_make_water.push_back(pos_);
+    }
+    // descending diagonal snakes
+    //  requires converting two pos because the snake occurs as a down on one and an up on the other
+    if (tiles[pos_].type_down == Map::TerrainGrass0 && tiles[pos_].type_up == Map::TerrainWater3
+     && tiles[map.move_left(pos_)].type_down  == Map::TerrainWater3
+     && tiles[map.move_right(pos_)].type_down == Map::TerrainWater3 && tiles[map.move_right(pos_)].type_up == Map::TerrainGrass0
+     && tiles[map.move_right(map.move_right(pos_))].type_up == Map::TerrainWater3
+          ){
+      Log::Debug["map-generator.cc"] << " found a descending diagonal snake tile comprised of pos1 " <<  pos_ << " and pos2 " << map.move_right(pos_) << ", marking both for conversion";
+      tiles_to_make_water.push_back(pos_);
+      tiles_to_make_water.push_back(map.move_right(pos_));
+    }
+    // ascending diagonal snakes
+    //  if this tile is both grass
+    if (tiles[pos_].type_down == Map::TerrainGrass0 && tiles[pos_].type_up == Map::TerrainGrass0
+     // and both the left and right of this pos are both water
+     && tiles[map.move_left(pos_)].type_down  == Map::TerrainWater3 && tiles[map.move_left(pos_)].type_up  == Map::TerrainWater3
+     && tiles[map.move_right(pos_)].type_down == Map::TerrainWater3 && tiles[map.move_right(pos_)].type_up == Map::TerrainWater3
+          ){
+      Log::Debug["map-generator.cc"] << " found an ascending diagonal snake tile at pos " <<  pos_ << ", marking this for conversion";
+      tiles_to_make_water.push_back(pos_);
+    }
+  }
+  for (MapPos pos_ : tiles_to_make_water) {
+    Log::Debug["map-generator.cc"] << " converting pos " <<  pos_;
+    tiles[pos_].type_down = Map::TerrainWater3;
+    tiles[pos_].type_up = Map::TerrainWater3;
+  }
+}
+
 
 
 // Check whether large down-triangle is suitable for desert.
@@ -1337,6 +1403,8 @@ const int ClassicMapGenerator::default_terrain_spikyness = 0x9999;
   // Adjust terrain types on shores
   change_shore_water_type();
   change_shore_grass_type();
+  remove_snakey_grass_paths_through_water();
+  //remove_islands();  // remove islands again - IT SEEMS THIS DOESN'T WORK, but I guess it is okay
   // disabling shallows for now, needs tweaking and not required until cattails/reeds and more working properly
   //create_water_shallows();
   //change_shore_water_type();  // need to do this a second time to smooth after creating shallows

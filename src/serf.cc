@@ -6476,12 +6476,12 @@ Serf::handle_serf_idle_on_path_state() {
   } else {
     // there is already a serf at this pos, so this idle/passthru serf cannot take this spot and must wait
     //  this is what StateWaitIdleOnPath indicates
-    Log::Info["serf"] << "debug: inside handle_serf_idle_on_path_state, a serf of type " << NameSerf[get_type()] << " at pos " << pos << " is about to be set to StateWaitIdleOnPath because it was called to wake but there is another serf at this pos.  The other serf has type " << NameSerf[game->get_serf_at_pos(pos)->get_type()] << ", index " << game->get_serf_at_pos(pos)->get_index() << ", pos " << game->get_serf_at_pos(pos)->get_pos();
+    Log::Debug["serf.cc"] << "inside Serf::handle_serf_idle_on_path_state, a serf of type " << NameSerf[get_type()] << " at pos " << pos << " is about to be set to StateWaitIdleOnPath because it was called to wake but there is another serf at this pos.  The other serf has type " << NameSerf[game->get_serf_at_pos(pos)->get_type()] << ", index " << game->get_serf_at_pos(pos)->get_index() << ", pos " << game->get_serf_at_pos(pos)->get_pos();
     set_state(StateWaitIdleOnPath);
 
     // DEBUG stuck serfs 
     if (split_merge_tainted){
-      Log::Warn["serf"] << "debug: inside handle_serf_idle_on_path_state, a serf of type " << NameSerf[get_type()] << " at pos " << pos << " is MERGE/SPLIT TAINTED";
+      Log::Warn["serf.cc"] << "inside Serf::handle_serf_idle_on_path_state, a serf of type " << NameSerf[get_type()] << " at pos " << pos << " is MERGE/SPLIT TAINTED";
     }
   }
 }

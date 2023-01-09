@@ -316,7 +316,7 @@ pathfinder_freewalking_serf(Map *map, MapPos start, MapPos end, int max_dist) {
       return solution;
     }
 
-    Log::Debug["pathfinder.cc"] << "inside pathfinder_freewalking_serf, C  KEEP SEARCHING, node->pos " << node->pos << " is not yet the start pos " << start;
+    //Log::Debug["pathfinder.cc"] << "inside pathfinder_freewalking_serf, C  KEEP SEARCHING, node->pos " << node->pos << " is not yet the start pos " << start;
 
     /* Put current node on closed list. */
     closed.push_front(node);

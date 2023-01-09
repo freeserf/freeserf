@@ -70,8 +70,6 @@ class AI {
   //bool stop_building;
   MapPos castle_pos;
   MapPos castle_flag_pos;
-  MapPosVector castle_forbidden_paths_ring1 = {};
-  MapPosVector castle_forbidden_paths_ring2 = {};
   FlagDirTimer no_transporter_timers;
   SerfWaitTimer serf_wait_timers;
   SerfWaitTimer serf_wait_idle_on_road_timers;
@@ -211,6 +209,7 @@ class AI {
   void set_serf_lost();
   // return a pointer to the currently selected stock's Inventory
   Inventory * get_stock_inv() { return game->get_inventory(this_stock_inv_index); }
+  void set_forbidden_pos_around_inventory(MapPos inventory_flag_pos);
   void mutex_lock(const char* message);
   void mutex_unlock();
   
@@ -300,6 +299,8 @@ class AI {
     bool needs_gold_ore = false;
     bool excess_gold_ore = false;
     unsigned int last_sent_geologist_tick = 0;  // used to throttle sending geologists
+    MapPosVector forbidden_paths_ring1 = {};
+    MapPosVector forbidden_paths_ring2 = {};
     MapPosVector occupied_military_pos;
   };
 
