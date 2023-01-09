@@ -6,7 +6,8 @@ A continuation of Freeserf, a SerfCity/Settlers1 clone in C/C++.  Freeserf was c
 Game Information Website
 ========================
 
-https://forkserf.github.io/
+- https://forkserf.github.io/
+- Discord channel 'Forkserf'
 
 Current Release
 ===============
