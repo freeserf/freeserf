@@ -427,6 +427,7 @@ Player::promote_serfs_to_knights(int number) {
 
 int
 Player::available_knights_at_pos(MapPos pos, int index_, int dist) {
+  //Log::Debug["player.cc"] << "inside Player::available_knights_at_pos, potential building pos " << pos << ", attacked_building_flag_pos " << attacked_building_flag_pos;
   const int min_level_hut[] = { 1, 1, 2, 2, 3 };
   const int min_level_tower[] = { 1, 2, 3, 4, 6 };
   const int min_level_fortress[] = { 1, 3, 6, 9, 12 };
@@ -437,10 +438,13 @@ Player::available_knights_at_pos(MapPos pos, int index_, int dist) {
       map->type_down(pos) <= Map::TerrainWater3 ||
       map->get_obj(pos) < Map::ObjectSmallBuilding ||
       map->get_obj(pos) > Map::ObjectCastle) {
-    return index_;
+    return index_;  // I guess "return index_" means "no knights available"
   }
 
+  //Log::Debug["player.cc"] << "inside Player::available_knights_at_pos, attacking building pos " << pos << ", attacked_building_flag_pos " << attacked_building_flag_pos;
+
   int bld_index = map->get_obj_index(pos);
+  // check if this building already considered?
   for (int i = 0; i < index_; i++) {
     if (attacking_buildings[i] == bld_index) {
       return index_;
@@ -448,6 +452,7 @@ Player::available_knights_at_pos(MapPos pos, int index_, int dist) {
   }
 
   Building *building_ = game->get_building(bld_index);
+  // reject if building is not active
   if (!building_->is_done() || building_->is_burning()) {
     return index_;
   }
@@ -460,19 +465,75 @@ Player::available_knights_at_pos(MapPos pos, int index_, int dist) {
     default: return index_; break;
   }
 
+  // verify index isn't out of range (attacking_buildings[] max is 63)
   if (index_ >= 64) return index_;
 
-  attacking_buildings[index_] = bld_index;
-
+  // first verify there are enough knights to send
   size_t state = building_->get_threat_level();
   int knights_present = building_->get_knight_count();
   int to_send = knights_present - min_level[knight_occupation[state] & 0xf];
+  if (to_send < 1){
+    return index_;  // I guess "return index_" means "no knights available"
+  }
 
+  // tlongstretch - can the knights actually REACH the target building from this building??
+  // NOTE that because the knight is currently inside a building, and buildings are not technically
+  //  eligible for traverse, and because pathfinder does a reverse search from end to start, the
+  //  start pos must be the FLAG of the knight building and not the building itself!
+  // ADD NEW OPTION TO DESIGNATE THIS
+  //  option_CheckPathBeforeAttack
+  MapPos start_pos = map->move_down_right(pos);
+  // note that pathfinder_freewalking_serf will reject road solutions that are too long!  
+  //std::clock_t pathfinder_free_start = std::clock();
+  Road freewalking_route = pathfinder_freewalking_serf(game->get_map().get(), start_pos, attacked_building_flag_pos, 100);
+  //Log::Debug["player.cc"] << "inside Player::available_knights_at_pos, this pathfinder_freewalking_serf call took " << (std::clock() - pathfinder_free_start) / static_cast<double>(CLOCKS_PER_SEC);;
+
+  if (freewalking_route.get_length() > 0){
+    //game->set_debug_mark_road(freewalking_route);
+    //Log::Debug["player.cc"] << "inside Player::available_knights_at_pos, attacking building pos " << pos << ", start_pos " << start_pos << ", attacked_building_flag_pos " << attacked_building_flag_pos << ", found freewalking solution to attacked_building_flag_pos, length " << freewalking_route.get_length();
+
+    //
+    // check convolution ratio, if the road is too convoluted it is decreasingly likely that
+    //  freewalking knights will be able to navigate it consistently or at all
+    //
+    //int ideal_length = AI::get_straightline_tile_dist(map, start_pos, target_pos);
+    // function copied from AI::get_straightline_tile_dist, MAKE THIS A GAME FUNCTION INSTEAD OF AI-SPECIFIC!
+    int dist_col = map->dist_x(start_pos, attacked_building_flag_pos);
+    int dist_row = map->dist_y(start_pos, attacked_building_flag_pos);
+    int ideal_length = 0;
+    if ((dist_col > 0 && dist_row > 0) || (dist_col < 0 && dist_row < 0)) {
+      ideal_length = std::max(abs(dist_col), abs(dist_row));
+    }else {
+      ideal_length = abs(dist_col) + abs(dist_row);
+    }
+    // NOTE - to log this properly, AI and main game thread logs must be separated
+    //  as AI calls this also to perform attacks!
+    //Log::Debug["player.cc"] << "inside Player::available_knights_at_pos, attacking building pos " << pos << ", has straight-line tile distance " << ideal_length << " from attacked_building_flag_pos " << attacked_building_flag_pos;
+    //Log::Debug["player.cc"] << "inside Player::available_knights_at_pos, attacking building pos " << pos << ", route from start_pos " << start_pos << " to attacked_building_flag_pos_pos " << attacked_building_flag_pos << " has length " << freewalking_route.get_length();
+    double convolution = static_cast<double>(freewalking_route.get_length()) / static_cast<double>(ideal_length);
+    //Log::Debug["player.cc"] << "inside Player::available_knights_at_pos, attacking building pos " << pos << ", route length: " << freewalking_route.get_length() << ", ideal length: " << ideal_length << ", convolution ratio: " << convolution;
+    if (convolution >= 3.00) {
+      //Log::Info["player.cc"] << "inside Player::available_knights_at_pos, this route solution is too convoluted, rejecting";
+      return index_;
+    }
+  }else{
+    //Log::Debug["player.cc"] << "inside Player::available_knights_at_pos, attacking building pos " << pos << ", attacked_building_flag_pos " << attacked_building_flag_pos << ", cannot reach attacked_building_flag_pos within specified limits";
+    return index_;
+  }
+
+  attacking_buildings[index_] = bld_index;
   if (to_send > 0) attacking_knights[dist] += to_send;
-
   return index_ + 1;
 }
 
+// check the area in a 32 tile radius around the specified pos
+//  (which should be an attackable enemy military building) and
+//  return the number of knights that are available to attack it
+//  Broken into four groups based on distance, each maps to the
+//  knight distance icon in the attack popup
+//
+// this is a relatively heavy call!  a 32-radius check is very large
+//  so avoid running it excessively
 int
 Player::knights_available_for_attack(MapPos pos) {
   /* Reset counters. */
@@ -482,6 +543,10 @@ Player::knights_available_for_attack(MapPos pos) {
 
   int count = 0;
   PMap map = game->get_map();
+
+  // tlongstretch - adding this to sanity check if knights can actually reach the target building's flag pos
+  //  it is used inside available_knights_at_pos
+  attacked_building_flag_pos = map->move_down_right(pos);
 
   /* Iterate each shell around the position.*/
   for (int i = 0; i < 32; i++) {
@@ -974,8 +1039,30 @@ Player::update() {
 
 void
 Player::update_stats(int res) {
-  resource_count_history[res][index] = resource_count[res];
+  //std::string histogram = NameResource[res] + ": ";
+  //for (int i = 0; i < 120; i++){
+  //  histogram = histogram + std::to_string(resource_count_history[res][i]);
+  //}
+  //Log::Debug["game.cc"] << "inside Player::update_stats, was " << histogram;
+
+  /*
+  // shift array right
+  for (int z=119; z>0; z--){
+    resource_count_history[res][z] = resource_count_history[res][z-1]; 
+  }
+  // new data goes into first element
+  resource_count_history[res][0] = resource_count[res];
+  */
+  // instead using Pyrdacor's logic from https://github.com/freeserf/freeserf/issues/469#issuecomment-1374200624
+  resource_count_history[res][game->get_resource_history_index()] = resource_count[res];
+  // reset the "now" res value to zero
   resource_count[res] = 0;
+
+  //std::string histogram2 = NameResource[res] + ": ";
+  //for (int i = 0; i < 120; i++){
+  //  histogram2 = histogram2 + std::to_string(resource_count_history[res][i]);
+  //}
+  //Log::Debug["game.cc"] << "inside Player::update_stats, is now " << histogram2;
 }
 
 void

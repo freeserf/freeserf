@@ -182,6 +182,11 @@ class Serf : public GameObject {
   //
   bool split_merge_tainted = false;    // note if serf has ever been involved in a fill_path_data call from a merged/split road
   unsigned int recent_dest = 0;  // store the most recent destination for each serf, in case they become Lost, try to send another serf.  Flag index
+  //
+  // TODO - add a variable that stores the index of the building this Serf is holder to, if he has oen
+  //   this variable then can be used to cross-check for missing serfs.  Currently it is very difficult to
+  //   identify that a serf is missing if the game thinks he is still there
+  //
 
   union s {
     struct {
@@ -487,6 +492,9 @@ class Serf : public GameObject {
   // AI addition to help debug lack of serf transporter issue/bug
   unsigned int get_walking_dest() const { return s.walking.dest; }
   unsigned int get_recent_dest() const { return recent_dest; } // flag index of the most recent dest flag when serf last left an Inv
+
+  // to help avoid sending serfs to places they cannot reach in a reasonable way
+  bool can_reach_pos(MapPos dest, int max_dist);
 
   // Commands
   // the go_out_from_inventory declaration says arg2 is a MapPos, but src->get_index() returns a Flag index not a Map Pos, wtf??

@@ -790,6 +790,19 @@ Viewport::draw_path_segment(int lx, int ly, MapPos pos, Direction dir) {
 
   if (type <= Map::TerrainWater3) {
     sprite = 9;
+    // with WaterDepthLuminosity, it is hard to identify water paths
+    //  in shallow water, this makes the shallow sections darker
+    //  while leaving the deeper sections as they were
+    if (option_WaterDepthLuminosity && type >= Map::TerrainWater2){
+      // but not in winter...
+      if (option_FourSeasons && season == 3){
+         // do nothing
+       }else{
+          //frame->draw_masked_sprite(lx, ly, Data::AssetPathMask, mask, Data::AssetMapGround, 32);  // this is the original water terrain sprite
+          frame->draw_masked_sprite(lx, ly, Data::AssetPathMask, mask, Data::AssetMapGround, 40);  // this is the darkest mutated water terrain sprite
+          return;
+       }
+    }
   } else if (type >= Map::TerrainSnow0) {
     sprite += 6;
   } else if (type >= Map::TerrainDesert0) {
@@ -988,6 +1001,7 @@ Viewport::draw_game_sprite(int lx, int ly, int index) {
 
 void
 Viewport::draw_serf(int lx, int ly, const Color &color, int head, int body) {
+  //Log::Debug["viewport.cc"] << "inside Viewport::draw_serf";
   // this is the actual serf_torso sprite # for the torso/body (and possibly head if all-in-one)
   //frame->draw_sprite(lx, ly, Data::AssetSerfTorso, body, true, color);
   frame->draw_sprite(lx, ly, Data::AssetSerfTorso, body, true, color, 1.f);
@@ -1035,7 +1049,8 @@ Viewport::draw_shadow_and_custom_building_sprite(int lx, int ly, int index, cons
 //  AND THESE CUSTOM TREE SHADOWS ARE STATIC, THIS NEEDS TO BE FIXED!!
 // UPDATE - IT HAS BEEN FIXED!  - now get rid of / merge this function
 void
-Viewport::draw_map_sprite_special(int lx, int ly, int index, unsigned int pos, unsigned int obj, const Color &color) {
+//Viewport::draw_map_sprite_special(int lx, int ly, int index, unsigned int pos, unsigned int obj, const Color &color) {
+Viewport::draw_map_sprite_special(int lx, int ly, int index, const Color &color, int mutate) {
   // this is only used by draw_map_objects_row, added passing of pos and object type to support sprite replacement
   //  THIS FUNCTION MAY NOT BE NEEDED ANYMORE, could integration into normal draw sprite functions?
   //Log::Debug["viewport"] << "inside Viewport::draw_map_sprite_special for sprite index " << index;
@@ -1045,17 +1060,30 @@ Viewport::draw_map_sprite_special(int lx, int ly, int index, unsigned int pos, u
    || (index >= 1400 && index <= 1499)) { // FALL trees all have full shadows
     // use the default "full" deciduous tree shadow for certain custom tree sprites
     frame->draw_sprite(lx, ly, Data::AssetMapShadow, index % 10, true, Color::transparent, 1.f);
-  }else if (index >= 1120 && index <= 1199     // bright flowers + cattail
-         || index >= 2120 && index <= 2199){   // dark flowers
+  }else if ((index >= 1120 && index <= 1148)     // bright flowers
+         || (index >= 2120 && index <= 2148)    // dark flowers
+         //|| (index >= 1160 && index <= 1179)){   // cattails   NOW HAVE SHADOW
+              ){
     // flowers have no shadow, do not draw one
     //Log::Debug["viewport"] << "inside Viewport::draw_map_sprite_special for sprite index " << index << ", not drawing shadow";
+  }else if (index >= 1151 && index <= 1158){   // NewWaterStone0-7
+    // adjust y axis of shadow
+    if (index == 1151){ // NewWaterStone0  // this shadow looks good but when compared to the larger stone it looks wrong, one must change!
+      frame->draw_sprite(lx - 5, ly - 19, Data::AssetMapShadow, index, true, Color::transparent, 1.f);
+    }else if (index == 1152){ // NewWaterStone1   // this shadow looks good but when compared to the smaller stone it looks wrong, one must change!
+      frame->draw_sprite(lx - 6, ly - 9, Data::AssetMapShadow, index, true, Color::transparent, 1.f);
+    }else if (index == 1153){ // NewWaterStone2
+      frame->draw_sprite(lx - 1, ly - 1, Data::AssetMapShadow, index, true, Color::transparent, 1.f);
+    }else{
+      // no shadow I guess
+    }
   }else{
     // for other "non-full" trees, use custom shadow, derived from tree sprite using ImageMagick
     frame->draw_sprite(lx, ly, Data::AssetMapShadow, index, true, Color::transparent, 1.f);
   }
 
   // draw the tree itself
-  frame->draw_sprite(lx, ly, Data::AssetMapObject, index, true, color); // pos and obj only needed for debugging
+  frame->draw_sprite(lx, ly, Data::AssetMapObject, index, true, Color::transparent, 1.f, mutate); // pos and obj only needed for debugging
 }
 
 
@@ -1195,7 +1223,7 @@ Viewport::draw_unharmed_building(Building *building, int lx, int ly) {
         if ((((interface->get_game()->get_tick() +
                reinterpret_cast<uint8_t*>(&pos)[1]) >> 3) & 7) == 0
             && random.random() < 40000) {
-          play_sound(Audio::TypeSfxElevator);
+          if (in_ambient_focus){play_sound(Audio::TypeSfxElevator);}
         }
       }
       draw_shadow_and_building_sprite(lx, ly, map_building_sprite[type]);
@@ -1227,7 +1255,7 @@ Viewport::draw_unharmed_building(Building *building, int lx, int ly) {
         if (building->is_playing_sfx()){
           // throttle oinking so it doesn't happen too fast
           if (limit_tick % 8 == 0){
-            play_sound(Audio::TypeSfxPigOink);
+            if (in_ambient_focus){play_sound(Audio::TypeSfxPigOink);}
           }
           // allow up to a few oinks if >1 pig in stock
           if (pigs_count == 1 || limit_tick % 4 == 0){
@@ -1268,7 +1296,7 @@ Viewport::draw_unharmed_building(Building *building, int lx, int ly) {
           building->stop_playing_sfx();
         } else if (!building->is_playing_sfx()) {
           building->start_playing_sfx();
-          play_sound(Audio::TypeSfxMillGrinding);
+          if (in_ambient_focus){play_sound(Audio::TypeSfxMillGrinding);}
         }
         draw_shadow_and_building_sprite(lx, ly, map_building_sprite[type] +
                                 ((interface->get_game()->get_tick() >> 4) & 3));
@@ -1289,8 +1317,8 @@ Viewport::draw_unharmed_building(Building *building, int lx, int ly) {
         int i = (interface->get_game()->get_tick() >> 3) & 7;
         if (i == 0 || (i == 7 && !building->is_playing_sfx())) {
           building->start_playing_sfx();
-          //play_sound(Audio::TypeSfxGoldBoils);
-          play_sound(Audio::TypeSfxGoldBoils, DataSourceType::Amiga);  // the DOS sound is bugged in freeserf, Amiga sound is better anyway
+          //if (in_ambient_focus){play_sound(Audio::TypeSfxGoldBoils);}
+          if (in_ambient_focus){play_sound(Audio::TypeSfxGoldBoils, DataSourceType::Amiga);}  // the DOS sound is bugged in freeserf, Amiga sound is better anyway
         } else if (i != 7) {
           building->stop_playing_sfx();
         }
@@ -1324,8 +1352,8 @@ Viewport::draw_unharmed_building(Building *building, int lx, int ly) {
         int i = (interface->get_game()->get_tick() >> 3) & 7;
         if (i == 0 || (i == 7 && !building->is_playing_sfx())) {
           building->start_playing_sfx();
-          //play_sound(Audio::TypeSfxGoldBoils);
-          play_sound(Audio::TypeSfxGoldBoils, DataSourceType::Amiga);  // the DOS sound is bugged in freeserf, Amiga sound is better anyway
+          //if (in_ambient_focus){play_sound(Audio::TypeSfxGoldBoils);}
+          if (in_ambient_focus){play_sound(Audio::TypeSfxGoldBoils, DataSourceType::Amiga);}  // the DOS sound is bugged in freeserf, Amiga sound is better anyway
         } else if (i != 7) {
           building->stop_playing_sfx();
         }
@@ -1562,8 +1590,8 @@ Viewport::draw_burning_building(Building *building, int lx, int ly) {
   if (((building->get_burning_counter() >> 3) & 3) == 3 &&
       !building->is_playing_sfx()) {
     building->start_playing_sfx();
-    //play_sound(Audio::TypeSfxBurning);  //this sounds kind of weird, try amiga
-    play_sound(Audio::TypeSfxBurning, DataSourceType::Amiga);
+    if (in_ambient_focus){play_sound(Audio::TypeSfxBurning, DataSourceType::DOS);}  //this sounds kind of weird, try amiga
+    //if (in_ambient_focus){play_sound(Audio::TypeSfxBurning, DataSourceType::Amiga);}  // this is weird too :(
   } else {
     building->stop_playing_sfx();
   }
@@ -1691,31 +1719,25 @@ Viewport::draw_flag_and_res(MapPos pos, int lx, int ly) {
 }
 
 void
-//Viewport::draw_map_objects_row(MapPos pos, int y_base, int cols, int x_base) {
-Viewport::draw_map_objects_row(MapPos pos, int y_base, int cols, int x_base, int ly) {
+Viewport::draw_map_objects_row(MapPos pos, int y_base, int cols, int x_base) {
+//Viewport::draw_map_objects_row(MapPos pos, int y_base, int cols, int x_base, int debug_ly) {
   //Log::Debug["viewport.cc"] << "inside Viewport::draw_map_objects_row";
-  // for determining "in view" objects for ambient sound generation,
-  //  only consider a roughly 640x480px area in the center of the 
-  //  viewport, otherwise there are too many ambient sounds and for
-  //  things such as deserts, water, that are near edges of viewport
-  // note that X is in cols, and Y is in pixels, because it is easier to code this way
-  int focus_cols = 18;
-  int center_col = cols / 2;
-  int leftmost_focus_col = center_col - (focus_cols / 2);
-  int rightmost_focus_col = center_col + (focus_cols / 2);
-  int focus_y_pixels = 480;
-  int center_y = height / 2;
-  int topmost_focus_y = center_y - (focus_y_pixels / 2);
-  int lowest_focus_y = center_y + (focus_y_pixels / 2);
 
   int mutate = 0;  // odd numbered mutate indicates this is a darkened tile
+
+  // for determining ambient_focus for sound triggers
+  const int center_col = cols / 2;
+  const int leftmost_focus_col = center_col - (focus_cols / 2);
+  const int rightmost_focus_col = center_col + (focus_cols / 2);
 
   //Log::Debug["viewport.cc"] << "inside draw_map_objects, pos " << pos << ", cols: " << cols << ", focus_cols: " << focus_cols << ", center_col: " << center_col << ", left: " << leftmost_focus_col << ", right: " << rightmost_focus_col;
   //Log::Debug["viewport.cc"] << "inside draw_map_objects, pos " << pos << ", map height: " << height << ", ly: " << ly << ", center_y: " << center_y << ", top: " << topmost_focus_y << ", bottom: " << lowest_focus_y;
   for (int i = 0; i < cols;
        i++, x_base += MAP_TILE_WIDTH, pos = map->move_right(pos)) {
 
-    if (map->get_obj(pos) == Map::ObjectNone){continue;}  // comment this out if trying to draw red dot overlay to show focus area
+    //if (map->get_obj(pos) == Map::ObjectNone){continue;}  // comment this out if trying to draw red dot overlay to show focus area
+
+    int ly = y_base - 4 * map->get_height(pos);
 
     // option_FogOfWar
     //   do not draw objects outside of shroud/FoW
@@ -1729,23 +1751,30 @@ Viewport::draw_map_objects_row(MapPos pos, int y_base, int cols, int x_base, int
 
     //Log::Debug["viewport.cc"] << "inside draw_map_objects, pos " << pos << " has sprite " << map->get_obj(pos) - Map::ObjectTree0;
 
-    int ly = y_base - 4 * map->get_height(pos);
-    bool in_ambient_focus = false;
-    if (i >= leftmost_focus_col && i <= rightmost_focus_col && ly >= topmost_focus_y && ly <= lowest_focus_y){
-      // debug - show area in focus for ambient sounds with red dots
-      //   note for this to show a full rectangle the "continue if ObjectNone" must be moved to BELOW this if statement
-      //frame->fill_rect(x_base - 7, ly + 0, 6, 6, colors.at("red"));
-      //frame->fill_rect(x_base - 9, ly + 1, 12, 12, colors.at("red"));
+    in_ambient_focus = false;
+    if (row_in_ambient_focus && i >= leftmost_focus_col && i <= rightmost_focus_col){
       in_ambient_focus = true;
     }
-    //if (map->get_obj(pos) == Map::ObjectNone) continue;  // uncomment this if trying to draw red dot overlay to show focus area
+
+    // DEBUG
+    //if (in_ambient_focus){
+    //  // debug - show area in focus for ambient sounds with red dots
+    //  //   note for this to show a full rectangle the "continue if ObjectNone" must be moved to BELOW this if statement
+    //  frame->fill_rect(x_base - 7, ly + 0, 6, 6, colors.at("red"));
+    //  frame->fill_rect(x_base - 9, ly + 1, 12, 12, colors.at("red"));
+    //}
+
+    if (map->get_obj(pos) == Map::ObjectNone) continue;  // uncomment this if trying to draw red dot overlay to show focus area
+
     if (map->get_obj(pos) < Map::ObjectTree0) {
+      //Log::Debug["viewport.cc"] << "inside draw_map_objects, pos " << pos << " has flag/building/castle sprite type" << map->get_obj(pos);
       if (map->get_obj(pos) == Map::ObjectFlag) {
         draw_flag_and_res(pos, x_base, ly);
       } else if (map->get_obj(pos) <= Map::ObjectCastle) {
         draw_building(pos, x_base, ly);
       }
     } else {
+      //Log::Debug["viewport.cc"] << "inside draw_map_objects, pos " << pos << " has sprite " << map->get_obj(pos) - Map::ObjectTree0;
       int sprite = map->get_obj(pos) - Map::ObjectTree0;  // THIS IS IMPORTANT - sprite index is always 8 lower (-8) than map_object index!
       bool use_custom_set = false;  // messing with weather/seasons/palette tiles
       // if this is some kind of tree...
@@ -1920,14 +1949,14 @@ Viewport::draw_map_objects_row(MapPos pos, int y_base, int cols, int x_base, int
           // these are ... palm and submerged trees.  4 frames of animation per type
           sprite = (sprite & ~3) + (tree_anim & 3);
         }else if (sprite == 141){   // adding Cattails/Reeds
-          Log::Debug["viewport.cc"] << "inside Viewport::draw_map_objects_row(), found cattail0, setting frame to " << frame;
-          frame = slow_tree_anim & 3;  // cattails/reeds have 1 type with 4 frames of animation
-          sprite = 1150 + frame;
+          //Log::Debug["viewport.cc"] << "inside Viewport::draw_map_objects_row(), found cattail0, setting frame to " << frame;
+          frame = slow_tree_anim & 3;  // cattails/reeds have 2 types with 4 frames of animation
+          sprite = 1160 + frame;
           use_custom_set = true;
         }else if (sprite == 142){   // adding Cattails/Reeds
-          Log::Debug["viewport.cc"] << "inside Viewport::draw_map_objects_row(), found cattail1, setting frame to " << frame;
-          frame = slow_tree_anim & 3;  // cattails/reeds have 1 type with 4 frames of animation
-          sprite = 1160 + frame;
+          //Log::Debug["viewport.cc"] << "inside Viewport::draw_map_objects_row(), found cattail1, setting frame to " << frame;
+          frame = slow_tree_anim & 3;  // cattails/reeds have 2 types with 4 frames of animation
+          sprite = 1170 + frame;
           use_custom_set = true;
         } // if sprite 8, 16...
 
@@ -2117,9 +2146,33 @@ Viewport::draw_map_objects_row(MapPos pos, int y_base, int cols, int x_base, int
 
       }
 
-      if (use_custom_set){
+      // handle option_ForesterMonoculture
+      if (map->get_obj(pos) >= Map::ObjectNewTree0 && map->get_obj(pos) <= Map::ObjectNewTree7){
+        //Log::Debug["viewport.cc"] << "inside Viewport::draw_map_objects_row, found NewTree0+, setting index to +1000";
+        sprite += 1000;
+        // do NOT use custom set, as draw_sprite will simply set this to the original NewTree sprite and shadow
+      }
+
+      // handle partial sprite NewWaterStone0-7
+      if (map->get_obj(pos) >= Map::ObjectNewWaterStone0 && map->get_obj(pos) <= Map::ObjectNewWaterStone7){
+        //Log::Debug["viewport.cc"] << "inside Viewport::draw_map_objects_row, found NewWaterStone0+, setting index to +1000";
+        sprite += 1000;
+        use_custom_set = true;  // this basically just means "use special shadow ruleset"
+        // adjust the y axis
+        if (map->get_obj(pos) == Map::ObjectNewWaterStone0){
+          ly = ly + 16;
+        }else if (map->get_obj(pos) == Map::ObjectNewWaterStone1){
+          ly = ly + 6;
+        }else if (map->get_obj(pos) == Map::ObjectNewWaterStone2){
+          ly = ly + 4;
+        }
+      }
+
+      // draw the sprite
+      if (use_custom_set){  // use_custom_set now basically just means "use special shadow ruleset"
         //Log::Debug["viewport.cc"] << "inside Viewport::draw_map_objects_row, calling draw_map_sprite_special()";
-        draw_map_sprite_special(x_base, ly, sprite, pos, map->get_obj(pos));
+        //draw_map_sprite_special(x_base, ly, sprite, pos, map->get_obj(pos));
+        draw_map_sprite_special(x_base, ly, sprite, Color::transparent, mutate);
       }else{
         //Log::Debug["viewport.cc"] << "inside Viewport::draw_map_objects_row, calling draw_shadow_and_building_sprite(), mutate int is " << mutate;
         //draw_shadow_and_building_sprite(x_base, ly, sprite);
@@ -2127,20 +2180,30 @@ Viewport::draw_map_objects_row(MapPos pos, int y_base, int cols, int x_base, int
       }
 
       // draw water splashes on top of water objects
-      //  this cannot be done inside draw_waves_row because that is done before map_objects drawn
+      // this cannot be done inside draw_waves_row because that is done before map_objects drawn
+      // NOTE the normal sprite has already been drawn by above function, these splashes are drawn
+      //  OVER TOP of the normal sprite
       if (map->get_obj(pos) == Map::ObjectWaterStone0 || map->get_obj(pos) == Map::ObjectWaterStone1){
       //||  (map->get_obj(pos) >= Map::ObjectWaterTree0 && map->get_obj(pos) <= Map::ObjectWaterTree3)){
         //Log::Debug["viewport.cc"] << "inside Viewport::draw_map_objects_row(), found water object, drawing splashes, setting frame to " << frame;
-        // splashes have 1 type with 4 frames of animation
+        // splashes have 2 types with 4 frames of animation
         int fast_anim = (interface->get_game()->get_tick() + 20) >> 4;  
         int sprite = 20 + (fast_anim & 3);
-        frame->draw_sprite(x_base, y_base, Data::AssetMapWaves, sprite, true);
+        frame->draw_sprite(x_base, y_base, Data::AssetMapWaves, sprite, true);  // this is correct for original water objects
+        //frame->draw_sprite(x_base, y_base - 16, Data::AssetMapWaves, sprite, true); // testing new partial stone sprites
+      }else if (map->get_obj(pos) >= Map::ObjectNewWaterStone0 && map->get_obj(pos) <= Map::ObjectNewWaterStone7){
+        // wider splashes for larger objects
+        // splashes have 2 types with 4 frames of animation
+        int fast_anim = (interface->get_game()->get_tick() + 24) >> 4;   // sprite 24 is wider splashes base
+        int sprite = 24 + (fast_anim & 3);
+        frame->draw_sprite(x_base - 1, y_base, Data::AssetMapWaves, sprite, true);
       }
-
 
     } // if not a Tree or junk object
   } // foreach column in this row
 } // end Viewport::draw_map_objects_row
+
+
 
 /* Draw one individual serf in the row. */
 void
@@ -2310,8 +2373,8 @@ Viewport::serf_get_body(Serf *serf) {
       if (((t & 7) == 4 && !serf->playing_sfx()) ||
           (t & 7) == 3) {
         serf->start_playing_sfx();
-        //play_sound(Audio::TypeSfxRowing);
-        play_sound(Audio::TypeSfxRowing, DataSourceType::DOS);  // DOS sound is a little better
+        //if (in_ambient_focus){play_sound(Audio::TypeSfxRowing);}
+        if (in_ambient_focus){play_sound(Audio::TypeSfxRowing, DataSourceType::DOS);}  // DOS sound is a little better
       } else {
         serf->stop_playing_sfx();
       }
@@ -2325,8 +2388,8 @@ Viewport::serf_get_body(Serf *serf) {
         if (((t & 7) == 4 && !serf->playing_sfx()) ||
             (t & 7) == 3) {
           serf->start_playing_sfx();
-          //play_sound(Audio::TypeSfxRowing);
-          play_sound(Audio::TypeSfxRowing, DataSourceType::DOS);  // DOS sound is a little better
+          //if (in_ambient_focus){play_sound(Audio::TypeSfxRowing);}
+          if (in_ambient_focus){play_sound(Audio::TypeSfxRowing, DataSourceType::DOS);}  // DOS sound is a little better
         } else {
           serf->stop_playing_sfx();
         }
@@ -2358,8 +2421,8 @@ Viewport::serf_get_body(Serf *serf) {
         if (((t & 7) == 4 && !serf->playing_sfx()) ||
             (t & 7) == 3) {
           serf->start_playing_sfx();
-          //play_sound(Audio::TypeSfxRowing);
-          play_sound(Audio::TypeSfxRowing, DataSourceType::DOS);  // DOS sound is a little better
+          //if (in_ambient_focus){play_sound(Audio::TypeSfxRowing);}
+          if (in_ambient_focus){play_sound(Audio::TypeSfxRowing, DataSourceType::DOS);}  // DOS sound is a little better
         } else {
           serf->stop_playing_sfx();
         }
@@ -2376,7 +2439,7 @@ Viewport::serf_get_body(Serf *serf) {
     } else if (t == 0x83 || t == 0x84) {
       if (t == 0x83 || !serf->playing_sfx()) {
         serf->start_playing_sfx();
-        play_sound(Audio::TypeSfxDigging);
+        if (in_ambient_focus){play_sound(Audio::TypeSfxDigging);}
       }
       t += 0x380;
     } else {
@@ -2394,7 +2457,7 @@ Viewport::serf_get_body(Serf *serf) {
     } else if ((t & 7) == 4 || (t & 7) == 5) {
       if ((t & 7) == 4 || !serf->playing_sfx()) {
         serf->start_playing_sfx();
-        play_sound(Audio::TypeSfxHammerBlow);
+        if (in_ambient_focus){play_sound(Audio::TypeSfxHammerBlow);}
       }
       t += 0x580;
     } else {
@@ -2422,13 +2485,13 @@ Viewport::serf_get_body(Serf *serf) {
     } else if ((t == 0x86 && !serf->playing_sfx()) ||
          t == 0x85) {
       serf->start_playing_sfx();
-      play_sound(Audio::TypeSfxAxBlow);
+      if (in_ambient_focus){play_sound(Audio::TypeSfxAxBlow);}
       /* TODO Dangerous reference to unknown state vars.
          It is probably free walking. */
       if (serf->get_free_walking_neg_dist2() == 0 &&
           serf->get_counter() < 64) {
-        //play_sound(Audio::TypeSfxTreeFall);
-        play_sound(Audio::TypeSfxTreeFall, DataSourceType::DOS);  // DOS sound is better
+        //if (in_ambient_focus){play_sound(Audio::TypeSfxTreeFall);}
+        if (in_ambient_focus){play_sound(Audio::TypeSfxTreeFall, DataSourceType::DOS);}  // DOS sound is better
       }
       t += 0xe80;
     } else if (t != 0x86) {
@@ -2451,10 +2514,10 @@ Viewport::serf_get_body(Serf *serf) {
           (!serf->playing_sfx() && (t == 0xb7 || t == 0xbf ||
                 t == 0xc7 || t == 0xcf))) {
         serf->start_playing_sfx();
-        //play_sound(Audio::TypeSfxSawing);
-        //play_sound(Audio::TypeSfxSawing, DataSourceType::Amiga);  // Amiga sound is better for sawmill
+        //if (in_ambient_focus){play_sound(Audio::TypeSfxSawing);}
+        //if (in_ambient_focus){play_sound(Audio::TypeSfxSawing, DataSourceType::Amiga);}  // Amiga sound is better for sawmill
         //  actually, I am now thinking the Amiga sound is too grating, trying DOS again..
-        play_sound(Audio::TypeSfxSawing, DataSourceType::DOS);
+        if (in_ambient_focus){play_sound(Audio::TypeSfxSawing, DataSourceType::DOS);}
       } else if (t != 0xb7 && t != 0xbf && t != 0xc7 && t != 0xcf) {
         serf->stop_playing_sfx();
       }
@@ -2474,7 +2537,7 @@ Viewport::serf_get_body(Serf *serf) {
       }
     } else if (t == 0x85 || (t == 0x86 && !serf->playing_sfx())) {
       serf->start_playing_sfx();
-      play_sound(Audio::TypeSfxPickBlow);
+      if (in_ambient_focus){play_sound(Audio::TypeSfxPickBlow);}
       t += 0x1280;
     } else if (t != 0x86) {
       serf->stop_playing_sfx();
@@ -2486,7 +2549,7 @@ Viewport::serf_get_body(Serf *serf) {
       t += 0xe00;
     } else if (t == 0x86 || (t == 0x87 && !serf->playing_sfx())) {
       serf->start_playing_sfx();
-      play_sound(Audio::TypeSfxPlanting);
+      if (in_ambient_focus){play_sound(Audio::TypeSfxPlanting);}
       t += 0x1080;
     } else if (t != 0x87) {
       serf->stop_playing_sfx();
@@ -2557,7 +2620,7 @@ Viewport::serf_get_body(Serf *serf) {
       }
     } else {
       if (t != 0x80 && t != 0x87 && t != 0x88 && t != 0x8f) {
-        play_sound(Audio::TypeSfxFishingRodReel);
+        if (in_ambient_focus){play_sound(Audio::TypeSfxFishingRodReel);}
       }
 
       /* TODO no check for state */
@@ -2595,7 +2658,7 @@ Viewport::serf_get_body(Serf *serf) {
       if ((t == 0xb2 || t == 0xba || t == 0xc2 || t == 0xca) &&
           !serf->playing_sfx()) {
         serf->start_playing_sfx();
-        play_sound(Audio::TypeSfxBackswordBlow);
+        if (in_ambient_focus){play_sound(Audio::TypeSfxBackswordBlow);}
       } else if (t != 0xb2 && t != 0xba && t != 0xc2 && t != 0xca) {
         serf->stop_playing_sfx();
       }
@@ -2617,7 +2680,7 @@ Viewport::serf_get_body(Serf *serf) {
         t += 0x3d80;
       } else if (t == 0x83 || (t == 0x84 && !serf->playing_sfx())) {
         serf->start_playing_sfx();
-        play_sound(Audio::TypeSfxMowing);
+        if (in_ambient_focus){play_sound(Audio::TypeSfxMowing);}
         t += 0x3e80;
       } else if (t != 0x83 && t != 0x84) {
         serf->stop_playing_sfx();
@@ -2665,7 +2728,7 @@ Viewport::serf_get_body(Serf *serf) {
     } else if (t == 0x84 || t == 0x85) {
       if (t == 0x84 || !serf->playing_sfx()) {
         serf->start_playing_sfx();
-        play_sound(Audio::TypeSfxWoodHammering);
+        if (in_ambient_focus){play_sound(Audio::TypeSfxWoodHammering);}
       }
       t += 0x4e80;
     } else {
@@ -2697,11 +2760,11 @@ Viewport::serf_get_body(Serf *serf) {
       /* edi10 += 4; */
       if (t == 0x83 || (t == 0xb2 && !serf->playing_sfx())) {
         serf->start_playing_sfx();
-        //play_sound(Audio::TypeSfxSawing); 
-        play_sound(Audio::TypeSfxSawing, DataSourceType::DOS);  // DOS sound better for hand-saw?  uses same sound ID as sawmill
+        //if (in_ambient_focus){play_sound(Audio::TypeSfxSawing); }
+        if (in_ambient_focus){play_sound(Audio::TypeSfxSawing, DataSourceType::DOS); } // DOS sound better for hand-saw?  uses same sound ID as sawmill
       } else if (t == 0x87 || (t == 0xb6 && !serf->playing_sfx())) {
         serf->start_playing_sfx();
-        play_sound(Audio::TypeSfxWoodHammering);
+        if (in_ambient_focus){play_sound(Audio::TypeSfxWoodHammering);}
       } else if (t != 0xb2 && t != 0xb6) {
         serf->stop_playing_sfx();
       }
@@ -2725,7 +2788,7 @@ Viewport::serf_get_body(Serf *serf) {
       /* edi10 += 4; */
       if (t == 0x83 || (t == 0x84 && !serf->playing_sfx())) {
         serf->start_playing_sfx();
-        play_sound(Audio::TypeSfxMetalHammering);
+        if (in_ambient_focus){play_sound(Audio::TypeSfxMetalHammering);}
       } else if (t != 0x84) {
         serf->stop_playing_sfx();
       }
@@ -2738,14 +2801,14 @@ Viewport::serf_get_body(Serf *serf) {
     } else if (t == 0x83 || t == 0x84 || t == 0x86) {
       if (t == 0x83 || !serf->playing_sfx()) {
         serf->start_playing_sfx();
-        //play_sound(Audio::TypeSfxGeologistSampling);
-        play_sound(Audio::TypeSfxGeologistSampling, DataSourceType::DOS);  // I thought I prefered the Amiga sound but it is grating, annoying.  use DOS
+        //if (in_ambient_focus){play_sound(Audio::TypeSfxGeologistSampling);}
+        if (in_ambient_focus){play_sound(Audio::TypeSfxGeologistSampling, DataSourceType::DOS);}  // I thought I prefered the Amiga sound but it is grating, annoying.  use DOS
       }
       t += 0x4c80;
     } else if (t == 0x8c || t == 0x8d) {
       if (t == 0x8c || !serf->playing_sfx()) {
         serf->start_playing_sfx();
-        play_sound(Audio::TypeSfxResourceFound);
+        //if (in_ambient_focus){if (in_ambient_focus){play_sound(Audio::TypeSfxResourceFound);}
       }
       t += 0x4c80;
     } else {
@@ -2771,12 +2834,12 @@ Viewport::serf_get_body(Serf *serf) {
           serf->start_playing_sfx();
           if (serf->get_attacking_field_D() == 0 ||
               serf->get_attacking_field_D() == 4) {
-            play_sound(Audio::TypeSfxFight01);
+            if (in_ambient_focus){play_sound(Audio::TypeSfxFight01);}
           } else if (serf->get_attacking_field_D() == 2) {
             /* TODO when is TypeSfxFight02 played? */
-            play_sound(Audio::TypeSfxFight03);
+            if (in_ambient_focus){play_sound(Audio::TypeSfxFight03);}
           } else {
-            play_sound(Audio::TypeSfxFight04);
+            if (in_ambient_focus){play_sound(Audio::TypeSfxFight04);}
           }
         }
       }
@@ -2792,7 +2855,7 @@ Viewport::serf_get_body(Serf *serf) {
          (t == 2 || t == 5)) ||
         (t == 1 || t == 4)) {
       serf->start_playing_sfx();
-      play_sound(Audio::TypeSfxSerfDying);
+      if (in_ambient_focus){play_sound(Audio::TypeSfxSerfDying);}
     } else {
       serf->stop_playing_sfx();
     }
@@ -3001,6 +3064,21 @@ Viewport::draw_active_serf(Serf *serf, MapPos pos, int x_base, int y_base) {
       frame->draw_number(lx, ly, serf->get_index(), Color(0, 0, 128));
       frame->draw_string(lx, ly + 8, serf->print_state(),  Color(0, 0, 128));
     }
+
+    //
+    // 'd' Debug overlay used for debugging game
+    //
+    if (layers & Layer::LayerDebug){
+      std::vector<int> debug_mark_serf = *(interface->get_game()->get_debug_mark_serf());
+      if (std::count(debug_mark_serf.begin(), debug_mark_serf.end(), serf->get_index()) > 0){
+      //if (true){
+        std::string state_details = "";
+        state_details += serf->get_state_name(serf->get_state());
+        state_details += "\n";
+        frame->draw_string(lx, ly + 8, state_details, colors.at("black"));
+        frame->draw_string(lx, ly + 8, serf->print_state(),  colors.at("black"));
+      }
+    }
     
     //
     // 'y' AI overlay used for debugging AI
@@ -3157,6 +3235,7 @@ Viewport::draw_active_serf(Serf *serf, MapPos pos, int x_base, int y_base) {
 void
 Viewport::
 draw_serf_row(MapPos pos, int y_base, int cols, int x_base) {
+//draw_serf_row(MapPos pos, int y_base, int cols, int x_base, int debug_ly) {
   const int arr_1[] = {
     0x240, 0x40, 0x380, 0x140, 0x300, 0x80, 0x180, 0x200,
     0, 0x340, 0x280, 0x100, 0x1c0, 0x2c0, 0x3c0, 0xc0
@@ -3192,6 +3271,12 @@ draw_serf_row(MapPos pos, int y_base, int cols, int x_base) {
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
   };
 
+
+  // for determining ambient_focus for sound triggers
+  const int center_col = cols / 2;
+  const int leftmost_focus_col = center_col - (focus_cols / 2);
+  const int rightmost_focus_col = center_col + (focus_cols / 2);
+
   for (int i = 0; i < cols;
        i++, x_base += MAP_TILE_WIDTH, pos = map->move_right(pos)) {
 #if 0
@@ -3208,6 +3293,19 @@ draw_serf_row(MapPos pos, int y_base, int cols, int x_base) {
     if (option_FogOfWar && !map->is_visible(pos, interface->get_player()->get_index())){
       continue;
     }
+
+    in_ambient_focus = false;
+    if (row_in_ambient_focus && i >= leftmost_focus_col && i <= rightmost_focus_col){
+      in_ambient_focus = true;
+    }
+
+    // DEBUG
+    ////if (in_ambient_focus){
+    //  // debug - show area in focus for ambient sounds with red dots
+    //  //   note for this to show a full rectangle the "continue if ObjectNone" must be moved to BELOW this if statement
+    //  frame->fill_rect(x_base - 7, ly + 0, 6, 6, colors.at("red"));
+    //  frame->fill_rect(x_base - 9, ly + 1, 12, 12, colors.at("red"));
+    //}
 
     /* Active serf */
     if (map->has_serf(pos)) {
@@ -3316,6 +3414,13 @@ draw_serf_row(MapPos pos, int y_base, int cols, int x_base) {
 // UPDATE - adding Sailor Rowing serfs here to draw them behind the reeds/cattails
 void
 Viewport::draw_serf_row_behind(MapPos pos, int y_base, int cols, int x_base) {
+//Viewport::draw_serf_row_behind(MapPos pos, int y_base, int cols, int x_base, int debug_ly) {
+  
+  // for determining ambient_focus for sound triggers
+  const int center_col = cols / 2;
+  const int leftmost_focus_col = center_col - (focus_cols / 2);
+  const int rightmost_focus_col = center_col + (focus_cols / 2);
+
   for (int i = 0; i < cols;
        i++, x_base += MAP_TILE_WIDTH, pos = map->move_right(pos)) {
 
@@ -3324,6 +3429,19 @@ Viewport::draw_serf_row_behind(MapPos pos, int y_base, int cols, int x_base) {
     if (option_FogOfWar && !map->is_visible(pos, interface->get_player()->get_index())){
       continue;
     }
+
+    in_ambient_focus = false;
+    if (row_in_ambient_focus && i >= leftmost_focus_col && i <= rightmost_focus_col){
+      in_ambient_focus = true;
+    }
+
+    //// DEBUG
+    ////if (in_ambient_focus){
+    //  // debug - show area in focus for ambient sounds with red dots
+    //  //   note for this to show a full rectangle the "continue if ObjectNone" must be moved to BELOW this if statement
+    //  frame->fill_rect(x_base - 7, ly + 0, 6, 6, colors.at("red"));
+    //  frame->fill_rect(x_base - 9, ly + 1, 12, 12, colors.at("red"));
+    //}
 
     /* Active serf */
     if (map->has_serf(pos)) {
@@ -3364,6 +3482,13 @@ Viewport::draw_game_objects(int layers_) {
   int draw_serfs = layers_ & LayerSerfs;
   if (!draw_landscape && !draw_objects && !draw_serfs) return;
 
+
+  // TERRIBLE HACK TO FIX WATER WAVES BEING WRITTEN OVER Reeds/Cattails!
+  //  because the cattail/reed sprites are large and spill into the next 
+  //  pos, when the next row is drawn the water waves overwrite the cattails
+  //  and it looks bad
+  // SO, JUST DRAW THE WATER WAVES AND TERRAIN THIS LOOP!
+
   int cols = (2*(width / MAP_TILE_WIDTH) + 1);
   int short_row_len = ((cols + 1) >> 1) + 1;
   int long_row_len = ((cols + 2) >> 1) + 1;
@@ -3375,19 +3500,67 @@ Viewport::draw_game_objects(int layers_) {
   int row_0 = (offset_y/MAP_TILE_HEIGHT) & map->get_row_mask();
   MapPos pos = map->pos(col_0, row_0);
 
+  // Loop until objects drawn fall outside the frame. 
+  while (1) {
+    // short row 
+    if (draw_landscape) draw_water_waves_row(pos, ly, short_row_len, lx);
+    ly += MAP_TILE_HEIGHT;
+    if (ly >= height + 6*MAP_TILE_HEIGHT) break;
+    pos = map->move_down(pos);
+    // long row 
+    if (draw_landscape) {
+      draw_water_waves_row(pos, ly, long_row_len, lx - 16);
+    }
+    ly += MAP_TILE_HEIGHT;
+    if (ly >= height + 6*MAP_TILE_HEIGHT) break;
+    pos = map->move_down_right(pos);
+  }
+
+
+  // usual function resumes here
+  cols = (2*(width / MAP_TILE_WIDTH) + 1);
+  short_row_len = ((cols + 1) >> 1) + 1;
+  long_row_len = ((cols + 2) >> 1) + 1;
+
+  lx = -(offset_x + 16*(offset_y/20)) % 32;
+  ly = -(offset_y) % 20;
+
+  col_0 = (offset_x/16 + offset_y/20)/2 & map->get_col_mask();
+  row_0 = (offset_y/MAP_TILE_HEIGHT) & map->get_row_mask();
+  pos = map->pos(col_0, row_0);
+
+  // for determining "in view" objects for ambient sound generation,
+  //  only consider a roughly 640x480px area in the center of the 
+  //     UPDATE-  INCREASED AREA BY ABOUT 40%  
+  //  viewport, otherwise there are too many ambient sounds and for
+  //  things such as deserts, water, that are near edges of viewport
+  // note that X is in cols, and Y is in pixels, because it is easier to code this way
+  center_y = height / 2;
+  topmost_focus_y = center_y - (focus_y_pixels / 2);
+  lowest_focus_y = center_y + (focus_y_pixels / 2);
+
   /* Loop until objects drawn fall outside the frame. */
   while (1) {
+    // for determining "in view" objects for ambient sound generation,
+
+    row_in_ambient_focus = false;
+    if (ly >= topmost_focus_y && ly <= lowest_focus_y){
+      row_in_ambient_focus = true;
+    }
+
     /* short row */
-    if (draw_landscape) draw_water_waves_row(pos, ly, short_row_len, lx);
+    //if (draw_landscape) draw_water_waves_row(pos, ly, short_row_len, lx);
     if (draw_serfs) {
       draw_serf_row_behind(pos, ly, short_row_len, lx);
+      //draw_serf_row_behind(pos, ly, short_row_len, lx, ly);  // passing ly to help draw debug ambient_focus view (could probably calculate it)
     }
     if (draw_objects) {
-      //draw_map_objects_row(pos, ly, short_row_len, lx);
-      draw_map_objects_row(pos, ly, short_row_len, lx, ly);
+      draw_map_objects_row(pos, ly, short_row_len, lx);
+      //draw_map_objects_row(pos, ly, short_row_len, lx, ly);  // passing ly to help draw debug ambient_focus view (could probably calculate it)
     }
     if (draw_serfs) {
       draw_serf_row(pos, ly, short_row_len, lx);
+      //draw_serf_row(pos, ly, short_row_len, lx, ly);  // passing ly to help draw debug ambient_focus view (could probably calculate it)
     } 
 
     ly += MAP_TILE_HEIGHT;
@@ -3395,19 +3568,27 @@ Viewport::draw_game_objects(int layers_) {
 
     pos = map->move_down(pos);
 
-    /* long row */
-    if (draw_landscape) {
-      draw_water_waves_row(pos, ly, long_row_len, lx - 16);
+    // check again for ambient_focus here
+    row_in_ambient_focus = false;
+    if (ly >= topmost_focus_y && ly <= lowest_focus_y){
+      row_in_ambient_focus = true;
     }
+
+    /* long row */
+    //if (draw_landscape) {
+    //  draw_water_waves_row(pos, ly, long_row_len, lx - 16);
+    //}
     if (draw_serfs) {
       draw_serf_row_behind(pos, ly, long_row_len, lx - 16);
+      //draw_serf_row_behind(pos, ly, long_row_len, lx - 16, ly);  // passing ly to help draw debug ambient_focus view (could probably calculate it)
     }
     if (draw_objects) {
-      //draw_map_objects_row(pos, ly, long_row_len, lx - 16);
-      draw_map_objects_row(pos, ly, long_row_len, lx - 16, ly);
+      draw_map_objects_row(pos, ly, long_row_len, lx - 16);
+      //draw_map_objects_row(pos, ly, long_row_len, lx - 16, ly);  // passing ly to help draw debug ambient_focus view (could probably calculate it)
     }
     if (draw_serfs) {
       draw_serf_row(pos, ly, long_row_len, lx - 16);
+      //draw_serf_row(pos, ly, long_row_len, lx - 16, ly);  // passing ly to help draw debug ambient_focus view (could probably calculate it)
     }
 
     ly += MAP_TILE_HEIGHT;
@@ -3415,6 +3596,7 @@ Viewport::draw_game_objects(int layers_) {
 
     pos = map->move_down_right(pos);
   }
+
 
   //
   // ambient sounds - birds near trees, waves near water (palms)
@@ -3438,28 +3620,28 @@ Viewport::draw_game_objects(int layers_) {
     if (!interface->is_playing_birdsfx && birdsound_chance > tick_rand && limit_tick % 8 == 0){
       uint16_t foo_rand = (random.random() * tick_rand) & 0x7f;
       if (foo_rand < 20) {
-        play_sound(Audio::TypeSfxBirdChirp3, DataSourceType::DOS);
+        if (in_ambient_focus){play_sound(Audio::TypeSfxBirdChirp3, DataSourceType::DOS);}
         //Log::Info["viewport.cc"] << "birdsongsfx debug: CHIRP!  DOS 3";  // short chirp 
       } else if (foo_rand < 40) {
-        play_sound(Audio::TypeSfxBirdChirp1, DataSourceType::DOS);
+        if (in_ambient_focus){play_sound(Audio::TypeSfxBirdChirp1, DataSourceType::DOS);}
         //Log::Info["viewport.cc"] << "birdsongsfx debug: CHIRP!  DOS 1";  // short chirp
       } else if (foo_rand < 60) {
-        play_sound(Audio::TypeSfxBirdChirp0, DataSourceType::DOS);
+        if (in_ambient_focus){play_sound(Audio::TypeSfxBirdChirp0, DataSourceType::DOS);}
         //Log::Info["viewport.cc"] << "birdsongsfx debug: CHIRP!  DOS 0";  // short chirp
       } else if (foo_rand < 75) {
-        play_sound(Audio::TypeSfxBirdChirp2, DataSourceType::DOS);
+        if (in_ambient_focus){play_sound(Audio::TypeSfxBirdChirp2, DataSourceType::DOS);}
         //Log::Info["viewport.cc"] << "birdsongsfx debug: CHIRP!  DOS 2";  // medium chirp
       } else if (foo_rand < 82) {
-        play_sound(Audio::TypeSfxBirdChirp3, DataSourceType::Amiga);  
+        if (in_ambient_focus){play_sound(Audio::TypeSfxBirdChirp3, DataSourceType::Amiga);}  
         //Log::Info["viewport.cc"] << "birdsongsfx debug: CHIRP!  Amiga 3";  // long chirp
       } else if (foo_rand < 90) {
-        play_sound(Audio::TypeSfxBirdChirp1, DataSourceType::Amiga);  // long chirp
+        if (in_ambient_focus){play_sound(Audio::TypeSfxBirdChirp1, DataSourceType::Amiga);}  // long chirp
         //Log::Info["viewport.cc"] << "birdsongsfx debug: CHIRP!  Amiga 1";
       } else if (foo_rand < 120) {
-        play_sound(Audio::TypeSfxBirdChirp0, DataSourceType::Amiga);  // short chirp
+        if (in_ambient_focus){play_sound(Audio::TypeSfxBirdChirp0, DataSourceType::Amiga);}  // short chirp
         //Log::Info["viewport.cc"] << "birdsongsfx debug: CHIRP!  Amiga 0";
       } else {
-        play_sound(Audio::TypeSfxBirdChirp2, DataSourceType::Amiga);  // long chirp
+        if (in_ambient_focus){play_sound(Audio::TypeSfxBirdChirp2, DataSourceType::Amiga);}  // long chirp
         //Log::Info["viewport.cc"] << "birdsongsfx debug: CHIRP!  Amiga 2";  
       }
       // allow up to a few birdsounds
@@ -3494,7 +3676,7 @@ Viewport::draw_game_objects(int layers_) {
     if (!interface->is_playing_desertsfx && windsound_chance > tick_rand && limit_tick % 8 == 0){
       uint16_t foo_rand = (random.random() * tick_rand) & 0x7f;
       if (foo_rand < 25) {
-        play_sound(Audio::TypeSfxUnknown29);
+        if (in_ambient_focus){play_sound(Audio::TypeSfxUnknown29);}
       }
       interface->is_playing_desertsfx = true;
     }else{
@@ -3515,8 +3697,8 @@ Viewport::draw_game_objects(int layers_) {
     if (!interface->is_playing_watersfx && wavesound_chance > tick_rand && limit_tick % 8 == 0){
       uint16_t foo_rand = (random.random() * tick_rand) & 0x7f;
       if (foo_rand < 25) {
-        play_sound(Audio::TypeSfxUnknown28);
-        //play_sound(Audio::TypeSfxUnknown28, DataSourceType::DOS);  // DOS is a little better
+        if (in_ambient_focus){play_sound(Audio::TypeSfxUnknown28);}
+        //if (in_ambient_focus){play_sound(Audio::TypeSfxUnknown28, DataSourceType::DOS);}  // DOS is a little better
       }
       interface->is_playing_watersfx = true;
     }else{
@@ -3869,6 +4051,7 @@ Viewport::draw_ai_overlay() {
   //    got a segfault drawing this string once, I think the status string changed while iterating over its chars?
   //  got it again same day, trying questionable work-around
   //  still getting it, work-around not fixing, check Visual Studio on windows debugger
+  //  still getting it in 2023!
   frame->draw_string(65, 1, status, Color::white);
 
 /*  this is causing exceptions frequently, not sure why, disabling for now
@@ -3882,10 +4065,10 @@ Viewport::draw_ai_overlay() {
   */
 
   // draw Inventory pos
-  frame->draw_string(450, 1, "Inv " + std::to_string(ai->get_ai_inventory_pos()), Color::white);
+  frame->draw_string(0, 10, "Inv " + std::to_string(ai->get_ai_inventory_pos()), Color::white);
 
   // draw current loop count
-  frame->draw_string(800, 10, "AI loop: " + std::to_string(ai->get_loop_count()), Color::white);
+  frame->draw_string(0, 20, "AI loop: " + std::to_string(ai->get_loop_count()), Color::white);
 
 }
 
@@ -3937,17 +4120,42 @@ Viewport::draw_debug_overlay() {
     }
     base_pos = map->move_right(base_pos);
   }
+
+
+  //
+  // draw debug_mark_road to highlight any road set for debug display
+  //
+  if (game->get_debug_mark_road()->get_length() > 0){
+    MapPos prevpos = game->get_debug_mark_road()->get_source();
+    for (const auto &dir : game->get_debug_mark_road()->get_dirs()) {
+      MapPos thispos = map->move(prevpos, dir);
+      int prev_sx = 0;
+      int prev_sy = 0;
+      //Log::Info["viewport"] << "calling screen_pix_from_map_coord with FROM MapPos " << prevpos << ", empty x,y " << prev_sx << "," << prev_sy;
+      screen_pix_from_map_coord(prevpos, &prev_sx, &prev_sy);
+      //Log::Info["viewport"] << "called screen_pix_from_map_coord with FROM MapPos " << prevpos << ", got x,y " << prev_sx << "," << prev_sy;
+
+      int this_sx = 0;
+      int this_sy = 0;
+      //Log::Info["viewport"] << "calling screen_pix_from_map_coord with TO MapPos " << thispos << ", empty x,y " << this_sx << "," << this_sy;
+      screen_pix_from_map_coord(thispos, &this_sx, &this_sy);
+      //Log::Info["viewport"] << "called screen_pix_from_map_coord with TO MapPos " << thispos << ", got x,y " << this_sx << "," << this_sy;
+
+      frame->draw_line(prev_sx, prev_sy, this_sx, this_sy, Color::white);
+      prevpos = thispos;
+    }
+  }
   
   // draw player number/color text box
   frame->draw_string(1, 1, "Player" + std::to_string(current_player_index), interface->get_player_color(current_player_index));
 
   // draw cursor map click position
   if (debug_overlay_clicked_pos != bad_map_pos) {
-    frame->draw_string(600, 1, "clicked on " + std::to_string(debug_overlay_clicked_pos), Color::white);
+    frame->draw_string(485, 1, "clicked on " + std::to_string(debug_overlay_clicked_pos), Color::white);
   }
 
   // draw current game speed
-  frame->draw_string(800, 1, "game speed: " + std::to_string(game->get_game_speed()), Color::white);
+  frame->draw_string(685, 1, "game speed: " + std::to_string(game->get_game_speed()), Color::white);
 
 }
 
@@ -4174,8 +4382,9 @@ Viewport::handle_left_click(int lx, int ly, int modifier) {
     // with AI overlay on, mark any serf that is clicked on (for debugging serf states)
     Serf *serf = interface->get_game()->get_serf_at_pos(clk_pos);
     if (serf == nullptr || serf->get_type() == Serf::TypeNone || serf->get_type() == Serf::TypeTransporterInventory){
-      Log::Debug["viewport"] << "no active serf found at CTRL-clicked pos " << clk_pos;
+      Log::Info["viewport.cc"] << "no active serf found at CTRL-clicked pos " << clk_pos;
     } else {
+      /*
       unsigned int current_player_index = interface->get_player()->get_index();
       if (interface->get_ai_ptr(current_player_index) == nullptr) {
         Log::Debug["viewport"] << "CTRL-clicked serf at pos " << clk_pos << " is not owned by an AI player, not marking";
@@ -4185,6 +4394,26 @@ Viewport::handle_left_click(int lx, int ly, int modifier) {
         Log::Info["viewport"] << "adding CTRL-clicked serf of type " << NameSerf[serf->get_type()] << " at pos " << clk_pos << " to Player" << current_player_index << "'s ai_mark_serf";
         iface_ai_mark_serf->push_back(serf->get_index());
       }
+      */
+      // moving this from ai mark to debug mark
+      std::vector<int> *game_debug_mark_serf = interface->get_game()->get_debug_mark_serf();
+      //if (std::count(game_debug_mark_serf.begin(), game_debug_mark_serf.end(), serf->get_index()) > 0){
+      //std::vector<int>::iterator it = game_debug_mark_serf->begin();
+      bool found = false;
+      for (int x=0; x<game_debug_mark_serf->size(); x++){
+        if (game_debug_mark_serf->at(x) == serf->get_index()){
+          // this serf already in list, remove him instead
+          Log::Info["viewport.cc"] << "removing CTRL-clicked serf of type " << NameSerf[serf->get_type()] << " at pos " << clk_pos << " from debug_mark_serf";
+          game_debug_mark_serf->erase(std::next(game_debug_mark_serf->begin(), x));
+          found = true;
+          break;
+        }
+      }
+      if (!found){
+        Log::Info["viewport.cc"] << "adding CTRL-clicked serf of type " << NameSerf[serf->get_type()] << " at pos " << clk_pos << " to debug_mark_serf";
+        game_debug_mark_serf->push_back(serf->get_index());
+      }
+      
     }
   } else {
     Log::Debug["viewport"] << "clicked on pos " << clk_pos << " with x,y " << map->pos_col(clk_pos) << "," << map->pos_row(clk_pos);
@@ -4393,8 +4622,7 @@ Viewport::handle_special_click(int lx, int ly) {
               default: NOT_REACHED(); break;
             }
 
-            int knights =
-                  player->knights_available_for_attack(building->get_position());
+            int knights = player->knights_available_for_attack(building->get_position());
             player->knights_attacking = std::min(knights, max_knights);
             interface->open_popup(PopupBox::TypeStartAttack);
           }

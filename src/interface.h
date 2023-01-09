@@ -104,7 +104,7 @@ class Interface : public GuiObject, public GameManager::Handler {
   SpriteLoc map_cursor_sprites[7];
 
   int current_stat_8_mode;
-  int current_stat_7_item;
+  Resource::Type current_stat_7_item;
 
   int return_timeout;
   int return_pos;
@@ -143,8 +143,8 @@ class Interface : public GuiObject, public GameManager::Handler {
 
   int get_current_stat_8_mode() const { return current_stat_8_mode; }
   void set_current_stat_8_mode(int mode) { current_stat_8_mode = mode; }
-  int get_current_stat_7_item() const { return current_stat_7_item; }
-  void set_current_stat_7_item(int item) { current_stat_7_item = item; }
+  Resource::Type get_current_stat_7_item() const { return current_stat_7_item; }
+  void set_current_stat_7_item(Resource::Type item) { current_stat_7_item = item; }
 
   BuildPossibility get_build_possibility() const { return build_possibility; }
 
@@ -201,6 +201,7 @@ class Interface : public GuiObject, public GameManager::Handler {
   //  GameInitBox to refresh the map on popup
   void tell_gameinit_regen_map();
 
+/*
   //uint16_t slider_double_to_uint16(double val){ return uint16_t(val * 32750); }
   double get_custom_map_generator_trees(){ return uint16_t(16375 * custom_map_generator_options.opt[CustomMapGeneratorOption::Trees]); }
   double get_custom_map_generator_stonepile_dense(){ return slider_double_to_uint16(custom_map_generator_options.opt[CustomMapGeneratorOption::StonepileDense]); }
@@ -216,11 +217,18 @@ class Interface : public GuiObject, public GameManager::Handler {
   double get_custom_map_generator_junk_grass_sandstone(){ return slider_double_to_uint16(custom_map_generator_options.opt[CustomMapGeneratorOption::JunkGrassSandStone]); }
   double get_custom_map_generator_junk_grass_stub_trees(){ return slider_double_to_uint16(custom_map_generator_options.opt[CustomMapGeneratorOption::JunkGrassStubTrees]); }
   double get_custom_map_generator_junk_grass_small_boulders(){ return slider_double_to_uint16(custom_map_generator_options.opt[CustomMapGeneratorOption::JunkGrassSmallBoulders]); }
-  double get_custom_map_generator_junk_water_boulders(){ return slider_double_to_uint16(custom_map_generator_options.opt[CustomMapGeneratorOption::JunkWaterSubmergedBoulders]); }
   double get_custom_map_generator_junk_water_trees(){ return slider_double_to_uint16(custom_map_generator_options.opt[CustomMapGeneratorOption::JunkWaterSubmergedTrees]); }
+  double get_custom_map_generator_junk_water_boulders(){ return slider_double_to_uint16(custom_map_generator_options.opt[CustomMapGeneratorOption::JunkWaterSubmergedBoulders]); }
   double get_custom_map_generator_junk_desert_cadavers(){ return slider_double_to_uint16(custom_map_generator_options.opt[CustomMapGeneratorOption::JunkDesertAnimalCadavers]); }
   double get_custom_map_generator_junk_desert_cacti(){ return slider_double_to_uint16(custom_map_generator_options.opt[CustomMapGeneratorOption::JunkDesertCacti]); }
   double get_custom_map_generator_junk_desert_palm_trees(){ return slider_double_to_uint16(custom_map_generator_options.opt[CustomMapGeneratorOption::JunkDesertPalmTrees]); }
+  double get_custom_map_generator_junk_water_reeds_cattails(){ return uint16_t(4096 * custom_map_generator_options.opt[CustomMapGeneratorOption::JunkWaterReedsCattails]); }
+  */
+
+  // this is a dumb hack using globals to allow the game-options class to indirectly interact with the Interface
+  //  to support save/load of map generator options to disk
+  void set_custom_map_generator_options_from_global();
+  void reset_custom_map_generator_options();
 
   void set_custom_map_generator_trees(uint16_t val){
     // reasonable values for trees are 0.00-4.00, so divide max slider 65500 by 4 to get 16375 and let 1.00 == 16375
@@ -250,11 +258,13 @@ class Interface : public GuiObject, public GameManager::Handler {
   void set_custom_map_generator_junk_grass_stub_trees(uint16_t val){ custom_map_generator_options.opt[CustomMapGeneratorOption::JunkGrassStubTrees] = slider_uint16_to_double(val); }
   void set_custom_map_generator_junk_grass_small_boulders(uint16_t val){ custom_map_generator_options.opt[CustomMapGeneratorOption::JunkGrassSmallBoulders] = slider_uint16_to_double(val); }
   void set_custom_map_generator_junk_grass_dead_trees(uint16_t val){ custom_map_generator_options.opt[CustomMapGeneratorOption::JunkGrassDeadTrees] = slider_uint16_to_double(val); }
-  void set_custom_map_generator_junk_water_boulders(uint16_t val){ custom_map_generator_options.opt[CustomMapGeneratorOption::JunkWaterSubmergedBoulders] = slider_uint16_to_double(val); }
-  void set_custom_map_generator_junk_water_trees(uint16_t val){ custom_map_generator_options.opt[CustomMapGeneratorOption::JunkWaterSubmergedTrees] = slider_uint16_to_double(val); }
+  void set_custom_map_generator_junk_water_boulders(uint16_t val){ custom_map_generator_options.opt[CustomMapGeneratorOption::JunkWaterSubmergedBoulders] = double(val) / double(4096); }
+  void set_custom_map_generator_junk_water_trees(uint16_t val){ custom_map_generator_options.opt[CustomMapGeneratorOption::JunkWaterSubmergedTrees] = double(val) / double(4096); }
   void set_custom_map_generator_junk_desert_cadavers(uint16_t val){ custom_map_generator_options.opt[CustomMapGeneratorOption::JunkDesertAnimalCadavers] = slider_uint16_to_double(val); }
   void set_custom_map_generator_junk_desert_cacti(uint16_t val){ custom_map_generator_options.opt[CustomMapGeneratorOption::JunkDesertCacti] = slider_uint16_to_double(val); }
   void set_custom_map_generator_junk_desert_palm_trees(uint16_t val){ custom_map_generator_options.opt[CustomMapGeneratorOption::JunkDesertPalmTrees] = slider_uint16_to_double(val); }
+  
+  void set_custom_map_generator_junk_water_reeds_cattails(uint16_t val){ custom_map_generator_options.opt[CustomMapGeneratorOption::JunkWaterReedsCattails] = double(val) / double(4096); }
 
   // used to trigger ambient bird/wind/wave sounds
   int trees_in_view;

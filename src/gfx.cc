@@ -264,7 +264,7 @@ Graphics::get_instance() {
 //
 void
 Frame::draw_sprite(int x, int y, Data::Resource res, unsigned int index, bool use_off, const Color &color, float progress, int mutate) {
-  //Log::Debug["gfx.cc"] << "inside Frame::draw_sprite  with res " << res << " and index " << index << ", mutate int is " << mutate;
+  //Log::Debug["gfx.cc"] << "start of Frame::draw_sprite with res " << res << " and index " << index << ", mutate int is " << mutate;
   Data::Sprite::Color pc = {color.get_blue(),
                             color.get_green(),
                             color.get_red(),
@@ -285,7 +285,7 @@ Frame::draw_sprite(int x, int y, Data::Resource res, unsigned int index, bool us
     if (res == Data::AssetMapObject){
       // this is pretty arbitrary
       id = Data::Sprite::create_id(res, index + 3000, 0, 0, pc);
-      //Log::Debug["gfx.cc"] << "inside Frame::draw_sprite  with res " << res << " and index " << index << ", mutate int is " << mutate << ", caching with fake high id " << index + 3000;
+      //Log::Debug["gfx.cc"] << "inside Frame::draw_sprite with res " << res << " and index " << index << ", mutate int is " << mutate << ", caching with fake high id " << index + 3000;
     } else{
       throw ExceptionFreeserf("inside Frame::draw_sprite, unexpected Data::Asset type to mutate!");      
     }
@@ -304,11 +304,37 @@ Frame::draw_sprite(int x, int y, Data::Resource res, unsigned int index, bool us
     //  new custom sprites will work for Amiga, but mutated ones will not as the
     //  mutation happens within the DOS data loading functions
     if (index > last_original_data_index[res]){
-      //Log::Debug["gfx.cc"] << "inside Frame::draw_sprite, sprite index " << index << " is higher than the last_original_data_index " << last_original_data_index[res] << " for this Data::Resource type " << res << ", assuming it is a special sprite";
+      Log::Debug["gfx.cc"] << "inside Frame::draw_sprite, sprite index " << index << " is higher than the last_original_data_index " << last_original_data_index[res] << " for this Data::Resource type " << res << ", assuming it is a special sprite";
 
       unsigned int orig_index = -1;
 
-      if (res == Data::AssetFrameBottom // four seasons season dial in panelbar
+      // handle option_ForesterMonoculture
+      if ((res == Data::AssetMapObject  || res == Data::AssetMapShadow) && index >= 1143 && index <= 1150){  // NewTree0-7 for option_ForesterMonoculture
+        Log::Debug["gfx.cc"] << "inside Frame::draw_sprite, found a NewTree type, index " << index;
+        // simply draw the original NewTree sprite or shadow, the new indexes are only to mark the MATURE state they will grow into
+        index = 96;  // this is ObjectNewTree
+        s = data_source->get_sprite(res, index, pc, mutate);
+
+      }else if ((res == Data::AssetMapObject  || res == Data::AssetMapShadow) && index >= 1151 && index <= 1158){  // NewWaterStone0-7 
+        Log::Debug["gfx.cc"] << "inside Frame::draw_sprite, found a NewWaterStone type, index " << index;
+        if (index == 1151){
+          index = 72;  // this is ObjectSandstone0, the largest one
+          mutate += 20;  // this tells SpriteDosTransparent to use a partial sprite
+        }else if (index == 1152){
+          //index = 64;  // this is ObjectStone7, the largest stone pile
+          index = 72;  // this is ObjectSandstone0, the largest one
+          mutate += 22;  // this tells SpriteDosTransparent to use a partial sprite  LARGER AMOUNT
+        }else if (index == 1153){
+          index = 73;  // this is ObjectSandstone1, the smaller one
+          mutate += 22;  // this tells SpriteDosTransparent to use a partial sprite  LARGER AMOUNT
+        }else{
+          // FALLBACK 
+          index = 72;  // this is ObjectSandstone0, the largest one
+        }
+        //mutate += 20;  // this tells SpriteDosTransparent to use a partial sprite
+        s = data_source->get_sprite(res, index, pc, mutate);
+
+      }else if (res == Data::AssetFrameBottom // four seasons season dial in panelbar
        || res == Data::AssetMapObject  // new custom trees, flowers
        || res == Data::AssetMapShadow  // shadows for new custom trees
        || res == Data::AssetIcon   // for game-init icons
@@ -317,6 +343,20 @@ Frame::draw_sprite(int x, int y, Data::Resource res, unsigned int index, bool us
         //  loaded from actual PN  files using the data_source_Custom
         //Log::Debug["gfx.cc"] << "inside Frame::draw_sprite, sprite index " << index << " trying to load custom data source";
         Data &data = Data::get_instance();
+        // allow falling back to an original sprite if custom sprite couldn't be loaded
+        if (res == Data::AssetFrameBottom){
+          orig_index = 6;  // this is the original sprite that the seasons dial replaces
+        }else if (res == Data::AssetMapGround && index > 32){
+          orig_index = 32;  // normal Water sprite
+        }else if (res == Data::AssetIcon){
+          orig_index = 262; // human with thumbs up player icon
+        }else{
+          // Trees
+          // stripping the first two digits results in 0-7 which hold the original Trees & Tree-shadows
+          //  and the original frame_bottom sprite that the seasons dial replaces is #6, which will also work
+          // NOTE - if sprites >#9 are to be modified in the future, this orig_index fallback logic must be modified
+          orig_index = index % 10;
+        }
         if (data.get_data_source_Custom() == nullptr){
           // try load the custom sprite
           Log::Warn["gfx.cc"] << "inside Frame::draw_sprite, custom datasource not available at all, cannot even attempt to load sprite index " << index << ", trying to fall back to default datasource for this sprite, using " << orig_index;
@@ -325,17 +365,6 @@ Frame::draw_sprite(int x, int y, Data::Resource res, unsigned int index, bool us
           //Log::Debug["gfx.cc"] << "inside Frame::draw_sprite, sprite index " << index << " about to call data_source_Custom->get_sprite";
           s = data.get_data_source_Custom()->get_sprite(res, index, pc);
           if (s == nullptr){
-            // try falling back to original sprite if custom sprite couldn't be loaded
-            if (res == Data::AssetFrameBottom){
-              orig_index = 6;  // this is the original sprite that the seasons dial replaces
-            }else if (res == Data::AssetMapGround && index > 32){
-              orig_index = 32;  // normal Water sprite
-            }else{
-              // stripping the first two digits results in 0-7 which hold the original Trees & Tree-shadows
-              //  and the original frame_bottom sprite that the seasons dial replaces is #6, which will also work
-              // NOTE - if sprites >#9 are to be modified in the future, this orig_index fallback logic must be modified
-              orig_index = index % 10;
-            }
             Log::Warn["gfx.cc"] << "inside Frame::draw_sprite, custom datasource not found for res type " << res << ", sprite index " << index <<", trying to fall back to default datasource for this sprite, using " << orig_index;
             s = data_source->get_sprite(res, orig_index, pc);
           //}else{

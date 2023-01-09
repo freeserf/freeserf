@@ -636,6 +636,7 @@ DataSourceDOS::SpriteDosSolid::SpriteDosSolid(PBuffer _data, ColorDOS *palette, 
       // otherwise, this is a currently-visible sprite, so draw it normally
     }
     
+    // varying water luminosity for option_WaterDepthLuminosity
     if (mutate >= 10){
       unsigned char orig_r = color.r;
       unsigned char orig_g = color.g;
@@ -696,27 +697,6 @@ DataSourceDOS::SpriteDosSolid::SpriteDosSolid(PBuffer _data, ColorDOS *palette, 
     result->push<uint8_t>(color.r);  // Red
     result->push<uint8_t>(0xff);     // Alpha
 
-    /*
-    // TEST TEST TEST
-    if (option_FourSeasons){
-      // making terrain sprites partially-transparent to make them darker sort of works, but where two tiles overlay slightly it is
-      //  much lighter and looks bad
-      //result->push<uint8_t>(0x80);     // Alpha
-      // instead reducing overall brightness via rgb
-      /// YES this works very well and is easier than swapping sprites with pre-rendered ones
-      result->push<uint8_t>(color.b *0.5);  // Blue
-      result->push<uint8_t>(color.g *0.5);  // Green
-      result->push<uint8_t>(color.r *0.5);  // Red
-      result->push<uint8_t>(0xff);     // Alpha
-    }else{
-      // normal coloration & solid
-      result->push<uint8_t>(color.b);  // Blue
-      result->push<uint8_t>(color.g);  // Green
-      result->push<uint8_t>(color.r);  // Red
-      result->push<uint8_t>(0xff);     // Alpha
-    }
-  */
-
   }  // while data readable
 
   data = reinterpret_cast<uint8_t*>(result->unfix());
@@ -728,20 +708,6 @@ DataSourceDOS::SpriteDosSolid::SpriteDosSolid(PBuffer _data, ColorDOS *palette, 
 //  plus the mouse cursor and seemingly any other object that
 //  has a transparent aspect
 //
-/*
-DataSourceDOS::SpriteDosTransparent::SpriteDosTransparent(PBuffer _data,
-                                                          ColorDOS *palette,
-                                                          uint8_t color)
-  : SpriteBaseDOS(_data) {
-*/
-// added passing of resource type to assist with weather/seasons/palette messing
-/*
-DataSourceDOS::SpriteDosTransparent::SpriteDosTransparent(PBuffer _data,
-                                                          ColorDOS *palette,
-                                                          Data::Resource res,
-                                                          uint8_t color)
-  : SpriteBaseDOS(_data) {
-*/
 // added passing of resource type AND sprite index to also allow manipulating specific sprites
 DataSourceDOS::SpriteDosTransparent::SpriteDosTransparent(PBuffer _data,
                                                           ColorDOS *palette,
@@ -755,7 +721,7 @@ DataSourceDOS::SpriteDosTransparent::SpriteDosTransparent(PBuffer _data,
 
   //Log::Info["data-source-dos"] << "inside DataSourceDOS::SpriteDosTransparent::SpriteDosTransparent, index is " << index << ", mutate int is " << mutate;
 
-  //Log::Info["data-source-dos"] << "this transparant sprite has size " << _data->get_size();
+  //Log::Info["data-source-dos"] << "this transparent sprite has size " << _data->get_size();
 
    // find the average brightness so the brightest/highlight pixels
   //  can be identified
@@ -796,38 +762,47 @@ DataSourceDOS::SpriteDosTransparent::SpriteDosTransparent(PBuffer _data,
     //Log::Info["data-source-dos"] << "the avg_brightness of this map tile is " << avg_brightness;
   }
   
+  // TEST
+  int bytes = 0;  // to allow for partial sprites, track bytes read so far
+  bool stop = false;  // another way
 
   while (_data->readable()) {
     size_t drop = _data->pop<uint8_t>();
-    result->push<uint32_t>(0x00000000, drop);
+    result->push<uint32_t>(0x00000000, drop);  // this is transparent pixels, of "drop" number
+    
+    bytes++;  //TEST    // to allow for partial sprites, track bytes read so far
 
     size_t fill = _data->pop<uint8_t>();
     for (size_t i = 0; i < fill; i++) {
       unsigned int p_index = _data->pop<uint8_t>() + color;  // color_off;
 
+      bytes++;//TEST   // to allow for partial sprites, track bytes read so far
+
       ColorDOS color = palette[p_index];
 
+      //Log::Debug["data-source-dos.cc"] << "inside DataSourceDOS::SpriteDosTransparent constructor, color is " << int(color.r) << "," << int(color.g) << "," << int(color.b);
+
       // testing FourSeasons manipulating Seeds / Field sprites
+      //  and castle sprite!  it has a bright green pile that looks odd in winter
       if (option_FourSeasons && season == 3){
         if (res == Data::AssetMapObject){
           // I haven't bothered to check how the sprite indexes are numbered, there must be some offset
           //  for each data type, instead I found through trial and error, only need one as a reference point
-          int base = 1241;
-          //if (index >= base + 105 && index <= base + 111){      // ObjectSeeds0 - ObjectFieldExpired 
-          if ((index >= base + 105 && index <= base + 111)    // ObjectSeeds0 - ObjectFieldExpired 
-           || (index >= base + 121 && index <= base + 121)){  // ObjectField0 - ObjectField0
-            if (color.r < 200){  // is *NOT* red (i.e., is yellow or green, or blue I guess)
-            //if (color.g > color.r && color.g > color.b){  // is green
+          int base = 1250;
+          if (index >= base + 97 && index <= base + 100    // ObjectSeeds0 - ObjectSeeds3  (4+ has no green)    SPRITE 97 - 100
+           || index == base + 178){   // Castle sprite
+            //if (color.r < 200){  // is *NOT* red (i.e., is yellow or green, or blue I guess)
+            if (color.g > color.r && color.g > color.b){  // is green
               //if (color.g + color.r + color.b > 158){ // is bright
                 // make more gray
-                int tmpr = color.r + 50; if (tmpr < 1){ tmpr = 0;} if (tmpr >255){ tmpr = 255;} color.r=tmpr;
-                int tmpg = color.g - 45; if (tmpg < 1){ tmpg = 0;} if (tmpg >255){ tmpg = 255;} color.g=tmpg;
+                int tmpr = color.r + 45; if (tmpr < 1){ tmpr = 0;} if (tmpr >255){ tmpr = 255;} color.r=tmpr;
+                int tmpg = color.g - 40; if (tmpg < 1){ tmpg = 0;} if (tmpg >255){ tmpg = 255;} color.g=tmpg;
                 int tmpb = color.b +  0; if (tmpb < 1){ tmpb = 0;} if (tmpb >255){ tmpb = 255;} color.b=tmpb;
                 // make black
                 //color.r = 0;
                 //color.g = 0;
                 //color.b = 0;
-            //  }         
+              //}         
             }
           }
         }
@@ -843,7 +818,9 @@ DataSourceDOS::SpriteDosTransparent::SpriteDosTransparent(PBuffer _data,
       }
 
       //if (dull){
-      if (option_FourSeasons && season == 3){
+      if (option_FourSeasons && season == 3
+       && (!(index >= 104 && index <= 112))  // don't modify geologist signs, it makes them hard to identify (iron, at least, in winter).  These are the sign sprite indexes (which are -8 from the map object
+              ){
         //Log::Debug["data-source-dos.cc"] << "inside DataSourceDOS::SpriteDosTransparent(), it is Winter";
         // WINTER
 
@@ -922,11 +899,60 @@ DataSourceDOS::SpriteDosTransparent::SpriteDosTransparent(PBuffer _data,
         }
       }
 
-      result->push<uint8_t>(color.b);  // Blue
-      result->push<uint8_t>(color.g);  // Green
-      result->push<uint8_t>(color.r);  // Red
-      result->push<uint8_t>(0xFF);     // Alpha
-    //}
+      if (mutate == 22){
+        if (res == Data::AssetMapObject && index == 1250 + 72      // large sandstone rock / NewWaterStone0
+         || res == Data::AssetMapObject && index == 1250 + 73 ){   // small sandstone rock / NewWaterStone2
+          // make grayscale
+          int total = color.r + color.g + color.b;
+          color.r = total / 3;
+          color.g = total / 3;
+          color.b = total / 3;
+        }
+      }
+
+      if (stop){
+        // this is the transparent "color"
+        result->push<uint32_t>(0x00000000, 1);  // this is the same as pushing R,G,B with Alpha of 0x00!
+      }else{
+        result->push<uint8_t>(color.b);  // Blue
+        result->push<uint8_t>(color.g);  // Green
+        result->push<uint8_t>(color.r);  // Red
+        result->push<uint8_t>(0xFF);     // Alpha
+      }
+    }
+
+    // TEST partial sprite
+    //  this works great!
+    /// wait nope, it seems to create corruption, figure out how to fix
+    /// fixed by pushing transparent instead of nothing
+    if (mutate == 20){
+      if (res == Data::AssetMapObject && index == 1250 + 72){   // large sandstone rock / NewWaterStone0
+        if (bytes > 300){
+          //break;
+          stop = true;
+        }
+        /*
+      } else if (res == Data::AssetMapObject && index == 1250 + 64){   // large Stone7 pile / NewWaterStone1  
+        // this one looks bad, try various rock types and see what looks good submerged
+        // consider creating a normal->submerged adjustment table for orig index, x/y offets, byte to stop at, etc.
+        if (bytes > 200){
+          //break;
+          stop = true;
+        }*/
+      }
+    }else if (mutate == 22){
+      if (res == Data::AssetMapObject && index == 1250 + 72){   // large sandstone rock / NewWaterStone0
+        if (bytes > 530){
+          //break;
+          stop = true;
+        }
+      }
+      if (res == Data::AssetMapObject && index == 1250 + 73){   // small sandstone rock / NewWaterStone2
+        if (bytes > 210){
+          //break;
+          stop = true;
+        }
+      }
     }
   }
 

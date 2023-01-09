@@ -84,18 +84,73 @@ AI::has_terrain_type(PGame game, MapPos pos, Map::Terrain res_start_index, Map::
 //   long term it should also care about resources in the surrounding areas!  including mountains, fishable waters, etc.
 //  desperation is a multiplier
 bool
-AI::place_castle(PGame game, MapPos center_pos, unsigned int distance, unsigned int desperation) {
-  AILogDebug["util_place_castle"] << "inside AI::place_castle, center_pos " << center_pos << ", distance " << distance << ", desperation " << desperation;
+//AI::place_castle(PGame game, MapPos center_pos, unsigned int distance, unsigned int desperation) {
+AI::place_castle(PGame game, MapPos center_pos, unsigned int desperation) {
+  AILogDebug["util_place_castle"] << "inside AI::place_castle, center_pos " << center_pos << ", desperation " << desperation;
   PMap map = game->get_map();
   unsigned int trees = 0;
   unsigned int stones = 0;
   unsigned int building_sites = 0;
-  for (unsigned int i = 0; i < distance; i++) {
+  unsigned int nongrass_tiles_ring0 = 0;
+  unsigned int nongrass_tiles_ring1 = 0;
+  unsigned int nongrass_tiles_ring2 = 0;
+
+  //ai_mark_pos.insert(std::make_pair(center_pos, "green"));
+
+  for (unsigned int i = 0; i < spiral_dist(15); i++) {
     MapPos pos = map->pos_add_extended_spirally(center_pos, i);
+
+    //
+    // avoid areas with too much blocking terrain
+    //
+
+    // check right around the castle itself
+    if (i > AI::spiral_dist(2) && i < AI::spiral_dist(3)){
+     //ai_mark_pos.insert(std::make_pair(pos, "dk_brown"));
+     //sleep_speed_adjusted(15);
+      if (!map->types_within(pos, Map::TerrainGrass0, Map::TerrainGrass3)
+       ||  map->get_owner(pos) != player_index && map->has_owner(pos)){   // also count enemy territory as blocking!
+        //ai_mark_pos.erase(pos);
+        //ai_mark_pos.insert(std::make_pair(pos, "dk_red"));
+        //sleep_speed_adjusted(15);
+        nongrass_tiles_ring0++;
+      }
+    }
+    // check for in the perimeter of the would-be castle borders hexagon
+    if (i > AI::spiral_dist(7) && i < AI::spiral_dist(8)){
+      //ai_mark_pos.insert(std::make_pair(pos, "dk_brown"));
+     //sleep_speed_adjusted(15);
+      if (!map->types_within(pos, Map::TerrainGrass0, Map::TerrainGrass3)
+       ||  map->get_owner(pos) != player_index && map->has_owner(pos)){   // also count enemy territory as blocking!
+        //ai_mark_pos.erase(pos);
+        //ai_mark_pos.insert(std::make_pair(pos, "dk_red"));
+        //sleep_speed_adjusted(15);
+        nongrass_tiles_ring1++;
+      }
+    }
+    // check somewhat further out
+    if (i > AI::spiral_dist(14)){
+      //ai_mark_pos.insert(std::make_pair(pos, "dk_yellow"));
+      //sleep_speed_adjusted(15);
+      if (!map->types_within(pos, Map::TerrainGrass0, Map::TerrainGrass3)
+       ||  map->get_owner(pos) != player_index && map->has_owner(pos)){   // also count enemy territory as blocking!
+        //ai_mark_pos.erase(pos);
+        //ai_mark_pos.insert(std::make_pair(pos, "dk_red"));
+        //sleep_speed_adjusted(25);
+        nongrass_tiles_ring2++;
+      }
+    }
+
+    //
+    // check resources within the castle borders area only
+    //
+    if (i > AI::spiral_dist(8)){
+      continue;
+    }
 
     // don't count resouces that are inside enemy territory
     if (map->get_owner(pos) != player_index && map->has_owner(pos)) {
-      AILogDebug["util_place_castle"] << "enemy territory at pos " << pos << ", not counting these resouces towards requirements";
+      //AILogDebug["util_place_castle"] << "enemy territory at pos " << pos << ", not counting these resouces towards requirements";
       continue;
     }
 
@@ -109,19 +164,38 @@ AI::place_castle(PGame game, MapPos center_pos, unsigned int distance, unsigned 
       stones += stonepile_value;
       //AILogDebug["util_place_castle"] << "adding stones count " << stonepile_value;
     }
-    if (game->can_build_large(pos)) {
-      building_sites += 3;  // large building sites worth 50% more than small ones, but can't use 1.5 and 1.0 because integer
-      //AILogDebug["util_place_castle"] << "adding large building value 3";
-    }
-    else if (game->can_build_small(pos)) {
-      building_sites += 2;
-      //AILogDebug["util_place_castle"] << "adding small building value 1";
+    if (Map::map_space_from_obj[map->get_obj(pos)] == Map::SpaceOpen){
+      if (game->can_build_large(pos)) {
+        building_sites += 3;  // large building sites worth 50% more than small ones, but can't use 1.5 and 1.0 because integer
+        //AILogDebug["util_place_castle"] << "adding large building value 3";
+      }
+      else if (game->can_build_small(pos)) {
+        building_sites += 2;
+        //AILogDebug["util_place_castle"] << "adding small building value 1";
+      }
     }
   }
 
+  int nongrass_tiles_ring0_pct = double(nongrass_tiles_ring0 / double(AI::spiral_dist(3) - AI::spiral_dist(2))) * 100;
+  int nongrass_tiles_ring1_pct = double(nongrass_tiles_ring1 / double(AI::spiral_dist(8) - AI::spiral_dist(7))) * 100;
+  int nongrass_tiles_ring2_pct = double(nongrass_tiles_ring2 / double(AI::spiral_dist(15) - AI::spiral_dist(14))) * 100;
+  AILogDebug["util_place_castle"] << "found non-grass terrain, ring0 pct " << nongrass_tiles_ring0_pct << "%, ring1 pct " << nongrass_tiles_ring1_pct << "%, ring2 pct " << nongrass_tiles_ring2_pct << "%";
   AILogDebug["util_place_castle"] << "found trees: " << trees << ", stones: " << stones << ", building_sites: " << building_sites << " in area " << center_pos << ". Desperation is " << desperation;
 
-  // if good place for castle cannot be found, lower standards by faking an increased amount of resources
+  // if good place for castle cannot be found, lower standards by faking an increased amount of resources and less blocking terrain
+
+  if (nongrass_tiles_ring0_pct > ring0_blocking_terrain_pct_max + desperation*2) {
+    AILogDebug["util_place_castle"] << "too much blocking terrain in ring0, " << nongrass_tiles_ring0_pct << "% is blocked, max is " << ring0_blocking_terrain_pct_max << ", returning false.  Desperation is " << desperation;
+    return false;
+  }
+  if (nongrass_tiles_ring1_pct > ring1_blocking_terrain_pct_max + desperation*2) {
+    AILogDebug["util_place_castle"] << "too much blocking terrain in ring1, " << nongrass_tiles_ring1_pct << "% is blocked, max is " << ring1_blocking_terrain_pct_max << ", returning false.  Desperation is " << desperation;
+    return false;
+  }
+  if (nongrass_tiles_ring2_pct > ring2_blocking_terrain_pct_max + desperation*2) {
+    AILogDebug["util_place_castle"] << "too much blocking terrain in ring2, " << nongrass_tiles_ring2_pct << "% is blocked, max is " << ring2_blocking_terrain_pct_max << ", returning false.  Desperation is " << desperation;
+    return false;
+  }
   if (trees + desperation*4 < near_trees_min * 4) {
     AILogDebug["util_place_castle"] << "not enough trees, min is " << near_trees_min * 4 << ", returning false.  Desperation is " << desperation;
     return false;
@@ -130,10 +204,11 @@ AI::place_castle(PGame game, MapPos center_pos, unsigned int distance, unsigned 
     AILogDebug["util_place_castle"] << "not enough stones, min is " << near_stones_min << ", returning false.  Desperation is " << desperation;
     return false;
   }
-  if (building_sites + desperation*90 < near_building_sites_min) {
+  if (building_sites + desperation*45 < near_building_sites_min) {
     AILogDebug["util_place_castle"] << "not enough building_sites, min is " << near_building_sites_min << ", returning false.  Desperation is " << desperation;
     return false;
   }
+
   AILogDebug["util_place_castle"] << "center_pos: " << center_pos << " is an acceptable building site for a castle.  Desperation is " << desperation;
   AILogDebug["util_place_castle"] << "done AI::place_castle";
   return true;
@@ -420,6 +495,7 @@ AI::update_stocks_pos() {
     };*/
     stock_building_counts[stock_flag_pos] = { {0},{0},{0},{0},0,0,{} };
     stock_attached_buildings[stock_flag_pos] = {};
+    AI::set_forbidden_pos_around_inventory(stock_flag_pos);
   }
   AILogDebug["util_update_stocks_pos"] << "done AI::update_stocks_pos";
   duration = (std::clock() - start) / static_cast<double>(CLOCKS_PER_SEC);
@@ -1028,7 +1104,7 @@ AI::build_best_road(MapPos start_pos, RoadOptions road_options, Road *built_road
       // now check the list of splitting flag solutions that were likely found by the plot_road call directly
       //  preceeding this, disqualify any that are already unacceptable, and include the rest as potential solutions
       //                                      maybe make this a recursive call instead?
-      // IDEA TO POSSIBLY, MAJORLY IMPROVE ROAD SPLITTING:
+      // IDEA TO POSSIBLY, MAJORLY IMPROVE PERFORMANCE OF ROAD SPLITTING:
       //  instead of evaluating each split individually, when there could be MANY on an existing road
       //   consider the two end flags of the existing road, if either is unacceptable then don't consider splits
       //   along this road because the split can only be worse (right?).
@@ -2552,7 +2628,7 @@ AI::build_near_pos(MapPos center_pos, unsigned int distance, Building::Type buil
       continue;
     }
 
-    AILogDebug["util_build_near_pos"] << "successfully built and connected a building of type " << NameBuilding[building_type] << " at pos " << pos;
+    AILogDebug["util_build_near_pos"] << "successfully placed and connected (unless it was a mine) a building of type " << NameBuilding[building_type] << " at pos " << pos;
 
     duration = (std::clock() - start) / static_cast<double>(CLOCKS_PER_SEC);
     AILogDebug["util_build_near_pos"] << "successful util_build_near_pos, built building of type " << NameBuilding[building_type] << " at pos " << pos << ", call took " << duration;
@@ -2894,8 +2970,8 @@ AI::score_enemy_area(MapPos center_pos, unsigned int distance) {
     if (obj == Map::ObjectCastle && map->get_owner(pos) == player_index){
       AILogDebug["util_score_enemy_area"] << "found our own castle in attack area!  scoring this area highly to reduce risk of our castle flag paths becoming blocked";
       if (obj == Map::ObjectCastle){
-        pos_value += 50;
-        //AILogDebug["util_score_enemy_area"] << "adding attack value 20 for enemy castle at pos " << pos;
+        pos_value += 75;
+        //AILogDebug["util_score_enemy_area"] << "adding attack value 75 for enemy building near our own castle at pos " << pos;
         continue;
       }
     }
@@ -2934,13 +3010,13 @@ AI::score_enemy_area(MapPos center_pos, unsigned int distance) {
     // enemy buildings
     //
     if (map->get_owner(pos) != player_index && map->has_owner(pos) && map->has_building(pos)){
-      AILogDebug["util_score_enemy_area"] << "potential attack object is " << NameObject[obj] << " with building type " << NameBuilding[game->get_building_at_pos(pos)->get_type()];
+      //AILogDebug["util_score_enemy_area"] << "potential attack area contains a building of type " << NameBuilding[game->get_building_at_pos(pos)->get_type()];
       if (obj == Map::ObjectCastle){
-        pos_value += 20;
+        pos_value += 25;  // this needs to be high enough to ensure that a nearly-isolated castle is still worth isolating even if no resources nearby
         //AILogDebug["util_score_enemy_area"] << "adding attack value 20 for enemy castle at pos " << pos;
       }
       if (obj == Map::ObjectLargeBuilding && game->get_building_at_pos(pos)->get_type() == Building::TypeStock){
-        pos_value += 12;
+        pos_value += 25;
         //AILogDebug["util_score_enemy_area"] << "adding additional attack value 12 for enemy stock/warehouse at pos " << pos;
       }
       if (obj == Map::ObjectLargeBuilding && !game->get_building_at_pos(pos)->is_military()) {
@@ -2956,7 +3032,7 @@ AI::score_enemy_area(MapPos center_pos, unsigned int distance) {
         //AILogDebug["util_score_enemy_area"] << "adding additional attack value 12 for building of type " << NameBuilding[game->get_building_at_pos(pos)->get_type()] << " at pos " << pos;
       }
       if (obj == Map::ObjectSmallBuilding && game->get_building_at_pos(pos)->get_type() == Building::TypeGoldMine) {
-        pos_value += 18;
+        pos_value += 25;
         //AILogDebug["util_score_enemy_area"] << "adding additional attack value 18 for building of type " << NameBuilding[game->get_building_at_pos(pos)->get_type()] << " at pos " << pos;
       }
       if (obj == Map::ObjectSmallBuilding && !game->get_building_at_pos(pos)->is_military()) {
@@ -2982,9 +3058,15 @@ AI::score_enemy_area(MapPos center_pos, unsigned int distance) {
 bool
 AI::is_bad_building_pos(MapPos pos, Building::Type building_type) {
   //AILogDebug["util_is_bad_building_pos"] << "inside AI::is_bad_building_pos";
+  // time this function for debugging
+  std::clock_t start;
+  double duration;
+  start = std::clock();
   if (bad_building_pos.find(std::make_pair(pos, building_type)) != bad_building_pos.end()) {
     return true;
   }
+  duration = (std::clock() - start) / static_cast<double>(CLOCKS_PER_SEC);
+  AILogDebug["util_score_enemy_area"] << "is_bad_building_pos call took " << duration << ", bad_building_pos has " << bad_building_pos.size() << " elements";
   return false;
 }
 
@@ -3034,7 +3116,13 @@ AI::score_enemy_targets(MapPosSet *scored_targets) {
   // foreach my hut in range of attacking enemy
   //    foreach enemy hut within range of attack
   //      score
+  std::clock_t this_item_start = std::clock();
   for (Building *building : buildings) {
+    double duration_so_far = (std::clock() - start) / static_cast<double>(CLOCKS_PER_SEC);
+    double duration_last_item = (std::clock() - this_item_start) / static_cast<double>(CLOCKS_PER_SEC);
+    AILogDebug["util_score_enemy_targets"] << "inside score_enemy_targets, total time spent so far " << duration_so_far << ", last item took " << duration_last_item;
+    this_item_start = std::clock();
+    
     if (building == nullptr)
       continue;
     if (!building->is_done() ||
@@ -3044,12 +3132,14 @@ AI::score_enemy_targets(MapPosSet *scored_targets) {
       continue;
     }
     //ai_mark_pos.clear();
-    AILogDebug["util_score_enemy_targets"] << "looking for enemy buildings to attack near to my building of type " << NameBuilding[building->get_type()] << " at pos " << building->get_position();
+    //AILogDebug["util_score_enemy_targets"] << "looking for enemy buildings to attack near to my building of type " << NameBuilding[building->get_type()] << " at pos " << building->get_position();
     MapPos attacker_pos = building->get_position();
     // compile a list for scoring of each enemy building in attackable radius (which is?? NEED TO FIND OUT)
     //  at 14, seeing some unattackable targets, lowering to 13
     //  trying 12, was seeing unreachable buildings at 13
     //  12 looks good NO I see REACHable buildings that aren't showing as within 12, going back to 13
+    //  I am seeing an attackable building that isn't showing up in this check, may need to switch to
+    //  the actual game logic instead of this guessing...
     for (unsigned int i = 0; i < AI::spiral_dist(13); i++) {
       MapPos pos = map->pos_add_extended_spirally(attacker_pos, i);
       if (!map->has_building(pos) ||
@@ -3061,35 +3151,44 @@ AI::score_enemy_targets(MapPosSet *scored_targets) {
         AILogDebug["util_score_enemy_targets"] << "target_building is nullptr!  at pos " << pos;
         continue;
       }
-      if (!target_building->is_military() || !target_building->is_active()) {
+      if (!target_building->is_military() || !target_building->is_active() || !building->get_threat_level() == 3){
         continue;
       }
       MapPos target_pos = pos;
-      Building::Type target_building_type = building->get_type();
+      Building::Type target_building_type = target_building->get_type();
       size_t target_player_index = map->get_owner(pos);
-      // getting segfault here on loaded game after changing AI to human
-      //  to debug something, for now simply don't use this
-      //  const std::string target_player_face = NamePlayerFace[game->get_player(map->get_owner(pos))->get_face()];
-      //AILogDebug["util_score_enemy_targets"] << "found attackable building of type " << NameBuilding[target_building_type] << " at pos " << target_pos << " belonging to player " << target_player_index << " / " << target_player_face;
-      AILogDebug["util_score_enemy_targets"] << "found attackable building of type " << NameBuilding[target_building_type] << " at pos " << target_pos << " belonging to player " << target_player_index;
+      AILogDebug["util_score_enemy_targets"] << "our building of type " << NameBuilding[building->get_type()] << " at pos " << attacker_pos << " can attack building of type " << NameBuilding[target_building_type] << " at pos " << target_pos << " belonging to player " << target_player_index;
+
+      /* UPDATE - this call is quite slow, moving it to AFTER score_area and sorting
+         is done to see if that is actually faster
+      // copied from viewport open-attack-window logic, I am not sure exactly what the 
+      //  purpose of this code is, as how could there be more knights available to 
+      //  attack than there are knights in the building?  Except for castle,
+      //  maybe the intent was simply to disallow attacking with more than 20 knights
+      //  at once from the castle, and the others have no effect?  
+      // ... can you even attack directly from the castle?  I forget
       int max_knights = 0;
-      switch (target_building_type) {
+      switch (building->get_type()) {  // limit based on our building, the attacking building
       case Building::TypeHut: max_knights = 3; break;
       case Building::TypeTower: max_knights = 6; break;
       case Building::TypeFortress: max_knights = 12; break;
       case Building::TypeCastle: max_knights = 20; break;
       default: NOT_REACHED(); break;
       }
+      std::clock_t foo = std::clock();
       int attacking_knights = player->knights_available_for_attack(target_pos);
+      AILogDebug["util_score_enemy_targets"] << "inside score_enemy_targets, this player->knights_available_for_attack(" << target_pos << ") took " << (std::clock() - foo) / static_cast<double>(CLOCKS_PER_SEC);
+
       attacking_knights = std::min(attacking_knights, max_knights);
       //AILogDebug["util_score_enemy_targets"] << "send up to " << attacking_knights << " knights to attack enemy building of type " << NameBuilding[target_building_type]
       //  << " at pos " << target_pos << " belonging to player " << target_player_index << " / " << target_player_face;
-      AILogDebug["util_score_enemy_targets"] << "send up to " << attacking_knights << " knights to attack enemy building of type " << NameBuilding[target_building_type]
+      AILogDebug["util_score_enemy_targets"] << "our building of type " << NameBuilding[building->get_type()] << " at pos " << attacker_pos << " can attack with up to " << attacking_knights << " knights to attack enemy building of type " << NameBuilding[target_building_type]
         << " at pos " << target_pos << " belonging to player " << target_player_index;
       if (attacking_knights <= 0) {
-        AILogDebug["util_score_enemy_targets"] << "cannot send any knights, not marking target for scoring";
+        AILogDebug["util_score_enemy_targets"] << "our building of type " << NameBuilding[building->get_type()] << " at pos " << attacker_pos << " cannot send any knights, not marking target for scoring";
         continue;
       }
+      */
       if (target_building_type == Building::TypeCastle){
         //
         // DO SOMETHING HERE IF TARGET IS ENEMY CASTLE - EITHER NEVER ATTACK IT OR ALWAYS ATTACK IT
@@ -3106,6 +3205,8 @@ AI::score_enemy_targets(MapPosSet *scored_targets) {
       }
     }
   }
+
+  AILogDebug["util_score_enemy_targets"] << "done finding targets, unique_enemy_targets contains " << unique_enemy_targets.size() << " items";
 
   // score the targets found
   for (MapPos target_pos : unique_enemy_targets){
@@ -3137,38 +3238,118 @@ AI::score_enemy_targets(MapPosSet *scored_targets) {
 
 
 void
-//AI::attack_nearest_target(MapPosSet *scored_targets) {
-AI::attack_nearest_target(MapPosSet *scored_targets, unsigned int min_score, double min_ratio) {
-  AILogDebug["util_attack_nearest_target"] << "inside AI::attack_nearest_target with min_score " << min_score << " and min attack ratio " << min_ratio;
-  for (std::pair<MapPos, unsigned int> target : *(scored_targets)) {
-    MapPos target_pos = target.first;
-    unsigned int target_score = target.second;
-    AILogDebug["util_attack_nearest_target"] << "found target with target_pos " << target_pos << " and score " << target_score;
-    if (target_score < min_score){
-      AILogDebug["util_attack_nearest_target"] << "target with target_pos " << target_pos << " has a score too low for attack, min is " << min_score << ", skipping";
-      continue;
+//AI::attack_best_target(MapPosSet *scored_targets) {
+//AI::attack_best_target(MapPosSet *scored_targets, unsigned int min_score, double min_ratio) {
+AI::attack_best_target(MapPosSet *scored_targets, int loss_tolerance) {
+  AILogDebug["util_attack_best_target"] << "inside AI::attack_best_target with loss_tolerance " << loss_tolerance;
+
+  MapPosVector sorted_scored_targets = sort_by_val_desc(*(scored_targets));
+
+  for (MapPos target_pos : sorted_scored_targets) {
+    // get the score for this target
+    unsigned int target_score = 0;
+    for (std::pair<MapPos, unsigned int> target : *(scored_targets)){
+      if (target.first == target_pos){
+        target_score = target.second;
+        break;
+      }
     }
-    int attacking_knights = player->knights_available_for_attack(target_pos);
-    AILogDebug["util_attack_nearest_target"] << "can send up to " << attacking_knights << " knights to attack enemy building at pos " << target_pos;
-    //AILogDebug["util_attack_nearest_target"] << "ENEMY military_score = " << game->get_player(target_player_index)->get_military_score() << ",  ENEMY knight_morale = " << game->get_player(target_player_index)->get_knight_morale();
-    // enemy knight morale does NOT MATTER when attacking because it is always 100% for defenders (even if their attack morale is higher!)
+
+    AILogDebug["util_attack_best_target"] << "target with target_pos " << target_pos << " has score " << target_score;
+
     Building *target_building = game->get_building_at_pos(target_pos);
     if (target_building == nullptr){
+      AILogWarn["util_attack_best_target"] << "target building at pos " << target_pos << " is now nullptr!  skipping";
       continue;
     }
-    unsigned int defending_knights = target_building->get_knight_count();  // this function says it returns waiting_planks but it might just be stock[0] is knights for a military building?? need to check
-    double attack_ratio = static_cast<double>(attacking_knights) / static_cast<double>(defending_knights);
-    AILogDebug["util_attack_nearest_target"] << "attacking_knights=" << attacking_knights << ", defending_knights=" << defending_knights << ", attack_ratio=" << attack_ratio;
-    if (attack_ratio >= min_ratio) {
-      AILogDebug["util_attack_nearest_target"] << "attack_ratio " << attack_ratio << " is >= to min_ratio " << min_ratio << ", PROCEEDING WITH THE ATTACK!";
-      player->building_attacked = game->get_building_at_pos(target_pos)->get_index();
-      player->attacking_building_count = attacking_knights;
-      AILogDebug["util_attack_nearest_target"] << "calling player->start_attack()";
-      player->start_attack();
-      AILogDebug["util_attack_nearest_target"] << "DONE calling player->start_attack()";
+
+    int estimated_defenders = target_building->get_knight_count();  // this might be "exact number of defenders" now, oh well
+    AILogDebug["util_attack_best_target"] << "target_building of type " << NameBuilding[target_building->get_type()] << " has estimated_defenders " << estimated_defenders;
+
+
+    // copied from viewport open-attack-window logic, I am not sure exactly what the 
+    //  purpose of this code is, as how could there be more knights available to 
+    //  attack than there are knights in the building?  Except for castle,
+    //  maybe the intent was simply to disallow attacking with more than 20 knights
+    //  at once from the castle, and the others have no effect?  
+    // ... can you even attack directly from the castle?  I forget
+    int max_knights = 0;
+    switch (target_building->get_type()) {  // limit based on our building, the attacking building
+      case Building::TypeHut: max_knights = 3; break;
+      case Building::TypeTower: max_knights = 6; break;
+      case Building::TypeFortress: max_knights = 12; break;
+      case Building::TypeCastle: max_knights = 20; break;
+      default: NOT_REACHED(); break;
     }
+
+    // this call is quite slow, time it.  Originally I was doing it PRIOR to scoring, but it was slow enough that
+    //  I tried moving it here, after scoring
+    std::clock_t foo = std::clock();
+    int attacking_knights = player->knights_available_for_attack(target_pos);
+    AILogDebug["util_attack_best_target"] << "this player->knights_available_for_attack(" << target_pos << ") took " << (std::clock() - foo) / static_cast<double>(CLOCKS_PER_SEC);
+
+    attacking_knights = std::min(attacking_knights, max_knights);
+    if (attacking_knights <= 0) {
+      AILogDebug["util_attack_best_target"] << "to target_building pos " << target_building->get_position() << ", we cannot send any knights, skipping it";
+      continue;
+    }
+    AILogDebug["util_attack_best_target"] << "can send up to " << attacking_knights << " knights to attack enemy building at pos " << target_pos;
+    
+    //AILogDebug["util_attack_best_target"] << "ENEMY military_score = " << game->get_player(target_player_index)->get_military_score() << ",  ENEMY knight_morale = " << game->get_player(target_player_index)->get_knight_morale();
+    // enemy knight morale does NOT MATTER when attacking because it is always 100% for defenders (even if their attack morale is higher!)
+    double enemy_morale = 100.00;
+    double morale = (100*player->get_knight_morale())/0x1000;  // this should be % morale, not the integer that defaults to 4096
+    // NOTE that this completely ignores knight experience level, because
+    //  for enemies it is unknown (though it is technically possible to track it if knights are observed entering/leaving)
+    //  and for friendly buildings it is not obvious, though it could be determined by checking each building within range
+    //  and accounting for the "send strong/weak to battle" setting
+    // if our morale is > 100, our expected losses are less than one knight per defender
+    // if our morale is < 100, our expected losses are more than one knight per defender
+    unsigned int expected_losses = double(enemy_morale / morale) * estimated_defenders;
+    if (expected_losses < 1){expected_losses = 1;} // avoid divide by zero error
+    AILogDebug["util_attack_best_target"] << "enemy_morale " << enemy_morale << ", our morale " << morale << ", expected_losses to attack this building are " << expected_losses;
+
+    if (loss_tolerance == 3){
+      if (target_score > 100 && attacking_knights > 1 * expected_losses){
+        AILogDebug["util_attack_best_target"] << "loss_tolerance is high, this target has an exceptionally high score of " << target_score << " and victory is possible, will attack";
+      }else if (target_score / expected_losses > 15 && attacking_knights > 1.25 * expected_losses){
+        AILogDebug["util_attack_best_target"] << "loss_tolerance is high, this target_score / expected_losses ratio " << target_score / expected_losses << ":1 is over 15, an acceptable risk, and victory is likely, will attack";
+      }else{
+        AILogDebug["util_attack_best_target"] << "loss_tolerance is high, this target_score / expected_losses ratio " << target_score / expected_losses << ":1 is too low, OR we are not likely to capture it, skipping target";
+        continue;
+      }
+    }else if (loss_tolerance == 2){
+      if (target_score > 100 && attacking_knights > 1.5 * expected_losses){
+        AILogDebug["util_attack_best_target"] << "loss_tolerance is moderate, this target has an exceptionally high score of " << target_score << " and victory is possible, will attack";
+      }else if (target_score / expected_losses > 25 && attacking_knights > 1.5 * expected_losses){
+        AILogDebug["util_attack_best_target"] << "loss_tolerance is moderate, this target_score / expected_losses ratio " << target_score / expected_losses << ":1 is over 25, a worthy risk, and victory is likely, will attack";
+      }else{
+        AILogDebug["util_attack_best_target"] << "loss_tolerance is moderate, this target_score / expected_losses ratio " << target_score / expected_losses << ":1 is too low, OR we are not likely to capture it, skipping target";
+        continue;
+      }
+    }else if (loss_tolerance == 1){
+      if (target_score > 100 && attacking_knights > 2 * expected_losses){
+        AILogDebug["util_attack_best_target"] << "loss_tolerance is low, this target has an exceptionally high score of " << target_score << " and victory is likely, will attack";
+      }else if (target_score / expected_losses > 40 && attacking_knights > 2 * expected_losses){
+        AILogDebug["util_attack_best_target"] << "loss_tolerance is low, this target_score / expected_losses ratio " << target_score / expected_losses << ":1 is over 40, a worthy risk, and victory is likely, will attack";
+      }else{
+        AILogDebug["util_attack_best_target"] << "loss_tolerance is low, this target_score / expected_losses ratio " << target_score / expected_losses << ":1 is too low, OR we are not likely to capture it, skipping target";
+        continue;
+      }
+    }else{
+      throw ExceptionFreeserf("AI::attack_best_target was called with loss_tolerance of <1 or >3, this should not happen");
+    }
+    AILogDebug["util_attack_best_target"] << "PROCEEDING WITH THE ATTACK on target_pos " << target_pos;
+    player->building_attacked = target_building->get_index();
+    player->attacking_building_count = attacking_knights;
+    AILogDebug["util_attack_best_target"] << "calling player->start_attack()";
+    player->start_attack();
+    AILogDebug["util_attack_best_target"] << "DONE calling player->start_attack()";
+
+    AILogDebug["util_attack_best_target"] << "only doing one attack per AI loop";
+    break;
   }
-  AILogDebug["util_attack_nearest_target"] << "done AI::attack_nearest_target";
+  AILogDebug["util_attack_best_target"] << "done AI::attack_best_target";
 }
 
 
@@ -3275,6 +3456,48 @@ AI::flag_and_road_suitable_for_removal(PGame game, PMap map, MapPos flag_pos, Di
   // flag must be eligible if this point reached
   AILogDebug["util_flag_and_road_suitable_for_removal"] << "flag at pos " << flag_pos << " is eligible for removal, road dir is " << *(road_dir) << " / " << NameDirection[*(road_dir)] << ", returning true";
   return true;
+}
+
+//
+// store the "forbidden zone" to prevent creation of paths blocking the castle or a stock flag
+//
+void
+AI::set_forbidden_pos_around_inventory(MapPos inventory_flag_pos){
+  //            22
+  //            --\2
+  //     castle_   \2
+  //  2/\2 /\cc/\   \2 
+  // 2/_2\/cc\/cc\   \2
+  // 2\--2\cc/\cc/\1  \2
+  //  2\  2\/__\/__\1  \2  castle/stock flag area, double lines are forbidden paths
+  //   2\  1\  /\  /1  /2            NOTE that ring1 pos can connect to ring2 pos, 
+  //    2\  1\/__\/1  /2                   but ring1-to-ring1 and ring2-to-ring2 disallowed
+  //     2\   1111   /2
+  //      2\________/2
+  //        22222222
+  //
+  // and path segment with both ends in forbidden list must be rejected
+  // first ring
+  MapPos forbidden_pos = map->move_left(inventory_flag_pos); stock_building_counts.at(inventory_flag_pos).forbidden_paths_ring1.push_back(forbidden_pos);// ai_mark_pos.insert(ColorDot(forbidden_pos, "cyan"));
+  forbidden_pos = map->move_down_right(forbidden_pos); stock_building_counts.at(inventory_flag_pos).forbidden_paths_ring1.push_back(forbidden_pos);// ai_mark_pos.insert(ColorDot(forbidden_pos, "cyan"));
+  forbidden_pos = map->move_right(forbidden_pos); stock_building_counts.at(inventory_flag_pos).forbidden_paths_ring1.push_back(forbidden_pos);// ai_mark_pos.insert(ColorDot(forbidden_pos, "cyan"));
+  forbidden_pos = map->move_up(forbidden_pos); stock_building_counts.at(inventory_flag_pos).forbidden_paths_ring1.push_back(forbidden_pos);// ai_mark_pos.insert(ColorDot(forbidden_pos, "cyan"));
+  forbidden_pos = map->move_up_left(forbidden_pos); stock_building_counts.at(inventory_flag_pos).forbidden_paths_ring1.push_back(forbidden_pos);// ai_mark_pos.insert(ColorDot(forbidden_pos, "cyan"));
+  // second ring
+  forbidden_pos = map->move_up_left(map->move_left(inventory_flag_pos)); stock_building_counts.at(inventory_flag_pos).forbidden_paths_ring2.push_back(forbidden_pos);// ai_mark_pos.insert(ColorDot(forbidden_pos, "dk_cyan"));
+  forbidden_pos = map->move_up_left(forbidden_pos); stock_building_counts.at(inventory_flag_pos).forbidden_paths_ring2.push_back(forbidden_pos);// ai_mark_pos.insert(ColorDot(forbidden_pos, "dk_cyan"));
+  forbidden_pos = map->move_down(forbidden_pos); stock_building_counts.at(inventory_flag_pos).forbidden_paths_ring2.push_back(forbidden_pos);// ai_mark_pos.insert(ColorDot(forbidden_pos, "dk_cyan"));
+  forbidden_pos = map->move_down_right(forbidden_pos);// ai_mark_pos.insert(ColorDot(forbidden_pos, "dk_cyan"));
+  //forbidden_pos = map->move_down(forbidden_pos); stock_building_counts.at(inventory_flag_pos).forbidden_paths_ring2.push_back(forbidden_pos); ai_mark_pos.insert(ColorDot(forbidden_pos, "dk_cyan"));
+  forbidden_pos = map->move_down_right(forbidden_pos); stock_building_counts.at(inventory_flag_pos).forbidden_paths_ring2.push_back(forbidden_pos);// ai_mark_pos.insert(ColorDot(forbidden_pos, "dk_cyan"));
+  forbidden_pos = map->move_down_right(forbidden_pos); stock_building_counts.at(inventory_flag_pos).forbidden_paths_ring2.push_back(forbidden_pos);// ai_mark_pos.insert(ColorDot(forbidden_pos, "dk_cyan"));
+  forbidden_pos = map->move_right(forbidden_pos); stock_building_counts.at(inventory_flag_pos).forbidden_paths_ring2.push_back(forbidden_pos);// ai_mark_pos.insert(ColorDot(forbidden_pos, "dk_cyan"));
+  forbidden_pos = map->move_right(forbidden_pos); stock_building_counts.at(inventory_flag_pos).forbidden_paths_ring2.push_back(forbidden_pos);// ai_mark_pos.insert(ColorDot(forbidden_pos, "dk_cyan"));
+  forbidden_pos = map->move_up(forbidden_pos); stock_building_counts.at(inventory_flag_pos).forbidden_paths_ring2.push_back(forbidden_pos);// ai_mark_pos.insert(ColorDot(forbidden_pos, "dk_cyan"));
+  forbidden_pos = map->move_up(forbidden_pos); stock_building_counts.at(inventory_flag_pos).forbidden_paths_ring2.push_back(forbidden_pos);// ai_mark_pos.insert(ColorDot(forbidden_pos, "dk_cyan"));
+  forbidden_pos = map->move_up_left(forbidden_pos); stock_building_counts.at(inventory_flag_pos).forbidden_paths_ring2.push_back(forbidden_pos);// ai_mark_pos.insert(ColorDot(forbidden_pos, "dk_cyan"));
+  forbidden_pos = map->move_up_left(forbidden_pos); stock_building_counts.at(inventory_flag_pos).forbidden_paths_ring2.push_back(forbidden_pos);// ai_mark_pos.insert(ColorDot(forbidden_pos, "dk_cyan"));
+  forbidden_pos = map->move_left(forbidden_pos); stock_building_counts.at(inventory_flag_pos).forbidden_paths_ring2.push_back(forbidden_pos);// ai_mark_pos.insert(ColorDot(forbidden_pos, "dk_cyan"));
 }
 
 

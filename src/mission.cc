@@ -411,19 +411,33 @@ GameInfo::set_random_base(const Random &base) {
   // Player 0
   players.push_back(std::make_shared<PlayerInfo>(&random));
   players[0]->set_character(12);
+  players[0]->set_supplies(19);
   players[0]->set_intelligence(40);
+  players[0]->set_reproduction(40);
 
   // Player 1
   players.push_back(std::make_shared<PlayerInfo>(&random));
+  // default intelligence and reproduction to max
+  //  because intelligence doesn't do anything with new AI
+  //  and reproduction is problematic at low settings
+  players[1]->set_supplies(19);
+  players[1]->set_intelligence(40);
+  players[1]->set_reproduction(40);
 
   uint32_t val = random.random();
   if ((val & 7) != 0) {
     // Player 2
     players.push_back(std::make_shared<PlayerInfo>(&random));
+    players[2]->set_supplies(19);
+    players[2]->set_intelligence(40);
+    players[2]->set_reproduction(40);
     uint32_t val = random.random();
     if ((val & 3) == 0) {
       // Player 3
       players.push_back(std::make_shared<PlayerInfo>(&random));
+      players[3]->set_supplies(19);
+      players[3]->set_intelligence(40);
+      players[3]->set_reproduction(40);
     }
   }
 

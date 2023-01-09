@@ -436,7 +436,7 @@ Serf::path_splited(unsigned int flag_1, Direction dir_1,
 
   //
   // debug stuck serf issues with StateWaitIdleOnPath
-  Log::Debug["serf.cc"] << "debug StateWaitIdleOnPath issues: inside Serf::path_splited, a serf of type " << get_type() << " at pos " << get_pos() << " is MERGE/SPLIT TAINTED";
+  //Log::Debug["serf.cc"] << "debug StateWaitIdleOnPath issues: inside Serf::path_splited, a serf of type " << get_type() << " at pos " << get_pos() << " is MERGE/SPLIT TAINTED";
   split_merge_tainted = true;
   //  WHY AM I SEEING THIS MESSAGE REPEATED MANY TIMES OVER FOR THE SAME FLAG/SERF FOR THE SAME SPLIT??  is this some kind of bug?
   //   why would path_splited be called repeatedly?  this was at game speed 30 if it matters
@@ -571,7 +571,7 @@ Serf::path_merged2(unsigned int flag_1, Direction dir_1,
 
   //
   // debug stuck serf issues with StateWaitIdleOnPath
-  Log::Debug["serf.cc"] << "debugging StateWaitIdleOnPath issues: inside Serf::path_merged2, a serf of type " << get_type() << " at pos " << get_pos() << " is MERGE/SPLIT TAINTED";
+  //Log::Debug["serf.cc"] << "debugging StateWaitIdleOnPath issues: inside Serf::path_merged2, a serf of type " << get_type() << " at pos " << get_pos() << " is MERGE/SPLIT TAINTED";
   split_merge_tainted = true;
   //
   //
@@ -611,12 +611,12 @@ Serf::flag_deleted(MapPos flag_pos) {
     case StateWalking:
       if (game->get_map()->paths(flag_pos) == 0) {
 
-        //debug
-        if (game->get_flag(recent_dest) != nullptr){
-          Log::Debug["serf"] << "inside flag_deleted, serf of type " << NameSerf[type] << " being set to Lost, dest when it exited Inventory was flag #" << recent_dest << " which has pos " << game->get_flag(recent_dest)->get_position();
-        }else{
-          Log::Debug["serf"] << "inside flag_deleted, serf of type " << NameSerf[type] << " being set to Lost, dest when it exited Inventory was flag #" << recent_dest << " which is a nullptr";
-        }
+        ////debug
+        //if (game->get_flag(recent_dest) != nullptr){
+        //  Log::Debug["serf"] << "inside flag_deleted, serf of type " << NameSerf[type] << " being set to Lost, dest when it exited Inventory was flag #" << recent_dest << " which has pos " << game->get_flag(recent_dest)->get_position();
+        //}else{
+        //  Log::Debug["serf"] << "inside flag_deleted, serf of type " << NameSerf[type] << " being set to Lost, dest when it exited Inventory was flag #" << recent_dest << " which is a nullptr";
+        //}
 
         set_state(StateLost);
       }
@@ -680,12 +680,19 @@ Serf::building_deleted(MapPos building_pos) {
   }
 }
 
-
+// this function appears to ONLY be used for road/splitting, and not normal transporter activity
 bool
 Serf::change_transporter_state_at_pos(MapPos pos_, Serf::State _state) {
   if (pos == pos_ &&
-      (_state == StateWakeAtFlag || _state == StateWakeOnPath ||
-       _state == StateWaitIdleOnPath || _state == StateIdleOnPath)) {
+      //!!!! is this the cause of the WaitIdleOnRoad bug?   !!!!!
+      // it seems silly that this function would check if the ARGUMENT is a valid state
+      //  before assigning it, but it WOULD make sense if it is meant to be checking the
+      //  serf's CURRENT STATE to see if it is a valid state to change
+      // trying this...
+      //(_state == StateWakeAtFlag || _state == StateWakeOnPath ||
+      // _state == StateWaitIdleOnPath || _state == StateIdleOnPath)) {
+      (get_state() == StateWakeAtFlag || get_state() == StateWakeOnPath ||
+       get_state() == StateWaitIdleOnPath || get_state() == StateIdleOnPath)) {
     set_state(_state);
     return true;
   }
@@ -831,6 +838,39 @@ Serf::insert_before(Serf *knight) {
   s.defending.next_knight = knight->get_index();
 }
 
+// this might not actually be needed, added this logic to Player::available_knights_at_pos
+//  keeping to use for other FreeWalking types
+
+// work in progress, adding to handle
+//  cases where a serf cannot reach target within reasonable path
+//   such as knights attacking across river
+bool
+Serf::can_reach_pos(MapPos dest_pos, int max_dist){
+  //Log::Debug["serf.cc"] << "inside Serf::can_reach_pos, a serf of type " << get_type() << " at pos " << get_pos() << " is considering going to dest pos " << dest_pos << ", max_dist " << max_dist;
+  // Road road = pathfinder_map(map.get(), pos, clk_pos,
+  // &interface->get_building_road());
+
+  // it is common for the serf to be in a building, if so use its flag
+  MapPos start_pos = get_pos();  // this is serf's pos on map
+  if (game->get_map()->has_building(start_pos)){
+    start_pos = game->get_map()->move_down_right(get_pos());
+    //Log::Debug["serf.cc"] << "inside Serf::can_reach_pos, a serf of type " << get_type() << " at pos " << get_pos() << " is in a building, using its flag pos " << start_pos << " as start pos";
+  }
+
+  //Road junk_road = pathfinder_freewalking_serf(game->get_map().get(), get_pos(), dest);
+  Road junk_road = pathfinder_freewalking_serf(game->get_map().get(), start_pos, dest_pos, 20);
+
+  if (junk_road.get_length() > 0){
+    //Log::Debug["serf.cc"] << "inside Serf::can_reach_pos, a serf of type " << get_type() << " found freewalking solution to dest pos " << dest_pos;
+    //game->set_debug_mark_road(junk_road);
+    return true;
+  }else{
+    //Log::Debug["serf.cc"] << "inside Serf::can_reach_pos, a serf of type " << get_type() << " cannot reach dest pos " << dest_pos << " in less than max_dist " << max_dist << " tiles";
+    return false;
+  }
+}
+
+// this says MapPos dest but I think it is actually a flag index!
 void
 Serf::go_out_from_inventory(unsigned int inventory, MapPos dest, int mode) {
   //Log::Debug["serf.cc"] << "inside Serf::go_out_from_inventory, a serf of type " << get_type() << " is being sent to dest pos " << pos;
@@ -894,11 +934,11 @@ Serf::set_lost_state() {
     }
 
     //debug
-    if (game->get_flag(recent_dest) != nullptr){
-      Log::Debug["serf"] << "inside set_lost_state A, serf of type " << NameSerf[type] << " being set to Lost, dest when it exited Inventory was flag #" << recent_dest << " which has pos " << game->get_flag(recent_dest)->get_position();
-    }else{
-      Log::Debug["serf"] << "inside set_lost_state A, serf of type " << NameSerf[type] << " being set to Lost, dest when it exited Inventory was flag #" << recent_dest << " which is a nullptr";
-    }
+    ///if (game->get_flag(recent_dest) != nullptr){
+    //  Log::Debug["serf"] << "inside set_lost_state A, serf of type " << NameSerf[type] << " being set to Lost, dest when it exited Inventory was flag #" << recent_dest << " which has pos " << game->get_flag(recent_dest)->get_position();
+    //}else{
+    //  Log::Debug["serf"] << "inside set_lost_state A, serf of type " << NameSerf[type] << " being set to Lost, dest when it exited Inventory was flag #" << recent_dest << " which is a nullptr";
+    //}
 
     set_state(StateLost);
     s.lost.field_B = 0;
@@ -914,11 +954,11 @@ Serf::set_lost_state() {
     if (get_type() != TypeSailor) {
 
       //debug
-      if (game->get_flag(recent_dest) != nullptr){
-        Log::Debug["serf"] << "inside set_lost_state, B serf of type " << NameSerf[type] << " being set to Lost, dest when it exited Inventory was flag #" << recent_dest << " which has pos " << game->get_flag(recent_dest)->get_position();
-      }else{
-        Log::Debug["serf"] << "inside set_lost_state, B serf of type " << NameSerf[type] << " being set to Lost, dest when it exited Inventory was flag #" << recent_dest << " which is a nullptr";
-      }
+      //if (game->get_flag(recent_dest) != nullptr){
+      //  Log::Debug["serf"] << "inside set_lost_state, B serf of type " << NameSerf[type] << " being set to Lost, dest when it exited Inventory was flag #" << recent_dest << " which has pos " << game->get_flag(recent_dest)->get_position();
+      //}else{
+      //  Log::Debug["serf"] << "inside set_lost_state, B serf of type " << NameSerf[type] << " being set to Lost, dest when it exited Inventory was flag #" << recent_dest << " which is a nullptr";
+      //}
 
       set_state(StateLost);
       s.lost.field_B = 0;
@@ -928,11 +968,11 @@ Serf::set_lost_state() {
   } else {
 
     //debug
-    if (game->get_flag(recent_dest) != nullptr){
-      Log::Debug["serf"] << "inside set_lost_state C, serf of type " << NameSerf[type] << " being set to Lost, dest when it exited Inventory was flag #" << recent_dest << " which has pos " << game->get_flag(recent_dest)->get_position();
-    }else{
-      Log::Debug["serf"] << "inside set_lost_state C, serf of type " << NameSerf[type] << " being set to Lost, dest when it exited Inventory was flag #" << recent_dest << " which is a nullptr";
-    }
+    //if (game->get_flag(recent_dest) != nullptr){
+    //  Log::Debug["serf"] << "inside set_lost_state C, serf of type " << NameSerf[type] << " being set to Lost, dest when it exited Inventory was flag #" << recent_dest << " which has pos " << game->get_flag(recent_dest)->get_position();
+    //}else{
+    //  Log::Debug["serf"] << "inside set_lost_state C, serf of type " << NameSerf[type] << " being set to Lost, dest when it exited Inventory was flag #" << recent_dest << " which is a nullptr";
+    //}
 
     set_state(StateLost);
     s.lost.field_B = 0;
@@ -1569,6 +1609,12 @@ Serf::enter_building(int field_B, int join_pos) {
   if (join_pos) game->get_map()->set_serf_index(pos, get_index());
 
   Building *building = game->get_building_at_pos(pos);
+  if (building == nullptr){
+    Log::Warn["serf.cc"] << "inside Serf::enter_building, serf with index " << get_index() << " at pos " << get_pos() << " is trying to enter a building, but Building is unexpectedly a nullptr! setting serf to Lost";
+    //throw ExceptionFreeserf("inside Serf::enter_building, building is unexpectedly a nullptr!");
+    set_lost_state();
+    return;
+  }
   int slope = road_building_slope[building->get_type()];
   if (!building->is_done()) slope = 1;
   s.entering_building.slope_len = (slope * counter) >> 5;
@@ -1794,7 +1840,7 @@ Serf::handle_serf_walking_state() {
         int r = -1;
         if ( option_LostTransportersClearFaster && was_lost
           && (get_type() == Serf::TypeTransporter || get_type() == Serf::TypeGeneric || get_type() == Serf::TypeNone) ){
-          Log::Debug["serf"] << "inside Serf::handle_serf_walking_state(), a generic serf is looking for an inventory and was_lost recently, using special non-Inventory clearing function";
+          //Log::Debug["serf"] << "inside Serf::handle_serf_walking_state(), a generic serf is looking for an inventory and was_lost recently, using special non-Inventory clearing function";
           //// unset the was_lost bool so it doesn't stay forever
           // NOOOO don't do this yet it still needs to be true when serf goes into entering building state, to prevent it from
           //  going to entering_INVENTORY state!
@@ -1805,14 +1851,14 @@ Serf::handle_serf_walking_state() {
           r = src->find_nearest_inventory_for_serf();
         }
         if (r < 0) {
-          Log::Warn["serf"] << "inside Serf::handle_serf_walking_state(), a serf at pos " << get_pos() << " is being set to StateLost! because the result of the previous find_nearest_inventory_for_serf call returned negative, r: " << r;
+          //Log::Warn["serf"] << "inside Serf::handle_serf_walking_state(), a serf at pos " << get_pos() << " is being set to StateLost! because the result of the previous find_nearest_inventory_for_serf call returned negative, r: " << r;
 
           //debug
-          if (game->get_flag(recent_dest) != nullptr){
-            Log::Debug["serf.cc"] << "inside handle_serf_walking_state A, serf of type " << NameSerf[type] << " being set to Lost, dest when it exited Inventory was flag #" << recent_dest << " which has pos " << game->get_flag(recent_dest)->get_position();
-          }else{
-            Log::Debug["serf.cc"] << "inside handle_serf_walking_state A, serf of type " << NameSerf[type] << " being set to Lost, dest when it exited Inventory was flag #" << recent_dest << " which is a nullptr";
-          }
+          //if (game->get_flag(recent_dest) != nullptr){
+          //  Log::Debug["serf.cc"] << "inside handle_serf_walking_state A, serf of type " << NameSerf[type] << " being set to Lost, dest when it exited Inventory was flag #" << recent_dest << " which has pos " << game->get_flag(recent_dest)->get_position();
+          //}else{
+          //  Log::Debug["serf.cc"] << "inside handle_serf_walking_state A, serf of type " << NameSerf[type] << " being set to Lost, dest when it exited Inventory was flag #" << recent_dest << " which is a nullptr";
+          //}
 
           set_state(StateLost);
           s.lost.field_B = 1;
@@ -1883,11 +1929,11 @@ Serf::handle_serf_walking_state() {
         Log::Warn["serf"] << "inside Serf::handle_serf_walking_state(), a serf at pos " << get_pos() << " is being set to StateLost! because Either the road is a dead end; or we are at a flag, but the flag search for the destination failed.";
 
         //debug
-        if (game->get_flag(recent_dest) != nullptr){
-          Log::Debug["serf"] << "inside serf_walking_state B, serf of type " << NameSerf[type] << " being set to Lost, dest when it exited Inventory was flag #" << recent_dest << " which has pos " << game->get_flag(recent_dest)->get_position();
-        }else{
-          Log::Debug["serf"] << "inside serf_walking_state B, serf of type " << NameSerf[type] << " being set to Lost, dest when it exited Inventory was flag #" << recent_dest << " which is a nullptr";
-        }
+        //if (game->get_flag(recent_dest) != nullptr){
+        //  Log::Debug["serf"] << "inside serf_walking_state B, serf of type " << NameSerf[type] << " being set to Lost, dest when it exited Inventory was flag #" << recent_dest << " which has pos " << game->get_flag(recent_dest)->get_position();
+        //}else{
+        //  Log::Debug["serf"] << "inside serf_walking_state B, serf of type " << NameSerf[type] << " being set to Lost, dest when it exited Inventory was flag #" << recent_dest << " which is a nullptr";
+        //}
 
         set_state(StateLost);
         s.lost.field_B = 1;
@@ -2155,10 +2201,12 @@ Serf::handle_serf_transporting_state() {
           //  as that sounds like it should never happen, or would be highly unlikely to happen normally
           // this unfortunately triggers for normal serfs operating adjacent to castle flag, don't have a good way to filter
           // that out yet, need to look for duplicate serfs
-          //if (flag->get_index() == 1){
-          //  Log::Error["serf"] << "BUG DETECTION!  a serf with index " << get_index() << " and pos " << get_pos() << " is being set to StateIdleOnPath with flag index of 1!  that probably should not happen";
-          //  game->pause();
-          //}
+          /* can't use this because it triggers every time a castle-flag working serf goes in and out of idle
+          if (flag->get_index() == 1){
+            Log::Error["serf"] << "BUG DETECTION!  a serf with index " << get_index() << " and pos " << get_pos() << " is being set to StateIdleOnPath with flag index of 1!  this should only happen to Serfs working castle flag, see if that is the case";
+            game->pause();
+          }
+          */
 
           s.idle_on_path.flag = flag->get_index();
           map->set_idle_serf(pos);
@@ -2175,6 +2223,19 @@ void
 Serf::enter_inventory() {
   game->get_map()->set_serf_index(pos, 0);
   Building *building = game->get_building_at_pos(pos);
+  if (building == nullptr){
+    Log::Warn["serf.cc"] << "inside Serf::enter_inventory, serf with index " << get_index() << " at pos " << get_pos() << " is trying to enter an INVENTORY, but Building is unexpectedly a nullptr! setting serf to Lost";
+    //throw ExceptionFreeserf("inside Serf::enter_building, building is unexpectedly a nullptr!");
+    set_lost_state();
+    return;
+  }
+
+  if (building->get_inventory() == nullptr){
+    Log::Warn["serf.cc"] << "inside Serf::enter_inventory, serf with index " << get_index() << " at pos " << get_pos() << " is trying to enter an INVENTORY, but Building's INVENTORY object is unexpectedly a nullptr! setting serf to Lost";
+    //throw ExceptionFreeserf("inside Serf::enter_building, building is unexpectedly a nullptr!");
+    set_lost_state();
+    return;
+  }
 
   set_state(StateIdleInStock);
   /*serf->s.idle_in_stock.field_B = 0;
@@ -3178,7 +3239,7 @@ Serf::handle_serf_delivering_state() {
     if (s.transporting.res != Resource::TypeNone) {
       Resource::Type res = s.transporting.res;
       Building *building = game->get_building_at_pos(game->get_map()->move_up_left(pos));
-      if (building->requested_resource_delivered(res)){
+      if (building == nullptr || building->requested_resource_delivered(res)){
         s.transporting.res = Resource::TypeNone;
       }else{
         Log::Debug["serf.cc"] << " serf's attempted delivery of resource type " << NameResource[res] << " was rejected, dropping it at flag and/or sending it back";
@@ -3313,14 +3374,14 @@ Serf::find_inventory() {
     }
   }
 
-  Log::Debug["serf"] << "inside find_inventory, a serf at pos " << get_pos() << " is being set to StateLost, because an Inventory to return to was not found";
+  //Log::Debug["serf"] << "inside find_inventory, a serf at pos " << get_pos() << " is being set to StateLost, because an Inventory to return to was not found";
 
   //debug
-  if (game->get_flag(recent_dest) != nullptr){
-    Log::Debug["serf"] << "inside find_inventory, serf of type " << NameSerf[type] << " being set to Lost, dest when it exited Inventory was flag #" << recent_dest << " which has pos " << game->get_flag(recent_dest)->get_position();
-  }else{
-    Log::Debug["serf"] << "inside find_inventory, serf of type " << NameSerf[type] << " being set to Lost, dest when it exited Inventory was flag #" << recent_dest << " which is a nullptr";
-  }
+  //if (game->get_flag(recent_dest) != nullptr){
+  //  Log::Debug["serf"] << "inside find_inventory, serf of type " << NameSerf[type] << " being set to Lost, dest when it exited Inventory was flag #" << recent_dest << " which has pos " << game->get_flag(recent_dest)->get_position();
+  //}else{
+  //  Log::Debug["serf"] << "inside find_inventory, serf of type " << NameSerf[type] << " being set to Lost, dest when it exited Inventory was flag #" << recent_dest << " which is a nullptr";
+  //}
 
   set_state(StateLost);
   s.lost.field_B = 0;
@@ -3512,8 +3573,8 @@ Serf::handle_serf_free_walking_state_dest_reached() {
         s.free_walking.dist_col = s.free_walking.neg_dist1;
         s.free_walking.dist_row = s.free_walking.neg_dist2;
 
-        if (option_FourSeasons){
-                // advanced farming
+        if (option_AdvancedFarming){
+                
           if (season != 3 &&  // don't even try harvesting in winter
               map->get_obj(pos) == Map::ObjectSeeds5 ||
               (map->get_obj(pos) >= Map::ObjectField0 &&
@@ -3562,7 +3623,7 @@ Serf::handle_serf_free_walking_state_dest_reached() {
             counter = 0;
             break;
           }
-        } //if option_FourSeasons
+        } //if option_AdvancedFarming
 
         set_state(StateFarming);
         s.free_walking.neg_dist2 = 0;
@@ -3747,12 +3808,27 @@ Serf::handle_free_walking_follow_edge() {
   int dir_index = -1;
   const Direction *dir_arr = NULL;
 
+  // it seems that even serfs that are not blocked by any large obstacles like lakes are
+  //  very often put into this follow_edge state, possibly all of them?  this isn't useful to debug that issue
+
+  // "what if I just flip it?"
+  //flipping the left/right follow seems to fix it in all the cases I tried,
+  //  except it results in a stuck serf sometimes. 
+  // I think it isn't possible to just flip it, when a serf encounters water, the left or right hand direction
+  //  he should follow should be determined by a A* pathfind call and not by whatever the internal logic is
+  //  that just tries to "get a step closer"
+  //
+  //here is example of serf being stuck after flipping left/right hand arrays:
+  //freewalking-edge-test.save.gz
+  //
   if (BIT_TEST(s.free_walking.flags, 3)) {
-    /* Follow right-hand edge */
+    // Follow left-hand edge
+    //Log::Debug["serf.cc"] << "serf with index # " << get_index() << " in FreeWalking follow_edge state is following LEFTHAND edge";
     dir_arr = dir_left_edge;
     dir_index = (s.free_walking.flags & 7)-1;
   } else {
-    /* Follow right-hand edge */
+    // Follow right-hand edge
+    //Log::Debug["serf.cc"] << "serf with index # " << get_index() << " in FreeWalking follow_edge state is following RIGHTHAND edge";
     dir_arr = dir_right_edge;
     dir_index = (s.free_walking.flags & 7)-1;
   }
@@ -3781,11 +3857,11 @@ Serf::handle_free_walking_follow_edge() {
         Log::Warn["serf"] << "inside handle_free_walking_follow_edge(), a serf at pos " << get_pos() << " is being set to StateLost! he cannot pass map_pos " << new_pos << " and various other checks failed?";
 
         //debug
-        if (game->get_flag(recent_dest) != nullptr){
-          Log::Debug["serf"] << "inside handle_free_walking_state_follow_edge, serf of type " << NameSerf[type] << " being set to Lost, dest when it exited Inventory was flag #" << recent_dest << " which has pos " << game->get_flag(recent_dest)->get_position();
-        }else{
-          Log::Debug["serf"] << "inside handle_free_walking_state_follow_edge, serf of type " << NameSerf[type] << " being set to Lost, dest when it exited Inventory was flag #" << recent_dest << " which is a nullptr";
-        }
+        //if (game->get_flag(recent_dest) != nullptr){
+        //  Log::Debug["serf"] << "inside handle_free_walking_state_follow_edge, serf of type " << NameSerf[type] << " being set to Lost, dest when it exited Inventory was flag #" << recent_dest << " which has pos " << game->get_flag(recent_dest)->get_position();
+        //}else{
+        //  Log::Debug["serf"] << "inside handle_free_walking_state_follow_edge, serf of type " << NameSerf[type] << " being set to Lost, dest when it exited Inventory was flag #" << recent_dest << " which is a nullptr";
+        //}
 
         set_state(StateLost);
         s.lost.field_B = 0;
@@ -3853,6 +3929,25 @@ Serf::handle_free_walking_common() {
     DirectionLeft,   DirectionNone, DirectionRight,
     DirectionNone,   DirectionDown, DirectionDownRight
   };
+  
+  //
+  // EXPLANATION OF FREE WALKING POS TRACKING -
+  //
+  //  When a serf is first set to a FreeWalking state:
+  //     The dist_col and dist_row are set to the coord of the destination pos, relative to the pos the serf
+  //      is in when it was placed into FreeWalking state (calling "start pos" here) 
+  //     The neg_dist and neg_dist2 are set to the return coordinates, relative to the *destination pos*
+  //      This is how the serf remembers the pos to return to once he reaches his destination
+  //  As a serf travels from start pos to dest pos:
+  //     the dist_col and dist_row coordinates are constantly updated as the serf changes pos,
+  //      so they always indicate the current offset for the serf to reach the dest pos
+  //     The neg_dist and neg_dist2 are *NOT* updated as the serf moves!  They are only relevant once destination reached
+  //  When the serf reaches his destination:
+  //     The dist_col and dist_row, which originally represented the offset to the dest pos, are replaced
+  //      with the values from neg_dist and neg_dist2.  These become the new dest pos.
+  //     The neg_dist and neg_dist2 values are set to -128, 0, or possibly some other values, to indicate
+  //      that the serf has no return pos and to indicate some other state/serf specific information(?)
+  //
 
   /* Directions for moving forwards. Each of the 12 lines represents
      a general direction as shown in the diagram below.
@@ -3904,7 +3999,11 @@ Serf::handle_free_walking_common() {
 
   if ((s.free_walking.flags & 7) != 0) {
     /* Obstacle encountered, follow along the edge */
+    // which edge?  if BIT_TEST(3) it goes left, if not, goes right
     int r = handle_free_walking_follow_edge();
+    // this happens WAY more often than I initially suspected, basically ANY obstacle, not just large ones like lakes
+    //Log::Debug["serf.cc"] << "found a serf with index # " << get_index() << " in FreeWalking follow_edge state, auto-marking on debug_serf display";
+    //game->get_debug_mark_serf()->push_back(get_index());
     if (r >= 0) return;
   }
 
@@ -3963,6 +4062,16 @@ Serf::handle_free_walking_common() {
   Direction dir = (Direction)a0[0];
   PMap map = game->get_map();
   MapPos new_pos = map->move(pos, dir);
+  //
+  // NEW LOGIC TO PREVENT SERFS FROM GETTING CONFUSED WHEN ENCOUNTERING BODIES OF WATER
+  //
+  // if this is NOT a sailor, but the next pos is in water...
+  bool found_water_obstacle = false;
+  if (!water && map->is_in_water(new_pos)){
+    //trigger new logic here
+    //Log::Debug["serf.cc"] << "inside Serf::handle_free_walking_common, a free-walking serf has encountered water!  ADD LOGIC TO HELP HIM REACH HIS DESTINATION!";
+    found_water_obstacle = true;
+  }
   if (((water && map->get_obj(new_pos) == 0) ||
        (!water && !map->is_in_water(new_pos) &&
         can_pass_map_pos(new_pos))) &&
@@ -4068,8 +4177,106 @@ Serf::handle_free_walking_common() {
   }
 
   int edge = 0;
-  if (BIT_TEST(dir_index ^ i0, 0)) edge = 1;
+  if (BIT_TEST(dir_index ^ i0, 0)) edge = 1;  // it looks like this is where left vs right dir is set
   int upper = (i0/2) + 1;
+
+
+  //
+  // fix for original game "defect" 
+  //
+  //  because the original game doesn't seem to actually have any pathfinding
+  //  it instead relies on step-by-step "am I getting closer to the target?"
+  //  while freewalking, and when a large obstacle such as a lake is encountered
+  //  the game cannot tell which way around is faster, so it just picks one
+  //  and sometimes sends the serf the long way around.
+  // FURTHER, even if the serf goes the best way around, it is often unreasonably
+  //  long distance and the serf should reconsider if possible
+  //
+  // for now, the fix is to detect a large water obstacle that puts a serf into
+  //  follow left/right edge pattern, and run a pathfinder check.  Force the serf
+  //  to follow the shortest way around
+  //
+  // NEXT, need to add a check if even the best path around is unreasonably long
+  //  and have the serf take some other action if possible
+  //
+  // FINALLY, it seems sometimes lost serfs appear to choose totally random
+  //  positions with zero logic that send them all over the map.  Figure out
+  //  what is responsible for this and try to fix it
+  //  it may be totally unrelated to this edge problem
+  //
+  MapPos chosen_pos = map->move(pos, Direction(dir));
+  if (found_water_obstacle){
+    //game->set_debug_mark_pos(chosen_pos, "cyan");
+
+
+    //int current_col = map->pos_col(pos);
+    int current_col = map->pos_col(chosen_pos);
+    int highest_row = map->get_rows();  // rows/cols wrap around once they hit max, cannot do map->pos(col/row) with negative values!)
+    //int current_row = map->pos_row(pos);
+    int current_row = map->pos_row(chosen_pos);
+    int highest_col = map->get_cols();  // rows/cols wrap around once they hit max, cannot do map->pos(col/row) with negative values!)
+    int destination_col = current_col + s.free_walking.dist_col;
+    if (destination_col < 0){
+      destination_col += highest_col;
+    }
+    if (destination_col > highest_col){
+      destination_col -= highest_col;
+    }
+    int destination_row = current_row + s.free_walking.dist_row;
+    if (destination_row < 0){
+      destination_row += highest_row;
+    }
+    if (destination_row > highest_row){
+      destination_row -= highest_row;
+    }
+    MapPos dest_pos = map->pos(destination_col, destination_row);
+    if (dest_pos > map->get_landscape_tiles_size()){
+      //Log::Error["serf.cc"] << "inside Serf::handle_free_walking_common, dest_pos is out of range!  dest_pos " << dest_pos << ", landscape_tiles size " << map->get_landscape_tiles_size() << ", current_col " << current_col  << ", current_row " << current_row << ", dest_col " << destination_col << ", dest_row " << destination_row;
+      //
+      //  there is some issue here where the dest pos
+      //  is slightly off from where it is expected, probably because
+      //  I am not checking the dist_col/dist_row at the right time
+      //  and it results in being one-off.  When this happens, normally it doesn't matter because
+      //  the one-off coords are close enough to the correst dest_pos that the pathfinding works
+      //  just as well. HOWEVER, when the serf is near the first/last col/row it runs into problems
+      //  with the coords resulting in an invalid map pos, out of range.  
+      //  For now, I am just going to skip the check if that happens, because I don't feel like spending
+      //  a ton of time tracking down the cause when it is very unlikely to matter, and even if it does
+      //  the original behavior was a minor annoyance, not a game breaking problem
+      //
+      Log::Warn["serf.cc"] << "inside Serf::handle_free_walking_common, dest_pos is out of range!  dest_pos " << dest_pos << ", landscape_tiles size " << map->get_landscape_tiles_size() << ", current_col " << current_col  << ", current_row " << current_row << ", dest_col " << destination_col << ", dest_row " << destination_row << ".  Ignoring this as it doesn't really matter much"; 
+      //game->get_debug_mark_serf()->push_back(get_index());
+      //game->set_debug_mark_pos(get_pos(), "green");
+      //game->set_debug_mark_pos(dest_pos, "red");
+      //game->pause();
+      // just don't do the pathfinder check and hope the serf goes the correct way around!
+    }else{
+      //if (edge == 1){
+      //  game->set_debug_mark_pos(pos, "green");
+      //}else{
+      //  game->set_debug_mark_pos(pos, "yellow");
+      //}
+      //game->set_debug_mark_pos(dest_pos, "red");
+      // logic has been updated for Fisher to not even attempt to send a serf to a fishing pos that is more than 20 tiles-by-pathfinding away, so it is
+      //  okay for this to be a higher value in case a serf is free walking for some other reason (lost?)
+      Road path_around_lake = pathfinder_freewalking_serf(map.get(), pos, dest_pos, 100);   
+      if (path_around_lake.get_length() > 0){
+        //game->set_debug_mark_road(path_around_lake);
+        Direction dir_to_go = path_around_lake.get_first();  
+        if (dir != dir_to_go){
+          //Log::Debug["serf.cc"] << "inside Serf::handle_free_walking_common, a free-walking serf has encountered water and chosen the wrong way around it, correcting him";
+          dir = dir_to_go;
+          //game->set_debug_mark_pos(map->move(pos, dir), "coral");
+          // reverse the follow_edge direction by flipping "edge"
+          edge = !edge;
+        }
+      }else{
+        // saw this once, changing to Warn for now
+        //throw ExceptionFreeserf("inside Serf::handle_free_walking_common, could not find a path around water/lake obstacle for freewalking serf!");
+        Log::Warn["serf.cc"] << "inside Serf::handle_free_walking_common, could not find a path around water/lake obstacle for freewalking serf!";
+      }
+    }
+  } // end of defect fix
 
   s.free_walking.flags = (upper << 4) | (edge << 3) | (dir+1);
 
@@ -4137,6 +4344,11 @@ Serf::handle_serf_planning_logging_state() {
       s.leaving_building.dest2 = -Map::get_spiral_pattern()[2 * dist] + 1;
       s.leaving_building.dir = -Map::get_spiral_pattern()[2 * dist + 1] + 1;
       s.leaving_building.next_state = StateFreeWalking;
+      // sanity check to ensure the dest pos is reachable within reasonable distance of this hut
+      if (!can_reach_pos(pos_, 20)){
+        Log::Debug["serf.cc"] << "inside Serf::handle_serf_planning_logging_state, serf cannot reach the chosen dest pos " << pos_ << " in less than 20 tiles, skipping this pos";
+        continue;
+      }
       Log::Verbose["serf"] << "planning logging: tree found, dist "
                            << s.leaving_building.field_B << ", "
                            << s.leaving_building.dest << ".";
@@ -4163,6 +4375,11 @@ Serf::handle_serf_planning_planting_state() {
         map->type_down(pos_) == Map::TerrainGrass1 &&
         map->type_up(map->move_up_left(pos_)) == Map::TerrainGrass1 &&
         map->type_down(map->move_up_left(pos_)) == Map::TerrainGrass1) {
+      // sanity check to ensure the dest pos is reachable within reasonable distance of this hut
+      if (!can_reach_pos(pos_, 20)){
+        Log::Debug["serf.cc"] << "inside Serf::handle_serf_planning_planting_state, serf at pos " << get_pos() << " cannot reach the chosen dest pos " << pos_ << " in less than 20 tiles, skipping this pos";
+        continue;
+      }
       set_state(StateReadyToLeave);
       s.leaving_building.field_B = Map::get_spiral_pattern()[2 * dist] - 1;
       s.leaving_building.dest = Map::get_spiral_pattern()[2 * dist + 1] - 1;
@@ -4201,8 +4418,27 @@ Serf::handle_serf_planting_state() {
     // tlongstretch - I had always thought that Forester/rangers only plant Pine trees, but
     //  it seems I was mis-remembering, I just verified in the original Settlers 1 game that 
     //  both Pine and deciduous Trees are planted by ranger/forester
-    Map::Object new_obj = (Map::Object)(Map::ObjectNewPine +
-                                    (game->random_int() & 1));
+    //Map::Object new_obj = (Map::Object)(Map::ObjectNewPine + (game->random_int() & 1));
+
+    // option_ForesterMonoculture
+    //  each individual forester always plants trees of the same type
+    //   though others serfs may plant other types
+    // to avoid having to create a new variable, and add to save/load, use
+    //  the serf's index to determine the tree type
+    Map::Object new_obj;
+    if (option_ForesterMonoculture){
+      Map::Object new_obj = (Map::Object)(get_index()); // this is the SERF's index, being used as a consistent random number
+      if (new_obj % 16 > 7){
+        // pine, only one type
+        new_obj = (Map::Object)(Map::ObjectNewPine);
+      }else{
+        // deciduous tree, choose from one of 8 types (orig == 0, plus 7 new types)
+        new_obj = (Map::Object)(Map::ObjectNewTree0 + (new_obj % 8));
+      }
+    }else{
+      // normal behavior, random chance of either tree type, which will mature into random subtype
+      new_obj = (Map::Object)(Map::ObjectNewPine + (game->random_int() & 1));
+    }
 
     if (map->paths(pos) == 0 && map->get_obj(pos) == Map::ObjectNone) {
       map->set_object(pos, new_obj, -1);
@@ -4424,18 +4660,13 @@ Serf::handle_serf_lost_state() {
             was_lost = true;  // store this information so the handle_walking state and onward can allow the serf to clear from non-Inventory buildings
           }
 
-          //*****************************************************************
-          // wait, is it really this simple?  just set it here?  adding this
-          // no... this results in all the serfs walking southwest ??
-          // try doing it once they reach a road instead
-          //s.walking.dest = flag->get_index();
-          //*****************************************************************
-
           counter = 0;
           return;
         }
       }
     }
+
+    Log::Info["serf.cc"] << "serf #" << get_index() << " at pos " << get_pos() << " is lost and could not find a friendly flag within 8 tiles, he will walk randomly forever until he does!  This is normal game behavior";
 
     /* Choose a random destination */
     unsigned int size = 16;
@@ -4797,6 +5028,11 @@ Serf::handle_serf_planning_fishing_state() {
           map->type_up(map->move_up_left(dest)) >= Map::TerrainGrass0) ||
          (map->type_down(map->move_left(dest)) <= Map::TerrainWater3 &&
           map->type_up(map->move_up(dest)) >= Map::TerrainGrass0))) {
+      // sanity check to ensure the dest pos is reachable within reasonable distance of this hut
+      if (!can_reach_pos(dest, 20)){
+        Log::Debug["serf.cc"] << "inside Serf::handle_serf_planning_fishing_state, serf cannot reach the chosen dest pos " << dest << " in less than 20 tiles, skipping this pos";
+        continue;
+      }
       set_state(StateReadyToLeave);
       s.leaving_building.field_B = Map::get_spiral_pattern()[2 * dist] - 1;
       s.leaving_building.dest = Map::get_spiral_pattern()[2 * dist + 1] - 1;
@@ -4877,7 +5113,7 @@ Serf::handle_serf_planning_farming_state() {
   //  can be done, then goes back into inactive state for 65500 ticks
   // with AdvancedFarming, farmer must always be active
   //  but will only sow/harvest during appropriate seasons
-  if (option_FourSeasons){
+  if (option_AdvancedFarming){
     // keep working
   }else{
     // take rest until 65500 speed-adjusted game ticks have passed?
@@ -4896,7 +5132,7 @@ Serf::handle_serf_planning_farming_state() {
     MapPos dest = map->pos_add_spirally(pos, dist);
 
     bool send_farmer_out = false;
-    if (option_FourSeasons) {
+    if (option_AdvancedFarming) {
               // advanced farming logic - prefer harvesting, only sow during appropriate seasons
       // if this is a mature field
       if (map->get_obj(dest) == Map::ObjectSeeds5 ||
@@ -4915,6 +5151,14 @@ Serf::handle_serf_planning_farming_state() {
       }
     }
 
+    // sanity check to ensure the dest pos is reachable within reasonable distance of this hut
+    if (send_farmer_out){
+      if (!can_reach_pos(dest, 20)){
+        Log::Debug["serf.cc"] << "inside Serf::handle_serf_planning_farming_state, serf cannot reach the chosen dest pos " << dest << " in less than 20 tiles, skipping this pos";
+        send_farmer_out = false;
+      }
+    }
+
     if (send_farmer_out){
       set_state(StateReadyToLeave);
       s.leaving_building.field_B = Map::get_spiral_pattern()[2 * dist] - 1;
@@ -4929,7 +5173,7 @@ Serf::handle_serf_planning_farming_state() {
     }
 
     // avoid incrementing the counter BEYOND 65500 when AdvancedFarming is on, in case it is turned back off (or overflows?)
-    if (option_FourSeasons && counter >= 65500){
+    if (option_AdvancedFarming && counter >= 65500){
       // do not increment
     }else{
       counter += 500;
@@ -4970,7 +5214,7 @@ Serf::handle_serf_farming_state() {
     } else if (object == Map::ObjectSignLargeGold || object == Map::Object127) { 
       // WTF is this???
       object = Map::ObjectFieldExpired;
-    }else if (option_FourSeasons){
+    }else if (option_AdvancedFarming){
       // immediately Expire a field when harvested when AdvancedFarming on
       object = Map::ObjectFieldExpired;
     }
@@ -5143,7 +5387,7 @@ Serf::handle_serf_pigfarming_state() {
 
         // AdvancedFarming - reduce pig breeding rate to keep wheat farm's advantage (when space available)
         int breeding_prob_val = 0;
-        if (option_FourSeasons){
+        if (option_AdvancedFarming){
           breeding_prob_val = reduced_breeding_prob[building->pigs_count()-1];      
         }else{
           breeding_prob_val = normal_breeding_prob[building->pigs_count()-1];  
@@ -6175,11 +6419,11 @@ Serf::handle_serf_idle_on_path_state() {
     Log::Warn["serf"] << "inside handle_serf_idle_on_path_state(), a serf at pos " << get_pos() << " is being set to StateLost! because the serf's s.idle_on_path.flag Flag is a nullptr!";
 
     //debug
-    if (game->get_flag(recent_dest) != nullptr){
-      Log::Debug["serf"] << "inside handle_serf_idle_on_path_state, serf of type " << NameSerf[type] << " being set to Lost, dest when it exited Inventory was flag #" << recent_dest << " which has pos " << game->get_flag(recent_dest)->get_position();
-    }else{
-      Log::Debug["serf"] << "inside handle_serf_idle_on_path_state, serf of type " << NameSerf[type] << " being set to Lost, dest when it exited Inventory was flag #" << recent_dest << " which is a nullptr";
-    }
+    //if (game->get_flag(recent_dest) != nullptr){
+    //  Log::Debug["serf"] << "inside handle_serf_idle_on_path_state, serf of type " << NameSerf[type] << " being set to Lost, dest when it exited Inventory was flag #" << recent_dest << " which has pos " << game->get_flag(recent_dest)->get_position();
+    //}else{
+    //  Log::Debug["serf"] << "inside handle_serf_idle_on_path_state, serf of type " << NameSerf[type] << " being set to Lost, dest when it exited Inventory was flag #" << recent_dest << " which is a nullptr";
+    //}
 
     set_state(StateLost);
     return;
@@ -6222,7 +6466,7 @@ Serf::handle_serf_idle_on_path_state() {
   if (!map->has_serf(pos)) {
     map->clear_idle_serf(pos);
     map->set_serf_index(pos, index);
-    int dir = s.idle_on_path.field_E;
+    int dir = s.idle_on_path.field_E;  // what is the purpose of setting int dir if it isn't used?
     set_state(StateTransporting);
     s.transporting.res = Resource::TypeNone;
     s.transporting.wait_counter = 0;
@@ -6232,12 +6476,12 @@ Serf::handle_serf_idle_on_path_state() {
   } else {
     // there is already a serf at this pos, so this idle/passthru serf cannot take this spot and must wait
     //  this is what StateWaitIdleOnPath indicates
-    //Log::Info["serf"] << "debug: inside handle_serf_idle_on_path_state, a serf of type " << NameSerf[get_type()] << " at pos " << pos << " is about to be set to StateWaitIdleOnPath because it was called to wake but there is another serf at this pos.  The other serf has type " << NameSerf[game->get_serf_at_pos(pos)->get_type()] << ", index " << game->get_serf_at_pos(pos)->get_index() << ", pos " << game->get_serf_at_pos(pos)->get_pos();
-    //set_state(StateWaitIdleOnPath);
+    Log::Debug["serf.cc"] << "inside Serf::handle_serf_idle_on_path_state, a serf of type " << NameSerf[get_type()] << " at pos " << pos << " is about to be set to StateWaitIdleOnPath because it was called to wake but there is another serf at this pos.  The other serf has type " << NameSerf[game->get_serf_at_pos(pos)->get_type()] << ", index " << game->get_serf_at_pos(pos)->get_index() << ", pos " << game->get_serf_at_pos(pos)->get_pos();
+    set_state(StateWaitIdleOnPath);
 
-    //// DEBUG stuck serfs 
+    // DEBUG stuck serfs 
     //if (split_merge_tainted){
-    //  Log::Warn["serf"] << "debug: inside handle_serf_idle_on_path_state, a serf of type " << NameSerf[get_type()] << " at pos " << pos << " is MERGE/SPLIT TAINTED";
+      //Log::Debug["serf.cc"] << "inside Serf::handle_serf_idle_on_path_state, a serf of type " << NameSerf[get_type()] << " at pos " << pos << " is MERGE/SPLIT TAINTED";
     //}
   }
 }
@@ -6252,18 +6496,30 @@ Serf::handle_serf_idle_on_path_state() {
 //  It appears to happen when two other serfs are travelling
 //  from opposite ends of the road and the WaitIdleOnPath serf is
 //  trying to wake/appear in the pos between them
+//
+// Wait.. I thought I remembered seeing this happen to non-transporter
+//  serf types (resulting in them never reaching their buildings, causing its own issues)
+//  but this logic below can only be applied to transporters.  I am thinking it is worth flagging
+//  when any non-transporter serf is in this state
 void
 Serf::handle_serf_wait_idle_on_path_state() {
   PMap map = game->get_map();
+
+  // to help debug serfs stuck in WaitIdleOnPath issues
+  if (get_type() != Serf::TypeTransporter){
+    Log::Warn["serf.cc"] << "inside Serf::handle_serf_wait_idle_on_path_state, WARNING a non-transporter Serf of type " << get_type() << " at pos " << get_pos() << " is in WaitIdleOnPath state but this state should only happen to Transporters!";
+    game->set_debug_mark_pos(get_pos(), "blue");
+    game->pause();
+  }
+
+  
   // if there is no longer a serf blocking this pos, wake and head
   //  towards the flag to pick up resource
   if (!map->has_serf(pos)) {
     /* Duplicate code from handle_serf_idle_on_path_state() */
     map->clear_idle_serf(pos);
     map->set_serf_index(pos, index);
-
-    int dir = s.idle_on_path.field_E;
-
+    int dir = s.idle_on_path.field_E;  // what is the point of setting int dir if it is not used?
     set_state(StateTransporting);
     s.transporting.res = Resource::TypeNone;
     s.transporting.wait_counter = 0;
@@ -6357,13 +6613,14 @@ Serf::handle_serf_wake_on_path_state() {
   set_state(StateWaitIdleOnPath);
   
   // DEBUG stuck serfs 
-  if (split_merge_tainted){
-    Log::Debug["serf"] << "debugging StateWaitIdleOnPath issues: inside handle_serf_wake_on_path_state, a serf of type " << NameSerf[get_type()] << " at pos " << get_pos() << " is MERGE/SPLIT TAINTED";
-  }
+  //if (split_merge_tainted){
+    //Log::Debug["serf"] << "debugging StateWaitIdleOnPath issues: inside handle_serf_wake_on_path_state, a serf of type " << NameSerf[get_type()] << " at pos " << get_pos() << " is MERGE/SPLIT TAINTED";
+  //}
 
   for (Direction d : cycle_directions_ccw()) {
     if (BIT_TEST(game->get_map()->paths(pos), d)) {
-      s.idle_on_path.field_E = d;
+      s.idle_on_path.field_E = d;  // this appears to be the Dir that the serf is to face/start walking on wake to go to one of the end flags
+                                   // how does it know which of the two directions is the correct one???
       break;
     }
   }
@@ -6665,10 +6922,10 @@ Serf::update() {
     handle_serf_planning_logging_state();
     break;
   case StatePlanningPlanting:
-    handle_serf_planning_planting_state();
+    handle_serf_planning_planting_state();  // this is Forester/Ranger planting trees
     break;
-  case StatePlanting: /* 20 */
-    handle_serf_planting_state();
+  case StatePlanting: /* 20 */ 
+    handle_serf_planting_state();  // this is Forester/Ranger planting trees
     break;
   case StatePlanningStoneCutting:
     handle_serf_planning_stonecutting();
@@ -7704,6 +7961,8 @@ Serf::print_state() {
       res << "neg_dist" << "\t" << s.free_walking.neg_dist1 << "\n";
       res << "neg_dist2" << "\t" << s.free_walking.neg_dist2 << "\n";
       res << "flags" << "\t" << s.free_walking.flags << "\n";
+      // help determine direction
+      res << "animation" << "\t" << animation << "\n";
       break;
 
     case Serf::StateSawing:

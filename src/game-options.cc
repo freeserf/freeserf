@@ -100,6 +100,7 @@ GameOptions::load_options_from_file(){
     bool option_PrioritizeUsableResources = true;    // this is forced true to indicate that the code to make them optional isn't added yet
     bool option_LostTransportersClearFaster = false;
     bool option_FourSeasons = false;
+    bool option_AdvancedFarming = false;
     bool option_FishSpawnSlowly = false;
     bool option_FogOfWar = false;
     //bool option_EastSlopesShadeObjects = true;   // make this an option, maybe
@@ -120,6 +121,7 @@ GameOptions::load_options_from_file(){
   option_BabyTreesMatureSlowly = meta_main->value("options", "babytreesmatureslowly", option_BabyTreesMatureSlowly);
   option_LostTransportersClearFaster = meta_main->value("options", "losttransportersclearfaster", option_LostTransportersClearFaster);
   option_FourSeasons = meta_main->value("options", "fourseasons", option_FourSeasons);
+  option_AdvancedFarming = meta_main->value("options", "advancedfarming", option_AdvancedFarming);
   option_FishSpawnSlowly = meta_main->value("options", "fishspawnslowly", option_FishSpawnSlowly);
   option_InvertMouse = meta_main->value("options", "invertmouse", option_InvertMouse);
   option_InvertWheelZoom = meta_main->value("options", "invertwheelzoom", option_InvertWheelZoom);
@@ -129,10 +131,30 @@ GameOptions::load_options_from_file(){
   option_SailorsMoveFaster = meta_main->value("options", "sailorsmovefaster", option_SailorsMoveFaster);
   option_WaterDepthLuminosity = meta_main->value("options", "waterdepthluminosity", option_WaterDepthLuminosity);
   option_RandomizeInstruments = meta_main->value("options", "randomizeinstruments", option_RandomizeInstruments);
-  //
-  // need to add map generator options here also
-  //
-  // maybe save map size also?
+  option_ForesterMonoculture = meta_main->value("options", "forestermonoculture", option_ForesterMonoculture);
+
+  mapgen_size = meta_main->value("mapgen", "size", mapgen_size);
+  mapgen_trees = meta_main->value("mapgen", "trees", mapgen_trees);
+  mapgen_stonepile_dense = meta_main->value("mapgen", "stonepiledense", mapgen_stonepile_dense);
+  mapgen_stonepile_sparse = meta_main->value("mapgen", "stonepilesparse", mapgen_stonepile_sparse);
+  mapgen_fish = meta_main->value("mapgen", "fish", mapgen_fish);
+  mapgen_mountain_gold = meta_main->value("mapgen", "mountaingold", mapgen_mountain_gold);
+  mapgen_mountain_iron = meta_main->value("mapgen", "mountainiron", mapgen_mountain_iron);
+  mapgen_mountain_coal = meta_main->value("mapgen", "mountaincoal", mapgen_mountain_coal);
+  mapgen_mountain_stone = meta_main->value("mapgen", "mountainstone", mapgen_mountain_stone);
+  mapgen_desert_frequency = meta_main->value("mapgen", "desertfrequency", mapgen_desert_frequency);
+  mapgen_water_level = meta_main->value("mapgen", "waterlevel", mapgen_water_level);
+  mapgen_junk_grass_sandstone = meta_main->value("mapgen", "junkgrasssandstone", mapgen_junk_grass_sandstone);
+  mapgen_junk_grass_small_boulders = meta_main->value("mapgen", "junkgrasssmallboulders", mapgen_junk_grass_small_boulders);
+  mapgen_junk_grass_stub_trees = meta_main->value("mapgen", "junkgrassstubtrees", mapgen_junk_grass_stub_trees);
+  mapgen_junk_grass_dead_trees = meta_main->value("mapgen", "junkgrassdeadtrees", mapgen_junk_grass_dead_trees);
+  mapgen_junk_water_boulders = meta_main->value("mapgen", "junkwaterboulders", mapgen_junk_water_boulders);
+  mapgen_junk_water_trees = meta_main->value("mapgen", "junkwatertrees", mapgen_junk_water_trees);
+  mapgen_junk_desert_cadavers = meta_main->value("mapgen", "junkdesertcadavers", mapgen_junk_desert_cadavers);
+  mapgen_junk_desert_cacti = meta_main->value("mapgen", "junkdesertcacti", mapgen_junk_desert_cacti);
+  mapgen_junk_desert_palm_trees = meta_main->value("mapgen", "junkdesertpalmtrees", mapgen_junk_desert_palm_trees);
+  mapgen_junk_water_reeds_cattails = meta_main->value("mapgen", "junkwaterreedscattails", mapgen_junk_water_reeds_cattails);
+
 }
 
 void
@@ -154,6 +176,7 @@ GameOptions::save_options_to_file(){
   file << "BabyTreesMatureSlowly=" << option_BabyTreesMatureSlowly << "\n";
   file << "LostTransportersClearFaster=" << option_LostTransportersClearFaster << "\n";
   file << "FourSeasons=" << option_FourSeasons << "\n";
+  file << "AdvancedFarming=" << option_AdvancedFarming << "\n";
   file << "FishSpawnSlowly=" << option_FishSpawnSlowly << "\n";
   file << "InvertMouse=" << option_InvertMouse << "\n";
   file << "InvertWheelZoom=" << option_InvertWheelZoom << "\n";
@@ -163,5 +186,61 @@ GameOptions::save_options_to_file(){
   file << "SailorsMoveFaster=" << option_SailorsMoveFaster << "\n";
   file << "WaterDepthLuminosity=" << option_WaterDepthLuminosity << "\n";
   file << "RandomizeInstruments=" << option_RandomizeInstruments << "\n";
+  file << "option_ForesterMonoculture=" << option_ForesterMonoculture << "\n";
+
+ /*
+  case ACTION_RESET_MAPGEN_DEFAULTS:
+    // reasonable values for trees are 0.00-4.00, so divide max slider 65500 by 4 to get 16375 and let 1.00 == 16375
+    interface->set_custom_map_generator_trees(uint16_t(16375 * 1.00));
+    interface->set_custom_map_generator_stonepile_dense(slider_double_to_uint16(1.00)); 
+    interface->set_custom_map_generator_stonepile_sparse(slider_double_to_uint16(1.00)); 
+    //interface->set_custom_map_generator_fish(slider_double_to_uint16(1.00)); 
+    // reasonable values for fish are 0.00-4.00, so divide max slider 65500 by 4 to get 16375 and let 1.00 == 16375
+    interface->set_custom_map_generator_fish(uint16_t(16375 * 1.00));
+    interface->set_custom_map_generator_mountain_gold(slider_mineral_double_to_uint16(2.00));   // 2
+    interface->set_custom_map_generator_mountain_iron(slider_mineral_double_to_uint16(4.00));   // 4
+    interface->set_custom_map_generator_mountain_coal(slider_mineral_double_to_uint16(9.00));   // 9
+    interface->set_custom_map_generator_mountain_stone(slider_mineral_double_to_uint16(2.00));  // 2
+    interface->set_custom_map_generator_desert_frequency(slider_double_to_uint16(1.00)); 
+    //interface->set_custom_map_generator_lakes_size(slider_double_to_uint16(1.00)); 
+    //interface->set_custom_map_generator_lakes_water_level(slider_double_to_uint16(1.00)); 
+    interface->set_custom_map_generator_lakes_water_level(uint16_t(8188 * 1.00)); 
+    interface->set_custom_map_generator_junk_grass_sandstone(slider_double_to_uint16(1.00)); 
+    interface->set_custom_map_generator_junk_grass_small_boulders(slider_double_to_uint16(1.00)); 
+    interface->set_custom_map_generator_junk_grass_stub_trees(slider_double_to_uint16(1.00)); 
+    interface->set_custom_map_generator_junk_grass_dead_trees(slider_double_to_uint16(1.00)); 
+    interface->set_custom_map_generator_junk_water_boulders(slider_double_to_uint16(1.00)); 
+    interface->set_custom_map_generator_junk_water_trees(slider_double_to_uint16(1.00)); 
+    interface->set_custom_map_generator_junk_desert_cadavers(slider_double_to_uint16(1.00)); 
+    interface->set_custom_map_generator_junk_desert_cacti(slider_double_to_uint16(1.00)); 
+    interface->set_custom_map_generator_junk_desert_palm_trees(slider_double_to_uint16(1.00));
+    */
+
+  file << "" << "\n";
+
+  // save custom map generator settings AND map size
+  file << "[mapgen]" << "\n";
+  file << "Size=" << mapgen_size << "\n";
+  file << "Trees=" << mapgen_trees << "\n";
+  file << "StonepileDense=" << mapgen_stonepile_dense << "\n";
+  file << "StonepileSparse=" << mapgen_stonepile_sparse << "\n";
+  file << "Fish=" << mapgen_fish << "\n";
+  file << "MountainGold=" << mapgen_mountain_gold << "\n";
+  file << "MountainIron=" << mapgen_mountain_iron << "\n";
+  file << "MountainCoal=" << mapgen_mountain_coal << "\n";
+  file << "MountainStone=" << mapgen_mountain_stone << "\n";
+  file << "DesertFrequency=" << mapgen_desert_frequency << "\n";
+  file << "WaterLevel=" << mapgen_water_level << "\n";
+  file << "JunkGrassSandstone=" << mapgen_junk_grass_sandstone << "\n";
+  file << "JunkGrassSmallBoulders=" << mapgen_junk_grass_small_boulders << "\n";
+  file << "JunkGrassStubTrees=" << mapgen_junk_grass_stub_trees << "\n";
+  file << "JunkGrassDeadTrees=" << mapgen_junk_grass_dead_trees << "\n";
+  file << "JunkWaterBoulders=" << mapgen_junk_water_boulders << "\n";
+  file << "JunkWaterTrees=" << mapgen_junk_water_trees << "\n";
+  file << "JunkDesertCadavers=" << mapgen_junk_desert_cadavers << "\n";
+  file << "JunkDesertCacti=" << mapgen_junk_desert_cacti << "\n";
+  file << "JunkDesertPalmTrees=" << mapgen_junk_desert_palm_trees << "\n";
+  file << "JunkWaterReedsCattails=" << mapgen_junk_water_reeds_cattails << "\n";
+
   Log::Debug["game-options.cc"] << "inside GameOptions::save_options_to_file, done saving options";
 }

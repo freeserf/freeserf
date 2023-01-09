@@ -32,6 +32,7 @@ extern bool option_ResourceRequestsTimeOut;
 extern bool option_PrioritizeUsableResources;
 extern bool option_LostTransportersClearFaster;
 extern bool option_FourSeasons;
+extern bool option_AdvancedFarming;
 extern bool option_FishSpawnSlowly;
 extern bool option_FogOfWar;
 extern bool option_InvertMouse;
@@ -42,6 +43,31 @@ extern bool option_SpecialClickDouble;
 extern bool option_SailorsMoveFaster;
 extern bool option_WaterDepthLuminosity;
 extern bool option_RandomizeInstruments;  // only affects DOS music
+extern bool option_ForesterMonoculture;
+extern bool option_CheckPathBeforeAttack;  // this is forced on
+
+extern unsigned int mapgen_size;
+extern uint16_t mapgen_trees;
+extern uint16_t mapgen_stonepile_dense;
+extern uint16_t mapgen_stonepile_sparse;
+extern uint16_t mapgen_fish;
+extern uint16_t mapgen_mountain_gold;
+extern uint16_t mapgen_mountain_iron;
+extern uint16_t mapgen_mountain_coal;
+extern uint16_t mapgen_mountain_stone;
+extern uint16_t mapgen_desert_frequency;
+extern uint16_t mapgen_water_level;
+extern uint16_t mapgen_junk_grass_sandstone;
+extern uint16_t mapgen_junk_grass_small_boulders;
+extern uint16_t mapgen_junk_grass_stub_trees;
+extern uint16_t mapgen_junk_grass_dead_trees;
+extern uint16_t mapgen_junk_water_boulders;
+extern uint16_t mapgen_junk_water_trees;
+extern uint16_t mapgen_junk_desert_cadavers;
+extern uint16_t mapgen_junk_desert_cacti;
+extern uint16_t mapgen_junk_desert_palm_trees;
+extern uint16_t mapgen_junk_water_reeds_cattails;
+
 extern int season;
 extern int last_season;
 extern int subseason;

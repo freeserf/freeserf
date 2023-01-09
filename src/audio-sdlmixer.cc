@@ -78,6 +78,7 @@ AudioSDL::AudioSDL() {
   //  can't figure out why, tried a try/catch block but that
   //  doesn't prevent it from causing a crash.  will try updating my
   //  pulseaudio version
+  // NOPE updating pulseaudio doesn't help
   //try {
       r = Mix_OpenAudio(44100, MIX_DEFAULT_FORMAT, MIX_DEFAULT_CHANNELS, 512);
   //} catch (...) {

@@ -48,16 +48,17 @@
 // deFINE the global game option bools that were deCLARED in game-options.h
 bool option_EnableAutoSave = false;
 //bool option_ImprovedPigFarms = false;  // removing this as it turns out the default behavior for pig farms is to require almost no grain
-bool option_CanTransportSerfsInBoats = false;
-bool option_QuickDemoEmptyBuildSites = false;
+bool option_CanTransportSerfsInBoats = false;  // leaving this off by default because it still has occasional bugs
+bool option_QuickDemoEmptyBuildSites = true;
 //bool option_AdvancedDemolition = true;  // this needs more playtesting  */
 bool option_TreesReproduce = false;
-bool option_BabyTreesMatureSlowly = false;
+bool option_BabyTreesMatureSlowly = false;  // the AI needs to be improved to handle this being on, it relies too much on Foresters/Rangers
 bool option_ResourceRequestsTimeOut = true;  // this is forced true to indicate that the code to make them optional isn't added yet
 bool option_PrioritizeUsableResources = true;    // this is forced true to indicate that the code to make them optional isn't added yet
-bool option_LostTransportersClearFaster = false;
+bool option_LostTransportersClearFaster = true;
 bool option_FourSeasons = false;
-bool option_FishSpawnSlowly = false;
+bool option_AdvancedFarming = false;
+bool option_FishSpawnSlowly = true;
 bool option_FogOfWar = false;
 //bool option_EastSlopesShadeObjects = true;   // make this an option, maybe
 bool option_InvertMouse = false;
@@ -65,9 +66,61 @@ bool option_InvertWheelZoom = false;
 bool option_SpecialClickBoth = true;
 bool option_SpecialClickMiddle = true;
 bool option_SpecialClickDouble = true;
-bool option_SailorsMoveFaster = false;
-bool option_WaterDepthLuminosity = false;
+bool option_SailorsMoveFaster = true;
+bool option_WaterDepthLuminosity = true;
 bool option_RandomizeInstruments = false;  // only affects DOS music
+bool option_ForesterMonoculture = false;  // this looks bad in Spring and Winter, not making default anymore
+bool option_CheckPathBeforeAttack = true;  // this is forced on
+
+// map generator settings
+/*
+    // reasonable values for trees are 0.00-4.00, so divide max slider 65500 by 4 to get 16375 and let 1.00 == 16375
+    interface->set_custom_map_generator_trees(uint16_t(16375 * 1.00));
+    interface->set_custom_map_generator_stonepile_dense(slider_double_to_uint16(1.00)); 
+    interface->set_custom_map_generator_stonepile_sparse(slider_double_to_uint16(1.00)); 
+    //interface->set_custom_map_generator_fish(slider_double_to_uint16(1.00)); 
+    // reasonable values for fish are 0.00-4.00, so divide max slider 65500 by 4 to get 16375 and let 1.00 == 16375
+    interface->set_custom_map_generator_fish(uint16_t(16375 * 1.00));
+    interface->set_custom_map_generator_mountain_gold(slider_mineral_double_to_uint16(2.00));   // 2
+    interface->set_custom_map_generator_mountain_iron(slider_mineral_double_to_uint16(4.00));   // 4
+    interface->set_custom_map_generator_mountain_coal(slider_mineral_double_to_uint16(9.00));   // 9
+    interface->set_custom_map_generator_mountain_stone(slider_mineral_double_to_uint16(2.00));  // 2
+    interface->set_custom_map_generator_desert_frequency(slider_double_to_uint16(1.00)); 
+    //interface->set_custom_map_generator_lakes_size(slider_double_to_uint16(1.00)); 
+    //interface->set_custom_map_generator_lakes_water_level(slider_double_to_uint16(1.00)); 
+    interface->set_custom_map_generator_lakes_water_level(uint16_t(8188 * 1.00)); 
+    interface->set_custom_map_generator_junk_grass_sandstone(slider_double_to_uint16(1.00)); 
+    interface->set_custom_map_generator_junk_grass_small_boulders(slider_double_to_uint16(1.00)); 
+    interface->set_custom_map_generator_junk_grass_stub_trees(slider_double_to_uint16(1.00)); 
+    interface->set_custom_map_generator_junk_grass_dead_trees(slider_double_to_uint16(1.00)); 
+    interface->set_custom_map_generator_junk_water_boulders(slider_double_to_uint16(1.00)); 
+    interface->set_custom_map_generator_junk_water_trees(slider_double_to_uint16(1.00)); 
+    interface->set_custom_map_generator_junk_desert_cadavers(slider_double_to_uint16(1.00)); 
+    interface->set_custom_map_generator_junk_desert_cacti(slider_double_to_uint16(1.00)); 
+    interface->set_custom_map_generator_junk_desert_palm_trees(slider_double_to_uint16(1.00)); 
+    */
+unsigned int mapgen_size = 4;
+uint16_t mapgen_trees = 16375 * 1.50;
+uint16_t mapgen_stonepile_dense = 32750 * 0.75;
+uint16_t mapgen_stonepile_sparse = 32750 * 0.75;
+uint16_t mapgen_fish = 16375 * 3;
+uint16_t mapgen_mountain_gold = 7278 * 2;
+uint16_t mapgen_mountain_iron = 7278 * 4;
+uint16_t mapgen_mountain_coal = 7278 * 9;
+uint16_t mapgen_mountain_stone = 7278 * 2;
+uint16_t mapgen_desert_frequency = 32750;
+uint16_t mapgen_water_level = 8188 * 2.0;
+uint16_t mapgen_junk_grass_sandstone = 32750;
+uint16_t mapgen_junk_grass_small_boulders = 32750;
+uint16_t mapgen_junk_grass_stub_trees = 32750;
+uint16_t mapgen_junk_grass_dead_trees = 32750;
+uint16_t mapgen_junk_water_boulders = 4096;
+uint16_t mapgen_junk_water_trees = 4096;
+uint16_t mapgen_junk_desert_cadavers = 32750;
+uint16_t mapgen_junk_desert_cacti = 32750;
+uint16_t mapgen_junk_desert_palm_trees = 32750;
+uint16_t mapgen_junk_water_reeds_cattails = 4096;
+
 int season = 1;  // default to Summer
 int last_season = 1;  // four seasons
 int subseason = 0;  // 1/16th of a season
@@ -144,6 +197,8 @@ Game::Game()
   inventory_schedule_counter = 0;
 
   gold_total = 0;
+
+  debug_mark_road = {};
 
   ai_locked = true;
   signal_ai_exit = false;
@@ -983,11 +1038,29 @@ Game::update_game_stats() {
 
     resource_history_index = index+1 < 120 ? index+1 : 0;
   }
+
 }
 
 /* Update game state after tick increment. */
 void
 Game::update() {
+
+  // corruption debugging, sometimes save games
+  //  cannot be loaded, because Flag data does not match Map data
+  //  this is an attempt to detect when this happens
+  ticks_since_last_corruption_detection += game_ticks_per_update;
+  if (ticks_since_last_corruption_detection > 20000){
+    Log::Warn["game.cc"] << "inside Game::update, game flag corruption detection running now, tick " << tick;
+    ticks_since_last_corruption_detection = 0;
+    for (Flag *flag : flags) {
+      if (flag->get_index() == 0) continue;
+      if (map->get_obj(flag->get_position()) != Map::ObjectFlag) {
+        Log::Error["game.cc"] << "inside Game::update, CORRUPTION DETECTION, Map data does not match flag, Flag #" << flag->get_index() << " get_pos is " << flag->get_position() << ", but Map says this pos contains obj type " << map->get_obj(flag->get_position());
+        set_debug_mark_pos(flag->get_position(), "yellow");
+        pause();
+      }
+    }
+  }
 
 /*
   Log::Info["game"] << "option_EnableAutoSave is " << option_EnableAutoSave;
@@ -1001,6 +1074,7 @@ Game::update() {
   //AdvancedDemolition
   Log::Info["game"] << "option_LostTransportersClearFaster is " << option_LostTransportersClearFaster;
   Log::Info["game"] << "option_FourSeasons is " << option_FourSeasons;
+  //option_AdvancedFarming
   Log::Info["game"] << "option_FishSpawnSlowly is " << option_FishSpawnSlowly;
   //option_FogOfWar
   //option_InvertMouse
@@ -1391,11 +1465,20 @@ Game::remove_road_forwards(MapPos pos, Direction dir) {
       Serf *serf = get_serf_at_pos(pos);
       if (!map->has_flag(pos)) {
         serf->set_lost_state();
-        Log::Debug["game"] << "about to call set_lost_state on serf at pos " << pos << " case1, map says no flag here";;
+        //Log::Debug["game"] << "about to call set_lost_state on serf at pos " << pos << " case1, map says no flag here";;
       } else {
         /* Handle serf close to flag, where
            it should only be lost if walking
            in the wrong direction. */
+        // I think I understand what this code is doing now:
+        // When a road is removed, any serfs ON the road are made lost
+        // If there is a serf in the very last pos, the flag pos,
+        //  he can be allowed to continue without becoming lost if
+        //  he is walking away from the now-destroyed road, but if
+        //  he is walking towards the now-destroyed road he should be
+        //  made lost.  
+        // HOWEVER, there is some bug that causes transporters to be unintentionally removed
+        //  so I have suppressed this behavior
         int d = serf->get_walking_dir();
         if (d < 0) d += 6;
         if (d == reverse_direction(dir)) {
@@ -2010,6 +2093,9 @@ Game::build_building(MapPos pos, Building::Type type, Player *player) {
 }
 
 /* Build castle at position. */
+// I saw this return true once, but no castle seemed to be placed
+//  and then a castle appeared far from the suppoesdly placed
+//  very strange
 bool
 Game::build_castle(MapPos pos, Player *player) {
   if (!can_build_castle(pos, player)) {

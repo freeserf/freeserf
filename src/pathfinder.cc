@@ -26,6 +26,9 @@
 #include <algorithm>
 #include <memory>
 
+#include <chrono>   // for function performance timing
+#include <ctime>  // for function performance timing
+
 // moved to pathfinder.h
 /*
 class SearchNode;
@@ -92,6 +95,8 @@ actual_cost(Map *map, MapPos pos, Direction dir) {
    should be minimized. Returns a malloc'ed array of directions and
    the size of this array in length. */
    //https://en.wikipedia.org/wiki/A*_search_algorithm
+// this function is used for plotting Roads, and so is not appropriate
+//  for pure pathfinding for freewalking serfs
 Road
 pathfinder_map(Map *map, MapPos start, MapPos end, const Road *building_road) {
   // Unfortunately the STL priority_queue cannot be used since we
@@ -195,6 +200,230 @@ pathfinder_map(Map *map, MapPos start, MapPos end, const Road *building_road) {
       }
     }
   }
+
+  return Road();
+}
+
+
+
+/* Find the shortest path from start to end (using A*) considering that
+   the walking time for a serf walking in any direction of the path
+   should be minimized.   <--- this matters little here, but leave in place for now
+   Returns a malloc'ed array of directions and
+   the size of this array in length. */
+   //https://en.wikipedia.org/wiki/A*_search_algorithm
+// this is a copy of the pathfinder_map logic but modified to
+//  be appropriate for freewalking serfs, so it ignores where road segments
+//  can be built but still cares about impassible terrain (which includes water)
+//  though it might be fun to allow serfs to traverse shallow water!
+//
+// REMINDER - this (like the original pathfinder_map function), does a REVERSE SEARCH 
+//  starting at the end pos and working its way back to start pos to complete the road!
+//
+//
+//  NOTE - MAKE SURE THAT THE end POS IS NOT ACTUALLY A BUILDING AS IT WILL BE REJECTED!
+//   if the target is a building, the building's flag should be used as the end pos!!!
+//
+// note that this ignores terrain height heuristic
+Road
+pathfinder_freewalking_serf(Map *map, MapPos start, MapPos end, int max_dist) {
+  //Log::Debug["pathfinder.cc"] << "inside pathfinder_freewalking_serf, start pos " << start << ", dest pos " << end << ", max_dist " << max_dist << ", remember this is a REVERSE SEARCH";
+
+  if (start == bad_map_pos || end == bad_map_pos){
+    Log::Error["pathfinder.cc"] << "inside pathfinder_freewalking_serf, either start pos " << start << " or end pos " << end << " is bad_map_pos " << bad_map_pos;
+    throw ExceptionFreeserf("inside pathfinder_freewalking_serf, either start pos or end pos is bad_map_pos!");
+  }
+
+  // time this function for debugging
+  //std::clock_t start_pathfinder_freewalking_serf = std::clock();
+
+  std::vector<PSearchNode> open;
+  std::list<PSearchNode> closed;
+
+  /* Create start node */
+  PSearchNode node(new SearchNode);
+  node->pos = end;
+  node->g_score = 0;
+  //node->f_score = heuristic_cost(map, start, end);
+  node->f_score = 0;
+
+  open.push_back(node);
+
+  // limit the number of *positions* considered,
+  //  though this is NOT the same as maximum possible length!!
+  //  want to find a way to also check current road length to reject
+  //  based on length without rejecting other, shorter roads as part of 
+  //  same solution!
+
+  //unsigned int new_closed_nodes = 0;
+  //unsigned int new_open_nodes = 0;
+  unsigned int total_pos_considered = 0;
+  // reducing the values that were copied from ai_pathfinder, as this is more sensitive
+  static const unsigned int plot_road_max_pos_considered = 5000;  // the maximum number of "nodes" (MapPos) considered as part of a single plot_road call before giving up
+  //static const unsigned int plot_road_max_length = 100;  // the maximum length of a road solution for plot_road before giving up
+  static const unsigned int plot_road_max_length = max_dist;  // this is now a configurable argument
+
+  Road solution;
+  solution.start(start);
+
+  while (!open.empty()) {
+    //Log::Debug["pathfinder.cc"] << "inside pathfinder_freewalking_serf, A";
+    std::pop_heap(open.begin(), open.end(), search_node_less);
+    node = open.back();
+    open.pop_back();
+
+    if (node->pos == bad_map_pos){
+      Log::Error["pathfinder.cc"] << "inside pathfinder_freewalking_serf, node->pos " << node->pos << " is bad_map_pos " << bad_map_pos;
+      throw ExceptionFreeserf("inside pathfinder_freewalking_serf, node->pos is bad_map_pos!");
+    }
+
+    if (total_pos_considered >= plot_road_max_pos_considered){
+      Log::Info["pathfinder.cc"] << "inside pathfinder_freewalking_serf, maximum MapPos POSITIONS-checked reached (plot_road_max_pos) " << total_pos_considered << ", ending search early";
+      break;
+    }
+    //// PERFORMANCE - try pausing for a very brief time every thousand pos checked to give the CPU a break, see if it fixes frame rate lag
+  // if (total_pos_considered > 0 && total_pos_considered % 1000 == 0){
+    //  Log::Debug["pathfinder.cc"] << "inside pathfinder_freewalking_serf, taking a quick sleep at " << total_pos_considered << " to give CPU a break";
+    //  std::this_thread::sleep_for(std::chrono::milliseconds(200));
+    //}
+    total_pos_considered++;
+
+    // limit the *length* considered
+    unsigned int current_length = 0;  // this is calculated in full each time, not cumulative, so it can be declared every time
+    PSearchNode tmp_length_check_node = node;
+    while (tmp_length_check_node->parent) {
+      current_length++;
+      tmp_length_check_node = tmp_length_check_node->parent;
+    }
+    //Log::Debug["pathfinder.cc"] << "inside pathfinder_freewalking_serf, current road-length so far for this solution is " << current_length;
+    if (current_length >= plot_road_max_length){
+      Log::Info["pathfinder.cc"] << "inside pathfinder_freewalking_serf, maximum road-length reached (plot_road_max_length) " << current_length << ", ending search early";
+      break;
+    }
+
+    if (node->pos == start) {
+      //Log::Debug["pathfinder.cc"] << "inside pathfinder_freewalking_serf, B  FOUND SOLUTION";
+
+      while (node->parent) {
+        Direction dir = node->dir;
+        solution.extend(reverse_direction(dir));
+        node = node->parent;
+      }
+
+      //double duration = (std::clock() - start_pathfinder_freewalking_serf) / static_cast<double>(CLOCKS_PER_SEC);
+      //Log::Debug["pathfinder_freewalking_serf"] << "done pathfinder_freewalking_serf, call took " << duration << ", considered " << total_pos_considered << " positions";
+
+      return solution;
+    }
+
+    //Log::Debug["pathfinder.cc"] << "inside pathfinder_freewalking_serf, C  KEEP SEARCHING, node->pos " << node->pos << " is not yet the start pos " << start;
+
+    /* Put current node on closed list. */
+    closed.push_front(node);
+
+    for (Direction d : cycle_directions_cw()) {
+      //Log::Debug["pathfinder.cc"] << "inside pathfinder_freewalking_serf, D  Dir: " << d;
+      MapPos new_pos = map->move(node->pos, d);
+      unsigned int cost = actual_cost(map, node->pos, d);
+      // default to lowest value (255), ignore heuristics
+      //unsigned int cost = 255;
+
+      //
+      // I THINK THIS IS THE ONLY PART THAT NEEDS TO CHANGE
+      //  maybe just make this an if statement inside pathfinder_map
+      //  instead of its own function?
+      //
+      /* Check if neighbour is valid. */
+      /*
+        MapPos other_pos = move(pos, dir);
+        Object obj = get_obj(other_pos);
+        if ((paths(other_pos) != 0 && obj != ObjectFlag) ||
+            Map::map_space_from_obj[obj] >= SpaceSemipassable) {
+          return false;
+        }
+
+        if (!has_owner(other_pos) ||
+            get_owner(other_pos) != get_owner(pos)) {
+          return false;
+        }
+
+        if (is_in_water(pos) != is_in_water(other_pos) &&
+            !(has_flag(pos) || has_flag(other_pos))) {
+          return false;
+        }
+      */
+
+      //if (!map->is_road_segment_valid(node->pos, d) ||
+      //    (map->get_obj(new_pos) == Map::ObjectFlag && new_pos != start)) {
+        
+      if (!map->can_serf_step_into(new_pos)){
+        //Log::Debug["pathfinder.cc"] << "inside pathfinder_freewalking_serf, E  serf CANNOT step from node->pos " << node->pos << " into next pos " << new_pos << " in dir " << d;
+        continue;
+      }
+      //Log::Debug["pathfinder.cc"] << "inside pathfinder_freewalking_serf, E  serf can step from node->pos " << node->pos << " into next pos " << new_pos << " in dir " << d;
+
+      //
+      //if ((building_road != nullptr) && building_road->has_pos(map, new_pos) &&
+      //    (new_pos != end) && (new_pos != start)) {
+      //  continue;
+      //}
+
+      /* Check if neighbour is in closed list. */
+      bool in_closed = false;
+      for (PSearchNode closed_node : closed) {
+        if (closed_node->pos == new_pos) {
+          in_closed = true;
+          //Log::Debug["pathfinder.cc"] << "inside pathfinder_freewalking_serf, F, neighbor in closed";
+          break;
+        }
+      }
+
+      if (in_closed) continue;
+
+      /* See if neighbour is already in open list. */
+      bool in_open = false;
+      for (std::vector<PSearchNode>::iterator it = open.begin();
+           it != open.end(); ++it) {
+        PSearchNode n = *it;
+        if (n->pos == new_pos) {
+          in_open = true;
+          //Log::Debug["pathfinder.cc"] << "inside pathfinder_freewalking_serf, G, neighbor in open";
+          if (n->g_score >= node->g_score + cost) {
+            //Log::Debug["pathfinder.cc"] << "inside pathfinder_freewalking_serf, H, neighbor in open, this node score is less, swapping";
+            n->g_score = node->g_score + cost;
+            n->f_score = n->g_score + heuristic_cost(map, new_pos, start);
+            //n->f_score = n->g_score;
+            n->parent = node;
+            n->dir = d;
+
+            // Move element to the back and heapify
+            iter_swap(it, open.rbegin());
+            std::make_heap(open.begin(), open.end(), search_node_less);
+          }
+          break;
+        }
+      }
+
+      /* If not found in the open set, create a new node. */
+      if (!in_open) {
+        //Log::Debug["pathfinder.cc"] << "inside pathfinder_freewalking_serf, I, creating new node";
+        PSearchNode new_node(new SearchNode);
+
+        new_node->pos = new_pos;
+        new_node->g_score = node->g_score + cost;
+        new_node->f_score = new_node->g_score + heuristic_cost(map, new_pos, start);
+        //new_node->f_score = new_node->g_score;
+        new_node->parent = node;
+        new_node->dir = d;
+
+        open.push_back(new_node);
+        std::push_heap(open.begin(), open.end(), search_node_less);
+      }
+    }
+  }
+
+  //double duration = (std::clock() - start_pathfinder_freewalking_serf) / static_cast<double>(CLOCKS_PER_SEC);
+  //Log::Debug["pathfinder_freewalking_serf"] << "done pathfinder_freewalking_serf, call took " << duration;
 
   return Road();
 }

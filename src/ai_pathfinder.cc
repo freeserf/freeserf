@@ -70,10 +70,27 @@ flagsearch_node_less(const PFlagSearchNode &left, const PFlagSearchNode &right) 
 // the road returned is the DIRECT road if found
 //  however, if no direct road is found the calling function could still check for the new-flag splitting
 //   options found
+
+// the castle flag must have a surrounding "forbidden zone" to prevent creation of paths blocking the castle flag
+//     ____
+//    /\xx/\  castle
+//   /xx\/xx\
+//   \xx/\xx/\\
+//    \/__\/__\\   castle flag area, double lines are forbidden paths
+//    \\  /\  //
+//     \\/__\//
+//       ----
+// any path segment with both ends in forbidden list must be rejected
 Road
 // adding support for HoldBuildingPos
 //AI::plot_road(PMap map, unsigned int player_index, MapPos start_pos, MapPos end_pos, Roads * const &potential_roads) {
 AI::plot_road(PMap map, unsigned int player_index, MapPos start_pos, MapPos end_pos, Roads * const &potential_roads, bool hold_building_pos) {
+  // time this function for debugging
+  // THIS CLOCK IS CPU CYCLE BASED AND NOT REAL TIME!!!!
+  std::clock_t start = std::clock();
+  double duration;
+  int slept_msec = 0;
+
   AILogDebug["plot_road"] << "inside plot_road for Player" << player_index << " with start " << start_pos << ", end " << end_pos;
   
   //ai_mark_pos.clear();
@@ -119,10 +136,6 @@ AI::plot_road(PMap map, unsigned int player_index, MapPos start_pos, MapPos end_
     }
   }
 
-  // time this function for debugging
-  std::clock_t start;
-  double duration;
-  start = std::clock();
   //
   // pathfinding direction is now REVERSED from original code!  this function starts at the start_pos and ends at the end_pos, originally it was the opposite.
   //    As far as I can tell there is no downside to this, but flipping it makes fake flag solutions easy because when a potential new flag position
@@ -143,11 +156,17 @@ AI::plot_road(PMap map, unsigned int player_index, MapPos start_pos, MapPos end_
   unsigned int new_open_nodes = 0;
   unsigned int total_pos_considered = 0;
 
+  //ai_mark_pos.clear();
+
   // this is a TILE search, finding open PATHs to build a single Road between two Flags
   while (!open.empty()) {
     std::pop_heap(open.begin(), open.end(), search_node_less);
     node = open.back();
     open.pop_back();
+
+    //ai_mark_pos.insert(ColorDot(node->pos, "blue"));
+    //std::this_thread::sleep_for(std::chrono::milliseconds(20));
+
     // limit the number of *positions* considered,
     //  though this is NOT the same as maximum possible length!!
     //  want to find a way to also check current road length to reject
@@ -161,6 +180,7 @@ AI::plot_road(PMap map, unsigned int player_index, MapPos start_pos, MapPos end_
     if (total_pos_considered > 0 && total_pos_considered % 1000 == 0){
       AILogDebug["plot_road"] << "plot_road: taking a quick sleep at " << total_pos_considered << " to give CPU a break";
       std::this_thread::sleep_for(std::chrono::milliseconds(200));
+      slept_msec += 200;
     }
     total_pos_considered++;
 
@@ -171,7 +191,7 @@ AI::plot_road(PMap map, unsigned int player_index, MapPos start_pos, MapPos end_
       current_length++;
       tmp_length_check_node = tmp_length_check_node->parent;
     }
-    AILogDebug["plot_road"] << "plot_road: current road-length so far for this solution is " << current_length;
+    //AILogDebug["plot_road"] << "plot_road: current road-length so far for this solution is " << current_length;
     if (current_length >= plot_road_max_length){
       AILogDebug["plot_road"] << "plot_road: maximum road-length reached (plot_road_max_length) " << current_length << ", ending search";
       break;
@@ -215,6 +235,41 @@ AI::plot_road(PMap map, unsigned int player_index, MapPos start_pos, MapPos end_
     //for (Direction d : cycle_directions_cw()) {
     for (Direction d : cycle_directions_rand_cw()) {
       MapPos new_pos = map->move(node->pos, d);
+
+      // prevent building any path segment in the outside of the hexagon
+      //  immediately surrounding the flag pos, to prevent blocking other
+      //  castle flag paths
+      if (node->parent){
+        uint8_t forbidden_ends = 0;
+        for (MapPos forbidden_pos : stock_building_counts.at(inventory_pos).forbidden_paths_ring1){
+          if (node->pos == forbidden_pos){
+            AILogDebug["plot_road"] << "node->pos " << node->pos << " is on the stock_building_counts.at(inventory_pos).forbidden_paths_ring1 list";
+            forbidden_ends++;
+          }else if(node->parent->pos == forbidden_pos){
+            AILogDebug["plot_road"] << "node->parent->pos " << node->pos << " is on the stock_building_counts.at(inventory_pos).forbidden_paths_ring1 list";
+            forbidden_ends++;
+          }
+        }
+        if (forbidden_ends > 1){
+          AILogDebug["plot_road"] << "rejecting direction " << d << " / " << NameDirection[d] << " because it crosses the forbidden partial-hexagon-perimeter of castle flag ring1";
+          continue;
+        }
+        forbidden_ends = 0;
+        for (MapPos forbidden_pos : stock_building_counts.at(inventory_pos).forbidden_paths_ring2){
+          if (node->pos == forbidden_pos){
+            AILogDebug["plot_road"] << "node->pos " << node->pos << " is on the stock_building_counts.at(inventory_pos).forbidden_paths_ring2 list";
+            forbidden_ends++;
+          }else if(node->parent->pos == forbidden_pos){
+            AILogDebug["plot_road"] << "node->parent->pos " << node->pos << " is on the stock_building_counts.at(inventory_pos).forbidden_paths_ring2 list";
+            forbidden_ends++;
+          }
+        }
+        if (forbidden_ends > 1){
+          AILogDebug["plot_road"] << "rejecting direction " << d << " / " << NameDirection[d] << " because it crosses the forbidden partial-hexagon-perimeter of castle flag ring2";
+          continue;
+        }
+      }
+
       unsigned int cost = actual_cost(map.get(), node->pos, d);
       //ai_mark_road->extend(d);
       //ai_mark_pos.insert(ColorDot(new_pos, "blue"));
@@ -344,6 +399,7 @@ AI::plot_road(PMap map, unsigned int player_index, MapPos start_pos, MapPos end_
             if (total_pos_considered > 0 && total_pos_considered % 1000 == 0){
               AILogDebug["plot_road"] << "plot_road: taking a quick sleep at " << total_pos_considered << " to give CPU a break";
               std::this_thread::sleep_for(std::chrono::milliseconds(200));
+              slept_msec += 200;
             }
             total_pos_considered++;
           }
@@ -452,13 +508,15 @@ AI::plot_road(PMap map, unsigned int player_index, MapPos start_pos, MapPos end_
   //AILogDebug["plot_road"] << "plot_road call considered " << pos_considered << " MapPos, took " << duration;
   //AILogDebug["plot_road"] << "plot_road call with start_pos " << start_pos << ", end_pos " << end_pos << ", considered " << total_pos_considered << " MapPos, took " << duration << ", cache_hits " << cache_hits << ", cache_hit_ratio " << cache_hit_ratio << "%";
   //AILogDebug["plot_road"] << "plot_road call with start_pos " << start_pos << ", end_pos " << end_pos << ", considered " << total_pos_considered << " MapPos, took " << duration << ", pos_per_sec " << pos_per_second << "k/sec";
-  AILogDebug["plot_road"] << "plot_road call with start_pos " << start_pos << ", end_pos " << end_pos << ", considered " << total_pos_considered << " MapPos, took " << duration;
+  AILogDebug["plot_road"] << "plot_road call with start_pos " << start_pos << ", end_pos " << end_pos << ", considered " << total_pos_considered << " MapPos, took " << duration << ", " << slept_msec << "ms was spent sleeping";
 
   //sleep_speed_adjusted(2000);
   return direct_road;
 }
 
-
+//
+// MAKE THIS A GENERAL GAME FUNCTION AND NOT AI-SPECIFIC!
+//
 // count how many tiles apart two MapPos are
 int
 AI::get_straightline_tile_dist(PMap map, MapPos start_pos, MapPos end_pos) {
@@ -484,6 +542,10 @@ AI::get_straightline_tile_dist(PMap map, MapPos start_pos, MapPos end_pos) {
 //  and score them based on the best score of their adjacent flags
 bool
 AI::score_flag(PMap map, unsigned int player_index, RoadBuilder *rb, RoadOptions road_options, MapPos flag_pos, MapPos castle_flag_pos, ColorDotMap *ai_mark_pos) {
+  // time this function for debugging
+  std::clock_t start = std::clock();
+  double duration;
+
   AILogDebug["score_flag"] << "inside score_flag";
   MapPos target_pos = rb->get_target_pos();
   AILogDebug["score_flag"] << "preparing to score_flag for Player" << player_index << " for flag at flag_pos " << flag_pos << " to target_pos " << target_pos;
@@ -518,7 +580,11 @@ AI::score_flag(PMap map, unsigned int player_index, RoadBuilder *rb, RoadOptions
       unsigned int adjusted_score = bad_score;
       bool contains_castle_flag = false;
       // go score the adjacent flags if they aren't already known (sometimes they will already have been checked)
-      if (!rb->has_score(adjacent_flag_pos)) {
+      if (rb->has_score(adjacent_flag_pos)) {
+        // simply record that a cache hit was found, to verify this functionality works
+        AILogDebug["score_flag"] << "score_flag, found cached score for splitting-flag's adjacent_flag_pos " << adjacent_flag_pos;
+        // this definitely works, I see it using the cache
+      }else{
         AILogDebug["score_flag"] << "score_flag, rb doesn't have score yet for adjacent flag_pos " << adjacent_flag_pos << ", will try to score it";
         // USING NEW FUNCTION
         //if (find_flag_and_tile_dist(map, player_index, rb, adjacent_flag_pos, castle_flag_pos, ai_mark_pos)) {
@@ -575,6 +641,8 @@ AI::score_flag(PMap map, unsigned int player_index, RoadBuilder *rb, RoadOptions
       AILogDebug["score_flag"] << "best adjacent flag right now is best_adjacent_flag_pos " << best_adjacent_flag_pos << " with adjusted_score " << best_adjacent_flag_adjusted_score;
     }
     AILogDebug["score_flag"] << "done with flag flag/split road solution at flag_pos " << flag_pos << "'s adjacent_flag scoring";
+    duration = (std::clock() - start) / static_cast<double>(CLOCKS_PER_SEC);
+    AILogDebug["score_flag"] << "done score_flag, found solution, returning true, call took " << duration;
     return true;
   } // if split road / fake flag
 
@@ -591,6 +659,8 @@ AI::score_flag(PMap map, unsigned int player_index, RoadBuilder *rb, RoadOptions
     AILogDebug["score_flag"] << "inserting perfect score 0,0 for target_pos flag at " << flag_pos << " into rb";
     rb->set_score(flag_pos, 0, 0, false);
     AILogDebug["score_flag"] << "score_flag, flag_pos *IS* target_pos, returning true";
+    duration = (std::clock() - start) / static_cast<double>(CLOCKS_PER_SEC);
+    AILogDebug["score_flag"] << "done score_flag, found solution, returning true, call took " << duration;
     return true;
   }
 
@@ -618,6 +688,8 @@ AI::score_flag(PMap map, unsigned int player_index, RoadBuilder *rb, RoadOptions
     rb->set_score(flag_pos, flag_dist, tile_dist, contains_castle_flag);
   }else{
     AILogDebug["score_flag"] << "score_flag, find_flag_path_and_tile_dist_between_flags() returned false, cannot find flag-path solution from flag_pos " << flag_pos << " to target_pos " << target_pos << ".  Returning false";
+    duration = (std::clock() - start) / static_cast<double>(CLOCKS_PER_SEC);
+    AILogDebug["score_flag"] << "done score_flag, did not find solution, returning false, call took " << duration;
     return false;
   }
 
@@ -629,7 +701,8 @@ AI::score_flag(PMap map, unsigned int player_index, RoadBuilder *rb, RoadOptions
   unsigned int debug_tile_dist = score.get_tile_dist();
   AILogDebug["score_flag"] << "score_flag, find_flag_path_and_tile_dist_between_flags() from flag_pos " << flag_pos << " to target_pos " << target_pos << " found flag_dist " << debug_flag_dist << ", tile_dist " << debug_tile_dist;
 
-  AILogDebug["score_flag"] << "done score_flag, found solution, returning true";
+  duration = (std::clock() - start) / static_cast<double>(CLOCKS_PER_SEC);
+  AILogDebug["score_flag"] << "done score_flag, found solution, returning true, call took " << duration;
   return true;
 }
 
@@ -1072,7 +1145,7 @@ AI::identify_arterial_roads(PMap map){
 
   AILogDebug["util_identify_arterial_roads"] << "inside AI::identify_arterial_roads";
   // time this function for debugging
-  std::clock_t start;
+  std::clock_t start = std::clock();
   double duration;
 
   // store the number of times each flag appears in the best path to the
@@ -1343,7 +1416,6 @@ AI::identify_arterial_roads(PMap map){
     AILogDebug["util_identify_arterial_roads"] << "done retracing solutions - Inventory at pos " << inv_flag_pos << " has a path in Dir " << NameDirection[dir] << " / " << dir;
   }
 
-  start = std::clock();
   duration = (std::clock() - start) / static_cast<double>(CLOCKS_PER_SEC);
   AILogDebug["util_identify_arterial_roads"] << "done AI::identify_arterial_roads, call took " << duration;
 }
@@ -1500,12 +1572,14 @@ AI::find_flag_path_and_tile_dist_between_flags(PMap map, MapPos start_pos, MapPo
       // get the other Flag in this dir
       Flag *other_end_flag = flag->get_other_end_flag(dir);
       if (other_end_flag == nullptr){
-        AILogError["find_flag_path_and_tile_dist_between_flags"] << "got nullptr for game->get_other_end_flag(" << NameDirection[dir] << ") from flag at pos " << fnode->pos << ", throwing exception";
+        AILogError["find_flag_path_and_tile_dist_between_flags"] << "got nullptr for game->get_other_end_flag(" << NameDirection[dir] << ") from flag at pos " << fnode->pos << ", returning false instead of crashing";
         //ai_mark_pos->erase(map->move(fnode->pos, dir));
         //ai_mark_pos->insert(ColorDot(map->move(fnode->pos, dir), "coral"));
         // update Dec04 2022 - haven't seen this in a long time, removing sleep
         //std::this_thread::sleep_for(std::chrono::milliseconds(30000));
-        throw ExceptionFreeserf("got nullptr for game->get_other_end_flag");
+        // saw this again jan 2023, changing to not crash
+        //throw ExceptionFreeserf("got nullptr for game->get_other_end_flag");
+        return false;
       }
       MapPos other_end_flag_pos = other_end_flag->get_position();
       //AILogDebug["find_flag_path_and_tile_dist_between_flags"] << "other_end_flag_pos is " << other_end_flag_pos;

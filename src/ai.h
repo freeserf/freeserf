@@ -81,9 +81,9 @@ class AI {
   Serf::SerfMap serfs_potential;
   int *serfs_total;
   bool need_tools;
-  unsigned int last_sent_geologist_tick = 0;  // used to throttle sending geologists
+  //unsigned int last_sent_geologist_tick = 0;  // used to throttle sending geologists.   moved to inside stock_buildings
   bool have_inventory_building = false;  // used to quit loop early if AI is essentially defeated (has no Castle or Stocks)
-  Road longest_road_so_far; // for debugging only, to help gauge a reasonable limit for maximum road length consideration while calling plot_road
+  //Road longest_road_so_far; // for debugging only, to help gauge a reasonable limit for maximum road length consideration while calling plot_road
 
   std::set<MapPos> new_stocks = {};  // AI STATEFULNESS WARNING - this is used to detect when a stock transitions from completed-but-not-occupied to occupied, and will not trigger if game saved/loaded between
   // Now that multiple economies implemented I think the entire XXX_building_counts are worthless
@@ -209,6 +209,7 @@ class AI {
   void set_serf_lost();
   // return a pointer to the currently selected stock's Inventory
   Inventory * get_stock_inv() { return game->get_inventory(this_stock_inv_index); }
+  void set_forbidden_pos_around_inventory(MapPos inventory_flag_pos);
   void mutex_lock(const char* message);
   void mutex_unlock();
   
@@ -219,7 +220,8 @@ class AI {
   // ai_util.cc
   //
   static bool has_terrain_type(PGame, MapPos, Map::Terrain, Map::Terrain);  // why does this need to be static?
-  bool place_castle(PGame, MapPos, unsigned int, unsigned int);
+  //bool place_castle(PGame, MapPos, unsigned int, unsigned int);
+  bool place_castle(PGame, MapPos, unsigned int);  // moving the radius considered into the place_castle function instead of as argument
   static unsigned int spiral_dist(int);   // why does this need to be static?
   //void rebuild_all_roads();  // no longer need this
   // changing these to support *planning* a road without actually building it, prior to placing a new building
@@ -264,8 +266,9 @@ class AI {
   ResourceMap realm_inv;
   MapPos inventory_pos;
   void score_enemy_targets(MapPosSet*);
-  //void attack_nearest_target(MapPosSet*);
-  void attack_nearest_target(MapPosSet*, unsigned int min_score, double min_ratio);
+  //void attack_best_target(MapPosSet*);
+  //void attack_best_target(MapPosSet*, unsigned int min_score, double min_ratio);
+  void attack_best_target(MapPosSet*, int loss_tolerance);
   bool flag_and_road_suitable_for_removal(PGame game, PMap map, MapPos flag_pos, Direction *road_dir);
   // cache of PSearchNode results from recent searches, indexed by start flag
   //  RE-EVALUATE THE ENTIRE RoadBuilder CLASS, SEE IF IT CAN BE ELIMINATED
@@ -282,12 +285,22 @@ class AI {
     int unfinished_count;
     int unfinished_hut_count;
     bool needs_wood = false;
+    bool excess_wood = false;
     bool needs_stone = false;
+    bool excess_stone = false;
     bool needs_foods = false;
+    bool excess_foods = false;
     bool needs_steel = false;
+    bool excess_steel = false;
     bool needs_coal = false;
+    bool excess_coal = false;
     bool needs_iron_ore = false;
+    bool excess_iron_ore = false;
     bool needs_gold_ore = false;
+    bool excess_gold_ore = false;
+    unsigned int last_sent_geologist_tick = 0;  // used to throttle sending geologists
+    MapPosVector forbidden_paths_ring1 = {};
+    MapPosVector forbidden_paths_ring2 = {};
     MapPosVector occupied_military_pos;
   };
 
@@ -323,9 +336,14 @@ class AI {
   void do_demolish_unproductive_stonecutters();
   void do_demolish_unproductive_mines();
   void do_demolish_excess_lumberjacks();
+  void do_demolish_excess_foresters();
   void do_demolish_excess_food_buildings();
   void do_manage_tool_priorities();
   void do_manage_mine_food_priorities();
+  void do_disconnect_or_demolish_excess_mines(std::string, Building::Type);
+  void do_disconnect_or_demolish_excess_coal_mines(); //wrapper around do_disconnect_excess_mines
+  void do_disconnect_or_demolish_excess_iron_mines(); //wrapper around do_disconnect_excess_mines
+  void do_disconnect_or_demolish_excess_gold_mines(); //wrapper around do_disconnect_excess_mines
   void do_balance_sword_shield_priorities();
   void do_attack();
   void do_manage_knight_occupation_levels();
@@ -391,7 +409,7 @@ static const int serfs_min = 5;  // don't convert serfs to knights below this va
 //  so that there is a period where new res producer buildings are not created, but existing ones are not destroyed
 static const unsigned int anti_flapping_buffer = 16;  //doubled dec15 2021
 
-static const unsigned int morale_max = 65;  // if morale over this value, attack regardless of target score and defender ratio
+static const unsigned int morale_max = 75;  // if morale over this value, attack regardless of target score and defender ratio
 static const unsigned int morale_min = 35;  // if morale over this value, attack if other requirements met.  If below this value, only attack extremely valuable targets
 static constexpr double min_knight_ratio_attack = 2.00;  // only attack if knights sent is at least this many times the defending knights, of other conditions met
 
@@ -400,26 +418,30 @@ static const unsigned int knights_med = 18;
 static const unsigned int knights_max = 50;
 static const unsigned int knight_occupation_change_buffer = 4; // to avoid repeatedly cycling knights, increase/lower bar to change levels again by this amount
 static const unsigned int near_building_sites_min = 450;   // don't place castle unless this many sites available.  small += 2, large += 3 (meant as small=1, large=1.5)
+static const unsigned int ring0_blocking_terrain_pct_max = 5;  // don't place castle if more than this percent of terrain in a ring right around the castle
+static const unsigned int ring1_blocking_terrain_pct_max = 25;  // don't place castle if more than this percent of terrain in a ring 8 tiles from center is non-grass
+static const unsigned int ring2_blocking_terrain_pct_max = 32;  // don't place castle if more than this percent of terrain in a ring 14 tiles from center is non-grass
 //static const unsigned int gold_bars_max = 50;  // I don't think this is actually used
 static const unsigned int steel_min = 16;   // don't build blacksmith if under this value, unless sufficient iron or an iron mine
-static const unsigned int steel_max = 60;  // don't build steelsmelter if over this value
+static const unsigned int steel_max = 50;  // don't build steelsmelter if over this value
 static const unsigned int planks_min = 8; // if planks below this value, don't build any other buildings until sawmill and lumberjacks done.  Also, don't build warehouse/stocks if below this
-static const unsigned int planks_max = 40; // build a sawmill & lumberjack if planks count goes below this value, destroy all but one lumberjack (per stock) if over this number
+static const unsigned int planks_max = 35; // build a sawmill & lumberjack if planks count goes below this value, destroy all but one lumberjack (per stock) if over this number
 static const unsigned int near_trees_min = 5; // only place sawmills near at least this many trees; place rangers near sawmills with fewer than this many trees.  Also for castle placement (WEIGHTED 4x)
+static const unsigned int min_pct_open_positions_burn_excess_forester = 40;//%  // when max_planks reached, burn any forester that has fewer than this % open grass positions within its working radius
 static const unsigned int stones_min = 10;
 static const unsigned int stones_max = 25;
 static const unsigned int near_stones_min = 5;  // don't place castle unless sufficient stones, considers pile size
-static const unsigned int food_max = 70;  // demolish all food buildings if stored food over this amount (includes food at flags and unprocessed food up to a certain cap)
+static const unsigned int food_max = 40;  // demolish all food buildings if stored food over this amount (includes food at flags and unprocessed food up to a certain cap)
 static const unsigned int lower_min_openspace_farm = 15; // absolute minimum open tiles in area to build farm (existing fields count favorably, though).  The number of available knights is added to allow for taking better territory
 static const unsigned int upper_min_openspace_farm = 45; // upper limit of min open tiles in area to build farm (existing fields count favorably, though). FYI: there are 60 tiles in spiral_dist(4)
 //static const unsigned int near_fields_min = 3; // don't build mill and baker until a farm has this man fields already sown  // this is no longer used because the delay results in bad roads
-static const unsigned int coal_min = 22;   // don't build blacksmith if under this value and no coal mine.  Also, de-prioritize coal miner's food supply if over this value
-static const unsigned int coal_max = 60;   // don't build coal mine if over this value, don't give food to mine over this value
-static const unsigned int iron_ore_min = 14; // don't build blacksmith if under this value and no iron mine+, OR sufficient steel.  Also, de-prioritize iron miner's food supply if over this value
-static const unsigned int iron_ore_max = 30; // don't build iron mine if over this value, don't give food to mine over this value
+static const unsigned int coal_min = 18;   // don't build blacksmith if under this value and no coal mine.  Also, de-prioritize coal miner's food supply if over this value
+static const unsigned int coal_max = 50;   // don't build coal mine if over this value, don't give food to mine over this value
+static const unsigned int iron_ore_min = 10; // don't build blacksmith if under this value and no iron mine+, OR sufficient steel.  Also, de-prioritize iron miner's food supply if over this value
+static const unsigned int iron_ore_max = 25; // don't build iron mine if over this value, don't give food to mine over this value
 static const unsigned int gold_ore_min = 10;    // don't build gold smelter if under this value and no gold min.  Also, de-prioritize gold miner's food supply if over this value
-static const unsigned int gold_ore_max = 40;  // don't build gold mine over this value (is this implemented?),   don't give food to mine over this value
-static const unsigned int hills_min = 9;   // don't send geologists unless substantial hills
+static const unsigned int gold_ore_max = 35;  // don't build gold mine over this value (is this implemented?),   don't give food to mine over this value
+static const unsigned int hills_min = 4;   // don't send geologists unless substantial hills  I think this is misguided, resources can be found in even small hills
 static const unsigned int waters_min = 16;  // don't build fisherman unless substantial waters
 static const unsigned int hammers_min = 6; // don't create geologists unless this many hammers in reserve
 static const unsigned int geologists_max = 2; // UPDATE this is now not a fixed value at all, it is now: 2+(geologists_max*number of Inventories (castle/stock))
@@ -429,7 +451,7 @@ static const unsigned int blacksmiths_max = 1; // if this many blacksmith serfs 
 // deprioritize sending geologists to area where signs density is over this amount (prefer send geologists to unevaluated areas)
 static constexpr double geologist_sign_density_deprio = 0.40;
 // never send geologists to a flag that has a sign_density over this amount
-static constexpr double geologist_sign_density_max = 0.65;
+static constexpr double geologist_sign_density_max = 0.60;
 
 // don't build mines on Small resource signs until this ratio of potential resource signs are placed.
 //    until this % of signs placed, only build if you find a Large resource sign
@@ -471,7 +493,8 @@ static constexpr double max_convolution = 3.00;
 
 
 // NEED TO ADD EXCEPTION IF straight_line_dist is very long also, indicating a long road is required!
-static const unsigned int plot_road_max_pos_considered = 10000;  // the maximum number of "nodes" (MapPos) considered as part of a single plot_road call before giving up
+//static const unsigned int plot_road_max_pos_considered = 10000;  // the maximum number of "nodes" (MapPos) considered as part of a single plot_road call before giving up
+static const unsigned int plot_road_max_pos_considered = 4000;  // the maximum number of "nodes" (MapPos) considered as part of a single plot_road call before giving up
 static const unsigned int plot_road_max_length = 150;  // the maximum length of a road solution for plot_road before giving up
 // NEED TO ADD EXCEPTION IF straight_line_dist is very long also, indicating a long road is required!
 
