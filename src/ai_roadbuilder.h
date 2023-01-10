@@ -60,8 +60,7 @@ class FlagScore {
  protected:
   unsigned int flag_dist;
   unsigned int tile_dist;
-  bool contains_castle_flag = false;
-  bool is_passthru_solution = false;
+  bool contains_castle_flag;
 
  public:
   FlagScore();

@@ -65,7 +65,8 @@ AI::AI(PGame current_game, unsigned int _player_index) {
   //longest_road_so_far = {};
   plot_road_closed_cache = {};
   plot_road_open_cache = {};
-  use_plot_road_cache = true;   // this is definitely effective, tried comparing w/ cache off vs on
+  //use_plot_road_cache = true;   // this is definitely effective, tried comparing w/ cache off vs on
+  use_plot_road_cache = false;  // TEMP DISABLING THIS WHILE TESTING passthru roads
 
   road_options.reset(RoadOption::Direct);
   road_options.set(RoadOption::SplitRoads);
@@ -183,8 +184,8 @@ AI::next_loop(){
   //-----------------------------------------------------------
 
   do_connect_disconnected_flags(); // except mines
-  AILogError["next_loop"] << "ENDING LOOP EARLY FOR DEBUGGING!";
-  return;
+  //AILogError["next_loop"] << "ENDING LOOP EARLY FOR DEBUGGING!";
+  //return;
   do_connect_disconnected_road_networks();
   do_build_better_roads_for_important_buildings();  // is this working?  I still see pretty inefficient roads for important buildings
   do_pollute_castle_area_roads_with_flags(); // CHANGE THIS TO USE ARTERIAL ROADS  (nah, it works well enough as it is, do that later)
@@ -460,7 +461,8 @@ AI::do_update_clear_reset() {
   AILogDebug["do_update_clear_reset"] << "clearing plot_road caches";
   plot_road_open_cache.clear();
   plot_road_closed_cache.clear();
-  use_plot_road_cache = true;
+  //use_plot_road_cache = true;
+  use_plot_road_cache = false;  // TEMP DISABLING THIS WHILE TESTING passthru roads
 }
 
 

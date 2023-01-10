@@ -3858,24 +3858,31 @@ Viewport::draw_ai_overlay() {
   //
   // draw ai_mark_road to highlight any road set by AI
   //
+  /*
+  Log::Debug["viewport.cc"] << "inside Viewport::draw_ai_overlay, about to start drawing ai_mark_road";
   MapPos prevpos = ai->get_ai_mark_road()->get_source();
+  Log::Debug["viewport.cc"] << "inside Viewport::draw_ai_overlay, get_source is " << prevpos;
+  Log::Debug["viewport.cc"] << "inside Viewport::draw_ai_overlay, size is " << ai->get_ai_mark_road()->get_dirs().size();
   for (const auto &dir : ai->get_ai_mark_road()->get_dirs()) {
-          MapPos thispos = map->move(prevpos, dir);
-          int prev_sx = 0;
-          int prev_sy = 0;
-          //Log::Info["viewport"] << "calling screen_pix_from_map_coord with FROM MapPos " << prevpos << ", empty x,y " << prev_sx << "," << prev_sy;
-          screen_pix_from_map_coord(prevpos, &prev_sx, &prev_sy);
-          //Log::Info["viewport"] << "called screen_pix_from_map_coord with FROM MapPos " << prevpos << ", got x,y " << prev_sx << "," << prev_sy;
+    Log::Debug["viewport.cc"] << "inside Viewport::draw_ai_overlay, prevpos = " << prevpos << ", Dir = " << dir;
+    MapPos thispos = map->move(prevpos, dir);
+    int prev_sx = 0;
+    int prev_sy = 0;
+    Log::Debug["viewport"] << "calling screen_pix_from_map_coord with FROM MapPos " << prevpos << ", empty x,y " << prev_sx << "," << prev_sy;
+    screen_pix_from_map_coord(prevpos, &prev_sx, &prev_sy);
+    Log::Debug["viewport"] << "called screen_pix_from_map_coord with FROM MapPos " << prevpos << ", got x,y " << prev_sx << "," << prev_sy;
 
-          int this_sx = 0;
-          int this_sy = 0;
-          //Log::Info["viewport"] << "calling screen_pix_from_map_coord with TO MapPos " << thispos << ", empty x,y " << this_sx << "," << this_sy;
-          screen_pix_from_map_coord(thispos, &this_sx, &this_sy);
-          //Log::Info["viewport"] << "called screen_pix_from_map_coord with TO MapPos " << thispos << ", got x,y " << this_sx << "," << this_sy;
+    int this_sx = 0;
+    int this_sy = 0;
+    Log::Debug["viewport"] << "calling screen_pix_from_map_coord with TO MapPos " << thispos << ", empty x,y " << this_sx << "," << this_sy;
+    screen_pix_from_map_coord(thispos, &this_sx, &this_sy);
+    Log::Debug["viewport"] << "called screen_pix_from_map_coord with TO MapPos " << thispos << ", got x,y " << this_sx << "," << this_sy;
 
-          frame->draw_line(prev_sx, prev_sy, this_sx, this_sy, ai->get_mark_color("white"));
-          prevpos = thispos;
+    frame->draw_line(prev_sx, prev_sy, this_sx, this_sy, ai->get_mark_color("white"));
+    prevpos = thispos;
   }
+  Log::Debug["viewport.cc"] << "inside Viewport::draw_ai_overlay, done drawing ai_mark_road";
+  */
 
   /*
   //

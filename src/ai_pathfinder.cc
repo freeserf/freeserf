@@ -211,7 +211,7 @@ AI::plot_road(PMap map, unsigned int player_index, MapPos start_pos, MapPos end_
         if (map->has_flag(node->pos)){
           AILogDebug["plot_road"] << "plot_road: solution found, node->pos " << node->pos << " contains a flag";
           flags_in_solution++;
-          ai_mark_pos.insert(ColorDot(node->pos, "dk_yellow"));
+          //ai_mark_pos.insert(ColorDot(node->pos, "dk_yellow"));
         }
         // if ai_overlay is on, ai_mark_road will show the road being traced backwards from end_pos to start_pos
         Direction dir = node->dir;
@@ -281,11 +281,12 @@ AI::plot_road(PMap map, unsigned int player_index, MapPos start_pos, MapPos end_
 
       unsigned int cost = actual_cost(map.get(), node->pos, d);
       
-      ai_mark_road->extend(d);
-      ai_mark_pos.insert(ColorDot(new_pos, "blue"));
-      sleep_speed_adjusted(10);
+      //ai_mark_road->extend(d);
+      //ai_mark_pos.insert(ColorDot(new_pos, "blue"));
+      //sleep_speed_adjusted(10);
 
       // Check if neighbour is valid
+      AILogDebug["plot_road"] << "new_pos " << new_pos << ", checking if valid";
       if (new_pos == end_pos && !map->is_road_segment_valid(node->pos, d) && game->can_build_flag(new_pos, player)){
         // solution found but the end_pos does not have a flag because this is a specifically-requested
         //  split-road solution.  Do nothing here, but this if block avoids the 'continue' so a new node
@@ -294,6 +295,7 @@ AI::plot_road(PMap map, unsigned int player_index, MapPos start_pos, MapPos end_
       }
       else if (!map->is_road_segment_valid(node->pos, d) ||   // if cannot build a road here because path is blocked...
         (map->get_obj(new_pos) == Map::ObjectFlag && new_pos != end_pos)) {   // OR a flag is here but not the destination flag...
+        AILogDebug["plot_road"] << "new_pos " << new_pos << ", cannot build road because path blocked, OR a flag is here but not dest flag";
         //(avoid_castle && AI::is_near_castle(game, new_pos))) {
         //
         // if the pathfinder hits an existing road point where a flag could be built,
@@ -360,19 +362,148 @@ AI::plot_road(PMap map, unsigned int player_index, MapPos start_pos, MapPos end_
         if ( (game->can_build_flag(new_pos, player) && map->has_any_path(new_pos) )  // if can build a new flag on existing path...
           || (map->get_obj(new_pos) == Map::ObjectFlag && new_pos != end_pos && new_pos != start_pos)){ // or there is already a real flag here
           
+          AILogDebug["plot_road"] << "new_pos " << new_pos << ", doing passthru check";
+
+          // must reject any water paths!
+          if (map->is_in_water(new_pos)){
+            AILogDebug["plot_road"] << "plot_road: allow_passthru bool is true, but new_pos " << new_pos << " is_in_water, rejecting";
+            //ai_mark_pos.erase(new_pos);
+            //ai_mark_pos.insert(ColorDot(new_pos, "gray"));
+            //sleep_speed_adjusted(20);
+            continue;
+          }
+
           if (true){
           //if (allow_passthru){
+          
+            // sanity check to ensure that this passthru solution does not depend on another new-splitting flag that
+            //  is impossibly close to this one
+            int passthru_flags = 1;  // we know this node is a passthru flag already or we wouldn't be here
+            //MapPos pos = node->pos;
+            //MapPos segment_start_pos = node->pos;
+            //Direction start_dir = node->dir;
+            MapPos last_new_flag_pos = new_pos;  // we know this pos is a passthru flag already or we wouldn't be here
+            bool reject_solution = false;
+            PSearchNode passthru_check_node = node;
+            AILogDebug["plot_road"] << "plot_road passthru tracing this Road's paths to see if it is a passthru solution";
+            //ai_mark_pos.clear();
+            //ai_mark_pos.insert(ColorDot(start_pos, "brown"));
+            //ai_mark_pos.insert(ColorDot(new_pos, "coral"));
+
+            while(passthru_check_node->parent){
+              //rbroad->set_is_passthru_solution();  // do NOT set this here!  if it is invalidated it will confuse things later
+
+              if (reject_solution){ break; }
+
+              MapPos parent_pos = passthru_check_node->parent->pos;
+              Direction parent_dir = passthru_check_node->parent->dir;
+              MapPos pos = passthru_check_node->pos;
+              Direction dir = passthru_check_node->dir;
+
+              //AILogDebug["plot_road"] << "plot_road passthru in passthru check, pos is " << pos << ", Dir is " << dir;
+              // if this pos is blocked by an existing path, but a flag could be built here...
+
+              //
+              // NEED TO ADD EXTRA LOGIC to prevent following paths where a new splitting flag can not actually connect to!
+              //   such as along existing paths
+              //
+              /*
+              bool
+              Map::is_road_segment_valid(MapPos pos, Direction dir) const {
+                MapPos other_pos = move(pos, dir);
+                Object obj = get_obj(other_pos);
+                if ((paths(other_pos) != 0 && obj != ObjectFlag) ||
+                    Map::map_space_from_obj[obj] >= SpaceSemipassable) {
+                  return false;
+                }
+                if (!has_owner(other_pos) ||
+                    get_owner(other_pos) != get_owner(pos)) {
+                  return false;
+                }
+                if (is_in_water(pos) != is_in_water(other_pos) &&
+                    !(has_flag(pos) || has_flag(other_pos))) {
+                  return false;
+                }
+                return true;
+              }
+              */
+             //
+             //  I think there need to be two passthru checks in this function
+             //  - one for new-splitting flag solutions
+             //  - another for existing flag passthru solutions
+             //
+              if (!map->is_road_segment_valid(parent_pos, parent_dir) && game->can_build_flag(pos, player) && map->has_any_path(pos)){
+                AILogDebug["plot_road"] << "plot_road passthru this is a new-splitting-flag passthru solution, passthru_flags so far this check: " << passthru_flags;
+                passthru_flags++;  // ... it is a passthru new splitting flag
+                // Flags cannot be created right next to each other, so reject any solution that depends on this
+                // ALSO, if the end of the road ALSO requires a new flag, reject if the end of the road is one pos away
+                if (passthru_flags > 1){
+                  AILogDebug["plot_road"] << "plot_road passthru check sanity-checking pos surrounding " << pos << " to see if any are the last_new_flag_pos " << last_new_flag_pos;
+                  for (Direction check_dir : cycle_directions_cw()){
+                    if (map->move(pos, check_dir) == last_new_flag_pos
+                    || map->move(pos, check_dir) == node->pos){
+                      AILogDebug["plot_road"] << "plot_road passthru check sanity-check rejecting this passthru solution because it depends on multiple new flags impossibly close to each other";
+                      reject_solution = true;
+                      //ai_mark_pos.erase(pos);
+                      //ai_mark_pos.insert(ColorDot(pos, "red"));
+                      //sleep_speed_adjusted(200);
+                      break;
+                    }
+                  }
+                  if (reject_solution){ continue; }
+                }
+                //ai_mark_pos.erase(pos);
+                //ai_mark_pos.insert(ColorDot(pos, "yellow"));
+                last_new_flag_pos = pos;
+                AILogDebug["plot_road"] << "plot_road passthru, setting last_new_flag_pos to " << pos;
+
+              // if this pos has a flag but it isn't the end of the Road...
+              }else if (map->has_flag(pos) && pos != start_pos && pos != new_pos) {
+                //ai_mark_pos.erase(pos);
+                //ai_mark_pos.insert(ColorDot(pos, "lt_green"));
+                //sleep_speed_adjusted(400);
+                passthru_flags++;  // ... it is a passthru existing flag
+                AILogDebug["plot_road"] << "plot_road passthru flag at pos " << pos << ", passthru_flags so far this check: " << passthru_flags;
+              //}else if (pos == new_pos) {
+              //  ai_mark_pos.erase(pos);
+              //  ai_mark_pos.insert(ColorDot(pos, "dk_blue"));  // end pos
+              //  sleep_speed_adjusted(200);
+              }else{
+                //ai_mark_pos.erase(pos);
+                //ai_mark_pos.insert(ColorDot(pos, "white"));  // normal pos
+                //sleep_speed_adjusted(400);
+              }
+              //sleep_speed_adjusted(400);
+
+              passthru_check_node = passthru_check_node->parent;
+              
+            } // while(passthru_check_node->parent){
+
+            if (reject_solution){
+              AILogDebug["plot_road"] << "plot_road: this passthru solution rejected because if requires new flag impossibly close to another, skipping this pos";
+              continue;
+            }
+
             //ai_mark_road->extend(d);
-            ai_mark_pos.erase(new_pos);
-            ai_mark_pos.insert(ColorDot(new_pos, "yellow"));
-            sleep_speed_adjusted(20);
-            AILogDebug["plot_road"] << "plot_road: allow_passthru bool is true, will continue as if this pos were not blocking";
+            //ai_mark_pos.erase(new_pos);
+            //ai_mark_pos.insert(ColorDot(new_pos, "yellow"));
+            //sleep_speed_adjusted(200);
+            AILogDebug["plot_road"] << "plot_road: allow_passthru bool is true, this passthru solution passed sanity checks, will continue as if this pos were not blocking";
           }else{
             AILogDebug["plot_road"] << "plot_road: allow_passthru bool is false, this pos will be closed as impassable";
             continue;
           }
 
+        }else{
+          // if we don't 'continue' here, the pathfinder will try to build a segment already known to be invalid!
+          AILogDebug["plot_road"] << "new_pos " << new_pos << " is rejected";
+          //ai_mark_pos.erase(new_pos);
+          //ai_mark_pos.insert(ColorDot(new_pos, "black"));
+          //sleep_speed_adjusted(20);
+          continue;
         }
+
+        AILogDebug["plot_road"] << "new_pos " << new_pos << ", is valid";
 
       }
 

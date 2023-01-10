@@ -16,6 +16,7 @@ RoadBuilderRoad::RoadBuilderRoad() {
   dir1 = DirectionNone;
   dir2 = DirectionNone;
   contains_castle_flag = false;
+  is_passthru_solution = false;
 }
 
 /*
@@ -37,20 +38,21 @@ RoadBuilderRoad::RoadBuilderRoad(RoadEnds ends, Road r) {
   dir2 = std::get<3>(ends);
   road = r;
   contains_castle_flag = false;
+  is_passthru_solution = false;
   //Log::Debug["roadbuilder_init"] << "constructed RoadBuilderRoad::RoadBuilderRoad with end1 " << end1 << ", dir1 " << NameDirection[dir1] << ", end2 " << end2 << ", dir2 " << NameDirection[dir2] << ", road length " << road.get_length();
 }
 
 
 FlagScore::FlagScore() {
-  unsigned int flag_dist = 0;
-  unsigned int tile_dist = 0;
-  bool contains_castle_flag = false;
+  flag_dist = 0;
+  tile_dist = 0;
+  contains_castle_flag = false;
 }
 
 FlagScore::FlagScore(unsigned int fd, unsigned int td) {
-  unsigned int flag_dist = fd;
-  unsigned int tile_dist = td;
-  bool contains_castle_flag = false;
+  flag_dist = fd;
+  tile_dist = td;
+  contains_castle_flag = false;
 }
 
 RoadBuilder::RoadBuilder() {
