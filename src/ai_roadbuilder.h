@@ -28,6 +28,7 @@ class RoadBuilderRoad {
   Direction dir1;
   Direction dir2;
   bool contains_castle_flag;
+  bool is_passthru_solution;
 
  public:
   RoadBuilderRoad();
@@ -45,6 +46,8 @@ class RoadBuilderRoad {
   void set_dir2(Direction d2) { dir2 = d2; }
   bool get_contains_castle_flag() { return contains_castle_flag; }
   void set_contains_castle_flag() { contains_castle_flag = true; }
+  bool get_is_passthru_solution() { return is_passthru_solution; }
+  void set_is_passthru_solution() { is_passthru_solution = true; }
 
  protected:
   //
@@ -58,6 +61,7 @@ class FlagScore {
   unsigned int flag_dist;
   unsigned int tile_dist;
   bool contains_castle_flag = false;
+  bool is_passthru_solution = false;
 
  public:
   FlagScore();
