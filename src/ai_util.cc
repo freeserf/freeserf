@@ -1312,8 +1312,11 @@ AI::build_best_road(MapPos start_pos, RoadOptions road_options, Road *built_road
 
     //sofarduration = (std::clock() - start) / static_cast<double>(CLOCKS_PER_SEC);
     //AILogDebug["util_build_best_road"] << "H. " << calling_function << " SO FAR call took " << sofarduration;
+    
+    //
     // foreach potential new road (proad) to be built to a nearby flag
     //  score the existing road (eroad) that begins at the flag/pos where the proad ends
+    //
     AILogDebug["util_build_best_road"] << "" << calling_function << " scoring_proads, preparing to score potential new roads from start_pos to nearby_flag positions";
     MapPosSet scored_proads;
     for (std::pair<RoadEnds, RoadBuilderRoad*> pr : rb.get_proads()) {
@@ -1381,9 +1384,66 @@ AI::build_best_road(MapPos start_pos, RoadOptions road_options, Road *built_road
           AILogDebug["util_build_best_road"] << "" << calling_function << " scoring_proads, applying contains_castle_flag penalty of " << contains_castle_flag_penalty;
         }
       }
-      AILogDebug["util_build_best_road"] << "" << calling_function << " scoring_proads, AFTER penalties, potential road from start_pos " << start_pos << " to nearby_flag_pos " << nearby_flag_pos <<
-        " has tile_dist " << tile_dist << ", flag_dist " << flag_dist << ", new_length " << new_length << ", adjusted_score " << adjusted_score;
-      scored_proads.insert(std::make_pair(nearby_flag_pos, adjusted_score));
+
+      // passthru roads, add the passthru flags to the flag_dist
+      ai_mark_pos.clear();
+      int passthru_flags = 0;
+      MapPos pos = start_pos;
+      MapPos last_new_flag_pos = bad_map_pos;
+      bool reject_solution = false;
+      ai_mark_pos.insert(ColorDot(start_pos, "blue"));
+      for (Direction dir : rbroad->get_road().get_dirs()){
+        if (reject_solution){ break; }
+        MapPos last_pos = pos;
+        pos = map->move(pos, dir);
+        // if this pos is blocked by an existing path, but a flag could be built here...
+        if (!map->is_road_segment_valid(last_pos, dir) && game->can_build_flag(pos, player) && map->has_any_path(pos)){
+          passthru_flags++;  // ... it is a passthru new splitting flag
+          // Flags cannot be created right next to each other, so reject any solution that depends on this
+          // ALSO, if the end of the road ALSO requires a new flag, reject if the end of the road is one pos away
+          if (passthru_flags > 1){
+            AILogDebug["util_build_best_road"] << "passthru check checking pos surrounding " << pos << " to see if any are the last_new_flag_pos " << last_new_flag_pos;
+            for (Direction check_dir : cycle_directions_cw()){
+              if (map->move(pos, check_dir) == last_new_flag_pos
+               || map->move(pos, check_dir) == nearby_flag_pos){
+                AILogDebug["util_build_best_road"] << "passthru check rejecting this passthru solution because it depends on multiple new flags impossibly close to each other";
+                reject_solution = true;
+                ai_mark_pos.insert(ColorDot(pos, "red"));
+                break;
+              }
+            }
+          }else{
+            ai_mark_pos.insert(ColorDot(pos, "yellow"));
+            last_new_flag_pos = pos;
+          }
+        // if this pos has a flag but it isn't the end of the Road...
+        }else if (map->has_flag(pos) && pos != start_pos && pos != nearby_flag_pos) {
+          ai_mark_pos.insert(ColorDot(pos, "green"));
+          passthru_flags++;  // ... it is a passthru existing flag
+        }else if (pos == nearby_flag_pos) {
+          ai_mark_pos.insert(ColorDot(pos, "dk_blue"));  // end pos
+        }else{
+          ai_mark_pos.insert(ColorDot(pos, "white"));  // normal pos
+        }
+        sleep_speed_adjusted(200);
+        
+      }
+      if (passthru_flags > 0){
+        AILogDebug["util_build_best_road"] << "done passthru check, this is a passthru solution with " << passthru_flags << " passthru_flags, adding these to flag_dist";
+        flag_dist += passthru_flags;
+      }else{
+        AILogDebug["util_build_best_road"] << "done passthru check, this is not a passthru solution";
+      }
+      sleep_speed_adjusted(1000);
+
+      if (reject_solution){
+        AILogDebug["util_build_best_road"] << "" << calling_function << " scoring_proads, this solution was rejected, setting bad_score " << bad_score;
+        scored_proads.insert(std::make_pair(nearby_flag_pos, adjusted_score));
+      }else{
+        AILogDebug["util_build_best_road"] << "" << calling_function << " scoring_proads, AFTER penalties, potential road from start_pos " << start_pos << " to nearby_flag_pos " << nearby_flag_pos <<
+          " has tile_dist " << tile_dist << ", flag_dist " << flag_dist << ", new_length " << new_length << ", adjusted_score " << adjusted_score;
+        scored_proads.insert(std::make_pair(nearby_flag_pos, adjusted_score));
+      }
     }
     AILogDebug["util_build_best_road"] << "" << calling_function << " scoring_proads, done scoring proads";
 
@@ -1394,7 +1454,10 @@ AI::build_best_road(MapPos start_pos, RoadOptions road_options, Road *built_road
 
     //sofarduration = (std::clock() - start) / static_cast<double>(CLOCKS_PER_SEC);
     //AILogDebug["util_build_best_road"] << "I. " << calling_function << " SO FAR call took " << sofarduration;
+
+    //
     // try to build a road, starting with the best scoring potential_road end flag, until successful
+    //
     AILogDebug["util_build_best_road"] << "" << calling_function << " sorted_scored_proads, preparing to iterate over sorted_scored_proads to try to build roads to best nearby_flag";
     for (MapPos end_pos : sorted_scored_proads) {
       AILogDebug["util_build_best_road"] << "" << calling_function << " sorted_scored_proads, considering building road from start_pos " << start_pos << " to end_pos " << end_pos;

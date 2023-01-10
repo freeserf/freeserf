@@ -84,7 +84,8 @@ flagsearch_node_less(const PFlagSearchNode &left, const PFlagSearchNode &right) 
 Road
 // adding support for HoldBuildingPos
 //AI::plot_road(PMap map, unsigned int player_index, MapPos start_pos, MapPos end_pos, Roads * const &potential_roads) {
-AI::plot_road(PMap map, unsigned int player_index, MapPos start_pos, MapPos end_pos, Roads * const &potential_roads, bool hold_building_pos) {
+//AI::plot_road(PMap map, unsigned int player_index, MapPos start_pos, MapPos end_pos, Roads * const &potential_roads, bool hold_building_pos) {
+AI::plot_road(PMap map, unsigned int player_index, MapPos start_pos, MapPos end_pos, Roads * const &potential_roads, bool hold_building_pos, bool allow_passthru) {
   // time this function for debugging
   // THIS CLOCK IS CPU CYCLE BASED AND NOT REAL TIME!!!!
   std::clock_t start = std::clock();
@@ -156,7 +157,7 @@ AI::plot_road(PMap map, unsigned int player_index, MapPos start_pos, MapPos end_
   unsigned int new_open_nodes = 0;
   unsigned int total_pos_considered = 0;
 
-  //ai_mark_pos.clear();
+  ai_mark_pos.clear();
 
   // this is a TILE search, finding open PATHs to build a single Road between two Flags
   while (!open.empty()) {
@@ -199,12 +200,19 @@ AI::plot_road(PMap map, unsigned int player_index, MapPos start_pos, MapPos end_
     
     // if end_pos is reached, a Road solution is found
     if (node->pos == end_pos) {
+      AILogDebug["plot_road"] << "plot_road: solution found";
       Road breadcrumb_solution;
       breadcrumb_solution.start(end_pos);
       // retrace the "bread crumb trail" tile by tile from end to start
       //   this creates a Road with 'source' of end_pos and 'last' of start_pos
       //     which is backwards from the direction the pathfinding ran
+      int flags_in_solution = 1;  // include one for the starting flag, as the while loop terminates once no parent node left and won't check the start pos for a flag
       while (node->parent) {
+        if (map->has_flag(node->pos)){
+          AILogDebug["plot_road"] << "plot_road: solution found, node->pos " << node->pos << " contains a flag";
+          flags_in_solution++;
+          ai_mark_pos.insert(ColorDot(node->pos, "dk_yellow"));
+        }
         // if ai_overlay is on, ai_mark_road will show the road being traced backwards from end_pos to start_pos
         Direction dir = node->dir;
         breadcrumb_solution.extend(reverse_direction(dir));
@@ -213,6 +221,7 @@ AI::plot_road(PMap map, unsigned int player_index, MapPos start_pos, MapPos end_
         //sleep_speed_adjusted(10);
         node = node->parent;
       }
+      AILogDebug["plot_road"] << "plot_road: solution found, solution contains " << flags_in_solution << " flags";
       unsigned int new_length = static_cast<unsigned int>(breadcrumb_solution.get_length());
       AILogDebug["plot_road"] << "plot_road: solution found, new segment length is " << breadcrumb_solution.get_length();
       // now inverse the entire road so that it stats at start_pos and ends at end_pos, so the Road object is logical instead of backwards
@@ -271,9 +280,11 @@ AI::plot_road(PMap map, unsigned int player_index, MapPos start_pos, MapPos end_
       }
 
       unsigned int cost = actual_cost(map.get(), node->pos, d);
-      //ai_mark_road->extend(d);
-      //ai_mark_pos.insert(ColorDot(new_pos, "blue"));
-      //sleep_speed_adjusted(10);
+      
+      ai_mark_road->extend(d);
+      ai_mark_pos.insert(ColorDot(new_pos, "blue"));
+      sleep_speed_adjusted(10);
+
       // Check if neighbour is valid
       if (new_pos == end_pos && !map->is_road_segment_valid(node->pos, d) && game->can_build_flag(new_pos, player)){
         // solution found but the end_pos does not have a flag because this is a specifically-requested
@@ -341,19 +352,29 @@ AI::plot_road(PMap map, unsigned int player_index, MapPos start_pos, MapPos end_
           potential_roads->push_back(split_flag_solution);
           split_road_solutions++;
         }
+
         // if we don't 'continue' here, the pathfinder will think this node is valid and won't
         //  complete the original requested solution
-        continue;
-      }
 
-      // WARNING - commenting this out to break dependency on interface->building_road
-      //   it looks to prevent road from being drawn over itself?
-      //  find a way to implement this that doesn't depend on interface->building_road?
-      ///  maybe it doesn't matter after all?  I did a year of AI runs without it
-      //if ((building_road != nullptr) && building_road->has_pos(map, new_pos) &&
-      //    (new_pos != end) && (new_pos != start)) {
-      //  continue;
-      //}
+        // NEW LOGIC - testing passthru to allow multi-road solutions
+        if ( (game->can_build_flag(new_pos, player) && map->has_any_path(new_pos) )  // if can build a new flag on existing path...
+          || (map->get_obj(new_pos) == Map::ObjectFlag && new_pos != end_pos && new_pos != start_pos)){ // or there is already a real flag here
+          
+          if (true){
+          //if (allow_passthru){
+            //ai_mark_road->extend(d);
+            ai_mark_pos.erase(new_pos);
+            ai_mark_pos.insert(ColorDot(new_pos, "yellow"));
+            sleep_speed_adjusted(20);
+            AILogDebug["plot_road"] << "plot_road: allow_passthru bool is true, will continue as if this pos were not blocking";
+          }else{
+            AILogDebug["plot_road"] << "plot_road: allow_passthru bool is false, this pos will be closed as impassable";
+            continue;
+          }
+
+        }
+
+      }
 
       /*  note that this debug function doesn't help anything other than debugging
            and it also itself causes a perf hit

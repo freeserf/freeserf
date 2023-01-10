@@ -374,7 +374,8 @@ class AI {
   //
   // ai_pathfinder.cc
   //
-  Road plot_road(PMap map, unsigned int player_index, MapPos start, MapPos end, Roads * const &potential_roads, bool hold_building_pos = false);
+  //Road plot_road(PMap map, unsigned int player_index, MapPos start, MapPos end, Roads * const &potential_roads, bool hold_building_pos = false);
+  Road plot_road(PMap map, unsigned int player_index, MapPos start, MapPos end, Roads * const &potential_roads, bool hold_building_pos = false, bool allow_passthu = false);
   int get_straightline_tile_dist(PMap map, MapPos start_pos, MapPos end_pos);
   bool score_flag(PMap map, unsigned int player_index, RoadBuilder *rb, RoadOptions road_options, MapPos flag_pos, MapPos castle_flag_pos, ColorDotMap *ai_mark_pos);
   bool find_flag_path_and_tile_dist_between_flags(PMap map, MapPos start_pos, MapPos target_pos, MapPosVector *solution_flags, unsigned int *tile_dist, ColorDotMap *ai_mark_pos);

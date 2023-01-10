@@ -183,6 +183,8 @@ AI::next_loop(){
   //-----------------------------------------------------------
 
   do_connect_disconnected_flags(); // except mines
+  AILogError["next_loop"] << "ENDING LOOP EARLY FOR DEBUGGING!";
+  return;
   do_connect_disconnected_road_networks();
   do_build_better_roads_for_important_buildings();  // is this working?  I still see pretty inefficient roads for important buildings
   do_pollute_castle_area_roads_with_flags(); // CHANGE THIS TO USE ARTERIAL ROADS  (nah, it works well enough as it is, do that later)
@@ -2253,11 +2255,20 @@ AI::do_demolish_excess_foresters() {
       // trying straightline instead
       if (find_nearest_inventory(map, player_index, building->get_position(), DistType::StraightLineOnly, &ai_mark_pos) != inventory_pos)
         continue;
+
+      //  jan09 2023
+      // got an exception around here, right as find_nearest_inventory_returned, debugging not on so not sure exactly where
+      //
+      //  AGAIN shortly after, maybe map_spacE_from_obj is out of range?
+
       // check number of open positions around the forester
       int open_positions = 0;
       int possible_positions = 0;
       for (unsigned int x = 0; x < AI::spiral_dist(4); x++) {
         MapPos pos = map->pos_add_extended_spirally(forester_pos, x);
+
+AILogDebug["do_demolish_excess_foresters"] << inventory_pos << " forester hut at pos " << forester_pos << "map->get_obj(" << pos << ") is " << map->get_obj(pos);
+
         // trees (and non-mine buildings) can only be planted on grass)
         if (!map->types_within(pos, Map::TerrainGrass0, Map::TerrainGrass3)){
           continue;
@@ -2265,6 +2276,7 @@ AI::do_demolish_excess_foresters() {
         possible_positions++;
         if (map->get_obj(pos) == Map::ObjectNone
          || map->map_space_from_obj[pos] == Map::SpaceOpen){
+           AILogDebug["do_demolish_excess_foresters"] << inventory_pos << " forester hut at pos " << forester_pos << "map->get_obj(" << pos << ") passed";
            open_positions++;
         }
       }
