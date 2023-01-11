@@ -652,9 +652,10 @@ typedef enum RoadOption {
   HoldBuildingPos,    // when plotting a road, do not allow the road to pass through the pos UpLeft from the dest, so it does not prevent a building there
   MostlyStraight,     // reduce the amount of tolerated road convulation before rejecting a solution.  Effect is to reduce the max_convolution ratio
   PlotOnlyNoBuild,    // do not actually build the road, but return a Road object of the best solution found
-  ReconnectNetwork    // for trying to reconnect a broken road network, exclude and flags connected to same-network from valid end_flags for pathfinding.  Must connect to ANOTHER network that has a path
+  ReconnectNetwork,   // for trying to reconnect a broken road network, exclude and flags connected to same-network from valid end_flags for pathfinding.  Must connect to ANOTHER network that has a path
+  AllowPassthru       // for multi-road solutions
 } RoadOption;
-typedef std::bitset<12> RoadOptions;
+typedef std::bitset<13> RoadOptions;
 typedef std::vector<Road> Roads;
 
 

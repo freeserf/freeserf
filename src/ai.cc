@@ -80,6 +80,7 @@ AI::AI(PGame current_game, unsigned int _player_index) {
   road_options.reset(RoadOption::MostlyStraight);
   road_options.reset(RoadOption::PlotOnlyNoBuild);
   road_options.reset(RoadOption::ReconnectNetwork);
+  road_options.set(RoadOption::AllowPassthru);
 
   need_tools = false;
 
@@ -441,6 +442,7 @@ AI::do_update_clear_reset() {
   road_options.reset(RoadOption::MostlyStraight);
   road_options.reset(RoadOption::PlotOnlyNoBuild);
   road_options.reset(RoadOption::ReconnectNetwork);
+  road_options.set(RoadOption::AllowPassthru);
   //unfinished_hut_count = 0;
   //unfinished_building_count = 0;
   realm_inv = player->get_stats_resources();
