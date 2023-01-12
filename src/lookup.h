@@ -371,6 +371,7 @@ const std::string NameRoadOption[] = {
   "MostlyStraight",
   "PlotOnlyNoBuild",
   "ReconnectNetwork",
+  "AllowPassthru",
 };
 
 const std::string NameMinerals[] = {

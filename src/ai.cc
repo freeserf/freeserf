@@ -888,6 +888,8 @@ AI::do_spiderweb_roads() {
         //road_options.set(RoadOption::Direct);
         //road_options.set(RoadOption::MostlyStraight);
         //road_options.reset(RoadOption::SplitRoads);
+        // disable passthru for spiderweb roads
+        road_options.reset(RoadOption::AllowPassthru);
         AILogDebug["do_spiderweb_roads"] << inventory_pos << " about to call build_best_road";
         Road built_road;
         was_built = build_best_road(area_flag_pos, road_options, &built_road, "do_spiderweb_roads", Building::TypeNone, Building::TypeNone, other_area_flag_pos);
@@ -897,6 +899,7 @@ AI::do_spiderweb_roads() {
         //road_options.reset(RoadOption::Direct);
         //road_options.reset(RoadOption::MostlyStraight);
         //road_options.set(RoadOption::SplitRoads);
+        road_options.set(RoadOption::AllowPassthru);
         if (was_built) {
           AILogDebug["do_spiderweb_roads"] << inventory_pos << " successfully built spider-web road between area_flag_pos " << area_flag_pos << " to other_area_flag_pos " << other_area_flag_pos;
           spider_web_roads_built++;

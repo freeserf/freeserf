@@ -816,7 +816,7 @@ AI::build_best_road(MapPos start_pos, RoadOptions road_options, Road *built_road
     RoadBuilder rb;
     rb.set_start_pos(start_pos);
     rb.set_target_pos(target_pos);
-    MapPosVector nearby_flags;
+    MapPosVector nearby_flags;   // CONSIDER MAKING THIS A SET instead of VECTOR because it should only have UNIQUE flags, and it is wasteful to pathfind the same solution twice!!
     // for passthru roads
     //  This is a Map of Vectors-of-Road objects comprising a full solution
     //  The key of the Map is the MapPos of the very end of entire multi-segment solution - which is nearby_flag_pos,
@@ -1012,10 +1012,21 @@ AI::build_best_road(MapPos start_pos, RoadOptions road_options, Road *built_road
     //     which is the aggregate tile_dist of ALL plotted roads so far to this target  NOT IMPLEMENTED YET
     //        this is used to limit the amount of time spent plotting roads as realm becomes crowded    NOT IMPLEMENTED YET
     //
+
+    //
+    //  THIS LOOKS WRONG!  It seems to be checking the ideal_length from start_pos to target_pos ONLY, but using that
+    //   as the ideal length for convolution checks for OTHER NEARBY EXISTING/FOUND FLAGS!  making them appear much
+    //   worse in terms of convolution than they actually are!!!  
+    //  TRYING FIX - moving this logic inside the foreach loop
+    // WAIT NEVERMIND!!  this should be left as-is, because ultimately the goal is to connect to the target_pos for solutioning
+    //  and so a road that connects far away just to reach the target pos SHOULD BE excluded as inefficient/convoluted even if
+    //  the new path itself is not convoluted.  restoring the way this was
+    //
     // use straight-line-distance to the actual target_pos as the measuring stick to judge how convoluted actual roads are be in comparison
     AILogDebug["util_build_best_road"] << "" << calling_function << " non-direct road requested, about to plot roads to nearby_flags, checking tile_dist from start_pos " << start_pos << " to end_pos " << target_pos << " for an ideal road";
     int ideal_length = AI::get_straightline_tile_dist(map, start_pos, target_pos);
     AILogDebug["util_build_best_road"] << "" << calling_function << " non-direct road requested, about to plot roads to nearby_flags, flag target_pos at " << target_pos << " has straight-line tile distance " << ideal_length << " from start_pos " << start_pos;
+    
     //sofarduration = (std::clock() - start) / static_cast<double>(CLOCKS_PER_SEC);
     //AILogDebug["util_build_best_road"] << "F1. " << calling_function << " SO FAR call took " << sofarduration;
     // for each nearby_flag:
@@ -1036,6 +1047,7 @@ AI::build_best_road(MapPos start_pos, RoadOptions road_options, Road *built_road
     //  two sections, but I don't feel like messing with this logic right now 
     for (MapPos end_pos : nearby_flags) {
       AILogDebug["util_build_best_road"] << "" << calling_function << " non-direct road requested, plotting direct roads to nearby_flags, preparing to plot road from start_pos " << start_pos << " to nearby_flag pos " << end_pos;
+      
       // it might be faster to have plot_road return the RoadEnds, but it seems messier
       
       //
@@ -1119,6 +1131,7 @@ AI::build_best_road(MapPos start_pos, RoadOptions road_options, Road *built_road
       //
       //
       if (road_options.test(RoadOption::SplitRoads) == false) {
+        AILogDebug["util_build_best_road"] << "" << calling_function << " non-direct road requested, split_roads, RoadOption SplitRoads is false, not considering split-road solutions";
         continue;
       }
       AILogDebug["util_build_best_road"] << "" << calling_function << " non-direct road requested, split_roads, RoadOption SplitRoads is true, preparing to iterate over potential split roads found in previous plot_road call";
@@ -1138,6 +1151,11 @@ AI::build_best_road(MapPos start_pos, RoadOptions road_options, Road *built_road
 
         if (split_road.get_length() == 0) {
           AILogWarn["util_build_best_road"] << "" << calling_function << " non-direct road requested, split_roads, road unexpectedly has zero length!  this should not happen, find out why!  skipping";
+          //AILogWarn["util_build_best_road"] << "PAUSING GAME";
+          //game->pause();
+          AILogWarn["util_build_best_road"] << "SLEEPING AI FOR LONG TIME";
+          std::this_thread::sleep_for(std::chrono::milliseconds(1000000));
+          AILogWarn["util_build_best_road"] << "DONE SLEEPING";
           continue;
         }
 
@@ -1331,7 +1349,7 @@ AI::build_best_road(MapPos start_pos, RoadOptions road_options, Road *built_road
       RoadBuilderRoad *rbroad = pr.second;
       MapPos start_pos = pr.second->get_end1();
       MapPos nearby_flag_pos = pr.second->get_end2();
-      AILogDebug["util_build_best_road"] << "" << calling_function << " scoring_proads, found a potential new road to nearby_flag_pos " << nearby_flag_pos;
+      AILogDebug["util_build_best_road"] << "" << calling_function << " scoring_proads, rb.get_proads() contains a potential new road to nearby_flag_pos " << nearby_flag_pos;
       // why is this scoring route to castle_flag pos?  shouldn't it be to target_pos for affinity building??
       //if (!score_flag(map, player_index, &rb, road_options, nearby_flag_pos, castle_flag_pos, &ai_mark_pos)) {
       // trying this instead - may04 2020
@@ -1411,16 +1429,20 @@ AI::build_best_road(MapPos start_pos, RoadOptions road_options, Road *built_road
       ai_mark_pos.insert(ColorDot(start_pos, "blue"));
       AILogDebug["util_build_best_road"] << "tracing this Road's paths to see if it is a passthru solution";
       for (Direction dir : rbroad->get_road().get_dirs()){
-        //AILogDebug["util_build_best_road"] << "in passthru check, found Dir " << dir;
+        AILogDebug["util_build_best_road"] << "in passthru check, found Dir " << dir;
         //rbroad->set_is_passthru_solution();  // do NOT set this here!  if it is invalidated it will confuse things later
 
         if (reject_solution){ break; }
         MapPos last_pos = pos;
         pos = map->move(pos, dir);
-        //AILogDebug["util_build_best_road"] << "in passthru check, pos is " << pos;
+        AILogDebug["util_build_best_road"] << "in passthru check, pos is " << pos;
         this_solution_passthru_road_segment.extend(dir);
-        // if this pos is blocked by an existing path, but a flag could be built here...
-        if (!map->is_road_segment_valid(last_pos, dir) && game->can_build_flag(pos, player) && map->has_any_path(pos)){
+        // if this pos has no flag and is blocked by an existing path, but a flag could be built here AND this is not the end pos, this is a new-splitting passthru flag
+        //  OR
+        // if this pos has a flag but it isn't the start or end flag, this is an existing passthru flag
+        if ( (!map->is_road_segment_valid(last_pos, dir) && game->can_build_flag(pos, player) && map->has_any_path(pos) && pos != nearby_flag_pos)
+          || (map->has_flag(pos) && pos != start_pos && pos != nearby_flag_pos)
+                ){
           AILogDebug["util_build_best_road"] << "" << calling_function << " this is a passthru solution";
           passthru_flags++;  // ... it is a passthru new splitting flag
           // Flags cannot be created right next to each other, so reject any solution that depends on this
@@ -1444,7 +1466,11 @@ AI::build_best_road(MapPos start_pos, RoadOptions road_options, Road *built_road
             if (reject_solution){ continue; }
           }
 
-          ai_mark_pos.insert(ColorDot(pos, "yellow"));
+          if (map->has_flag(pos)){
+            ai_mark_pos.insert(ColorDot(pos, "lt_green"));
+          }else{
+            ai_mark_pos.insert(ColorDot(pos, "yellow"));
+          }
           MapPos segment_end_pos = pos;
           last_new_flag_pos = segment_end_pos;
           this_solution_passthru_road_segments.push_back(this_solution_passthru_road_segment);
@@ -1455,14 +1481,12 @@ AI::build_best_road(MapPos start_pos, RoadOptions road_options, Road *built_road
           AILogDebug["util_build_best_road"] << "" << calling_function << " DEBUG - current passthru Road this_solution_passthru_road_segment now contains " << this_solution_passthru_road_segment.get_dirs().size() << " elements";
           AILogDebug["util_build_best_road"] << "" << calling_function << " passthru Roads list this_solution_passthru_road_segments now contains " << this_solution_passthru_road_segments.size() << " elements";
 
-        // if this pos has a flag but it isn't the end of the Road...
-        }else if (map->has_flag(pos) && pos != start_pos && pos != nearby_flag_pos) {
-          ai_mark_pos.insert(ColorDot(pos, "lt_green"));
-          passthru_flags++;  // ... it is a passthru existing flag
         }else if (pos == nearby_flag_pos) {
           ai_mark_pos.insert(ColorDot(pos, "dk_blue"));  // end pos
+          AILogDebug["util_build_best_road"] << "" << calling_function << " passthru check, this pos " << pos << " is the end pos flag";
         }else{
           ai_mark_pos.insert(ColorDot(pos, "white"));  // normal pos
+          AILogDebug["util_build_best_road"] << "" << calling_function << " passthru check, this pos " << pos << " contains nothing blocking";
         }
         sleep_speed_adjusted(200);
 
@@ -1507,7 +1531,9 @@ AI::build_best_road(MapPos start_pos, RoadOptions road_options, Road *built_road
           " has tile_dist " << tile_dist << ", flag_dist " << flag_dist << ", new_length " << new_length << ", adjusted_score " << adjusted_score;
         scored_proads.insert(std::make_pair(nearby_flag_pos, adjusted_score));
       }
-    }
+
+    }  // foreach potential new road found rb.get_proads()
+
     AILogDebug["util_build_best_road"] << "" << calling_function << " scoring_proads, done scoring proads";
 
 
@@ -1749,7 +1775,15 @@ AI::build_best_road(MapPos start_pos, RoadOptions road_options, Road *built_road
           
         // build the road!
         //ai_mark_road = &road;
-        AILogDebug["util_build_best_road"] << "" << calling_function << " about to build road with source=" << road.get_source() << ", end=" << road.get_end(game->get_map().get());
+        
+        // DEBUG
+        AILogDebug["util_build_best_road"] << "" << calling_function << " DEBUG PRINTING DIRS about to build road with source=" << road.get_source() << ", end=" << road.get_end(game->get_map().get());
+        for (Direction debug_dir : road.get_dirs()){
+          AILogDebug["util_build_best_road"] << "" << calling_function << " DEBUG PRINTING DIRS, Dir" << debug_dir;
+        }
+        AILogDebug["util_build_best_road"] << "" << calling_function << " DONE PRINTING DIRS about to build road with source=" << road.get_source() << ", end=" << road.get_end(game->get_map().get());
+
+        AILogDebug["util_build_best_road"] << "" << calling_function << " about to build road with source=" << road.get_source() << ", end=" << road.get_end(game->get_map().get()) << " and size " << road.get_dirs().size();
         mutex_lock("AI::build_best_road calling game->build_road (non-direct road)");
         bool was_built = game->build_road(road, game->get_player(player_index));
         mutex_unlock();
@@ -1774,7 +1808,9 @@ AI::build_best_road(MapPos start_pos, RoadOptions road_options, Road *built_road
           AILogWarn["util_build_best_road"] << "" << calling_function << " ERROR - failed to build road from " << this_segment_start_pos << " to " << this_segment_end_pos << ", with final end_pos " << end_pos << ", FIND OUT WHY!  marking pos in dk_green, trying next best solution...";
           ai_mark_pos.erase(end_pos);
           ai_mark_pos.insert(ColorDot(end_pos, "dk_green"));
-          sleep_speed_adjusted(60000);
+          AILogWarn["util_build_best_road"] << "SLEEPING AI FOR LONG TIME";
+          std::this_thread::sleep_for(std::chrono::milliseconds(1000000));
+          AILogWarn["util_build_best_road"] << "DONE SLEEPING";
           AILogWarn["util_build_best_road"] << "" << calling_function << " ERROR - failed to build road, returning early for debugging";
           return false;
         }

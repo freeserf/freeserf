@@ -92,7 +92,7 @@ AI::plot_road(PMap map, unsigned int player_index, MapPos start_pos, MapPos end_
   double duration;
   int slept_msec = 0;
 
-  AILogDebug["plot_road"] << "inside plot_road for Player" << player_index << " with start " << start_pos << ", end " << end_pos;
+  AILogDebug["plot_road"] << start_pos << " to " << end_pos << ", inside plot_road for Player" << player_index << " with start " << start_pos << ", end " << end_pos;
   
   std::vector<PSearchNode> open;
   std::list<PSearchNode> closed;
@@ -103,16 +103,16 @@ AI::plot_road(PMap map, unsigned int player_index, MapPos start_pos, MapPos end_
     //  this cache must be cleared frequently!
     if (plot_road_closed_cache.count(start_pos) > 0){
       //AILogDebug["plot_road"] << "DEBUG plot_roadplot_road_closed_cache_cache.at(start_pos) size is " << plot_road_closed_cache.at(start_pos).size();
-      AILogDebug["plot_road"] << "inside plot_road for Player" << player_index << " with start " << start_pos << ", end " << end_pos << ", using cached closed node list from plot_road_cache";
+      AILogDebug["plot_road"] << start_pos << " to " << end_pos << ", inside plot_road for Player" << player_index << " with start " << start_pos << ", end " << end_pos << ", using cached closed node list from plot_road_cache";
       closed = plot_road_closed_cache.at(start_pos);
     }
     if (plot_road_open_cache.count(start_pos) > 0){
       //AILogDebug["plot_road"] << "DEBUG plot_road_open_cache.at(start_pos) size is " << plot_road_open_cache.at(start_pos).size();
-      AILogDebug["plot_road"] << "inside plot_road for Player" << player_index << " with start " << start_pos << ", end " << end_pos << ", using cached open node list from plot_road_cache";
+      AILogDebug["plot_road"] << start_pos << " to " << end_pos << ", inside plot_road for Player" << player_index << " with start " << start_pos << ", end " << end_pos << ", using cached open node list from plot_road_cache";
       open = plot_road_open_cache.at(start_pos);
     }
   }else{
-    AILogDebug["plot_road"] << "inside plot_road for Player" << player_index << " with start " << start_pos << ", end " << end_pos << ", NOT using use_plot_road_caches";
+    AILogDebug["plot_road"] << start_pos << " to " << end_pos << ", inside plot_road for Player" << player_index << " with start " << start_pos << ", end " << end_pos << ", NOT using use_plot_road_caches";
   }
 
   // prevent path in the potential building spot be inserting into the closed list!
@@ -121,16 +121,16 @@ AI::plot_road(PMap map, unsigned int player_index, MapPos start_pos, MapPos end_
     PSearchNode hold_building_pos_node(new SearchNode);
     hold_building_pos_node->pos = map->move_up_left(start_pos);
     closed.push_front(hold_building_pos_node);  // will this cause problems with cache???
-    //AILogDebug["plot_road"] << "debug - hold_building_pos is TRUE, added hold_building_pos " << hold_building_pos_node->pos << " which is up-left of start_pos " << start_pos;
+    AILogDebug["plot_road"] << start_pos << " to " << end_pos << ", hold_building_pos is TRUE, added hold_building_pos " << hold_building_pos_node->pos << " which is up-left of start_pos " << start_pos;
   }
 
   // allow pathfinding to *potential* new flags outside of the fake_flags process
   // if the specified end_pos has no flag
   //  oh wait this is already allowed, keep the sanity check and FYI note anyway though
   if (!map->has_flag(end_pos)){
-    AILogDebug["plot_road"] << "the specified end_pos has no flag, allowing a Direct Road plot to this endpoint as if it had one";
+    AILogDebug["plot_road"] << start_pos << " to " << end_pos << ", the specified end_pos has no flag, allowing a Direct Road plot to this endpoint as if it had one";
     if (!game->can_build_flag(end_pos, player)){
-      AILogWarn["plot_road"] << "sanity check failed!  plot_road was requested to non-flag end_pos " << end_pos << ", but a flag cannot even be built there!  returning bad road";
+      AILogWarn["plot_road"] << start_pos << " to " << end_pos << ", sanity check failed!  plot_road was requested to non-flag end_pos " << end_pos << ", but a flag cannot even be built there!  returning bad road";
       Road failed_road;
       return failed_road;
     }
@@ -152,7 +152,7 @@ AI::plot_road(PMap map, unsigned int player_index, MapPos start_pos, MapPos end_
   unsigned int max_fake_flags = 10;
   //unsigned int fake_flags_count = 0;
   unsigned int found_flags_count = 0;
-  unsigned int split_road_solutions = 0;
+  unsigned int alternate_road_solutions = 0;
   //unsigned int new_closed_nodes = 0;  // I guess I added this but never used it
   //unsigned int new_open_nodes = 0;   // I guess I added this but never used it
   unsigned int total_pos_considered = 0;
@@ -186,12 +186,12 @@ AI::plot_road(PMap map, unsigned int player_index, MapPos start_pos, MapPos end_
     //  based on length without rejecting other, shorter roads as part of 
     //  same solution!
     if (total_pos_considered >= plot_road_max_pos_considered){
-      AILogDebug["plot_road"] << "plot_road: maximum MapPos POSITIONS-checked reached (plot_road_max_pos) " << total_pos_considered << ", ending search";
+      AILogDebug["plot_road"] << start_pos << " to " << end_pos << ", plot_road: maximum MapPos POSITIONS-checked reached (plot_road_max_pos) " << total_pos_considered << ", ending search";
       break;
     }
     // PERFORMANCE - try pausing for a very brief time every thousand pos checked to give the CPU a break, see if it fixes frame rate lag
     if (total_pos_considered > 0 && total_pos_considered % 1000 == 0){
-      AILogDebug["plot_road"] << "plot_road: taking a quick sleep at " << total_pos_considered << " to give CPU a break";
+      AILogDebug["plot_road"] << start_pos << " to " << end_pos << ", plot_road: taking a quick sleep at " << total_pos_considered << " to give CPU a break";
       std::this_thread::sleep_for(std::chrono::milliseconds(200));
       slept_msec += 200;
     }
@@ -205,9 +205,9 @@ AI::plot_road(PMap map, unsigned int player_index, MapPos start_pos, MapPos end_
       current_length++;
       tmp_length_check_node = tmp_length_check_node->parent;
     }
-    //AILogDebug["plot_road"] << "plot_road: current road-length so far for this solution is " << current_length;
+    //AILogDebug["plot_road"] << start_pos << " to " << end_pos << ", plot_road: current road-length so far for this solution is " << current_length;
     if (current_length >= plot_road_max_length){
-      AILogDebug["plot_road"] << "plot_road: maximum road-length reached (plot_road_max_length) " << current_length << ", ending search";
+      AILogDebug["plot_road"] << start_pos << " to " << end_pos << ", plot_road: maximum road-length reached (plot_road_max_length) " << current_length << ", ending search";
       break;
     }
 
@@ -216,19 +216,29 @@ AI::plot_road(PMap map, unsigned int player_index, MapPos start_pos, MapPos end_
     // if end_pos is reached, a Road solution is found
     //------------------------------------------------------
     if (node->pos == end_pos) {
-      AILogDebug["plot_road"] << "plot_road: solution found, node->pos is end_pos " << end_pos;
+      AILogDebug["plot_road"] << start_pos << " to " << end_pos << ", plot_road: solution found, node->pos is end_pos " << end_pos;
       Road breadcrumb_solution;
       breadcrumb_solution.start(end_pos);
       // retrace the "bread crumb trail" tile by tile from end to start
       //   this creates a Road with 'source' of end_pos and 'last' of start_pos
       //     which is backwards from the direction the pathfinding ran
+      Direction last_dir = DirectionNone; // part of sanity check
       while (node->parent) {
         if (map->has_flag(node->pos)){
-          AILogDebug["plot_road"] << "plot_road: solution found, node->pos " << node->pos << " contains a flag";
+          AILogDebug["plot_road"] << start_pos << " to " << end_pos << ", plot_road: solution found, node->pos " << node->pos << " contains a flag";
           flags_in_solution++;
           //ai_mark_pos.insert(ColorDot(node->pos, "dk_yellow"));
         }
         Direction dir = node->dir;
+        // sanity check, was seeing retracing on passthru solutions?
+        if(last_dir == reverse_direction(dir)){
+          AILogError["plot_road"] << start_pos << " to " << end_pos << ", plot_road: solution CONTAINS A RETRACING ROAD DIR!";
+          AILogError["plot_road"] << start_pos << " to " << end_pos << ", plot_road: sleeping AI for a long time";
+          std::this_thread::sleep_for(std::chrono::milliseconds(1000000));
+          AILogError["plot_road"] << start_pos << " to " << end_pos << ", plot_road: done sleeping AI";
+        }
+        last_dir = dir;
+
         breadcrumb_solution.extend(reverse_direction(dir));
         // if ai_overlay is on, ai_mark_road will show the road being traced backwards from end_pos to start_pos
         //ai_mark_road->extend(reverse_direction(dir));
@@ -236,9 +246,9 @@ AI::plot_road(PMap map, unsigned int player_index, MapPos start_pos, MapPos end_
         //sleep_speed_adjusted(10);
         node = node->parent;
       }
-      AILogDebug["plot_road"] << "plot_road: solution found, solution contains " << flags_in_solution << " flags";
+      AILogDebug["plot_road"] << start_pos << " to " << end_pos << ", plot_road: solution found, solution contains " << flags_in_solution << " flags";
       unsigned int new_length = static_cast<unsigned int>(breadcrumb_solution.get_length());
-      AILogDebug["plot_road"] << "plot_road: solution found, new segment length is " << breadcrumb_solution.get_length();
+      AILogDebug["plot_road"] << start_pos << " to " << end_pos << ", plot_road: solution found, new segment length is " << breadcrumb_solution.get_length();
       // now inverse the entire road so that it stats at start_pos and ends at end_pos, so the Road object is logical instead of backwards
       Road solution = reverse_road(map, breadcrumb_solution);
       // copy the solution to Road direct_road to be returned.  This isn't necessary but seems clearer,
@@ -252,42 +262,56 @@ AI::plot_road(PMap map, unsigned int player_index, MapPos start_pos, MapPos end_
     // handle alternate solutions, check passthru needs
     //---------------------------------------------------------------
     bool found_alternate_solution = false;
-    bool passthru = true;
-    // if this node has a flag...
-    if (map->get_obj(node->pos) == Map::ObjectFlag){
-      if (road_options.test(RoadOption::Direct) == false){
-        found_alternate_solution = true;
-      }
-      if (road_options.test(RoadOption::AllowPassthru) == true) {
-        passthru = true;
-      }
-    }else{
-    // if this node->pos does NOT contain a flag...
-      // ...and has a blocking path...
-      if (map->paths(node->pos) != 0){
-        // ...but can create a new flag here...
-        if (game->can_build_flag(node->pos, player) && road_options.test(RoadOption::SplitRoads)){
+    //bool passthru = false;
+    if (node->pos != start_pos){
+      // if this node has a flag...
+      if (map->get_obj(node->pos) == Map::ObjectFlag){
+        if (road_options.test(RoadOption::Direct) == false){
           found_alternate_solution = true;
         }
-        if (road_options.test(RoadOption::AllowPassthru) == true) {
-          passthru = true;
+        //if (road_options.test(RoadOption::AllowPassthru) == true) {
+        //  passthru = true;
+        //}
+      }else{
+      // if this node->pos does NOT contain a flag...
+        // ...and has a blocking path...
+        if (map->paths(node->pos) != 0){
+          // ...but can create a new flag here...
+          if (game->can_build_flag(node->pos, player) && road_options.test(RoadOption::SplitRoads)){
+            found_alternate_solution = true;
+          }
+          //if (road_options.test(RoadOption::AllowPassthru) == true) {
+          //  passthru = true;
+          //}
         }
       }
     }
 
     if (found_alternate_solution){
-      AILogDebug["plot_road"] << "plot_road: alternate existing-flag solution found while pathfinding, a non-target flag exists at pos " << node->pos << ", adding the Road so far to potential_roads list";
+      AILogDebug["plot_road"] << start_pos << " to " << end_pos << ", plot_road: alternate existing-flag solution found while pathfinding, a non-target flag exists at pos " << node->pos << ", adding the Road so far to potential_roads list";
       // retrace the "bread crumb trail" tile by tile from end to start
       //   this creates a Road with 'source' of end_pos and 'last' of start_pos
       //     which is backwards from the direction the pathfinding ran
       // start the road at node->pos where the existing flag is, and follow the 'node' path back to start_pos
       Road alternate_flag_solution;
       alternate_flag_solution.start(node->pos);
+      AILogDebug["plot_road"] << start_pos << " to " << end_pos << ", plot_road: alternate existing-flag solution found while pathfinding, retracing nodes backwards from current node->pos " << node->pos;
       // create an copy of current node to avoid disrupting the original search
-      PSearchNode alternate_node(new SearchNode);
+      PSearchNode alternate_node = node;
+      Direction alternate_node_last_dir = DirectionNone; // part of sanity check
       while (alternate_node->parent) {
         // if ai_overlay is on, ai_mark_road will show the road being traced backwards from end_pos to start_pos
         Direction dir = alternate_node->dir;
+        // sanity check, was seeing retracing on passthru solutions?
+        AILogDebug["plot_road"] << start_pos << " to " << end_pos << ", plot_road: dir " << reverse_direction(dir) << ", last_dir " << reverse_direction(alternate_node_last_dir);
+        if(alternate_node_last_dir == reverse_direction(dir)){
+          AILogDebug["plot_road"] << start_pos << " to " << end_pos << ", plot_road: alternate existing-flag solution CONTAINS A RETRACING ROAD DIR!";
+          AILogDebug["plot_road"] << start_pos << " to " << end_pos << ", plot_road: alternate existing-flag solution sleeping AI for a long time";
+          std::this_thread::sleep_for(std::chrono::milliseconds(1000000));
+          AILogDebug["plot_road"] << start_pos << " to " << end_pos << ", plot_road: alternate existing-flag solution done sleeping AI";
+        }
+        alternate_node_last_dir = dir;
+        AILogDebug["plot_road"] << start_pos << " to " << end_pos << ", plot_road: alternate existing-flag solution found while pathfinding, retracing nodes backwards, node->pos has a parent node with Dir" << reverse_direction(dir);
         alternate_flag_solution.extend(reverse_direction(dir));
         //ai_mark_road->extend(reverse_direction(dir));
         //ai_mark_pos.insert(ColorDot(node->pos, "black"));
@@ -295,12 +319,12 @@ AI::plot_road(PMap map, unsigned int player_index, MapPos start_pos, MapPos end_
         alternate_node = alternate_node->parent;
       }
       unsigned int new_length = static_cast<unsigned int>(alternate_flag_solution.get_length());
-      AILogDebug["plot_road"] << "plot_road: alternate_flag_solution found, new segment length is " << alternate_flag_solution.get_length();
+      AILogDebug["plot_road"] << start_pos << " to " << end_pos << ", plot_road: alternate_flag_solution found, new segment length is " << alternate_flag_solution.get_length();
       // now inverse the entire road so that it stats at start_pos and ends at end_pos, so the Road object is logical instead of backwards
       alternate_flag_solution = reverse_road(map, alternate_flag_solution);
-      AILogDebug["plot_road"] << "plot_road: inserting alternate/fake flag Road solution to PotentialRoads, new segment length would be " << alternate_flag_solution.get_length();
+      AILogDebug["plot_road"] << start_pos << " to " << end_pos << ", plot_road: inserting alternate/fake flag Road solution to PotentialRoads with segment start_pos " << alternate_flag_solution.get_source() << ", segment end_pos " << alternate_flag_solution.get_end(map.get()) << ", new segment length would be " << alternate_flag_solution.get_length();
       potential_roads->push_back(alternate_flag_solution);
-      //split_road_solutions++;
+      alternate_road_solutions++;
       //
       // NOTE - for passthru solutions, the entire multi-road solution will be returned as a single Road, and it will be up
       //  to the build_best_road function to break it up into the chain of roads within and update the solution flag_score
@@ -308,15 +332,26 @@ AI::plot_road(PMap map, unsigned int player_index, MapPos start_pos, MapPos end_
     }
 
     //-------------------------------------------------
-    // close this node unless it is a Passthru solution
+    // ---------------close this node unless it is a Passthru solution
+    //   WAIT!!! I this this is bad logic
+    //   closed means it definitely isn't the SOLUTION
+    //   and a new node shouldn't be created for it again
+    //   but it should still have its adjacent pos checked
+    //   so passthru should have nothing to do with it!
     //-------------------------------------------------
-    if (passthru){
-      AILogDebug["plot_road"] << "plot_road: NOT closing this node->pos " << node->pos << " because it is part of a passthru solution";
-    }else{
-      AILogDebug["plot_road"] << "plot_road: closing this node->pos " << node->pos << " as impassable for this solution";
-      closed.push_front(node);  // note this can create a duplicate cache entry but I don't think it matters
-      //new_closed_nodes++;
-    }
+    //if (passthru){
+    //  AILogDebug["plot_road"] << start_pos << " to " << end_pos << ", plot_road: NOT closing this node->pos " << node->pos << " because it is part of a passthru solution";
+    //}else{
+    //  AILogDebug["plot_road"] << start_pos << " to " << end_pos << ", plot_road: closing this node->pos " << node->pos << " as impassable for this solution";
+    //  closed.push_front(node);  // note this can create a duplicate cache entry but I don't think it matters
+    //  //new_closed_nodes++;
+    //}
+
+    //------------------------------------------------------------------------------------------------
+    // close this node, meaning it cannot be the last pos in any solution and should not be re-checked
+    //------------------------------------------------------------------------------------------------
+    AILogDebug["plot_road"] << start_pos << " to " << end_pos << ", is solution? plot_road: closing this node->pos " << node->pos << " as it is NOT the end_pos / solution";
+    closed.push_front(node);  // note this can create a duplicate cache entry but I don't think it matters
 
     //-------------------------------------------------
     // check surrounding pos in each Direction
@@ -334,7 +369,7 @@ AI::plot_road(PMap map, unsigned int player_index, MapPos start_pos, MapPos end_
       MapPos new_pos = map->move(node->pos, d);
 
       // Check if the new_pos in this Direction d is valid
-      AILogDebug["plot_road"] << "node->dir" << d << ", new_pos " << new_pos << ", checking if this new_pos is valid";
+      //AILogDebug["plot_road"] << start_pos << " to " << end_pos << ", node->dir" << d << ", is valid? new_pos " << new_pos << ", checking if this new_pos is valid";
 
       //-------------------------------------------------------------
       // check Dirs - First, handle conditions that always result in rejection
@@ -342,19 +377,19 @@ AI::plot_road(PMap map, unsigned int player_index, MapPos start_pos, MapPos end_
 
       // reject if pos contains an impassable object
       if (Map::map_space_from_obj[map->get_obj(new_pos)] >= Map::SpaceSemipassable){
-        AILogDebug["plot_road"] << "node->dir" << d << ", new_pos " << new_pos << " cannot be valid because it contains an impassable map object";
+        AILogDebug["plot_road"] << start_pos << " to " << end_pos << ", node->dir" << d << ", is valid? new_pos " << new_pos << " cannot be valid because it contains an impassable map object";
         continue;
       }
 
       // reject if pos is outside this player's borders
       if (!map->has_owner(new_pos) || map->get_owner(new_pos) != map->get_owner(node->pos)) {
-        AILogDebug["plot_road"] << "node->dir" << d << ", new_pos " << new_pos << " cannot be valid because it is not owned by this player";
+        AILogDebug["plot_road"] << start_pos << " to " << end_pos << ", node->dir" << d << ", is valid? new_pos " << new_pos << " cannot be valid because it is not owned by this player";
         continue;
       }
 
       // reject if pos crosses water without a flag (AI pathfinder will NOT mix water & land roads in a single solution)
       if (map->is_in_water(node->pos) != map->is_in_water(new_pos) && !(map->has_flag(node->pos) || map->has_flag(new_pos))) {
-        AILogDebug["plot_road"] << "node->dir" << d << ", new_pos " << new_pos << " cannot be valid because it cross between land & water with no flag in either pos";
+        AILogDebug["plot_road"] << start_pos << " to " << end_pos << ", node->dir" << d << ", is valid? new_pos " << new_pos << " cannot be valid because it cross between land & water with no flag in either pos";
         continue;
       }
 
@@ -363,29 +398,29 @@ AI::plot_road(PMap map, unsigned int player_index, MapPos start_pos, MapPos end_
         uint8_t forbidden_ends = 0;
         for (MapPos forbidden_pos : stock_building_counts.at(inventory_pos).forbidden_paths_ring1){
           if (node->pos == forbidden_pos){
-            AILogDebug["plot_road"] << "node->pos " << node->pos << " is on the stock_building_counts.at(inventory_pos).forbidden_paths_ring1 list";
+            //AILogDebug["plot_road"] << start_pos << " to " << end_pos << ", node->pos " << node->pos << " is on the stock_building_counts.at(inventory_pos).forbidden_paths_ring1 list";
             forbidden_ends++;
           }else if(node->parent->pos == forbidden_pos){
-            AILogDebug["plot_road"] << "node->parent->pos " << node->pos << " is on the stock_building_counts.at(inventory_pos).forbidden_paths_ring1 list";
+            //AILogDebug["plot_road"] << start_pos << " to " << end_pos << ", node->parent->pos " << node->pos << " is on the stock_building_counts.at(inventory_pos).forbidden_paths_ring1 list";
             forbidden_ends++;
           }
         }
         if (forbidden_ends > 1){
-          AILogDebug["plot_road"] << "rejecting direction " << d << " / " << NameDirection[d] << " because it crosses the forbidden partial-hexagon-perimeter of castle flag ring1";
+          AILogDebug["plot_road"] << start_pos << " to " << end_pos << ", is valid? rejecting direction " << d << " / " << NameDirection[d] << " because it crosses the forbidden partial-hexagon-perimeter of castle flag ring1";
           continue;
         }
         forbidden_ends = 0;
         for (MapPos forbidden_pos : stock_building_counts.at(inventory_pos).forbidden_paths_ring2){
           if (node->pos == forbidden_pos){
-            AILogDebug["plot_road"] << "node->pos " << node->pos << " is on the stock_building_counts.at(inventory_pos).forbidden_paths_ring2 list";
+            //AILogDebug["plot_road"] << start_pos << " to " << end_pos << ", node->pos " << node->pos << " is on the stock_building_counts.at(inventory_pos).forbidden_paths_ring2 list";
             forbidden_ends++;
           }else if(node->parent->pos == forbidden_pos){
-            AILogDebug["plot_road"] << "node->parent->pos " << node->pos << " is on the stock_building_counts.at(inventory_pos).forbidden_paths_ring2 list";
+            //AILogDebug["plot_road"] << start_pos << " to " << end_pos << ", node->parent->pos " << node->pos << " is on the stock_building_counts.at(inventory_pos).forbidden_paths_ring2 list";
             forbidden_ends++;
           }
         }
         if (forbidden_ends > 1){
-          AILogDebug["plot_road"] << "rejecting direction " << d << " / " << NameDirection[d] << " because it crosses the forbidden partial-hexagon-perimeter of castle flag ring2";
+          AILogDebug["plot_road"] << start_pos << " to " << end_pos << ", is valid? rejecting direction " << d << " / " << NameDirection[d] << " because it crosses the forbidden partial-hexagon-perimeter of castle flag ring2";
           continue;
         }
       }
@@ -396,44 +431,100 @@ AI::plot_road(PMap map, unsigned int player_index, MapPos start_pos, MapPos end_
       bool found_existing_flag = false;
       bool found_potential_flag = false;
       if (map->get_obj(new_pos) == Map::ObjectFlag){
-        // new_pos already contains a flag
-        AILogDebug["plot_road"] << "node->dir" << d << ", new_pos " << new_pos << " contains a flag, setting found_existing_flag to true";
+      // new_pos already contains a flag
+        //AILogDebug["plot_road"] << start_pos << " to " << end_pos << ", node->dir" << d << ", is valid? new_pos " << new_pos << " contains a flag, setting found_existing_flag to true";
         found_existing_flag = true;
         if (new_pos == end_pos){
-          AILogDebug["plot_road"] << "node->dir" << d << ", new_pos " << new_pos << " contains a flag and is the target end_pos, solution found but not handling it yet";
+          AILogDebug["plot_road"] << start_pos << " to " << end_pos << ", node->dir" << d << ", is valid? new_pos " << new_pos << " contains a flag and is the target end_pos, solution found but not handling it yet";
+        }else if (new_pos == start_pos){
+          AILogDebug["plot_road"] << start_pos << " to " << end_pos << ", node->dir" << d << ", is valid? new_pos " << new_pos << " is rejected because it is the start_pos, which is not helpful";
+          continue;  // reject this solution
         }else{
           if (road_options.test(RoadOption::AllowPassthru) == true || road_options.test(RoadOption::Direct) == false) {
-            AILogDebug["plot_road"] << "node->dir" << d << ", new_pos " << new_pos << " contains a flag but it is not the target end_pos, and either AllowPassthru=true or Direct=false, will add it to found_flags list if this is found to be a new node";
+            AILogDebug["plot_road"] << start_pos << " to " << end_pos << ", node->dir" << d << ", is valid? new_pos " << new_pos << " contains a flag but it is not the target end_pos, and either AllowPassthru=true or Direct=false, will add it to found_flags list if this is found to be a new node";
           }else{
-            AILogDebug["plot_road"] << "node->dir" << d << ", new_pos " << new_pos << " rejected because either AllowPassthru=false or Direct=true";
-            continue;
+            AILogDebug["plot_road"] << start_pos << " to " << end_pos << ", node->dir" << d << ", is valid? new_pos " << new_pos << " is rejected because either AllowPassthru=false or Direct=true";
+            continue;  // reject this solution
           }
         }
       }else{
-        // new_pos does NOT already contain a flag
+      // new_pos does NOT already contain a flag
+        // if this pos has a blocking path...
         if (map->paths(new_pos) != 0){
-          AILogDebug["plot_road"] << "node->dir" << d << ", new_pos " << new_pos << " is NOT normally valid because it contains an existing path but has no flag";
+          //AILogDebug["plot_road"] << start_pos << " to " << end_pos << ", node->dir" << d << ", is valid? new_pos " << new_pos << " is NOT normally valid because it contains an existing path but has no flag";
           if (!road_options.test(RoadOption::SplitRoads)) {
-            AILogDebug["plot_road"] << "node->dir" << d << ", new_pos " << new_pos << " is rejected because because it contains an existing path but has no flag and RoadOption::SplitRoads is false";
-            continue;
+            AILogDebug["plot_road"] << start_pos << " to " << end_pos << ", node->dir" << d << ", is valid? new_pos " << new_pos << " is rejected because because it contains an existing path but has no flag and RoadOption::SplitRoads is false";
+            continue;  // reject this solution
           }
           // see if a flag can be built here
           if (game->can_build_flag(new_pos, player)){
-            AILogDebug["plot_road"] << "node->dir" << d << ", new_pos " << new_pos << " is NOT normally valid because it contains an existing path but has no flag, but could build a flag here to make it valid, setting found_potential_flag to true, will add it to found_flags list if this is found to be a new node";
-            found_potential_flag = true;
+            //AILogDebug["plot_road"] << start_pos << " to " << end_pos << ", node->dir" << d << ", new_pos " << new_pos << " is NOT normally valid because it contains an existing path but has no flag, but could build a flag here to make it valid, setting found_potential_flag to true, will add it to found_flags list if this is found to be a new node";
+            AILogDebug["plot_road"] << start_pos << " to " << end_pos << ", node->dir" << d << ", is valid? new_pos " << new_pos << " is NOT normally valid because it contains an existing path but has no flag, but could build a flag here to make it valid.  Must perform sanity check to ensure no adjacent pos in this solution is ALSO marked for new-flag creation, which would be illegal";
+//----------------------------------------------------
+
+            int passthru_flags = 0;
+            MapPos last_new_flag_pos = new_pos;
+            bool reject_solution = false;
+            PSearchNode split_flag_sanity_check_node = node;  // create a copy of node to avoid affecting existing solution
+            AILogDebug["plot_road"] << start_pos << " to " << end_pos << ", node->dir" << d << ", is valid? new_pos " << new_pos << " starting passthru sanity-check for this new-splitting-flag solution to see if it depends on impossibly close flags";
+            while (split_flag_sanity_check_node->parent) {
+              if (reject_solution){ break; }
+              MapPos parent_pos = split_flag_sanity_check_node->parent->pos;
+              Direction parent_dir_to_child = split_flag_sanity_check_node->parent->dir;
+              MapPos pos = split_flag_sanity_check_node->pos;
+              AILogDebug["plot_road"] << start_pos << " to " << end_pos << ", node->dir" << d << ", is valid? new_pos " << new_pos << " in new-split-flag passthru sanity check, parent_pos " << parent_pos << ", parent_dir_to_child " << parent_dir_to_child << ", pos " << pos;
+              // if this pos has no flag and is blocked by an existing path, but a flag could be built here AND this is not the end pos, this is a new-splitting passthru flag
+              if ( !map->is_road_segment_valid(parent_pos, parent_dir_to_child) && game->can_build_flag(pos, player) && map->has_any_path(pos) && pos != end_pos){
+                AILogDebug["plot_road"] << start_pos << " to " << end_pos << ", node->dir" << d << ", is valid? new_pos " << new_pos << " in new-split-flag passthru sanity check, this is a new-split-flag solution";
+                passthru_flags++;  // ... it is a passthru new splitting flag
+                // Flags cannot be created right next to each other, so reject any solution that depends on this
+                // ALSO, if the end of the road ALSO requires a new flag, reject if the end of the road is one pos away
+                if (passthru_flags > 1){
+                  AILogDebug["plot_road"] << start_pos << " to " << end_pos << ", node->dir" << d << ", is valid? new_pos " << new_pos << " in new-split-flag passthru sanity check, sanity-checking pos surrounding " << pos << " to see if any are the last_new_flag_pos " << last_new_flag_pos;
+                  for (Direction check_dir : cycle_directions_cw()){
+                    if (map->move(pos, check_dir) == last_new_flag_pos
+                    || map->move(pos, check_dir) == end_pos){
+                      AILogDebug["plot_road"] << start_pos << " to " << end_pos << ", node->dir" << d << ", is valid? new_pos " << new_pos << " in new-split-flag passthru sanity check, rejecting this new-split-flag solution because it depends on multiple new flags impossibly close to each other";
+                      reject_solution = true;
+                      break;
+                    }
+                  }
+                  if (reject_solution){ break; }
+                }
+                last_new_flag_pos = pos;
+                AILogDebug["plot_road"] << start_pos << " to " << end_pos << ", node->dir" << d << ", is valid? new_pos " << new_pos << " in new-split-flag passthru sanity check, no illegal flag placement found, allowing this new-split-flag node";
+      //        }else if (pos == end_pos) {
+      //          ai_mark_pos.insert(ColorDot(pos, "dk_blue"));  // end pos
+      //          AILogDebug["util_build_best_road"] << "" << calling_function << " passthru check, this pos " << pos << " is the end pos flag";
+      //        }else{
+      //          ai_mark_pos.insert(ColorDot(pos, "white"));  // normal pos
+      //          AILogDebug["util_build_best_road"] << "" << calling_function << " passthru check, this pos " << pos << " contains nothing blocking";
+              }
+              split_flag_sanity_check_node = split_flag_sanity_check_node->parent;
+            }
+            AILogDebug["plot_road"] << start_pos << " to " << end_pos << ", node->dir" << d << ", is valid? new_pos " << new_pos << " done new-split-flag passthru sanity check";
+
+//-------------------------------------
+
+            if (reject_solution){
+              AILogDebug["plot_road"] << start_pos << " to " << end_pos << ", node->dir" << d << ", is valid? new_pos " << new_pos << " is rejected because it failed impossibly-close-new-flag passthru sanity check";
+            }else{
+              found_potential_flag = true;
+              AILogDebug["plot_road"] << start_pos << " to " << end_pos << ", node->dir" << d << ", is valid? new_pos " << new_pos << " passed passthru sanity check, if it is actually a new pos a new node will be created";
+            }
           }else{
-            AILogDebug["plot_road"] << "node->dir" << d << ", new_pos " << new_pos << " cannot be valid because it contains an existing path but has no flag, and a new flag cannot be built here";
+            AILogDebug["plot_road"] << start_pos << " to " << end_pos << ", node->dir" << d << ", is valid? new_pos " << new_pos << " cannot be valid because it contains an existing path but has no flag, and a new flag cannot be built here";
             continue;  // reject this solution
           }
         }else{
-          AILogDebug["plot_road"] << "node->dir" << d << ", new_pos " << new_pos << " is normally valid with no complications";
+          AILogDebug["plot_road"] << start_pos << " to " << end_pos << ", node->dir" << d << ", is valid? new_pos " << new_pos << " is normally valid with no complications";
         }
       }
 
       //-------------------------------------------------------------------------------------
       // check Dirs - if this point reached, new_pos might be passible if conditions are met
       //-------------------------------------------------------------------------------------
-      AILogDebug["plot_road"] << "node->dir" << d << ", new_pos " << new_pos << ", is potentially valid";
+      //AILogDebug["plot_road"] << start_pos << " to " << end_pos << ", node->dir" << d << ", is valid? new_pos " << new_pos << " is potentially valid";
 
       // this is used to sort the heap to determine the optimal solution, it cannot be removed!
       unsigned int cost = actual_cost(map.get(), node->pos, d);
@@ -455,7 +546,7 @@ AI::plot_road(PMap map, unsigned int player_index, MapPos start_pos, MapPos end_
             //ai_mark_pos.insert(ColorDot(new_pos, "red"));
             //sleep_speed_adjusted(10);
           if (use_plot_road_cache && closed_node->pos == end_pos){
-            AILogDebug["plot_road"] << "plot_road: use_plot_road_cache is true and cache has end_pos " << end_pos << " marked as already closed, bypassing this, solution coming";
+            AILogDebug["plot_road"] << start_pos << " to " << end_pos << ", in closed? plot_road: use_plot_road_cache is true and cache has end_pos " << end_pos << " marked as already closed, bypassing this, solution coming";
           }else{
             in_closed = true;
             //ai_mark_pos.erase(new_pos);
@@ -464,7 +555,7 @@ AI::plot_road(PMap map, unsigned int player_index, MapPos start_pos, MapPos end_
             /*
             // PERFORMANCE - try pausing for a very brief time every thousand pos checked to give the CPU a break, see if it fixes frame rate lag
             if (total_pos_considered > 0 && total_pos_considered % 1000 == 0){
-              AILogDebug["plot_road"] << "plot_road: taking a quick sleep at " << total_pos_considered << " to give CPU a break";
+              AILogDebug["plot_road"] << start_pos << " to " << end_pos << ", plot_road: taking a quick sleep at " << total_pos_considered << " to give CPU a break";
               std::this_thread::sleep_for(std::chrono::milliseconds(200));
               slept_msec += 200;
             }
@@ -476,7 +567,7 @@ AI::plot_road(PMap map, unsigned int player_index, MapPos start_pos, MapPos end_
       }
       // check Dirs - reject new_pos if it was found to be already in closed list
       if (in_closed){
-        AILogDebug["plot_road"] << "node->dir" << d << ", new_pos " << new_pos << ", is rejected because already in the closed list";
+        AILogDebug["plot_road"] << start_pos << " to " << end_pos << ", node->dir" << d << ", in closed? new_pos " << new_pos << " is rejected because already in the closed list";
         continue;
       }
 
@@ -493,7 +584,7 @@ AI::plot_road(PMap map, unsigned int player_index, MapPos start_pos, MapPos end_
         PSearchNode n = *it;
         if (n->pos == new_pos) {
           in_open = true;
-          AILogDebug["plot_road"] << "node->dir" << d << ", new_pos " << new_pos << ", is already in the open list, heapifying (re-sorting)";
+          AILogDebug["plot_road"] << start_pos << " to " << end_pos << ", node->dir" << d << ", in open? new_pos " << new_pos << " is already in the open list, heapifying (re-sorting)";
           //ai_mark_pos.erase(new_pos);
           //ai_mark_pos.insert(ColorDot(new_pos, "seafoam"));
           //sleep_speed_adjusted(10);
@@ -522,7 +613,7 @@ AI::plot_road(PMap map, unsigned int player_index, MapPos start_pos, MapPos end_
         new_node->f_score = new_node->g_score + heuristic_cost(map.get(), new_pos, end_pos);
         new_node->parent = node;
         new_node->dir = d;
-
+        AILogDebug["plot_road"] << start_pos << " to " << end_pos << ", node->dir" << d << ", is new? new_pos " << new_pos << " is a new node, calling push_heap";
         open.push_back(new_node);
         std::push_heap(open.begin(), open.end(), search_node_less);
 
@@ -532,9 +623,9 @@ AI::plot_road(PMap map, unsigned int player_index, MapPos start_pos, MapPos end_
     } // foreach direction / new_pos  
   } // while nodes left to search
 
-  AILogDebug["plot_road"] << "done plot_road, found_direct_road: " << std::to_string(found_direct_road) << ". additional potential_roads (split_roads): " << split_road_solutions << ", flags_in_solution " << flags_in_solution;
+  AILogDebug["plot_road"] << start_pos << " to " << end_pos << ", done plot_road, found_direct_road: " << std::to_string(found_direct_road) << ". additional potential_roads: " << alternate_road_solutions << ", flags_in_solution " << flags_in_solution;
   if (direct_road.get_source() == bad_map_pos) {
-    AILogDebug["plot_road"] << "NO DIRECT SOLUTION FOUND for start_pos " << start_pos << " to end_pos " << end_pos;
+    AILogDebug["plot_road"] << start_pos << " to " << end_pos << ", NO DIRECT SOLUTION FOUND for start_pos " << start_pos << " to end_pos " << end_pos;
   }
 
   // for debugging, keep track of the largest road built to get an idea of what is a reasonable limit to set for performance reasons
@@ -595,7 +686,7 @@ AI::plot_road(PMap map, unsigned int player_index, MapPos start_pos, MapPos end_
 // count how many tiles apart two MapPos are
 int
 AI::get_straightline_tile_dist(PMap map, MapPos start_pos, MapPos end_pos) {
-  //AILogDebug["get_straightline_tile_dist"] << "inside Pathfinder::tile_dist with start_pos " << start_pos << ", end_pos " << end_pos;
+  AILogDebug["get_straightline_tile_dist"] << "inside Pathfinder::tile_dist with start_pos " << start_pos << ", end_pos " << end_pos;
   // function copied from heuristic_cost but ignores height diff and walking_cost
   int dist_col = map->dist_x(start_pos, end_pos);
   int dist_row = map->dist_y(start_pos, end_pos);
@@ -606,7 +697,7 @@ AI::get_straightline_tile_dist(PMap map, MapPos start_pos, MapPos end_pos) {
   else {
     tile_dist = abs(dist_col) + abs(dist_row);
   }
-  //AILogDebug["get_straightline_tile_dist"] << "returning tile_dist: " << tile_dist;
+  AILogDebug["get_straightline_tile_dist"] << "returning tile_dist: " << tile_dist;
   return tile_dist;
 }
 
