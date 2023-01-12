@@ -4075,7 +4075,7 @@ AI::do_build_better_roads_for_important_buildings() {
     Road road_built;
     if(build_best_road(building_flag_pos, road_options, &road_built, "do_build_better_roads:"+NameBuilding[type]+"@"+std::to_string(building_flag_pos), type)){
       AILogDebug["do_build_better_roads_for_important_buildings"] << "successfully built an improved road connection for building of type " << NameBuilding[type] << " at pos " << building->get_position() << " to its affinity building (whatever that may be - check build_best_road result)";
-      ai_mark_build_better_roads->push_back(road_built);
+      //ai_mark_build_better_roads->push_back(road_built);
     }
     road_options.reset(RoadOption::Improve);
   }
@@ -4821,7 +4821,7 @@ AI::do_connect_disconnected_road_networks(){
 
         // mark it for AI overlay
         // re-use get_dir_color function with indexes and hope <6 disconnected sections! (actually it has a failsafe of 'white')
-        ai_mark_pos.insert(ColorDot(flag_pos, get_dir_color_name(Direction(i))));
+        //ai_mark_pos.insert(ColorDot(flag_pos, get_dir_color_name(Direction(i))));
 
         //
         // attempt to reconnect it
