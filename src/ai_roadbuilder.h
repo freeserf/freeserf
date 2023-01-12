@@ -213,12 +213,38 @@ class RoadBuilder {
 
   // find and return a specific PRoad by end_pos
   RoadBuilderRoad* get_proad(MapPos end_pos) {
+    //
+    // I AM SEEING MULTIPLE SCORES FOR A SINGLE end_pos
+    //   I THINK THE SCORE NEEDS TO BE STORED WITH RoadEnds
+    //   to be uniquely identified, and not just with end_pos!!
+    //  for now adding dupe check
+
+    // YES!  this needs a unique primary key (incremending index) rather than using end_pos as key!
+
+    // this is the dupe check ONLY
+    int results = 0;
+    for (std::pair<RoadEnds, RoadBuilderRoad *> proad_pair : proads) {
+      RoadBuilderRoad *rb_road = proad_pair.second;
+      if (end_pos == rb_road->get_end2()) {
+        //return rb_road;
+        results++;
+      }
+      if (results > 1){
+        Log::Error["ai_roadbuilder.cc"] << " found more than one proad entry with end_pos " << end_pos << "!  this will mess up retrieval, crashing";
+        throw ExceptionFreeserf("found more than one proad entry with end_pos");
+      }
+    } // end of dupe check
+
+
+    // this is the normal function
     for (std::pair<RoadEnds, RoadBuilderRoad *> proad_pair : proads) {
       RoadBuilderRoad *rb_road = proad_pair.second;
       if (end_pos == rb_road->get_end2()) {
         return rb_road;
+        results++;
       }
     }
+
     //Log::Debug["ai_roadbuilder"] << "could not find proad with end2/end_pos :dirs " << end_pos;
     return nullptr;
   }

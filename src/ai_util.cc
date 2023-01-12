@@ -1484,7 +1484,7 @@ AI::build_best_road(MapPos start_pos, RoadOptions road_options, Road *built_road
           // reset the Road so it can be used for next segment
           this_solution_passthru_road_segment.invalidate(); // clear it
           this_solution_passthru_road_segment.start(segment_end_pos);  // start it with current pos
-          AILogDebug["util_build_best_road"] << "" << calling_function << " DEBUG - current passthru Road this_solution_passthru_road_segment now contains " << this_solution_passthru_road_segment.get_dirs().size() << " elements";
+          //AILogDebug["util_build_best_road"] << "" << calling_function << " DEBUG - current passthru Road this_solution_passthru_road_segment now contains " << this_solution_passthru_road_segment.get_dirs().size() << " elements";
           AILogDebug["util_build_best_road"] << "" << calling_function << " passthru Roads list this_solution_passthru_road_segments now contains " << this_solution_passthru_road_segments.size() << " elements";
 
         }else if (pos == nearby_flag_pos) {
