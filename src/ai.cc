@@ -185,8 +185,8 @@ AI::next_loop(){
   //-----------------------------------------------------------
 
   do_connect_disconnected_flags(); // except mines
-  //AILogError["next_loop"] << "ENDING LOOP EARLY FOR DEBUGGING!";
-  //return;
+  AILogError["next_loop"] << "ENDING LOOP EARLY FOR DEBUGGING!";
+  return;
   do_connect_disconnected_road_networks();
   do_build_better_roads_for_important_buildings();  // is this working?  I still see pretty inefficient roads for important buildings
   do_pollute_castle_area_roads_with_flags(); // CHANGE THIS TO USE ARTERIAL ROADS  (nah, it works well enough as it is, do that later)

@@ -27,13 +27,17 @@ class RoadBuilderRoad {
   MapPos end2;
   Direction dir1;
   Direction dir2;
+  int index = -1;  // adding this to use as key instead of the ends, as I am discovering the ends are not always unique, at least since allowing passthru solutions
   bool contains_castle_flag;
   bool is_passthru_solution;
 
  public:
-  RoadBuilderRoad();
+  //RoadBuilderRoad();
+  RoadBuilderRoad(int index_);
   //RoadBuilderRoad(MapPos end1, Direction dir1, MapPos end2, Direction dir2);
-  RoadBuilderRoad(RoadEnds ends, Road r);
+  //RoadBuilderRoad(RoadEnds ends, Road r);
+  RoadBuilderRoad(RoadEnds ends, Road r, int index_);
+  int get_index() { return index; }
   Road get_road() { return road; }
   void set_road(Road r) { road = r; }
   MapPos get_end1() { return end1; }
@@ -82,11 +86,12 @@ class RoadBuilder {
 
  public:
   typedef std::map<RoadEnds, RoadBuilderRoad*> RoadBuilderRoads;
+  typedef std::map<int, RoadBuilderRoad*> RoadBuilderPotentialRoads;  // requiring unique index for proads now that passthru solutions can result in multiple solutions for a given RoadEnds
   typedef std::map<MapPos, FlagScore> FlagScores;
 
  protected:
   RoadBuilderRoads eroads;
-  RoadBuilderRoads proads;  // proad is same object type as eroad, but start_pos/end1 is always same/known/fixed because it is set by roadbuilder
+  RoadBuilderPotentialRoads proads;  // proad is same object type as eroad, but start_pos/end1 is always same/known/fixed because it is set by roadbuilder
   FlagScores scores;
   MapPos start_pos; // this determines end1 for proad
   MapPos target_pos; // this is not included in any proad/eroad unless it happens to be a direct road solution
@@ -160,6 +165,8 @@ class RoadBuilder {
     return false;
   }
   */
+
+ /* changing this to use a primary key index instead of RoadEnds
   bool has_proad(RoadEnds ends){
     if (proads.count(ends)){
       return true;
@@ -167,11 +174,22 @@ class RoadBuilder {
       return false;
     }
   }
+  */
+
+  bool has_proad(int index){
+    if (proads.count(index)){
+      return true;
+    }else{
+      return false;
+    }
+  }
+  
 
   // because the RoadEnds are never used directly (I think?), rather only xroad->get_ calls,
   //   I don't think this should return a std::pair including the RoadEnds, only the RoadBuilderRoad itself
   RoadBuilderRoads get_eroads() { return eroads; }
-  RoadBuilderRoads get_proads() { return proads; }
+  //RoadBuilderRoads get_proads() { return proads; }
+  RoadBuilderPotentialRoads get_proads() { return proads; }
 
   // search all ERoads for any with specified end1/dir1, OR end2/dir, and return the list as vector
   std::vector<RoadBuilderRoad*> get_eroads(MapPos end, Direction dir) {
@@ -211,6 +229,8 @@ class RoadBuilder {
     return nullptr;
   }
 
+/* changing this to use unique index primary key
+
   // find and return a specific PRoad by end_pos
   RoadBuilderRoad* get_proad(MapPos end_pos) {
     //
@@ -247,6 +267,17 @@ class RoadBuilder {
 
     //Log::Debug["ai_roadbuilder"] << "could not find proad with end2/end_pos :dirs " << end_pos;
     return nullptr;
+  }
+  */
+
+   // find and return a specific PRoad by index
+  RoadBuilderRoad* get_proad(int index) {
+    Log::Debug["ai_roadbuilder.cc"] << "inside get_proad[" << index << "]";
+    if (proads[index] == nullptr){
+      Log::Error["ai_roadbuilder.cc"] << "could not find proad with index " << index << "!  crashing";
+      throw ExceptionFreeserf("could not find proad with specified index");
+    }
+    return proads[index];
   }
 
   /*
@@ -288,7 +319,8 @@ class RoadBuilder {
     eroads[ends] = rb_road;
   }
   */
-  void new_eroad(RoadEnds ends, Road road) {
+  //void new_eroad(RoadEnds ends, Road road) {
+  void new_eroad(RoadEnds ends, Road road, int rb_road_index) {
     //Log::Debug["ai_roadbuilder"] << "inside new_eroad";
     MapPos end1 = std::get<0>(ends);
     Direction dir1 = std::get<1>(ends);
@@ -296,23 +328,28 @@ class RoadBuilder {
     Direction dir2 = std::get<3>(ends);
     //Log::Debug["ai_roadbuilder"] << "inside new_eroad with end1 " << end1 << ", dir1 " << NameDirection[dir1] << ", end2 " << end2 << ", dir2 " << NameDirection[dir2];
     //RoadBuilderRoad *rb_road = new RoadBuilderRoad(end1, dir1, end2, dir2);
-    RoadBuilderRoad *rb_road = new RoadBuilderRoad(ends, road);
+    //RoadBuilderRoad *rb_road = new RoadBuilderRoad(ends, road);
+    RoadBuilderRoad *rb_road = new RoadBuilderRoad(ends, road, rb_road_index);
     //rb_road->set_road(road);
     eroads[ends] = rb_road;
   }
 
   //void new_proad(MapPos end1, Direction dir1, MapPos end2, Direction dir2, Road road) {
-  void new_proad(RoadEnds ends, Road road) {
+  //void new_proad(RoadEnds ends, Road road) {
+  //int new_proad(RoadEnds ends, Road road) {  // changing this to use an index/primary key instead of ends key
+  void new_proad(RoadEnds ends, Road road, int rb_road_index) {  // changing this to use an index/primary key instead of ends key
     //Log::Debug["ai_roadbuilder"] << "inside new_proad";
     MapPos start_pos = std::get<0>(ends);
     Direction start_dir = std::get<1>(ends);
     MapPos end_pos = std::get<2>(ends);
     Direction end_dir = std::get<3>(ends);
-    //Log::Debug["ai_roadbuilder"] << "inside new_proad with start_pos " << start_pos << ", start_dir " << NameDirection[start_dir] << ", end_pos " << end_pos << ", end_dir " << NameDirection[end_dir];
+    Log::Debug["ai_roadbuilder"] << "inside new_proad with start_pos " << start_pos << ", start_dir " << NameDirection[start_dir] << ", end_pos " << end_pos << ", end_dir " << NameDirection[end_dir];
     //RoadBuilderRoad *rb_road = new RoadBuilderRoad(end1, dir1, end2, dir2);
-    RoadBuilderRoad *rb_road = new RoadBuilderRoad(ends, road);
+    //RoadBuilderRoad *rb_road = new RoadBuilderRoad(ends, road);
+    RoadBuilderRoad *rb_road = new RoadBuilderRoad(ends, road, rb_road_index);
     //rb_road->set_road(road);
-    proads[ends] = rb_road;
+    //proads[ends] = rb_road;
+    proads[rb_road_index] = rb_road;
   }
 
  protected:

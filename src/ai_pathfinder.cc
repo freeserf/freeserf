@@ -398,9 +398,36 @@ AI::plot_road(PMap map, unsigned int player_index, MapPos start_pos, MapPos end_
 
       */
       // reject if pos crosses water at all, totally disallowing water roads for AI!
-      if (map->is_in_water(node->pos)) {
+      if (map->is_in_water(node->pos) || map->is_in_water(new_pos)) {
         //AILogDebug["plot_road"] << start_pos << " to " << end_pos << ", node->dir" << d << ", is valid? new_pos " << new_pos << " cannot be valid because it cross between land & water with no flag in either pos";
         continue;  // reject this solution
+      }
+
+      //
+      // IMPORTANT - NEED TO REJECT if the dir from prev pos to current pos has a path ALONG THE WAY, that is, if we are following along a road
+      //    it is ALWAYS invalid because no passthru can happen along a road, only intersecting one!
+      //
+      // here is how serfs determine the next path dir along a road
+      /* Serf is not at a flag. Just follow the road. 
+      int paths = game->get_map()->paths(pos) & ~BIT(s.walking.dir);
+      Direction dir = DirectionNone;
+      for (Direction d : cycle_directions_cw()) {
+        if (paths == BIT(d)) {
+          dir = d;
+          break;
+        }
+      }
+      */
+
+      // check if we are FOLLOWING ALONG a path in this dir, which is always illegal even with passthru
+      if (map->has_path(node->pos, d)){
+      // check if there is a path in the reverse direction (back to the node->pos we came from)
+      //if (map->has_path(new_pos, reverse_direction(d))){
+        //AILogDebug["plot_road"] << start_pos << " to " << end_pos << ", node->dir" << d << ", is valid? new_pos " << new_pos << " has a path, checking to see if we are illegally following it";
+        //if (game->get_map()->paths(new_pos) & ~BIT(d) == BIT(d)){
+          AILogDebug["plot_road"] << start_pos << " to " << end_pos << ", node->dir" << d << ", is valid? new_pos " << new_pos << " cannot be valid because follows ALONG a road/path.  This must be part of a passthru solution but this dir must be rejected";
+          continue; // reject this solution
+        //}
       }
 
 

@@ -250,6 +250,8 @@ class AI {
   double count_geologist_sign_density(MapPos, unsigned int);
   MapPosVector sort_by_val_asc(MapPosSet);
   MapPosVector sort_by_val_desc(MapPosSet);
+  std::vector<unsigned int> sort_scores_by_val_asc(std::vector<std::pair<int, unsigned int>>);
+  //std::vector<unsigned int> sort_scores_by_val_desc(std::vector<int, unsigned int>); // desc might not even be used, leaving it out until needed
   //MapPos build_near_pos(MapPos, unsigned int, Building::Type);
   MapPos build_near_pos(MapPos, unsigned int, Building::Type, Direction optional_fill_dir = DirectionNone);
   bool building_exists_near_pos(MapPos, unsigned int, Building::Type);
