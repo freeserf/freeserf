@@ -1066,6 +1066,22 @@ Game::update() {
   }
   */
 
+  // corruption debugging, saw an issue where Building seems to exist
+  //  far outside the player's borders
+  ticks_since_last_corruption_detection += game_ticks_per_update;
+  if (ticks_since_last_corruption_detection > 20000){
+    Log::Warn["game.cc"] << "inside Game::update, player Building corruption detection running now, tick " << tick;
+    ticks_since_last_corruption_detection = 0;
+    for (Building *building : buildings) {
+      if (building->get_index() == 0) continue;
+      if (map->get_owner(building->get_position()) != building->get_owner()) {
+        Log::Error["game.cc"] << "inside Game::update, CORRUPTION DETECTION, a Building object exists that claims to be at pos " << building->get_position() << " and owned by Player" << building->get_owner() << " but pos is actually owned by player #" << map->get_owner(building->get_position());
+        set_debug_mark_pos(building->get_position(), "yellow");
+        pause();
+      }
+    }
+  }
+
 /*
   Log::Info["game"] << "option_EnableAutoSave is " << option_EnableAutoSave;
   Log::Info["game"] << "option_ImprovedPigFarms is " << option_ImprovedPigFarms;   // removing this as it turns out the default behavior for pig farms is to require almost no grain

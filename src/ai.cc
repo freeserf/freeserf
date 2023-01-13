@@ -185,8 +185,8 @@ AI::next_loop(){
   //-----------------------------------------------------------
 
   do_connect_disconnected_flags(); // except mines
-  //AILogError["next_loop"] << "ENDING LOOP EARLY FOR DEBUGGING!";
-  //return;
+  AILogError["next_loop"] << "ENDING LOOP EARLY FOR DEBUGGING!";
+  return;
   do_connect_disconnected_road_networks();
   do_build_better_roads_for_important_buildings();  // is this working?  I still see pretty inefficient roads for important buildings
   do_pollute_castle_area_roads_with_flags(); // CHANGE THIS TO USE ARTERIAL ROADS  (nah, it works well enough as it is, do that later)
@@ -2280,7 +2280,10 @@ AI::do_demolish_excess_foresters() {
       // CANNOT USE this search because Foresters are usually disconnected from Inventory!
       //if (find_nearest_inventory(map, player_index, building->get_position(), DistType::FlagOnly, &ai_mark_pos) != inventory_pos)
       // trying straightline instead
-      if (find_nearest_inventory(map, player_index, building->get_position(), DistType::StraightLineOnly, &ai_mark_pos) != inventory_pos)
+      // NOTE - I got a weird issue here where find_nearest_inventory was to some far-off pos way outside player's borders
+      //  this check was previously using building->get_position() instead of forester_pos, maybe there is a pointer issue?
+      //  ALSO, might want to run a corruption check to see if any building is found outside the player borders
+      if (find_nearest_inventory(map, player_index, forester_pos, DistType::StraightLineOnly, &ai_mark_pos) != inventory_pos)
         continue;
 
       //  jan09 2023
@@ -2294,7 +2297,7 @@ AI::do_demolish_excess_foresters() {
       for (unsigned int x = 0; x < AI::spiral_dist(4); x++) {
         MapPos pos = map->pos_add_extended_spirally(forester_pos, x);
 
-AILogDebug["do_demolish_excess_foresters"] << inventory_pos << " forester hut at pos " << forester_pos << "map->get_obj(" << pos << ") is " << map->get_obj(pos);
+        AILogDebug["do_demolish_excess_foresters"] << inventory_pos << " forester hut at pos " << forester_pos << "map->get_obj(" << pos << ") is " << map->get_obj(pos);
 
         // trees (and non-mine buildings) can only be planted on grass)
         if (!map->types_within(pos, Map::TerrainGrass0, Map::TerrainGrass3)){
@@ -2303,7 +2306,7 @@ AILogDebug["do_demolish_excess_foresters"] << inventory_pos << " forester hut at
         possible_positions++;
         if (map->get_obj(pos) == Map::ObjectNone
          || map->map_space_from_obj[pos] == Map::SpaceOpen){
-           AILogDebug["do_demolish_excess_foresters"] << inventory_pos << " forester hut at pos " << forester_pos << "map->get_obj(" << pos << ") passed";
+           AILogDebug["do_demolish_excess_foresters"] << inventory_pos << " forester hut at pos " << forester_pos << " map->get_obj(" << pos << ") passed";
            open_positions++;
         }
       }
@@ -2325,6 +2328,7 @@ AILogDebug["do_demolish_excess_foresters"] << inventory_pos << " forester hut at
   else {
         AILogDebug["do_demolish_excess_foresters"] << inventory_pos << " planks_max not yet reached, skipping";
   }
+  AILogDebug["do_demolish_excess_foresters"] << inventory_pos << " done do_demolish_excess_foresters call";
 }
 
 
