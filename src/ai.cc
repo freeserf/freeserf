@@ -185,8 +185,8 @@ AI::next_loop(){
   //-----------------------------------------------------------
 
   do_connect_disconnected_flags(); // except mines
-  AILogError["next_loop"] << "ENDING LOOP EARLY FOR DEBUGGING!";
-  return;
+  //AILogError["next_loop"] << "ENDING LOOP EARLY FOR DEBUGGING!";
+  //return;
   do_connect_disconnected_road_networks();
   do_build_better_roads_for_important_buildings();  // is this working?  I still see pretty inefficient roads for important buildings
   do_pollute_castle_area_roads_with_flags(); // CHANGE THIS TO USE ARTERIAL ROADS  (nah, it works well enough as it is, do that later)
@@ -632,7 +632,13 @@ AI::do_connect_disconnected_flags() {
     // try to connect it to road network
     AILogDebug["do_connect_disconnected_flags"] << "flag at pos " << flag->get_position() << " has no connected road, trying to connect it";
     Road notused; // not used here, can I just pass a zero instead of &notused to build_best_road and skip initialization of a wasted object?
-    bool was_built = AI::build_best_road(flag->get_position(), road_options, &notused, "do_connect_disconnected_flags:Flag@"+std::to_string(flag->get_position()));
+    bool was_built = AI::build_best_road(flag->get_position(), road_options, &notused, "do_connect_disconnected_flags(canPassthru):Flag@"+std::to_string(flag->get_position()));
+    if (!was_built && road_options.test(RoadOption::AllowPassthru)){
+      AILogDebug["do_connect_disconnected_flags"] << "failed to build road using Passthru, trying again without it";
+      road_options.reset(RoadOption::AllowPassthru);
+      was_built = AI::build_best_road(flag->get_position(), road_options, &notused, "do_connect_disconnected_flags(nonPassthru):Flag@"+std::to_string(flag->get_position()));
+      road_options.set(RoadOption::AllowPassthru);
+    }
     if (!was_built) {
       // if it could not be connected, burn any attached building and remove the flag
       // WAIT - this causes a problem for newly-taken enemy military buildings, which frequently cannot be connected to road network
@@ -892,7 +898,13 @@ AI::do_spiderweb_roads() {
         road_options.reset(RoadOption::AllowPassthru);
         AILogDebug["do_spiderweb_roads"] << inventory_pos << " about to call build_best_road";
         Road built_road;
-        was_built = build_best_road(area_flag_pos, road_options, &built_road, "do_spiderweb_roads", Building::TypeNone, Building::TypeNone, other_area_flag_pos);
+        was_built = build_best_road(area_flag_pos, road_options, &built_road, "do_spiderweb_roads(canPassthru)", Building::TypeNone, Building::TypeNone, other_area_flag_pos);
+        if (!was_built && road_options.test(RoadOption::AllowPassthru)){
+          AILogDebug["do_spiderweb_roads"] << "failed to build road using Passthru, trying again without it";
+          road_options.reset(RoadOption::AllowPassthru);
+          was_built = build_best_road(area_flag_pos, road_options, &built_road, "do_spiderweb_roads(nonPassthru)", Building::TypeNone, Building::TypeNone, other_area_flag_pos);
+          road_options.set(RoadOption::AllowPassthru);
+        }
         road_options.reset(RoadOption::Improve);
         //road_options.set(RoadOption::PenalizeNewLength);
         road_options.reset(RoadOption::ReducedNewLengthPenalty);
@@ -1613,7 +1625,8 @@ AI::do_send_geologists() {
           if (other_flags == 0) {
             AILogDebug["do_send_geologists"] << inventory_pos << " no other flags nearby " << pos << ", building flag here";
             mutex_lock("AI::do_send_geologists calling game->build_flag, for geologist");
-            bool was_built = game->build_flag(pos, player);
+            //bool flag_was_built = game->build_flag(pos, player);
+            game->build_flag(pos, player);  // we aren't checking return code, instead checking if the game sees the flag
             mutex_unlock();
             sleep_speed_adjusted(2000);
             if (!map->has_flag(pos)) {
@@ -1625,7 +1638,14 @@ AI::do_send_geologists() {
             }
             
             Road notused; // not used here, can I just pass a zero instead of &notused to build_best_road and skip initialization of a wasted object?
-            if (!AI::build_best_road(pos, road_options, &notused, "do_send_geologists")) {
+            bool road_was_built = build_best_road(pos, road_options, &notused, "do_send_geologists(canPassthru)");
+            if (!road_was_built && road_options.test(RoadOption::AllowPassthru)){
+              AILogDebug["do_send_geologists"] << "failed to build road using Passthru, trying again without it";
+              road_options.reset(RoadOption::AllowPassthru);
+              road_was_built = build_best_road(pos, road_options, &notused, "do_send_geologists(nonPassthru)");
+              road_options.set(RoadOption::AllowPassthru);
+            }
+            if (!road_was_built){
               AILogDebug["do_send_geologists"] << inventory_pos << " failed to connect new gologist flag to road network!  removing the flag";
               mutex_lock("AI::do_send_geologists calling demolish_flag (built for geoligist, couldn't connect)");
               game->demolish_flag(pos, player);
@@ -3636,7 +3656,13 @@ AI::do_connect_coal_mines() {
       Road notused; // not used here, can I just pass a zero instead of &notused to build_best_road and skip initialization of a wasted object?
       //bool was_built = AI::build_best_road(flag->get_position(), road_options, &notused, "do_connect_coal_mines");
       // updated with verify_stock = true
-      bool was_built = AI::build_best_road(flag->get_position(), road_options, &notused, "do_connect_coal_mines:Building::TypeCoalMine@"+std::to_string(flag->get_position()), Building::TypeNone, Building::TypeNone, bad_map_pos, true);
+      bool was_built = AI::build_best_road(flag->get_position(), road_options, &notused, "do_connect_coal_mines(canPassthru):Building::TypeCoalMine@"+std::to_string(flag->get_position()), Building::TypeNone, Building::TypeNone, bad_map_pos, true);
+      if (!was_built && road_options.test(RoadOption::AllowPassthru)){
+        AILogDebug["do_connect_coal_mines"] << "failed to build road using Passthru, trying again without it";
+        road_options.reset(RoadOption::AllowPassthru);
+        was_built = AI::build_best_road(flag->get_position(), road_options, &notused, "do_connect_coal_mines(nonPassthru):Building::TypeCoalMine@"+std::to_string(flag->get_position()), Building::TypeNone, Building::TypeNone, bad_map_pos, true);
+        road_options.set(RoadOption::AllowPassthru);
+      }
       if (!was_built) {
         AILogInfo["do_connect_coal_mines"] << inventory_pos << " failed to connect coal mine to road network!  demolishing it and its flag ";
         mutex_lock("AI::do_connect_coal_mines calling demolish flag&building (failed to connect coal mine)");
@@ -3694,7 +3720,13 @@ AI::do_connect_iron_mines() {
       Road notused; // not used here, can I just pass a zero instead of &notused to build_best_road and skip initialization of a wasted object?
       //bool was_built = AI::build_best_road(flag->get_position(), road_options, &notused, "do_connect_iron_mines");
       // updated with verify_stock = true
-      bool was_built = AI::build_best_road(flag->get_position(), road_options, &notused, "do_connect_iron_mines:Building::TypeIronMine@"+std::to_string(flag->get_position()), Building::TypeNone, Building::TypeNone, bad_map_pos, true);
+      bool was_built = AI::build_best_road(flag->get_position(), road_options, &notused, "do_connect_iron_mines(canPassthru):Building::TypeIronMine@"+std::to_string(flag->get_position()), Building::TypeNone, Building::TypeNone, bad_map_pos, true);
+      if (!was_built && road_options.test(RoadOption::AllowPassthru)){
+        AILogDebug["do_connect_iron_mines"] << "failed to build road using Passthru, trying again without it";
+        road_options.reset(RoadOption::AllowPassthru);
+        was_built = AI::build_best_road(flag->get_position(), road_options, &notused, "do_connect_iron_mines(nonPassthru):Building::TypeIronMine@"+std::to_string(flag->get_position()), Building::TypeNone, Building::TypeNone, bad_map_pos, true);
+        road_options.set(RoadOption::AllowPassthru);
+      }
       if (!was_built) {
         AILogInfo["do_connect_iron_mines"] << inventory_pos << " failed to connect iron mine to road network!  demolishing it and its flag ";
         mutex_lock("AI::do_connect_iron_mines calling demolish flag&building (failed to connect iron mine)");
@@ -3950,7 +3982,13 @@ AI::do_build_gold_smelter_and_connect_gold_mines() {
       Road notused; // not used here, can I just pass a zero instead of &notused to build_best_road and skip initialization of a wasted object?
       //bool was_built = AI::build_best_road(flag->get_position(), road_options, &notused, "do_connect_gold_mines");
       // updated with verify_stock = true
-      bool was_built = AI::build_best_road(flag->get_position(), road_options, &notused, "do_connect_gold_mines:Building::TypeGoldMine@"+std::to_string(flag->get_position()), Building::TypeNone, Building::TypeNone, bad_map_pos, true);
+      bool was_built = AI::build_best_road(flag->get_position(), road_options, &notused, "do_connect_gold_mines(canPassthru):Building::TypeGoldMine@"+std::to_string(flag->get_position()), Building::TypeNone, Building::TypeNone, bad_map_pos, true);
+      if (!was_built && road_options.test(RoadOption::AllowPassthru)){
+        AILogDebug["do_connect_gold_mines"] << "failed to build road using Passthru, trying again without it";
+        road_options.reset(RoadOption::AllowPassthru);
+        was_built = AI::build_best_road(flag->get_position(), road_options, &notused, "do_connect_gold_mines(nonPassthru):Building::TypeGoldMine@"+std::to_string(flag->get_position()), Building::TypeNone, Building::TypeNone, bad_map_pos, true);
+        road_options.set(RoadOption::AllowPassthru);
+      }
       if (!was_built) {
         AILogInfo["do_build_gold_smelter_and_connect_gold_mines"] << inventory_pos << " failed to connect gold mine to road network!  demolishing it and its flag ";
         mutex_lock("AI::do_build_gold_smelter_and_connect_gold_mines calling demolish flag&building (failed to connect gold mine)");
@@ -4836,6 +4874,7 @@ AI::do_connect_disconnected_road_networks(){
         //road_options.set(RoadOption::Direct);  // CANNOT USE DIRECT!  it tries connect directly to the INVENTORY FLAG ONLY and usually fail because that is the default affinity if no target set
         road_options.set(RoadOption::PlotOnlyNoBuild);
         road_options.set(RoadOption::ReconnectNetwork);
+        road_options.reset(RoadOption::AllowPassthru); // passthru is not a good idea for this
         // BUG - seeing a road attempt to be "reconnected" to a new-splitting-flag part of SAME NETWORK
         bool was_plotted = AI::build_best_road(flag_pos, road_options, &road_solution, "do_connect_disconnected_road_networks:Flag@"+std::to_string(flag->get_position()));
         if (was_plotted && road_solution.get_length() > 0){
@@ -4856,6 +4895,7 @@ AI::do_connect_disconnected_road_networks(){
         //road_options.reset(RoadOption::Direct);
         road_options.reset(RoadOption::PlotOnlyNoBuild);
         road_options.reset(RoadOption::ReconnectNetwork);
+        road_options.set(RoadOption::AllowPassthru);
 
       }
       AILogDebug["do_connect_disconnected_road_networks"] << "DISCONNECTED ROAD SYSTEM: network[" << i << "], found " << possible_roads.size() << " possible_solutions to connect network";

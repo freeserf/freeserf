@@ -1725,6 +1725,8 @@ AI::build_best_road(MapPos start_pos, RoadOptions road_options, Road *built_road
           AILogDebug["util_build_best_road"] << "" << calling_function << " preparing to build road, this_segment_start_pos " << this_segment_start_pos << " is in water!";
           water_road = true;
         }
+        /* no longer allowing AI to create water roads at all
+        //  tlongstretch Jan 2023
         if (water_road) {
           if (!road_options.test(RoadOption::AllowWaterRoad)) {
             AILogDebug["util_build_best_road"] << "" << calling_function << " preparing to build road, this solution is a water road, but AllowWaterRoad RoadOption is not set, skipping";
@@ -1754,6 +1756,7 @@ AI::build_best_road(MapPos start_pos, RoadOptions road_options, Road *built_road
             break;
           }
         }
+        */
 
         /* figured out how to get actual adjusted score
         // if there are two targets to connect to check if the second road is actually better 
@@ -1802,6 +1805,11 @@ AI::build_best_road(MapPos start_pos, RoadOptions road_options, Road *built_road
             for (std::pair<MapPos, unsigned int> pair : scored_proads){
               if (pair.first == end_pos){ this_target_score = pair.second; }  // end_pos IS NOT A TYPO!
               if (pair.first == first_target_road_end){ first_target_score = pair.second; }
+            }
+            if (this_target_score == bad_score && first_target_score == bad_score){
+              AILogWarn["util_build_best_road"] << "" << calling_function << " this is the second of " << targets.size() << " targets, BOTH two scores is bad_score!  not sure what this means, quitting this build_best_road call, returning true because at least one road built";
+              // return true because at least one road was built
+              return true;
             }
             if (this_target_score == bad_score || first_target_score == bad_score){
               AILogWarn["util_build_best_road"] << "" << calling_function << " this is the second of " << targets.size() << " targets, one of the two scores is bad_score!  not comparing! continueing... is that okay?  this_target_score " << this_target_score << ", first_target_score " << first_target_score;
@@ -2930,7 +2938,15 @@ AI::build_near_pos(MapPos center_pos, unsigned int distance, Building::Type buil
         //  the closest Inventory building by flagsearch is not the current one
         //
         Road notused; // not used here
-        road_built = AI::build_best_road(flag_pos, road_options, &notused, "build_near_pos:"+NameBuilding[building_type]+"@"+std::to_string(flag_pos), building_type, Building::TypeNone, bad_map_pos, verify_stock);
+        road_built = AI::build_best_road(flag_pos, road_options, &notused, "build_near_pos(canPassthru):"+NameBuilding[building_type]+"@"+std::to_string(flag_pos), building_type, Building::TypeNone, bad_map_pos, verify_stock);
+        // now that passthru roads are enabled, the older style "go around" basically never happens
+        //  so if no road was built with passthru enabled, try again without it to see if going around works
+        if (!road_built && road_options.test(RoadOption::AllowPassthru)){
+          AILogDebug["util_build_near_pos"] << "failed to build road using Passthru, trying again without it";
+          road_options.reset(RoadOption::AllowPassthru);
+          road_built = AI::build_best_road(flag_pos, road_options, &notused, "build_near_pos(nonPassthru):"+NameBuilding[building_type]+"@"+std::to_string(flag_pos), building_type, Building::TypeNone, bad_map_pos, verify_stock);
+          road_options.set(RoadOption::AllowPassthru);
+        }
       }else{
         AILogDebug["util_build_near_pos"] << "the flag already at flag_pos " << flag_pos << " is already connected to road system.  For potential new building of type " << NameBuilding[building_type] << " at pos " << pos;
         // must do the verify_stock check here on this flag, because normally it is done when placing the road but this

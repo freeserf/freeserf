@@ -149,8 +149,9 @@ AI::plot_road(PMap map, unsigned int player_index, MapPos start_pos, MapPos end_
   Road direct_road;
   bool found_direct_road = false;
   //putting this here for now
-  unsigned int max_fake_flags = 10;
-  //unsigned int fake_flags_count = 0;
+  //unsigned int max_splitting_flags = 10;
+  //unsigned int splitting_flags_count = 0;
+  unsigned int max_alternate_road_solutions = 10;
   unsigned int found_flags_count = 0;
   unsigned int alternate_road_solutions = 0;
   //unsigned int new_closed_nodes = 0;  // I guess I added this but never used it
@@ -288,47 +289,51 @@ AI::plot_road(PMap map, unsigned int player_index, MapPos start_pos, MapPos end_
     }
 
     if (found_alternate_solution){
-      AILogDebug["plot_road"] << start_pos << " to " << end_pos << ", plot_road: alternate existing-flag solution found while pathfinding, a non-target flag exists at pos " << node->pos << ", adding the Road so far to potential_roads list";
-      // retrace the "bread crumb trail" tile by tile from end to start
-      //   this creates a Road with 'source' of end_pos and 'last' of start_pos
-      //     which is backwards from the direction the pathfinding ran
-      // start the road at node->pos where the existing flag is, and follow the 'node' path back to start_pos
-      Road alternate_flag_solution;
-      alternate_flag_solution.start(node->pos);
-      AILogDebug["plot_road"] << start_pos << " to " << end_pos << ", plot_road: alternate existing-flag solution found while pathfinding, retracing nodes backwards from current node->pos " << node->pos;
-      // create an copy of current node to avoid disrupting the original search
-      PSearchNode alternate_node = node;
-      Direction alternate_node_last_dir = DirectionNone; // part of sanity check
-      while (alternate_node->parent) {
-        // if ai_overlay is on, ai_mark_road will show the road being traced backwards from end_pos to start_pos
-        Direction dir = alternate_node->dir;
-        // sanity check, was seeing retracing on passthru solutions?
-        AILogDebug["plot_road"] << start_pos << " to " << end_pos << ", plot_road: dir " << reverse_direction(dir) << ", last_dir " << reverse_direction(alternate_node_last_dir);
-        if(alternate_node_last_dir == reverse_direction(dir)){
-          AILogDebug["plot_road"] << start_pos << " to " << end_pos << ", plot_road: alternate existing-flag solution CONTAINS A RETRACING ROAD DIR!";
-          AILogDebug["plot_road"] << start_pos << " to " << end_pos << ", plot_road: alternate existing-flag solution sleeping AI for a long time";
-          std::this_thread::sleep_for(std::chrono::milliseconds(1000000));
-          AILogDebug["plot_road"] << start_pos << " to " << end_pos << ", plot_road: alternate existing-flag solution done sleeping AI";
+      if (alternate_road_solutions >= max_alternate_road_solutions){
+        AILogDebug["plot_road"] << start_pos << " to " << end_pos << ", plot_road: alternate existing-flag solution found while pathfinding, but max_alternate_road_solutions " << max_alternate_road_solutions << " reached, not including";
+      }else{
+        AILogDebug["plot_road"] << start_pos << " to " << end_pos << ", plot_road: alternate existing-flag solution found while pathfinding, a non-target flag exists at pos " << node->pos << ", adding the Road so far to potential_roads list";
+        // retrace the "bread crumb trail" tile by tile from end to start
+        //   this creates a Road with 'source' of end_pos and 'last' of start_pos
+        //     which is backwards from the direction the pathfinding ran
+        // start the road at node->pos where the existing flag is, and follow the 'node' path back to start_pos
+        Road alternate_flag_solution;
+        alternate_flag_solution.start(node->pos);
+        AILogDebug["plot_road"] << start_pos << " to " << end_pos << ", plot_road: alternate existing-flag solution found while pathfinding, retracing nodes backwards from current node->pos " << node->pos;
+        // create an copy of current node to avoid disrupting the original search
+        PSearchNode alternate_node = node;
+        Direction alternate_node_last_dir = DirectionNone; // part of sanity check
+        while (alternate_node->parent) {
+          // if ai_overlay is on, ai_mark_road will show the road being traced backwards from end_pos to start_pos
+          Direction dir = alternate_node->dir;
+          // sanity check, was seeing retracing on passthru solutions?
+          AILogDebug["plot_road"] << start_pos << " to " << end_pos << ", plot_road: dir " << reverse_direction(dir) << ", last_dir " << reverse_direction(alternate_node_last_dir);
+          if(alternate_node_last_dir == reverse_direction(dir)){
+            AILogDebug["plot_road"] << start_pos << " to " << end_pos << ", plot_road: alternate existing-flag solution CONTAINS A RETRACING ROAD DIR!";
+            AILogDebug["plot_road"] << start_pos << " to " << end_pos << ", plot_road: alternate existing-flag solution sleeping AI for a long time";
+            std::this_thread::sleep_for(std::chrono::milliseconds(1000000));
+            AILogDebug["plot_road"] << start_pos << " to " << end_pos << ", plot_road: alternate existing-flag solution done sleeping AI";
+          }
+          alternate_node_last_dir = dir;
+          AILogDebug["plot_road"] << start_pos << " to " << end_pos << ", plot_road: alternate existing-flag solution found while pathfinding, retracing nodes backwards, node->pos has a parent node with Dir" << reverse_direction(dir);
+          alternate_flag_solution.extend(reverse_direction(dir));
+          //ai_mark_road->extend(reverse_direction(dir));
+          //ai_mark_pos.insert(ColorDot(node->pos, "black"));
+          //sleep_speed_adjusted(10);
+          alternate_node = alternate_node->parent;
         }
-        alternate_node_last_dir = dir;
-        AILogDebug["plot_road"] << start_pos << " to " << end_pos << ", plot_road: alternate existing-flag solution found while pathfinding, retracing nodes backwards, node->pos has a parent node with Dir" << reverse_direction(dir);
-        alternate_flag_solution.extend(reverse_direction(dir));
-        //ai_mark_road->extend(reverse_direction(dir));
-        //ai_mark_pos.insert(ColorDot(node->pos, "black"));
-        //sleep_speed_adjusted(10);
-        alternate_node = alternate_node->parent;
+        unsigned int new_length = static_cast<unsigned int>(alternate_flag_solution.get_length());
+        AILogDebug["plot_road"] << start_pos << " to " << end_pos << ", plot_road: alternate_flag_solution found, new segment length is " << alternate_flag_solution.get_length();
+        // now inverse the entire road so that it stats at start_pos and ends at end_pos, so the Road object is logical instead of backwards
+        alternate_flag_solution = reverse_road(map, alternate_flag_solution);
+        AILogDebug["plot_road"] << start_pos << " to " << end_pos << ", plot_road: inserting alternate/fake flag Road solution to PotentialRoads with segment start_pos " << alternate_flag_solution.get_source() << ", segment end_pos " << alternate_flag_solution.get_end(map.get()) << ", new segment length would be " << alternate_flag_solution.get_length();
+        potential_roads->push_back(alternate_flag_solution);
+        alternate_road_solutions++;
+        //
+        // NOTE - for passthru solutions, the entire multi-road solution will be returned as a single Road, and it will be up
+        //  to the build_best_road function to break it up into the chain of roads within and update the solution flag_score
+        //
       }
-      unsigned int new_length = static_cast<unsigned int>(alternate_flag_solution.get_length());
-      AILogDebug["plot_road"] << start_pos << " to " << end_pos << ", plot_road: alternate_flag_solution found, new segment length is " << alternate_flag_solution.get_length();
-      // now inverse the entire road so that it stats at start_pos and ends at end_pos, so the Road object is logical instead of backwards
-      alternate_flag_solution = reverse_road(map, alternate_flag_solution);
-      AILogDebug["plot_road"] << start_pos << " to " << end_pos << ", plot_road: inserting alternate/fake flag Road solution to PotentialRoads with segment start_pos " << alternate_flag_solution.get_source() << ", segment end_pos " << alternate_flag_solution.get_end(map.get()) << ", new segment length would be " << alternate_flag_solution.get_length();
-      potential_roads->push_back(alternate_flag_solution);
-      alternate_road_solutions++;
-      //
-      // NOTE - for passthru solutions, the entire multi-road solution will be returned as a single Road, and it will be up
-      //  to the build_best_road function to break it up into the chain of roads within and update the solution flag_score
-      //
     }
 
     //-------------------------------------------------
@@ -540,7 +545,7 @@ AI::plot_road(PMap map, unsigned int player_index, MapPos start_pos, MapPos end_
               }
               split_flag_sanity_check_node = split_flag_sanity_check_node->parent;
             }
-            AILogDebug["plot_road"] << start_pos << " to " << end_pos << ", node->dir" << d << ", is valid? new_pos " << new_pos << " done new-split-flag passthru sanity check";
+            AILogDebug["plot_road"] << start_pos << " to " << end_pos << ", node->dir" << d << ", is valid? new_pos " << new_pos << " done new-split-flag passthru sanity check, found " << passthru_flags << "passthru_flags";
 
 //-------------------------------------
 
