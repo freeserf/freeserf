@@ -715,9 +715,17 @@ class Map {
                                                    ObjectCastle); }
 
   /* Whether any of the two up/down tiles at this pos are water. */
+  // this seems to actually only return true if BOTH triangles are
+  //  water!
   bool is_water_tile(MapPos pos) const {
     return (type_down(pos) <= TerrainWater3 &&
             type_up(pos) <= TerrainWater3); }
+  /* nevermind, I think this is a bad idea
+  // adding new function that does what seems to be intended
+  bool is_EITHER_TRIANGLE_water_tile(MapPos pos) const {
+    return (type_down(pos) <= TerrainWater3 ||
+            type_up(pos) <= TerrainWater3); }
+            */
 
   /* Whether the position is completely surrounded by water. */
   bool is_in_water(MapPos pos) const {

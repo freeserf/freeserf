@@ -403,7 +403,11 @@ AI::plot_road(PMap map, unsigned int player_index, MapPos start_pos, MapPos end_
 
       */
       // reject if pos crosses water at all, totally disallowing water roads for AI!
-      if (map->is_in_water(node->pos) || map->is_in_water(new_pos)) {
+
+      // actually I think this is a bad idea, it may prevent legitimate roads
+      //if (map->is_EITHER_TRIANGLE_water_tile(node->pos) || map->is_EITHER_TRIANGLE_water_tile(new_pos)) {
+      // going back to normal way
+      if (map->is_water_tile(node->pos) || map->is_water_tile(new_pos)) {
         //AILogDebug["plot_road"] << start_pos << " to " << end_pos << ", node->dir" << d << ", is valid? new_pos " << new_pos << " cannot be valid because it cross between land & water with no flag in either pos";
         continue;  // reject this solution
       }
