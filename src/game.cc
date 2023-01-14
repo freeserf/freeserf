@@ -673,6 +673,7 @@ typedef struct SendSerfToFlagData {
 //  happens at the calling function send_sert_to_flag
 bool
 Game::send_serf_to_flag_search_cb(Flag *flag, void *d) {
+  //Log::Debug["game.cc"] << "inside Game::send_serf_to_flag_search_cb";
   if (!flag->has_inventory()) {
     return false;
   }
@@ -711,6 +712,7 @@ Game::send_serf_to_flag_search_cb(Flag *flag, void *d) {
     //
     // non-knight specialist serfs
     //
+
     if (inv->have_serf((Serf::Type)type)) {
       // ... already idle in inventory, call out
       // if an idle serf of this type already exists, or 5+ free serfs
@@ -737,6 +739,7 @@ Game::send_serf_to_flag_search_cb(Flag *flag, void *d) {
       }
     } else {
       // ...not idle-in-stock, must be created
+
       // check to see if available tool[s] to specialize a generic serf
       //  into a new professional
       // NOTE - this check is here, instead of much earlier as might seem logical,

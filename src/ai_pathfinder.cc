@@ -493,8 +493,8 @@ AI::plot_road(PMap map, unsigned int player_index, MapPos start_pos, MapPos end_
           if (map->has_flag(node->pos)
            || (game->can_build_flag(node->pos, player) && road_options.test(RoadOption::AllowPassthru) == true && road_options.test(RoadOption::SplitRoads) == true)){
             // start following this path from the flag
-            AILogDebug["plot_road"] << start_pos << " to " << end_pos << ", " << node->pos << "->dir" << d << ", is valid? new_pos " << new_pos << " is along a path from a flag at the current node->pos, will start following this new existing path, setting must_follow_path bool to true";
-            must_follow_path = true;
+            AILogDebug["plot_road"] << start_pos << " to " << end_pos << ", " << node->pos << "->dir" << d << ", is valid? new_pos " << new_pos << " is along a path from a flag at the current node->pos, will start following this new existing path.  NOT setting must_follow_path to true because we could still exit this path if this dir doesn't work out for other reasons";
+            //must_follow_path = true;  // NO!  do not set this here, let it be set at the next node.  This being set here forces following the Direction of a first path found from a node->pos, which might not be desirable
           }else{
             AILogDebug["plot_road"] << start_pos << " to " << end_pos << ", " << node->pos << "->dir" << d << ", is valid? new_pos " << new_pos << " is along a path that we cannot follow, either because previous pos has no flag and can't build one, or RoadOptions prevent it";
             continue; // reject this solution
@@ -681,6 +681,8 @@ AI::plot_road(PMap map, unsigned int player_index, MapPos start_pos, MapPos end_
               if (must_follow_path){
                 AILogDebug["plot_road"] << start_pos << " to " << end_pos << ", " << node->pos << "->dir" << d << ", is valid? new_pos " << new_pos << " has a path in the direction of travel that we are already following";
               }else{
+                AILogDebug["plot_road"] << start_pos << " to " << end_pos << ", " << node->pos << "->dir" << d << ", is valid? new_pos " << new_pos << " has a path in the direction of travel that we are not already following, let this play out and allow it to be rejected if needed";
+                /*
                 AILogError["plot_road"] << start_pos << " to " << end_pos << ", " << node->pos << "->dir" << d << ", is valid? new_pos " << new_pos << " has a path in the direction of travel that we are NOT ALREADY FOLLOWING!  this should not be possible due to earlier check, crashing";
                 AILogError["plot_road"] << start_pos << " to " << end_pos << ", " << node->pos << "->dir" << d << ", is valid? new_pos " << new_pos << " marking start_pos in black, next pos in white";
                 ai_mark_pos.insert(ColorDot(node->pos, "black"));
@@ -689,6 +691,7 @@ AI::plot_road(PMap map, unsigned int player_index, MapPos start_pos, MapPos end_
                 std::this_thread::sleep_for(std::chrono::milliseconds(1000000));
                 AILogWarn["util_build_best_road"] << "DONE SLEEPING";
                 //throw ExceptionFreeserf("sanity check failed, this new_pos contains a path we are not following, earlier check should have caught this!");
+                */
               }
             }else{
               // this is a blocking path
