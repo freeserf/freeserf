@@ -43,6 +43,7 @@ VideoSDL::VideoSDL() {
   cursor = nullptr;
   fullscreen = false;
   zoom_factor = 1.f;
+  zoom_type = -1;
 
   Log::Info["video"] << "Initializing \"sdl\".";
   Log::Info["video"] << "Available drivers:";
@@ -95,8 +96,10 @@ VideoSDL::VideoSDL() {
   SDL_PixelFormatEnumToMasks(pixel_format, &bpp,
                              &Rmask, &Gmask, &Bmask, &Amask);
 
-  /* Set scaling mode */
-  SDL_SetHint(SDL_HINT_RENDER_SCALE_QUALITY, "linear");
+  /* Set scaling mode */  // i.e. zoom interpolation type
+  SDL_SetHint(SDL_HINT_RENDER_SCALE_QUALITY, "nearest");   // this is no aliasing/pixelart style
+  //SDL_SetHint(SDL_HINT_RENDER_SCALE_QUALITY, "linear");  // interpolated/blurred edges of pixels.  This is what Freeserf uses
+  //SDL_SetHint(SDL_HINT_RENDER_SCALE_QUALITY, "best");  // this looks same as linear to me
 
   int w = 0;
   int h = 0;
@@ -132,6 +135,7 @@ VideoSDL::create_surface(int width, int height) {
 
 void
 VideoSDL::set_resolution(unsigned int width, unsigned int height, bool fs) {
+  Log::Debug["video-sdl.cc"] << "inside VideoSDL::set_resolution, width " << width << ", height " << height << " fullscreen bool is " << fs;
   /* Set fullscreen mode */
   int r = SDL_SetWindowFullscreen(window,
                                   fs ? SDL_WINDOW_FULLSCREEN_DESKTOP : 0);
@@ -436,6 +440,13 @@ VideoSDL::set_cursor(void *data, unsigned int width, unsigned int height) {
   SDL_SetCursor(cursor);
 }
 
+void
+VideoSDL::get_mouse_cursor_coord(int *x, int *y){
+  // it seems like this gives inverted x coord?
+  SDL_GetMouseState(x, y);  // "set to the mouse cursor position relative to the focus window for the currently selected mouse"
+  //SDL_GetRelativeMouseState(x, y);  // "set to the mouse deltas since the last call to SDL_GetRelativeMouseState() or since event initialization"
+}
+
 bool
 VideoSDL::set_zoom_factor(float factor) {
   if ((factor < 0.2f) || (factor > 1.f)) {
@@ -452,6 +463,11 @@ VideoSDL::set_zoom_factor(float factor) {
   set_resolution(width, height, is_fullscreen());
 
   return true;
+}
+
+void
+VideoSDL::set_zoom_type(int type) {
+  zoom_type = type;
 }
 
 void

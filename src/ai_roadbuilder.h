@@ -272,7 +272,7 @@ class RoadBuilder {
 
    // find and return a specific PRoad by index
   RoadBuilderRoad* get_proad(int index) {
-    Log::Debug["ai_roadbuilder.cc"] << "inside get_proad[" << index << "]";
+    //Log::Debug["ai_roadbuilder.cc"] << "inside get_proad[" << index << "]";
     if (proads[index] == nullptr){
       Log::Error["ai_roadbuilder.cc"] << "could not find proad with index " << index << "!  crashing";
       throw ExceptionFreeserf("could not find proad with specified index");

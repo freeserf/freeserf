@@ -19,7 +19,7 @@ RoadBuilderRoad::RoadBuilderRoad(int index_) {
   index = index_; // adding this to use as key instead of the ends, as I am discovering the ends are not always unique, at least since allowing passthru solutions
   contains_castle_flag = false;
   is_passthru_solution = false;
-  Log::Debug["roadbuilder_init"] << "constructed new empty RoadBuilderRoad::RoadBuilderRoad with index " << index << ", end1 " << end1 << ", dir1 " << NameDirection[dir1] << ", end2 " << end2 << ", dir2 " << NameDirection[dir2] << ", road length " << road.get_length();
+  //Log::Debug["roadbuilder_init"] << "constructed new empty RoadBuilderRoad::RoadBuilderRoad with index " << index << ", end1 " << end1 << ", dir1 " << NameDirection[dir1] << ", end2 " << end2 << ", dir2 " << NameDirection[dir2] << ", road length " << road.get_length();
 }
 
 /*
@@ -44,7 +44,7 @@ RoadBuilderRoad::RoadBuilderRoad(MapPos e1, Direction d1, MapPos e2, Direction d
   index = index_;  // adding this to use as key instead of the ends, as I am discovering the ends are not always unique, at least since allowing passthru solutions
   contains_castle_flag = false;
   is_passthru_solution = false;
-  Log::Debug["roadbuilder_init"] << "constructed RoadBuilderRoad::RoadBuilderRoad with index " << index << ", end1 " << end1 << ", dir1 " << NameDirection[dir1] << ", end2 " << end2 << ", dir2 " << NameDirection[dir2] << ", road length " << road.get_length();
+  //Log::Debug["roadbuilder_init"] << "constructed RoadBuilderRoad::RoadBuilderRoad with index " << index << ", end1 " << end1 << ", dir1 " << NameDirection[dir1] << ", end2 " << end2 << ", dir2 " << NameDirection[dir2] << ", road length " << road.get_length();
 }
 
 

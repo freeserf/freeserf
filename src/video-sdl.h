@@ -71,6 +71,8 @@ class VideoSDL : public Video {
   bool fullscreen;
   SDL_Cursor *cursor;
   float zoom_factor;
+  int zoom_type; // used to distinguish between keyboard zoom with '[' or ']' keys, which zooms center to the screen
+                  // versus mousewheel zoom, which zooms center to the current mouse pointer/cursor location (NOT the map/viewport cursor MapPos location)
 
  public:
   VideoSDL();
@@ -108,9 +110,12 @@ class VideoSDL : public Video {
   virtual void swap_buffers();
 
   virtual void set_cursor(void *data, unsigned int width, unsigned int height);
+  virtual void get_mouse_cursor_coord(int *x, int *y); // trying to center zoom around MOUSE POINTER cursor pos (not selected tile on map cursor)
 
   virtual float get_zoom_factor() { return zoom_factor; }
   virtual bool set_zoom_factor(float factor);
+  virtual int get_zoom_type() { return zoom_type; }
+  virtual void set_zoom_type(int type);
   virtual void get_screen_factor(float *fx, float *fy);
 
  protected:

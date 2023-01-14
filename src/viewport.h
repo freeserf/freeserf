@@ -62,6 +62,9 @@ class Viewport : public GuiObject, public Map::Handler {
   Interface *interface;
   unsigned int last_tick;
   Data::PSource data_source;
+  float last_zoom_factor;  // tlongstretch, attempt to recenter screen when zooming
+  unsigned int last_res_width; // tlongstretch, attempt to recenter screen when zooming
+  unsigned int last_res_height; // tlongstretch, attempt to recenter screen when zooming
 
   // these are all used for determing which sounds should play (when viewport is large)
   bool in_ambient_focus; // this is the final check set true if both col and row true

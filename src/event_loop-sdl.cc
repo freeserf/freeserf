@@ -130,6 +130,9 @@ EventLoopSDL::run() {
   int last_time = timenow;
   int target_fps = 49;  // default game speed 2 is 49-50fps.  Adjusted later for game_speed
 
+  // trying to debug zoom issues with quickly changing zoom
+  bool zoom_changed = false;
+
   /* target fps for various speeds (best case scenario, tiny tiny screen, no players active)
   speed fps
   3   53/52
@@ -194,6 +197,8 @@ EventLoopSDL::run() {
     SDL_Keymod mod = SDL_GetModState();
 
     timenow = time(0); // for FPS counter
+    //zoom_changed = false; // trying to solve erratic zoom issue
+    //MouseState * m = (MouseState*) userdata;  // trying to solve issue with mouse pointer not being reported exactly correctly
 
 
     switch (event.type) {
@@ -291,12 +296,37 @@ EventLoopSDL::run() {
             notify_list_scroll(event.wheel.y);
           }else{
             //Log::Debug["event_loop-sdl.cc"] << "inside EventLoopSDL::run(), is_list_in_focus is false, using ZOOM";
+
+            // I am seeing an issue where if zooming quickly the zoom is messed up
+            //  trying to limit it to a single increment per game update/tick
+            // NOPE THIS ISN'T THE CAUSE
+            /*
+            if (event.wheel.y > 1){
+              Log::Debug["event_loop-sdl.cc"] << "inside EventLoopSDL::run(), event.wheel.y is " << event.wheel.y << ", limit it to 1";
+              event.wheel.y = 1;
+            }else if (event.wheel.y < -1){
+              event.wheel.y = -1;
+              Log::Debug["event_loop-sdl.cc"] << "inside EventLoopSDL::run(), event.wheel.y is " << event.wheel.y << ", limit it to -1";
+            }
+            */
+
+            if (zoom_changed){
+              Log::Debug["event_loop-sdl.cc"] << "inside EventLoopSDL::run(), zoom was already changed this SDL loop, not changing again";
+              break;
+            }
+
             if (option_InvertWheelZoom){
               // the wheel zoom is backwards unless reversed
               //  it seems Mac users may expect reversed zoom?
-              zoom(0.2f * static_cast<float>(event.wheel.y));
+              //zoom(0.2f * static_cast<float>(event.wheel.y));
+              //zoom(0.05f * static_cast<float>(event.wheel.y));  // adding zoom levels
+              zoom(0.05f * static_cast<float>(event.wheel.y), 1);  // adding zoom type for centering, 1 means mousewheel zoom, centered on current mouse pointer position
+              zoom_changed = true;
             }else{
-              zoom(0.2f * static_cast<float>((event.wheel.y * -1)));
+              //zoom(0.2f * static_cast<float>((event.wheel.y * -1)));
+              //zoom(0.05f * static_cast<float>((event.wheel.y * -1)));
+              zoom(0.05f * static_cast<float>((event.wheel.y * -1)), 1); // adding zoom type for centering, 1 means mousewheel zoom, centered on current mouse pointer position
+              zoom_changed = true;
             }
           }
         //}
@@ -372,10 +402,14 @@ EventLoopSDL::run() {
             }
             break;
           case SDLK_RIGHTBRACKET:
-            zoom(-0.2f);
+            //zoom(-0.2f);
+            //zoom(-0.05f);
+            zoom(-0.05f, 0);  // adding zoom type for centering, 0 means keyboard zoom, centered on center of viewport
             break;
           case SDLK_LEFTBRACKET:
-            zoom(0.2f);
+            //zoom(0.2f);
+            //zoom(0.05f);
+            zoom(-0.05f, 0);  // adding zoom type for centering, 0 means keyboard zoom, centered on center of viewport
             break;
 
           // Misc
@@ -399,7 +433,8 @@ EventLoopSDL::run() {
           unsigned int height = event.window.data2;
           gfx.set_resolution(width, height, gfx.is_fullscreen());
           gfx.get_screen_factor(&screen_factor_x, &screen_factor_y);
-          zoom(0.0); // this re-applies any existing zoom but does not adjust
+          //zoom(0.0); // this re-applies any existing zoom but does not adjust
+          zoom(0.0, 0); // this re-applies any existing zoom but does not adjust
           notify_resize(width, height);
         }
         break;
@@ -450,6 +485,8 @@ EventLoopSDL::run() {
           gfx.swap_buffers();
 
           SDL_FlushEvent(eventUserTypeStep);
+
+          zoom_changed = false; // trying to solve erratic zoom issue
         }
     }
   }
@@ -462,7 +499,8 @@ EventLoopSDL::run() {
 }
 
 void
-EventLoopSDL::zoom(float delta) {
+//EventLoopSDL::zoom(float delta) {
+EventLoopSDL::zoom(float delta, int type) {
   Graphics &gfx = Graphics::get_instance();
   //unsigned int oldwidth = 0;
   //unsigned int oldheight = 0;
@@ -471,12 +509,21 @@ EventLoopSDL::zoom(float delta) {
   float factor = gfx.get_zoom_factor();
   if (gfx.set_zoom_factor(factor + delta)) {
     zoom_factor = gfx.get_zoom_factor();
+    gfx.set_zoom_type(type);
+    //zoom_type = type;
     unsigned int width = 0;
     unsigned int height = 0;
     gfx.get_resolution(&width, &height);
     //Log::Debug["event_loop-sdl.cc"] << "inside EventLoopSDL::zoom, zoom_factor is now " << gfx.get_zoom_factor() << ", resolution is now " << width << " w / " << height << " h ";
     notify_resize(width, height);
   }
+
+  //debug - this works now
+  //int x = 0;
+  //int y = 0;
+  //gfx.get_mouse_cursor_coord(&x,&y);
+  //Log::Debug["event_loop-sdl.cc"] << "inside EventLoopSDL::zoom, the mouse cursor pointer is at coord " << x << "," << y;
+
 }
 
 class TimerSDL : public Timer {

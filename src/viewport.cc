@@ -4660,6 +4660,10 @@ Viewport::Viewport(Interface *_interface, PMap _map)
   offset_x = 0;
   offset_y = 0;
 
+  last_zoom_factor = 1.00f;  // tlongstretch, attempt to recenter screen when zooming
+  last_res_width = 0; // tlongstretch, attempt to recenter screen when zooming
+  last_res_height = 0; // tlongstretch, attempt to recenter screen when zooming
+
   last_tick = 0;
 
   data_source = Data::get_instance().get_data_source();
@@ -4869,6 +4873,84 @@ void
 Viewport::update() {
   int tick_xor = interface->get_game()->get_tick() ^ last_tick;
   last_tick = interface->get_game()->get_tick();
+
+  //
+  // atempt to recenter screen to zoom
+  //
+  Graphics &gfx = Graphics::get_instance();
+
+  // at start of game, resolution is unknown/zero, if so set last_res_width/height
+  if (last_res_height == 0 || last_res_width == 0){
+    Log::Debug["viewport.cc"] << "inside Viewport::update, this is probably the first update, setting last_res_width and last_res_height for later zoom checks";
+    unsigned int res_width; 
+    unsigned int res_height;
+    gfx.get_resolution(&res_width, &res_height);
+    last_res_width = res_width;
+    last_res_height = res_height;
+  }
+
+  float zoom_factor = gfx.get_zoom_factor();
+  if (zoom_factor != 0){
+    //Log::Debug["viewport.cc"] << "inside Viewport::update, gfx.get_zoom_factor is not zero";
+    if (last_zoom_factor != zoom_factor){
+      Log::Debug["viewport.cc"] << "inside Viewport::update, the zoom factor was just changed to " << zoom_factor;
+      last_zoom_factor = zoom_factor;
+
+      Log::Debug["viewport.cc"] << "inside Viewport::update, the zoom factor was just changed to " << zoom_factor << ", attempting to move the viewport";
+      unsigned int res_width; 
+      unsigned int res_height;
+      gfx.get_resolution(&res_width, &res_height);
+      int width_change = last_res_width - res_width;
+      int height_change = last_res_height - res_height;
+      int zoom_type = gfx.get_zoom_type();
+      if (zoom_type == 0){  // keyboard zoom, centered on center of viewport
+        Log::Debug["viewport.cc"] << "inside Viewport::update, zoom type " << zoom_type << " (keyboard zoom), the prev resolution was " << last_res_width << "x" <<  last_res_height << ", new res is " << res_width << "x" << res_height << ", diff is " << width_change << "," << height_change;
+        move_by_pixels(width_change/2, height_change/2);
+      }else{
+        Log::Debug["viewport.cc"] << "inside Viewport::update, zoom type " << zoom_type << " (mousewheel zoom), the prev resolution was " << last_res_width << "x" <<  last_res_height << ", new res is " << res_width << "x" << res_height << ", diff is " << width_change << "," << height_change;
+        // mousewheel zoom, centered on current mouse pointer location
+        int mouse_x = 0;
+        int mouse_y = 0;
+        gfx.get_mouse_cursor_coord(&mouse_x, &mouse_y);
+
+        // it seems like this gives inverted x coord?
+        // for now try reversing it
+        //if (mouse_x > res_width){
+        //  mouse_x = res_width;
+        //}
+        if (mouse_x > last_res_width){
+          mouse_x = last_res_width;
+        }
+        mouse_x = last_res_width - mouse_x;
+        Log::Debug["viewport.cc"] << "inside Viewport::update, zoom type " << zoom_type << " (mousewheel zoom), the mouse has coord " << mouse_x << "," << mouse_y;
+        // for some reason the mouse x/y is not exactly where expected, it seems to be allowed to get higher than
+        //  the actual screen res?  not sure why.  For testing, limiting it to max
+        //if (mouse_x > last_res_width){
+        //  mouse_x = last_res_width;
+        //}
+        if (mouse_y > last_res_height){
+          mouse_y = last_res_height;
+        }
+        Log::Debug["viewport.cc"] << "inside Viewport::update, zoom type " << zoom_type << " (mousewheel zoom), the mouse has ADJUSTED coord " << mouse_x << "," << mouse_y;
+
+        // as a hack, to try to offset the mouse pointer pos being able to go a bit past the res size
+        //  simply increment the effective res size a bit for the purpose of offset percentage calculation
+        // this works well enough, though not perfect
+        int mouse_x_offset = last_res_width * 1.05 - mouse_x;
+        int mouse_y_offset = last_res_height * 1.05 - mouse_y;
+        float mouse_x_offset_mult = float(mouse_x_offset) / float(last_res_width * 1.05);
+        float mouse_y_offset_mult = float(mouse_y_offset) / float(last_res_height * 1.05);
+
+        Log::Debug["viewport.cc"] << "inside Viewport::update, mouse x is " << mouse_x_offset_mult * 100 << "% of the screen width " << res_width;
+        Log::Debug["viewport.cc"] << "inside Viewport::update, mouse y is " << mouse_y_offset_mult * 100 << "% of the screen height " << res_height;
+        float mouse_x_offset_pix = width_change * mouse_x_offset_mult;
+        float mouse_y_offset_pix = height_change * float(1 - mouse_y_offset_mult);
+        move_by_pixels(mouse_x_offset_pix, mouse_y_offset_pix);
+      }
+      last_res_width = res_width;
+      last_res_height = res_height;
+    }
+  }
 
   /* Viewport animation does not care about low bits in anim */
   if (tick_xor >= 1 << 3) {
