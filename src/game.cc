@@ -1432,7 +1432,7 @@ Game::build_road(const Road &road, const Player *player) {
   src_flag->link_with_flag(dest_flag, water_path, road.get_length(),
                            in_dir, out_dir);
 
-  Log::Debug["game.cc"] << "inside Game::build_road, road built, returning true";
+ // Log::Debug["game.cc"] << "inside Game::build_road, road built, returning true";
 
   return true;
 }

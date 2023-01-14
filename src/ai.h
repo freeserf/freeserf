@@ -481,8 +481,11 @@ static const unsigned int gold_ore_weight = 6;
 //     TODO: need to be 100% sure unfinished buildings don't get stuck and halt AI progress
 //      separated huts vs other buildings because we don't ever want to stop one type entirely
 // lumberjack & sawmill ignore this limit (and maybe stonecutter too?)
-static const unsigned int max_unfinished_buildings = 2;
-static const unsigned int max_unfinished_huts = 2;
+//static const unsigned int max_unfinished_buildings = 2;
+//static const unsigned int max_unfinished_huts = 2;
+// jan13 2023, increasing this
+static const unsigned int max_unfinished_buildings = 3;
+static const unsigned int max_unfinished_huts = 3;
 
 // don't *connect* new mines to an Inv if this many reached, no limits on placing them though
 static const unsigned int max_coalmines = 2;

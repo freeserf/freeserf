@@ -1888,15 +1888,16 @@ AI::build_best_road(MapPos start_pos, RoadOptions road_options, Road *built_road
           else {
             AILogDebug["util_build_best_road"] << "" << calling_function << " failed to build flag at this_segment_end_pos " << this_segment_end_pos << ", on way to final end_pos " << end_pos << ", FIND OUT WHY!  not trying to build this road.  marking pos in cyan";
             ai_mark_pos.insert(ColorDot(this_segment_end_pos, "cyan"));
-            AILogWarn["util_build_best_road"] << "SLEEPING AI FOR LONG TIME";
-            std::this_thread::sleep_for(std::chrono::milliseconds(1000000));
-            AILogWarn["util_build_best_road"] << "DONE SLEEPING";
+            //// I'm not sure what is causing this yet, but it seems to happen for many-segment complex roads near busy areas, and isn't all that of a big deal to use alternate solution
+            //AILogWarn["util_build_best_road"] << "SLEEPING AI FOR LONG TIME";
+            //std::this_thread::sleep_for(std::chrono::milliseconds(1000000));
+            //AILogWarn["util_build_best_road"] << "DONE SLEEPING";
             //continue;
             // now that passthru is allowed, must break instead of continue
             //  as multiple road segments could comprise a solution, and this length check must reject the ENTIRE solution
             break;
           }
-        }
+        }// if no flag at  this_segment_end_pos
           
         // build the road!
         //ai_mark_road = &road;
@@ -1910,8 +1911,6 @@ AI::build_best_road(MapPos start_pos, RoadOptions road_options, Road *built_road
         bool skip_segment = false;
             
         // check and see if this segment is significantly shorter than any existing segment between the same two flags
-
-
         if (map->has_flag(this_segment_start_pos) && map->has_flag(this_segment_end_pos)) {
           AILogDebug["util_build_best_road"] << "" << calling_function << " segment_start_pos " << this_segment_start_pos << ", segment_end_pos " << this_segment_end_pos << ", checking for existing solution for this segment, flags already exist at both segment start and segment end pos, checking for a path between them";
           for (Direction check_dir : cycle_directions_cw()){
@@ -1920,13 +1919,13 @@ AI::build_best_road(MapPos start_pos, RoadOptions road_options, Road *built_road
               Flag *segment_start_flag = game->get_flag_at_pos(this_segment_start_pos);
               //if (segment_start_flag == nullptr){
               if (segment_start_flag->get_other_end_flag(check_dir)->get_position() == this_segment_end_pos){
-                AILogDebug["util_build_best_road"] << "" << calling_function << "segment_start_pos " << this_segment_start_pos << ", segment_end_pos " << this_segment_end_pos << ", checking for existing solution for this segment, Dir" << check_dir << " leads to segment_end_pos flag at " << this_segment_end_pos;
+                AILogDebug["util_build_best_road"] << "" << calling_function << " segment_start_pos " << this_segment_start_pos << ", segment_end_pos " << this_segment_end_pos << ", checking for existing solution for this segment, Dir" << check_dir << " leads to segment_end_pos flag at " << this_segment_end_pos;
                 Road existing_segment_road = trace_existing_road(map, this_segment_start_pos, check_dir);
-                AILogDebug["util_build_best_road"] << "" << calling_function << "segment_start_pos " << this_segment_start_pos << ", segment_end_pos " << this_segment_end_pos << ", checking for existing solution for this segment, existing road between these two flags has length " << existing_segment_road.get_length();
+                AILogDebug["util_build_best_road"] << "" << calling_function << " segment_start_pos " << this_segment_start_pos << ", segment_end_pos " << this_segment_end_pos << ", checking for existing solution for this segment, existing road between these two flags has length " << existing_segment_road.get_length();
                 if (road.get_length() * 1.5 < existing_segment_road.get_length()){
-                  AILogDebug["util_build_best_road"] << "" << calling_function << "segment_start_pos " << this_segment_start_pos << ", segment_end_pos " << this_segment_end_pos << ", checking for existing solution for this segment, this new road segment is significantly better than the current one, will try to build it";
+                  AILogDebug["util_build_best_road"] << "" << calling_function << " segment_start_pos " << this_segment_start_pos << ", segment_end_pos " << this_segment_end_pos << ", checking for existing solution for this segment, this new road segment is significantly better than the current one, will try to build it";
                 }else{
-                  AILogDebug["util_build_best_road"] << "" << calling_function << "segment_start_pos " << this_segment_start_pos << ", segment_end_pos " << this_segment_end_pos << ", checking for existing solution for this segment, this road segment is not significantly better than the current one, skipping it to re-use existing";
+                  AILogDebug["util_build_best_road"] << "" << calling_function << " segment_start_pos " << this_segment_start_pos << ", segment_end_pos " << this_segment_end_pos << ", checking for existing solution for this segment, this road segment is not significantly better than the current one, skipping it to re-use existing";
                   skip_segment = true;
                   break;
                 }
@@ -2044,6 +2043,7 @@ AI::build_best_road(MapPos start_pos, RoadOptions road_options, Road *built_road
             continue;
           }else{
             AILogWarn["util_build_best_road"] << "" << calling_function << " ERROR - failed to build road from " << this_segment_start_pos << " to " << this_segment_end_pos << ", with final end_pos " << end_pos << ", FIND OUT WHY!  marking pos in dk_green, trying next best solution...";
+            /* disabling this for now as it happens only for really convoluted solutions that aren't very helpful anyway
             ai_mark_pos.erase(end_pos);
             ai_mark_pos.insert(ColorDot(end_pos, "dk_green"));
             AILogWarn["util_build_best_road"] << "SLEEPING AI FOR LONG TIME";
@@ -2051,6 +2051,8 @@ AI::build_best_road(MapPos start_pos, RoadOptions road_options, Road *built_road
             AILogWarn["util_build_best_road"] << "DONE SLEEPING";
             AILogWarn["util_build_best_road"] << "" << calling_function << " ERROR - failed to build road, returning early for debugging";
             return false;
+            */
+            break;
           }
 
           // if a new flag was built but the road creation failed, destroy the newly built flag

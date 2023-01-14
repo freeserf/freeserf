@@ -382,12 +382,12 @@ Inventory::specialize_serf(Serf *serf, Serf::Type type) {
 
   if ((res_needed[type*2] != Resource::TypeNone)
       && (resources[res_needed[type*2]] == 0)) {
-    Log::Debug["inventory"] << "inside specialize_serf to type " << NameSerf[type] << ", failure because no tool of first type available";
+    //Log::Debug["inventory"] << "inside specialize_serf to type " << NameSerf[type] << ", failure because no tool of first type available";
     return false;
   }
   if ((res_needed[type*2+1] != Resource::TypeNone)
       && (resources[res_needed[type*2+1]] == 0)) {
-    Log::Debug["inventory"] << "inside specialize_serf to type " << NameSerf[type] << ", failure because no tool of second type available";
+    //Log::Debug["inventory"] << "inside specialize_serf to type " << NameSerf[type] << ", failure because no tool of second type available";
     return false;
   }
 
@@ -405,17 +405,9 @@ Inventory::specialize_serf(Serf *serf, Serf::Type type) {
     resources[res_needed[type*2+1]]--;
   }
 
-  Log::Debug["inventory"] << "inside specialize_serf, successfully specialized a generic serf to new type " << NameSerf[type];
+  //Log::Debug["inventory"] << "inside specialize_serf, successfully specialized a generic serf to new type " << NameSerf[type];
   serf->set_type(type);
 
-  // this makes no sense
-  Log::Debug["inventory"] << "inside specialize_serf, inventory serfs[] array contains";
-  int x =0 ;
-  for ( auto foo : serfs ){
-    auto type = foo.first;
-    auto index = foo.second;
-    Log::Debug["inventory"] << "inside specialize_serf, inventory serfs[" << x++ <<" ] array contains serf type " << type << ", serf index? " << index;
-  }
   serfs[type] = serf->get_index();
 
   return true;

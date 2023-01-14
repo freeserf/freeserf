@@ -379,7 +379,7 @@ Serf::add_to_defending_queue(unsigned int next_knight_index, bool pause) {
 
 void
 Serf::init_generic(Inventory *inventory) {
-  Log::Debug["serf"] << "inside init_generic, about to call set_type";
+  //Log::Debug["serf"] << "inside init_generic, about to call set_type";
   set_type(TypeGeneric);
   set_owner(inventory->get_owner());
   Building *building = game->get_building(inventory->get_building_index());
