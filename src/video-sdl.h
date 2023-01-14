@@ -117,6 +117,7 @@ class VideoSDL : public Video {
   virtual int get_zoom_type() { return zoom_type; }
   virtual void set_zoom_type(int type);
   virtual void get_screen_factor(float *fx, float *fy);
+  virtual void get_screen_size(int *x, int *y);
 
  protected:
   SDL_Surface *create_surface(int width, int height);

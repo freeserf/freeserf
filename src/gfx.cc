@@ -835,7 +835,13 @@ Graphics::get_mouse_cursor_coord(int *x, int *y) {
 }
 
 
+// what is the purpose of screen factor?  it seems to always be set to 1
 void
 Graphics::get_screen_factor(float *fx, float *fy) {
   video->get_screen_factor(fx, fy);
+}
+
+void
+Graphics::get_screen_size(int *x, int *y) {
+  video->get_screen_size(x, y);
 }

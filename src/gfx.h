@@ -200,6 +200,7 @@ class Graphics {
   int get_zoom_type();
   void set_zoom_type(int type);
   void get_screen_factor(float *fx, float *fy);
+  void get_screen_size(int *x, int *y);
   void get_mouse_cursor_coord(int *x, int *y);
 };
 

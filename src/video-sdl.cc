@@ -485,3 +485,8 @@ VideoSDL::get_screen_factor(float *fx, float *fy) {
     *fy = static_cast<float>(rh) / static_cast<float>(h);
   }
 }
+
+void
+VideoSDL::get_screen_size(int *x, int *y) {
+  SDL_GetWindowSize(window, x, y);
+}

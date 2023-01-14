@@ -4913,39 +4913,41 @@ Viewport::update() {
         int mouse_y = 0;
         gfx.get_mouse_cursor_coord(&mouse_x, &mouse_y);
 
-        // it seems like this gives inverted x coord?
-        // for now try reversing it
-        //if (mouse_x > res_width){
-        //  mouse_x = res_width;
-        //}
-        if (mouse_x > last_res_width){
-          mouse_x = last_res_width;
-        }
-        mouse_x = last_res_width - mouse_x;
-        Log::Debug["viewport.cc"] << "inside Viewport::update, zoom type " << zoom_type << " (mousewheel zoom), the mouse has coord " << mouse_x << "," << mouse_y;
-        // for some reason the mouse x/y is not exactly where expected, it seems to be allowed to get higher than
-        //  the actual screen res?  not sure why.  For testing, limiting it to max
-        //if (mouse_x > last_res_width){
-        //  mouse_x = last_res_width;
-        //}
-        if (mouse_y > last_res_height){
-          mouse_y = last_res_height;
-        }
-        Log::Debug["viewport.cc"] << "inside Viewport::update, zoom type " << zoom_type << " (mousewheel zoom), the mouse has ADJUSTED coord " << mouse_x << "," << mouse_y;
+        // I can't figure out what screen_factor is for, seems to always be 1
+        //float screen_factor_x = 0.00;
+        //float screen_factor_y = 0.00;
+        //gfx.get_screen_factor(&screen_factor_x, &screen_factor_y);
+        //Log::Debug["viewport.cc"] << "inside Viewport::update, screen_factor_x " << screen_factor_x << ", screen_factor_y " << screen_factor_y;
+        // this is what I was looking for, the un-scaled actual game window size in pixels (default is 800x600)
+        int screen_size_x = 0;
+        int screen_size_y = 0;
+        gfx.get_screen_size(&screen_size_x, &screen_size_y);
+        Log::Debug["viewport.cc"] << "inside Viewport::update, screen_size_x " << screen_size_x << ", screen_size_y " << screen_size_y;
 
-        // as a hack, to try to offset the mouse pointer pos being able to go a bit past the res size
-        //  simply increment the effective res size a bit for the purpose of offset percentage calculation
-        // this works well enough, though not perfect
-        int mouse_x_offset = last_res_width * 1.05 - mouse_x;
-        int mouse_y_offset = last_res_height * 1.05 - mouse_y;
-        float mouse_x_offset_mult = float(mouse_x_offset) / float(last_res_width * 1.05);
-        float mouse_y_offset_mult = float(mouse_y_offset) / float(last_res_height * 1.05);
+        // one of the coords is inverted for whatever reason
+        mouse_y = screen_size_y - mouse_y;
+
+        Log::Debug["viewport.cc"] << "inside Viewport::update, zoom type " << zoom_type << " (mousewheel zoom), the mouse has coord " << mouse_x << "," << mouse_y;
+
+
+        //int mouse_x_offset = last_res_width - mouse_x + (7 * width_change * (1.00 - zoom_factor));
+        int mouse_x_offset = screen_size_x - mouse_x;
+        int mouse_y_offset = screen_size_y - mouse_y;
+        float mouse_x_offset_mult = float(mouse_x_offset) / float(screen_size_x);
+        float mouse_y_offset_mult = float(mouse_y_offset) / float(screen_size_y);
 
         Log::Debug["viewport.cc"] << "inside Viewport::update, mouse x is " << mouse_x_offset_mult * 100 << "% of the screen width " << res_width;
         Log::Debug["viewport.cc"] << "inside Viewport::update, mouse y is " << mouse_y_offset_mult * 100 << "% of the screen height " << res_height;
-        float mouse_x_offset_pix = width_change * mouse_x_offset_mult;
-        float mouse_y_offset_pix = height_change * float(1 - mouse_y_offset_mult);
-        move_by_pixels(mouse_x_offset_pix, mouse_y_offset_pix);
+        float mouse_x_offset_pix = 0.00;
+        float mouse_y_offset_pix = 0.00;
+        // for zoom OUT, just use centered zoom as it looks funny if pointer-adjusted
+        if (width_change < 0 || height_change < 0){
+          move_by_pixels(width_change/2, height_change/2);
+        }else{
+          mouse_x_offset_pix = width_change * float(1 - mouse_x_offset_mult);
+          mouse_y_offset_pix = height_change * mouse_y_offset_mult;
+          move_by_pixels(mouse_x_offset_pix, mouse_y_offset_pix);
+        }
       }
       last_res_width = res_width;
       last_res_height = res_height;
