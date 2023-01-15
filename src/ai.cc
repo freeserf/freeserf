@@ -1739,7 +1739,7 @@ AI::do_build_rangers() {
   AILogDebug["do_build_rangers"] << "HouseKeeping: build rangers near lumberjacks that have few trees and no ranger nearby";
   ai_status.assign("do_build_rangers");
   if (stock_building_counts.at(inventory_pos).needs_wood) {
-    AILogInfo["do_build_stonecutter"] << inventory_pos << " need wood, considering building rangers";
+    //AILogInfo["do_build_rangers"] << inventory_pos << " need wood, considering building rangers";
     Game::ListBuildings buildings = game->get_player_buildings(player);
     for (Building *building : buildings) {
       if (building == nullptr)
@@ -1761,7 +1761,7 @@ AI::do_build_rangers() {
         AILogDebug["do_build_rangers"] << "built ranger at pos " << built_pos;
     }
   }else{
-    AILogInfo["do_build_stonecutter"] << inventory_pos << " have sufficient wood, not considering building rangers";
+    AILogInfo["do_build_rangers"] << inventory_pos << " have sufficient wood, not considering building rangers";
   }
   AILogDebug["do_build_rangers"] << "done do_build_rangers";
 }

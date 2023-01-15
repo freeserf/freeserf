@@ -1069,6 +1069,7 @@ Game::update() {
   }
   */
 
+ /*
   // corruption debugging, saw an issue where Building seems to exist
   //  far outside the player's borders
   ticks_since_last_corruption_detection += game_ticks_per_update;
@@ -1084,6 +1085,7 @@ Game::update() {
       }
     }
   }
+  */
 
 /*
   Log::Info["game"] << "option_EnableAutoSave is " << option_EnableAutoSave;

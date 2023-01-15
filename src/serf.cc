@@ -2222,7 +2222,7 @@ Serf::handle_serf_transporting_state() {
 
 void
 Serf::enter_inventory() {
-  Log::Debug["serf.cc"] << " inside Serf::enter_inventory, for a serf with index " << get_index() << ", and type " << NameSerf[get_type()];
+  //Log::Debug["serf.cc"] << " inside Serf::enter_inventory, for a serf with index " << get_index() << ", and type " << NameSerf[get_type()];
   game->get_map()->set_serf_index(pos, 0);
   Building *building = game->get_building_at_pos(pos);
   if (building == nullptr){

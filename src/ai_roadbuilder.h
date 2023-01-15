@@ -343,7 +343,7 @@ class RoadBuilder {
     Direction start_dir = std::get<1>(ends);
     MapPos end_pos = std::get<2>(ends);
     Direction end_dir = std::get<3>(ends);
-    Log::Debug["ai_roadbuilder"] << "inside new_proad with start_pos " << start_pos << ", start_dir " << NameDirection[start_dir] << ", end_pos " << end_pos << ", end_dir " << NameDirection[end_dir];
+    //Log::Debug["ai_roadbuilder"] << "inside new_proad with start_pos " << start_pos << ", start_dir " << NameDirection[start_dir] << ", end_pos " << end_pos << ", end_dir " << NameDirection[end_dir];
     //RoadBuilderRoad *rb_road = new RoadBuilderRoad(end1, dir1, end2, dir2);
     //RoadBuilderRoad *rb_road = new RoadBuilderRoad(ends, road);
     RoadBuilderRoad *rb_road = new RoadBuilderRoad(ends, road, rb_road_index);

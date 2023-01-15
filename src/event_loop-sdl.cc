@@ -468,7 +468,7 @@ EventLoopSDL::run() {
             target_fps = 1000 / tick_length; // same as TICKS_PER_SEC
             int fps_lag = target_fps - (frames / time_delta);
             if (fps_lag < 0){fps_lag = 0;}
-            //Log::Debug["event_loop-sdl.cc"] << "in past " << time_delta << "sec, processed " << frames << " frames, target_fps " << target_fps << ", FPS loss:" << fps_lag;
+            Log::Info["event_loop-sdl.cc"] << "in past " << time_delta << "sec, processed " << frames << " frames, target_fps " << target_fps << ", FPS loss:" << fps_lag;
             frames = 0;
             last_time = timenow;
           }
