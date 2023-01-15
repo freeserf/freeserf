@@ -250,6 +250,8 @@ class AI {
   double count_geologist_sign_density(MapPos, unsigned int);
   MapPosVector sort_by_val_asc(MapPosSet);
   MapPosVector sort_by_val_desc(MapPosSet);
+  std::vector<unsigned int> sort_scores_by_val_asc(std::vector<std::pair<int, unsigned int>>);
+  //std::vector<unsigned int> sort_scores_by_val_desc(std::vector<int, unsigned int>); // desc might not even be used, leaving it out until needed
   //MapPos build_near_pos(MapPos, unsigned int, Building::Type);
   MapPos build_near_pos(MapPos, unsigned int, Building::Type, Direction optional_fill_dir = DirectionNone);
   bool building_exists_near_pos(MapPos, unsigned int, Building::Type);
@@ -374,7 +376,8 @@ class AI {
   //
   // ai_pathfinder.cc
   //
-  Road plot_road(PMap map, unsigned int player_index, MapPos start, MapPos end, Roads * const &potential_roads, bool hold_building_pos = false);
+  //Road plot_road(PMap map, unsigned int player_index, MapPos start, MapPos end, Roads * const &potential_roads, bool hold_building_pos = false);
+  Road plot_road(PMap map, unsigned int player_index, MapPos start, MapPos end, Roads * const &potential_roads, bool hold_building_pos = false, bool allow_passthu = false);
   int get_straightline_tile_dist(PMap map, MapPos start_pos, MapPos end_pos);
   bool score_flag(PMap map, unsigned int player_index, RoadBuilder *rb, RoadOptions road_options, MapPos flag_pos, MapPos castle_flag_pos, ColorDotMap *ai_mark_pos);
   bool find_flag_path_and_tile_dist_between_flags(PMap map, MapPos start_pos, MapPos target_pos, MapPosVector *solution_flags, unsigned int *tile_dist, ColorDotMap *ai_mark_pos);
@@ -478,8 +481,11 @@ static const unsigned int gold_ore_weight = 6;
 //     TODO: need to be 100% sure unfinished buildings don't get stuck and halt AI progress
 //      separated huts vs other buildings because we don't ever want to stop one type entirely
 // lumberjack & sawmill ignore this limit (and maybe stonecutter too?)
-static const unsigned int max_unfinished_buildings = 2;
-static const unsigned int max_unfinished_huts = 2;
+//static const unsigned int max_unfinished_buildings = 2;
+//static const unsigned int max_unfinished_huts = 2;
+// jan13 2023, increasing this
+static const unsigned int max_unfinished_buildings = 3;
+static const unsigned int max_unfinished_huts = 3;
 
 // don't *connect* new mines to an Inv if this many reached, no limits on placing them though
 static const unsigned int max_coalmines = 2;

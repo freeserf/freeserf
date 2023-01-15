@@ -3858,24 +3858,31 @@ Viewport::draw_ai_overlay() {
   //
   // draw ai_mark_road to highlight any road set by AI
   //
+  /*
+  Log::Debug["viewport.cc"] << "inside Viewport::draw_ai_overlay, about to start drawing ai_mark_road";
   MapPos prevpos = ai->get_ai_mark_road()->get_source();
+  Log::Debug["viewport.cc"] << "inside Viewport::draw_ai_overlay, get_source is " << prevpos;
+  Log::Debug["viewport.cc"] << "inside Viewport::draw_ai_overlay, size is " << ai->get_ai_mark_road()->get_dirs().size();
   for (const auto &dir : ai->get_ai_mark_road()->get_dirs()) {
-          MapPos thispos = map->move(prevpos, dir);
-          int prev_sx = 0;
-          int prev_sy = 0;
-          //Log::Info["viewport"] << "calling screen_pix_from_map_coord with FROM MapPos " << prevpos << ", empty x,y " << prev_sx << "," << prev_sy;
-          screen_pix_from_map_coord(prevpos, &prev_sx, &prev_sy);
-          //Log::Info["viewport"] << "called screen_pix_from_map_coord with FROM MapPos " << prevpos << ", got x,y " << prev_sx << "," << prev_sy;
+    Log::Debug["viewport.cc"] << "inside Viewport::draw_ai_overlay, prevpos = " << prevpos << ", Dir = " << dir;
+    MapPos thispos = map->move(prevpos, dir);
+    int prev_sx = 0;
+    int prev_sy = 0;
+    Log::Debug["viewport"] << "calling screen_pix_from_map_coord with FROM MapPos " << prevpos << ", empty x,y " << prev_sx << "," << prev_sy;
+    screen_pix_from_map_coord(prevpos, &prev_sx, &prev_sy);
+    Log::Debug["viewport"] << "called screen_pix_from_map_coord with FROM MapPos " << prevpos << ", got x,y " << prev_sx << "," << prev_sy;
 
-          int this_sx = 0;
-          int this_sy = 0;
-          //Log::Info["viewport"] << "calling screen_pix_from_map_coord with TO MapPos " << thispos << ", empty x,y " << this_sx << "," << this_sy;
-          screen_pix_from_map_coord(thispos, &this_sx, &this_sy);
-          //Log::Info["viewport"] << "called screen_pix_from_map_coord with TO MapPos " << thispos << ", got x,y " << this_sx << "," << this_sy;
+    int this_sx = 0;
+    int this_sy = 0;
+    Log::Debug["viewport"] << "calling screen_pix_from_map_coord with TO MapPos " << thispos << ", empty x,y " << this_sx << "," << this_sy;
+    screen_pix_from_map_coord(thispos, &this_sx, &this_sy);
+    Log::Debug["viewport"] << "called screen_pix_from_map_coord with TO MapPos " << thispos << ", got x,y " << this_sx << "," << this_sy;
 
-          frame->draw_line(prev_sx, prev_sy, this_sx, this_sy, ai->get_mark_color("white"));
-          prevpos = thispos;
+    frame->draw_line(prev_sx, prev_sy, this_sx, this_sy, ai->get_mark_color("white"));
+    prevpos = thispos;
   }
+  Log::Debug["viewport.cc"] << "inside Viewport::draw_ai_overlay, done drawing ai_mark_road";
+  */
 
   /*
   //
@@ -4653,6 +4660,10 @@ Viewport::Viewport(Interface *_interface, PMap _map)
   offset_x = 0;
   offset_y = 0;
 
+  last_zoom_factor = 1.00f;  // tlongstretch, attempt to recenter screen when zooming
+  last_res_width = 0; // tlongstretch, attempt to recenter screen when zooming
+  last_res_height = 0; // tlongstretch, attempt to recenter screen when zooming
+
   last_tick = 0;
 
   data_source = Data::get_instance().get_data_source();
@@ -4862,6 +4873,86 @@ void
 Viewport::update() {
   int tick_xor = interface->get_game()->get_tick() ^ last_tick;
   last_tick = interface->get_game()->get_tick();
+
+  //
+  // atempt to recenter screen to zoom
+  //
+  Graphics &gfx = Graphics::get_instance();
+
+  // at start of game, resolution is unknown/zero, if so set last_res_width/height
+  if (last_res_height == 0 || last_res_width == 0){
+    Log::Debug["viewport.cc"] << "inside Viewport::update, this is probably the first update, setting last_res_width and last_res_height for later zoom checks";
+    unsigned int res_width; 
+    unsigned int res_height;
+    gfx.get_resolution(&res_width, &res_height);
+    last_res_width = res_width;
+    last_res_height = res_height;
+  }
+
+  float zoom_factor = gfx.get_zoom_factor();
+  if (zoom_factor != 0){
+    //Log::Debug["viewport.cc"] << "inside Viewport::update, gfx.get_zoom_factor is not zero";
+    if (last_zoom_factor != zoom_factor){
+      Log::Debug["viewport.cc"] << "inside Viewport::update, the zoom factor was just changed to " << zoom_factor;
+      last_zoom_factor = zoom_factor;
+
+      Log::Debug["viewport.cc"] << "inside Viewport::update, the zoom factor was just changed to " << zoom_factor << ", attempting to move the viewport";
+      unsigned int res_width; 
+      unsigned int res_height;
+      gfx.get_resolution(&res_width, &res_height);
+      int width_change = last_res_width - res_width;
+      int height_change = last_res_height - res_height;
+      int zoom_type = gfx.get_zoom_type();
+      if (zoom_type == 0){  // keyboard zoom, centered on center of viewport
+        Log::Debug["viewport.cc"] << "inside Viewport::update, zoom type " << zoom_type << " (keyboard zoom), the prev resolution was " << last_res_width << "x" <<  last_res_height << ", new res is " << res_width << "x" << res_height << ", diff is " << width_change << "," << height_change;
+        move_by_pixels(width_change/2, height_change/2);
+      }else{
+        Log::Debug["viewport.cc"] << "inside Viewport::update, zoom type " << zoom_type << " (mousewheel zoom), the prev resolution was " << last_res_width << "x" <<  last_res_height << ", new res is " << res_width << "x" << res_height << ", diff is " << width_change << "," << height_change;
+        // mousewheel zoom, centered on current mouse pointer location
+        int mouse_x = 0;
+        int mouse_y = 0;
+        gfx.get_mouse_cursor_coord(&mouse_x, &mouse_y);
+
+        // I can't figure out what screen_factor is for, seems to always be 1
+        //float screen_factor_x = 0.00;
+        //float screen_factor_y = 0.00;
+        //gfx.get_screen_factor(&screen_factor_x, &screen_factor_y);
+        //Log::Debug["viewport.cc"] << "inside Viewport::update, screen_factor_x " << screen_factor_x << ", screen_factor_y " << screen_factor_y;
+        // this is what I was looking for, the un-scaled actual game window size in pixels (default is 800x600)
+        int screen_size_x = 0;
+        int screen_size_y = 0;
+        gfx.get_screen_size(&screen_size_x, &screen_size_y);
+        Log::Debug["viewport.cc"] << "inside Viewport::update, screen_size_x " << screen_size_x << ", screen_size_y " << screen_size_y;
+
+        // one of the coords is inverted for whatever reason
+        mouse_y = screen_size_y - mouse_y;
+
+        Log::Debug["viewport.cc"] << "inside Viewport::update, zoom type " << zoom_type << " (mousewheel zoom), the mouse has coord " << mouse_x << "," << mouse_y;
+
+
+        //int mouse_x_offset = last_res_width - mouse_x + (7 * width_change * (1.00 - zoom_factor));
+        int mouse_x_offset = screen_size_x - mouse_x;
+        int mouse_y_offset = screen_size_y - mouse_y;
+        float mouse_x_offset_mult = float(mouse_x_offset) / float(screen_size_x);
+        float mouse_y_offset_mult = float(mouse_y_offset) / float(screen_size_y);
+
+        Log::Debug["viewport.cc"] << "inside Viewport::update, mouse x is " << mouse_x_offset_mult * 100 << "% of the screen width " << res_width;
+        Log::Debug["viewport.cc"] << "inside Viewport::update, mouse y is " << mouse_y_offset_mult * 100 << "% of the screen height " << res_height;
+        float mouse_x_offset_pix = 0.00;
+        float mouse_y_offset_pix = 0.00;
+        // for zoom OUT, just use centered zoom as it looks funny if pointer-adjusted
+        if (width_change < 0 || height_change < 0){
+          move_by_pixels(width_change/2, height_change/2);
+        }else{
+          mouse_x_offset_pix = width_change * float(1 - mouse_x_offset_mult);
+          mouse_y_offset_pix = height_change * mouse_y_offset_mult;
+          move_by_pixels(mouse_x_offset_pix, mouse_y_offset_pix);
+        }
+      }
+      last_res_width = res_width;
+      last_res_height = res_height;
+    }
+  }
 
   /* Viewport animation does not care about low bits in anim */
   if (tick_xor >= 1 << 3) {

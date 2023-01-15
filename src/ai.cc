@@ -65,7 +65,8 @@ AI::AI(PGame current_game, unsigned int _player_index) {
   //longest_road_so_far = {};
   plot_road_closed_cache = {};
   plot_road_open_cache = {};
-  use_plot_road_cache = true;   // this is definitely effective, tried comparing w/ cache off vs on
+  //use_plot_road_cache = true;   // this is definitely effective, tried comparing w/ cache off vs on
+  use_plot_road_cache = false;  // TEMP DISABLING THIS WHILE TESTING passthru roads
 
   road_options.reset(RoadOption::Direct);
   road_options.set(RoadOption::SplitRoads);
@@ -79,6 +80,7 @@ AI::AI(PGame current_game, unsigned int _player_index) {
   road_options.reset(RoadOption::MostlyStraight);
   road_options.reset(RoadOption::PlotOnlyNoBuild);
   road_options.reset(RoadOption::ReconnectNetwork);
+  road_options.set(RoadOption::AllowPassthru);
 
   need_tools = false;
 
@@ -183,6 +185,8 @@ AI::next_loop(){
   //-----------------------------------------------------------
 
   do_connect_disconnected_flags(); // except mines
+  //AILogError["next_loop"] << "ENDING LOOP EARLY FOR DEBUGGING!";
+  //return;
   do_connect_disconnected_road_networks();
   do_build_better_roads_for_important_buildings();  // is this working?  I still see pretty inefficient roads for important buildings
   do_pollute_castle_area_roads_with_flags(); // CHANGE THIS TO USE ARTERIAL ROADS  (nah, it works well enough as it is, do that later)
@@ -438,6 +442,7 @@ AI::do_update_clear_reset() {
   road_options.reset(RoadOption::MostlyStraight);
   road_options.reset(RoadOption::PlotOnlyNoBuild);
   road_options.reset(RoadOption::ReconnectNetwork);
+  road_options.set(RoadOption::AllowPassthru);
   //unfinished_hut_count = 0;
   //unfinished_building_count = 0;
   realm_inv = player->get_stats_resources();
@@ -458,7 +463,8 @@ AI::do_update_clear_reset() {
   AILogDebug["do_update_clear_reset"] << "clearing plot_road caches";
   plot_road_open_cache.clear();
   plot_road_closed_cache.clear();
-  use_plot_road_cache = true;
+  //use_plot_road_cache = true;
+  use_plot_road_cache = false;  // TEMP DISABLING THIS WHILE TESTING passthru roads
 }
 
 
@@ -626,7 +632,13 @@ AI::do_connect_disconnected_flags() {
     // try to connect it to road network
     AILogDebug["do_connect_disconnected_flags"] << "flag at pos " << flag->get_position() << " has no connected road, trying to connect it";
     Road notused; // not used here, can I just pass a zero instead of &notused to build_best_road and skip initialization of a wasted object?
-    bool was_built = AI::build_best_road(flag->get_position(), road_options, &notused, "do_connect_disconnected_flags:Flag@"+std::to_string(flag->get_position()));
+    bool was_built = AI::build_best_road(flag->get_position(), road_options, &notused, "do_connect_disconnected_flags(canPassthru):Flag@"+std::to_string(flag->get_position()));
+    if (!was_built && road_options.test(RoadOption::AllowPassthru)){
+      AILogDebug["do_connect_disconnected_flags"] << "failed to build road using Passthru, trying again without it";
+      road_options.reset(RoadOption::AllowPassthru);
+      was_built = AI::build_best_road(flag->get_position(), road_options, &notused, "do_connect_disconnected_flags(nonPassthru):Flag@"+std::to_string(flag->get_position()));
+      road_options.set(RoadOption::AllowPassthru);
+    }
     if (!was_built) {
       // if it could not be connected, burn any attached building and remove the flag
       // WAIT - this causes a problem for newly-taken enemy military buildings, which frequently cannot be connected to road network
@@ -882,15 +894,24 @@ AI::do_spiderweb_roads() {
         //road_options.set(RoadOption::Direct);
         //road_options.set(RoadOption::MostlyStraight);
         //road_options.reset(RoadOption::SplitRoads);
+        // disable passthru for spiderweb roads
+        road_options.reset(RoadOption::AllowPassthru);
         AILogDebug["do_spiderweb_roads"] << inventory_pos << " about to call build_best_road";
         Road built_road;
-        was_built = build_best_road(area_flag_pos, road_options, &built_road, "do_spiderweb_roads", Building::TypeNone, Building::TypeNone, other_area_flag_pos);
+        was_built = build_best_road(area_flag_pos, road_options, &built_road, "do_spiderweb_roads(canPassthru)", Building::TypeNone, Building::TypeNone, other_area_flag_pos);
+        if (!was_built && road_options.test(RoadOption::AllowPassthru)){
+          AILogDebug["do_spiderweb_roads"] << "failed to build road using Passthru, trying again without it";
+          road_options.reset(RoadOption::AllowPassthru);
+          was_built = build_best_road(area_flag_pos, road_options, &built_road, "do_spiderweb_roads(nonPassthru)", Building::TypeNone, Building::TypeNone, other_area_flag_pos);
+          road_options.set(RoadOption::AllowPassthru);
+        }
         road_options.reset(RoadOption::Improve);
         //road_options.set(RoadOption::PenalizeNewLength);
         road_options.reset(RoadOption::ReducedNewLengthPenalty);
         //road_options.reset(RoadOption::Direct);
         //road_options.reset(RoadOption::MostlyStraight);
         //road_options.set(RoadOption::SplitRoads);
+        road_options.set(RoadOption::AllowPassthru);
         if (was_built) {
           AILogDebug["do_spiderweb_roads"] << inventory_pos << " successfully built spider-web road between area_flag_pos " << area_flag_pos << " to other_area_flag_pos " << other_area_flag_pos;
           spider_web_roads_built++;
@@ -1604,7 +1625,8 @@ AI::do_send_geologists() {
           if (other_flags == 0) {
             AILogDebug["do_send_geologists"] << inventory_pos << " no other flags nearby " << pos << ", building flag here";
             mutex_lock("AI::do_send_geologists calling game->build_flag, for geologist");
-            bool was_built = game->build_flag(pos, player);
+            //bool flag_was_built = game->build_flag(pos, player);
+            game->build_flag(pos, player);  // we aren't checking return code, instead checking if the game sees the flag
             mutex_unlock();
             sleep_speed_adjusted(2000);
             if (!map->has_flag(pos)) {
@@ -1616,7 +1638,14 @@ AI::do_send_geologists() {
             }
             
             Road notused; // not used here, can I just pass a zero instead of &notused to build_best_road and skip initialization of a wasted object?
-            if (!AI::build_best_road(pos, road_options, &notused, "do_send_geologists")) {
+            bool road_was_built = build_best_road(pos, road_options, &notused, "do_send_geologists(canPassthru)");
+            if (!road_was_built && road_options.test(RoadOption::AllowPassthru)){
+              AILogDebug["do_send_geologists"] << "failed to build road using Passthru, trying again without it";
+              road_options.reset(RoadOption::AllowPassthru);
+              road_was_built = build_best_road(pos, road_options, &notused, "do_send_geologists(nonPassthru)");
+              road_options.set(RoadOption::AllowPassthru);
+            }
+            if (!road_was_built){
               AILogDebug["do_send_geologists"] << inventory_pos << " failed to connect new gologist flag to road network!  removing the flag";
               mutex_lock("AI::do_send_geologists calling demolish_flag (built for geoligist, couldn't connect)");
               game->demolish_flag(pos, player);
@@ -1710,7 +1739,7 @@ AI::do_build_rangers() {
   AILogDebug["do_build_rangers"] << "HouseKeeping: build rangers near lumberjacks that have few trees and no ranger nearby";
   ai_status.assign("do_build_rangers");
   if (stock_building_counts.at(inventory_pos).needs_wood) {
-    AILogInfo["do_build_stonecutter"] << inventory_pos << " need wood, considering building rangers";
+    //AILogInfo["do_build_rangers"] << inventory_pos << " need wood, considering building rangers";
     Game::ListBuildings buildings = game->get_player_buildings(player);
     for (Building *building : buildings) {
       if (building == nullptr)
@@ -1732,7 +1761,7 @@ AI::do_build_rangers() {
         AILogDebug["do_build_rangers"] << "built ranger at pos " << built_pos;
     }
   }else{
-    AILogInfo["do_build_stonecutter"] << inventory_pos << " have sufficient wood, not considering building rangers";
+    AILogInfo["do_build_rangers"] << inventory_pos << " have sufficient wood, not considering building rangers";
   }
   AILogDebug["do_build_rangers"] << "done do_build_rangers";
 }
@@ -2251,13 +2280,25 @@ AI::do_demolish_excess_foresters() {
       // CANNOT USE this search because Foresters are usually disconnected from Inventory!
       //if (find_nearest_inventory(map, player_index, building->get_position(), DistType::FlagOnly, &ai_mark_pos) != inventory_pos)
       // trying straightline instead
-      if (find_nearest_inventory(map, player_index, building->get_position(), DistType::StraightLineOnly, &ai_mark_pos) != inventory_pos)
+      // NOTE - I got a weird issue here where find_nearest_inventory was to some far-off pos way outside player's borders
+      //  this check was previously using building->get_position() instead of forester_pos, maybe there is a pointer issue?
+      //  ALSO, might want to run a corruption check to see if any building is found outside the player borders
+      if (find_nearest_inventory(map, player_index, forester_pos, DistType::StraightLineOnly, &ai_mark_pos) != inventory_pos)
         continue;
+
+      //  jan09 2023
+      // got an exception around here, right as find_nearest_inventory_returned, debugging not on so not sure exactly where
+      //
+      //  AGAIN shortly after, maybe map_spacE_from_obj is out of range?
+
       // check number of open positions around the forester
       int open_positions = 0;
       int possible_positions = 0;
       for (unsigned int x = 0; x < AI::spiral_dist(4); x++) {
         MapPos pos = map->pos_add_extended_spirally(forester_pos, x);
+
+        AILogDebug["do_demolish_excess_foresters"] << inventory_pos << " forester hut at pos " << forester_pos << "map->get_obj(" << pos << ") is " << map->get_obj(pos);
+
         // trees (and non-mine buildings) can only be planted on grass)
         if (!map->types_within(pos, Map::TerrainGrass0, Map::TerrainGrass3)){
           continue;
@@ -2265,6 +2306,7 @@ AI::do_demolish_excess_foresters() {
         possible_positions++;
         if (map->get_obj(pos) == Map::ObjectNone
          || map->map_space_from_obj[pos] == Map::SpaceOpen){
+           AILogDebug["do_demolish_excess_foresters"] << inventory_pos << " forester hut at pos " << forester_pos << " map->get_obj(" << pos << ") passed";
            open_positions++;
         }
       }
@@ -2286,6 +2328,7 @@ AI::do_demolish_excess_foresters() {
   else {
         AILogDebug["do_demolish_excess_foresters"] << inventory_pos << " planks_max not yet reached, skipping";
   }
+  AILogDebug["do_demolish_excess_foresters"] << inventory_pos << " done do_demolish_excess_foresters call";
 }
 
 
@@ -3617,7 +3660,13 @@ AI::do_connect_coal_mines() {
       Road notused; // not used here, can I just pass a zero instead of &notused to build_best_road and skip initialization of a wasted object?
       //bool was_built = AI::build_best_road(flag->get_position(), road_options, &notused, "do_connect_coal_mines");
       // updated with verify_stock = true
-      bool was_built = AI::build_best_road(flag->get_position(), road_options, &notused, "do_connect_coal_mines:Building::TypeCoalMine@"+std::to_string(flag->get_position()), Building::TypeNone, Building::TypeNone, bad_map_pos, true);
+      bool was_built = AI::build_best_road(flag->get_position(), road_options, &notused, "do_connect_coal_mines(canPassthru):Building::TypeCoalMine@"+std::to_string(flag->get_position()), Building::TypeNone, Building::TypeNone, bad_map_pos, true);
+      if (!was_built && road_options.test(RoadOption::AllowPassthru)){
+        AILogDebug["do_connect_coal_mines"] << "failed to build road using Passthru, trying again without it";
+        road_options.reset(RoadOption::AllowPassthru);
+        was_built = AI::build_best_road(flag->get_position(), road_options, &notused, "do_connect_coal_mines(nonPassthru):Building::TypeCoalMine@"+std::to_string(flag->get_position()), Building::TypeNone, Building::TypeNone, bad_map_pos, true);
+        road_options.set(RoadOption::AllowPassthru);
+      }
       if (!was_built) {
         AILogInfo["do_connect_coal_mines"] << inventory_pos << " failed to connect coal mine to road network!  demolishing it and its flag ";
         mutex_lock("AI::do_connect_coal_mines calling demolish flag&building (failed to connect coal mine)");
@@ -3675,7 +3724,13 @@ AI::do_connect_iron_mines() {
       Road notused; // not used here, can I just pass a zero instead of &notused to build_best_road and skip initialization of a wasted object?
       //bool was_built = AI::build_best_road(flag->get_position(), road_options, &notused, "do_connect_iron_mines");
       // updated with verify_stock = true
-      bool was_built = AI::build_best_road(flag->get_position(), road_options, &notused, "do_connect_iron_mines:Building::TypeIronMine@"+std::to_string(flag->get_position()), Building::TypeNone, Building::TypeNone, bad_map_pos, true);
+      bool was_built = AI::build_best_road(flag->get_position(), road_options, &notused, "do_connect_iron_mines(canPassthru):Building::TypeIronMine@"+std::to_string(flag->get_position()), Building::TypeNone, Building::TypeNone, bad_map_pos, true);
+      if (!was_built && road_options.test(RoadOption::AllowPassthru)){
+        AILogDebug["do_connect_iron_mines"] << "failed to build road using Passthru, trying again without it";
+        road_options.reset(RoadOption::AllowPassthru);
+        was_built = AI::build_best_road(flag->get_position(), road_options, &notused, "do_connect_iron_mines(nonPassthru):Building::TypeIronMine@"+std::to_string(flag->get_position()), Building::TypeNone, Building::TypeNone, bad_map_pos, true);
+        road_options.set(RoadOption::AllowPassthru);
+      }
       if (!was_built) {
         AILogInfo["do_connect_iron_mines"] << inventory_pos << " failed to connect iron mine to road network!  demolishing it and its flag ";
         mutex_lock("AI::do_connect_iron_mines calling demolish flag&building (failed to connect iron mine)");
@@ -3931,7 +3986,13 @@ AI::do_build_gold_smelter_and_connect_gold_mines() {
       Road notused; // not used here, can I just pass a zero instead of &notused to build_best_road and skip initialization of a wasted object?
       //bool was_built = AI::build_best_road(flag->get_position(), road_options, &notused, "do_connect_gold_mines");
       // updated with verify_stock = true
-      bool was_built = AI::build_best_road(flag->get_position(), road_options, &notused, "do_connect_gold_mines:Building::TypeGoldMine@"+std::to_string(flag->get_position()), Building::TypeNone, Building::TypeNone, bad_map_pos, true);
+      bool was_built = AI::build_best_road(flag->get_position(), road_options, &notused, "do_connect_gold_mines(canPassthru):Building::TypeGoldMine@"+std::to_string(flag->get_position()), Building::TypeNone, Building::TypeNone, bad_map_pos, true);
+      if (!was_built && road_options.test(RoadOption::AllowPassthru)){
+        AILogDebug["do_connect_gold_mines"] << "failed to build road using Passthru, trying again without it";
+        road_options.reset(RoadOption::AllowPassthru);
+        was_built = AI::build_best_road(flag->get_position(), road_options, &notused, "do_connect_gold_mines(nonPassthru):Building::TypeGoldMine@"+std::to_string(flag->get_position()), Building::TypeNone, Building::TypeNone, bad_map_pos, true);
+        road_options.set(RoadOption::AllowPassthru);
+      }
       if (!was_built) {
         AILogInfo["do_build_gold_smelter_and_connect_gold_mines"] << inventory_pos << " failed to connect gold mine to road network!  demolishing it and its flag ";
         mutex_lock("AI::do_build_gold_smelter_and_connect_gold_mines calling demolish flag&building (failed to connect gold mine)");
@@ -4056,7 +4117,7 @@ AI::do_build_better_roads_for_important_buildings() {
     Road road_built;
     if(build_best_road(building_flag_pos, road_options, &road_built, "do_build_better_roads:"+NameBuilding[type]+"@"+std::to_string(building_flag_pos), type)){
       AILogDebug["do_build_better_roads_for_important_buildings"] << "successfully built an improved road connection for building of type " << NameBuilding[type] << " at pos " << building->get_position() << " to its affinity building (whatever that may be - check build_best_road result)";
-      ai_mark_build_better_roads->push_back(road_built);
+      //ai_mark_build_better_roads->push_back(road_built);
     }
     road_options.reset(RoadOption::Improve);
   }
@@ -4802,7 +4863,7 @@ AI::do_connect_disconnected_road_networks(){
 
         // mark it for AI overlay
         // re-use get_dir_color function with indexes and hope <6 disconnected sections! (actually it has a failsafe of 'white')
-        ai_mark_pos.insert(ColorDot(flag_pos, get_dir_color_name(Direction(i))));
+        //ai_mark_pos.insert(ColorDot(flag_pos, get_dir_color_name(Direction(i))));
 
         //
         // attempt to reconnect it
@@ -4817,6 +4878,7 @@ AI::do_connect_disconnected_road_networks(){
         //road_options.set(RoadOption::Direct);  // CANNOT USE DIRECT!  it tries connect directly to the INVENTORY FLAG ONLY and usually fail because that is the default affinity if no target set
         road_options.set(RoadOption::PlotOnlyNoBuild);
         road_options.set(RoadOption::ReconnectNetwork);
+        road_options.reset(RoadOption::AllowPassthru); // passthru is not a good idea for this
         // BUG - seeing a road attempt to be "reconnected" to a new-splitting-flag part of SAME NETWORK
         bool was_plotted = AI::build_best_road(flag_pos, road_options, &road_solution, "do_connect_disconnected_road_networks:Flag@"+std::to_string(flag->get_position()));
         if (was_plotted && road_solution.get_length() > 0){
@@ -4837,6 +4899,7 @@ AI::do_connect_disconnected_road_networks(){
         //road_options.reset(RoadOption::Direct);
         road_options.reset(RoadOption::PlotOnlyNoBuild);
         road_options.reset(RoadOption::ReconnectNetwork);
+        road_options.set(RoadOption::AllowPassthru);
 
       }
       AILogDebug["do_connect_disconnected_road_networks"] << "DISCONNECTED ROAD SYSTEM: network[" << i << "], found " << possible_roads.size() << " possible_solutions to connect network";

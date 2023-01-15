@@ -673,6 +673,7 @@ typedef struct SendSerfToFlagData {
 //  happens at the calling function send_sert_to_flag
 bool
 Game::send_serf_to_flag_search_cb(Flag *flag, void *d) {
+  //Log::Debug["game.cc"] << "inside Game::send_serf_to_flag_search_cb";
   if (!flag->has_inventory()) {
     return false;
   }
@@ -711,6 +712,7 @@ Game::send_serf_to_flag_search_cb(Flag *flag, void *d) {
     //
     // non-knight specialist serfs
     //
+
     if (inv->have_serf((Serf::Type)type)) {
       // ... already idle in inventory, call out
       // if an idle serf of this type already exists, or 5+ free serfs
@@ -737,6 +739,7 @@ Game::send_serf_to_flag_search_cb(Flag *flag, void *d) {
       }
     } else {
       // ...not idle-in-stock, must be created
+
       // check to see if available tool[s] to specialize a generic serf
       //  into a new professional
       // NOTE - this check is here, instead of much earlier as might seem logical,
@@ -1045,9 +1048,12 @@ Game::update_game_stats() {
 void
 Game::update() {
 
+  /*
   // corruption debugging, sometimes save games
   //  cannot be loaded, because Flag data does not match Map data
   //  this is an attempt to detect when this happens
+  // I am thinking this corruption was due to not mutex locking savegames
+  //  this may be fixed, disabling the check
   ticks_since_last_corruption_detection += game_ticks_per_update;
   if (ticks_since_last_corruption_detection > 20000){
     Log::Warn["game.cc"] << "inside Game::update, game flag corruption detection running now, tick " << tick;
@@ -1061,6 +1067,25 @@ Game::update() {
       }
     }
   }
+  */
+
+ /*
+  // corruption debugging, saw an issue where Building seems to exist
+  //  far outside the player's borders
+  ticks_since_last_corruption_detection += game_ticks_per_update;
+  if (ticks_since_last_corruption_detection > 20000){
+    Log::Warn["game.cc"] << "inside Game::update, player Building corruption detection running now, tick " << tick;
+    ticks_since_last_corruption_detection = 0;
+    for (Building *building : buildings) {
+      if (building->get_index() == 0) continue;
+      if (map->get_owner(building->get_position()) != building->get_owner()) {
+        Log::Error["game.cc"] << "inside Game::update, CORRUPTION DETECTION, a Building object exists that claims to be at pos " << building->get_position() << " and owned by Player" << building->get_owner() << " but pos is actually owned by player #" << map->get_owner(building->get_position());
+        set_debug_mark_pos(building->get_position(), "yellow");
+        pause();
+      }
+    }
+  }
+  */
 
 /*
   Log::Info["game"] << "option_EnableAutoSave is " << option_EnableAutoSave;
@@ -1375,7 +1400,10 @@ Game::can_build_road(const Road &road, const Player *player, MapPos *dest,
 /* Construct a road spefified by a source and a list of directions. */
 bool
 Game::build_road(const Road &road, const Player *player) {
-  if (road.get_length() == 0) return false;
+  if (road.get_length() == 0){
+    Log::Warn["game"] << "inside build_road, road.get_length == 0, returning false";
+    return false;
+  }
 
   MapPos dest = 0;
   bool water_path = false;
@@ -1405,6 +1433,8 @@ Game::build_road(const Road &road, const Player *player) {
 
   src_flag->link_with_flag(dest_flag, water_path, road.get_length(),
                            in_dir, out_dir);
+
+ // Log::Debug["game.cc"] << "inside Game::build_road, road built, returning true";
 
   return true;
 }

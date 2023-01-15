@@ -89,12 +89,16 @@ class Video {
 
   virtual void swap_buffers() = 0;
 
-  virtual void set_cursor(void *data, unsigned int width,
-                          unsigned int height) = 0;
+  virtual void set_cursor(void *data, unsigned int width, unsigned int height) = 0;
+  virtual void get_mouse_cursor_coord(int *x, int *y) = 0; // NULL STUB - pure virtual overloaded in video-sdl // trying to center zoom around MOUSE POINTER cursor pos (not selected tile on map cursor)
 
   virtual float get_zoom_factor() = 0;
   virtual bool set_zoom_factor(float factor) = 0;
+  virtual int get_zoom_type() = 0;  // NULL STUB - pure virtual overloaded in video-sdl // trying to center zoom around MOUSE POINTER cursor pos (not selected tile on map cursor)
+  virtual void set_zoom_type(int type) = 0;  // NULL STUB - pure virtual overloaded in video-sdl // trying to center zoom around MOUSE POINTER cursor pos (not selected tile on map cursor)
   virtual void get_screen_factor(float *fx, float *fy) = 0;
+  virtual void get_screen_size(int *x, int *y) = 0; // NULL STUB - pure virtual overloaded in video-sdl // trying to center zoom around MOUSE POINTER cursor pos (not selected tile on map cursor)
+  
 };
 
 #endif  // SRC_VIDEO_H_

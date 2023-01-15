@@ -654,7 +654,8 @@ AI::build_best_road(MapPos start_pos, RoadOptions road_options, Road *built_road
   //sofarduration = (std::clock() - start) / static_cast<double>(CLOCKS_PER_SEC);
   //AILogDebug["util_build_best_road"] << "B. " << calling_function << " SO FAR call took " << sofarduration;
 
-  unsigned int roads_built = 0;
+  //unsigned int roads_built = 0;
+  unsigned int complete_roads_built = 0;  // now that passthru enabled, changing name to avoid confusion with road segments
   unsigned int target_count = static_cast<unsigned int>(targets.size());
   //
   // change this to its own function so there isn't a foreach loop for hundreds of lines to handle two targets
@@ -668,6 +669,7 @@ AI::build_best_road(MapPos start_pos, RoadOptions road_options, Road *built_road
   //unsigned int first_target_road_score = bad_score;  // for comparing 2nd to 1st if multiple targets found
   MapPos first_target_road_end = bad_map_pos;  // for comparing 2nd to 1st if multiple targets found
   for (MapPos target_pos : targets) {
+
     //sofarduration = (std::clock() - start) / static_cast<double>(CLOCKS_PER_SEC);
     //AILogDebug["util_build_best_road"] << "C. " << calling_function << " SO FAR call took " << sofarduration;
     //
@@ -778,8 +780,14 @@ AI::build_best_road(MapPos start_pos, RoadOptions road_options, Road *built_road
         mutex_unlock();
       }
       if (was_built) {
-        AILogDebug["util_build_best_road"] << "" << calling_function << " zzz successfully built direct road directly from flag at " << start_pos << " to flag at " << target_pos;
-        //roads_built++;
+        AILogDebug["util_build_best_road"] << "" << calling_function << " zzz successfully built direct road from flag at " << start_pos << " to flag at " << target_pos;
+        //roads_segments_built_this_target++;  // NO this is for DIRECT SOLUTIONS ONLY (how to handle passthru?  need to force it off??)
+        complete_roads_built++;
+
+        // ???????
+        // how to handle this so it returns the complete road instead of a segment?
+        //  AND - how is this used by calling function?  it likely needs updating
+        //  ???????
         *built_road = *(&proposed_direct_road);
 
         // for debugging, keep track of the largest road built to get an idea of what is a reasonable limit to set for performance reasons
@@ -816,7 +824,16 @@ AI::build_best_road(MapPos start_pos, RoadOptions road_options, Road *built_road
     RoadBuilder rb;
     rb.set_start_pos(start_pos);
     rb.set_target_pos(target_pos);
-    MapPosVector nearby_flags;
+    int proad_index = 0;  // primary key for proads (and eroads!) part of this solution for unique identification of proads because can no longer use the ends/dirs to identify since adding passthru
+    int eroad_index = 0;  // I don't think this is actually needed, just including to avoiding having to handle eroad RoadBuilderRoad separate from proad that does use index
+    MapPosVector nearby_flags;   // CONSIDER MAKING THIS A SET instead of VECTOR because it should only have UNIQUE flags, and it is wasteful to pathfind the same solution twice!!
+    // for passthru roads
+    //  This is a Map of Vectors-of-Road objects comprising a full solution
+    //  The key of the Map is the MapPos of the very end of entire multi-segment solution - which is nearby_flag_pos,
+    //   This is the same as the proad key.  The start_pos is implied because all segments in this build_best_road call will have the same start_pos
+    //  When a solution is attempted to build the Roads, the proad "end pos" will match the passthru
+    //   map key and it will retrieve the ordered list of Road segments to build
+    std::map<MapPos, Roads> passthru_road_segments;
 
     // if RoadOption::Improve is set and any paths already exist from start_pos, trace these roads and save for later scoring
     //   NOTE - if road caching disabled, and Improve not set, eroads aren't even used by roadbuilding code, only proads which are directly scored
@@ -831,7 +848,9 @@ AI::build_best_road(MapPos start_pos, RoadOptions road_options, Road *built_road
           AILogDebug["util_build_best_road"] << "" << calling_function << " non-direct road requested, found path from start_pos " << start_pos << " in dir " << NameDirection[dir];
           Road existing_road = trace_existing_road(map, start_pos, dir);
           RoadEnds ends = get_roadends(map, existing_road);
-          rb.new_eroad(ends, existing_road);
+          //rb.new_eroad(ends, existing_road);
+          rb.new_eroad(ends, existing_road, eroad_index++);  // the eroad_index isn't actually used, but I guess is created to satisfy Roadbuilder
+          AILogDebug["util_build_best_road"] << "" << calling_function << " non-direct road requested, created new eroad with eroad_index " << eroad_index;
           // add the other end flag to nearby_flags now to ensure it is scored
           MapPos end_pos = std::get<2>(ends);
           nearby_flags.push_back(end_pos);
@@ -1005,10 +1024,21 @@ AI::build_best_road(MapPos start_pos, RoadOptions road_options, Road *built_road
     //     which is the aggregate tile_dist of ALL plotted roads so far to this target  NOT IMPLEMENTED YET
     //        this is used to limit the amount of time spent plotting roads as realm becomes crowded    NOT IMPLEMENTED YET
     //
+
+    //
+    //  THIS LOOKS WRONG!  It seems to be checking the ideal_length from start_pos to target_pos ONLY, but using that
+    //   as the ideal length for convolution checks for OTHER NEARBY EXISTING/FOUND FLAGS!  making them appear much
+    //   worse in terms of convolution than they actually are!!!  
+    //  TRYING FIX - moving this logic inside the foreach loop
+    // WAIT NEVERMIND!!  this should be left as-is, because ultimately the goal is to connect to the target_pos for solutioning
+    //  and so a road that connects far away just to reach the target pos SHOULD BE excluded as inefficient/convoluted even if
+    //  the new path itself is not convoluted.  restoring the way this was
+    //
     // use straight-line-distance to the actual target_pos as the measuring stick to judge how convoluted actual roads are be in comparison
     AILogDebug["util_build_best_road"] << "" << calling_function << " non-direct road requested, about to plot roads to nearby_flags, checking tile_dist from start_pos " << start_pos << " to end_pos " << target_pos << " for an ideal road";
     int ideal_length = AI::get_straightline_tile_dist(map, start_pos, target_pos);
     AILogDebug["util_build_best_road"] << "" << calling_function << " non-direct road requested, about to plot roads to nearby_flags, flag target_pos at " << target_pos << " has straight-line tile distance " << ideal_length << " from start_pos " << start_pos;
+    
     //sofarduration = (std::clock() - start) / static_cast<double>(CLOCKS_PER_SEC);
     //AILogDebug["util_build_best_road"] << "F1. " << calling_function << " SO FAR call took " << sofarduration;
     // for each nearby_flag:
@@ -1029,6 +1059,7 @@ AI::build_best_road(MapPos start_pos, RoadOptions road_options, Road *built_road
     //  two sections, but I don't feel like messing with this logic right now 
     for (MapPos end_pos : nearby_flags) {
       AILogDebug["util_build_best_road"] << "" << calling_function << " non-direct road requested, plotting direct roads to nearby_flags, preparing to plot road from start_pos " << start_pos << " to nearby_flag pos " << end_pos;
+      
       // it might be faster to have plot_road return the RoadEnds, but it seems messier
       
       //
@@ -1092,7 +1123,9 @@ AI::build_best_road(MapPos start_pos, RoadOptions road_options, Road *built_road
         }
         AILogDebug["util_build_best_road"] << "" << calling_function << " non-direct road requested, plotting direct roads to nearby_flags, this potential DIRECT road solution is acceptable so far in terms of NEW length only, adding to RoadBuilder potential_roads";
         RoadEnds potential_road_ends = get_roadends(map, potential_road);
-        rb.new_proad(potential_road_ends, potential_road);
+        //rb.new_proad(potential_road_ends, potential_road);
+        rb.new_proad(potential_road_ends, potential_road, proad_index++);
+        AILogDebug["util_build_best_road"] << "" << calling_function << " non-direct road requested, created new proad DIRECT to nearby_flag, proad_index = " << proad_index;
         AILogDebug["util_build_best_road"] << "" << calling_function << " non-direct road requested, plotting direct roads to nearby_flags, there are currently " << rb.get_proads().size() << " potential_roads in the list";
         break;
       } // while true - find direct road
@@ -1112,10 +1145,11 @@ AI::build_best_road(MapPos start_pos, RoadOptions road_options, Road *built_road
       //
       //
       if (road_options.test(RoadOption::SplitRoads) == false) {
+        AILogDebug["util_build_best_road"] << "" << calling_function << " non-direct road requested, split_roads, RoadOption SplitRoads is false, not considering split-road solutions";
         continue;
       }
       AILogDebug["util_build_best_road"] << "" << calling_function << " non-direct road requested, split_roads, RoadOption SplitRoads is true, preparing to iterate over potential split roads found in previous plot_road call";
-      AILogDebug["util_build_best_road"] << "" << calling_function << " non-direct road requested, split_roads, there are " << split_roads.size() << " Road entries in the split_roads list (that was provide by the last plot_roads call to nearby map pos " << end_pos;
+      AILogDebug["util_build_best_road"] << "" << calling_function << " non-direct road requested, split_roads, there are " << split_roads.size() << " Road entries in the split_roads list that was provided by the last plot_roads call to nearby map pos " << end_pos;
       for (Road split_road : split_roads) {
         //sofarduration = (std::clock() - start) / static_cast<double>(CLOCKS_PER_SEC);
         //AILogDebug["util_build_best_road"] << "F3. " << calling_function << " SO FAR call took " << sofarduration;
@@ -1124,13 +1158,19 @@ AI::build_best_road(MapPos start_pos, RoadOptions road_options, Road *built_road
 
         //AILogDebug["util_build_best_road"] << "" << calling_function << " non-direct road requested, split_roads, a potential split_road has end_pos: " << split_road.get_end(map.get()) << ", for comparison, start_pos is " << start_pos << " and split_road source is " << split_road.get_source();
 
-        if (rb.has_proad(split_road_ends)){
-          //AILogDebug["util_build_best_road"] << "" << calling_function << " non-direct road requested, split_roads, this road is already on the proads list, skipping";
-          continue;
-        }
+        // removing this check now that passthru allowed, it is no longer possible to look up a proad by its ends, only by its INDEX!
+        //if (rb.has_proad(split_road_ends)){
+        //  //AILogDebug["util_build_best_road"] << "" << calling_function << " non-direct road requested, split_roads, this road is already on the proads list, skipping";
+        //  continue;
+        //}
 
         if (split_road.get_length() == 0) {
           AILogWarn["util_build_best_road"] << "" << calling_function << " non-direct road requested, split_roads, road unexpectedly has zero length!  this should not happen, find out why!  skipping";
+          //AILogWarn["util_build_best_road"] << "PAUSING GAME";
+          //game->pause();
+          //AILogWarn["util_build_best_road"] << "SLEEPING AI FOR LONG TIME";
+          //std::this_thread::sleep_for(std::chrono::milliseconds(1000000));
+          //AILogWarn["util_build_best_road"] << "DONE SLEEPING";
           continue;
         }
 
@@ -1202,7 +1242,9 @@ AI::build_best_road(MapPos start_pos, RoadOptions road_options, Road *built_road
         //AILogDebug["util_build_best_road"] << "" << calling_function << " non-direct road requested, split_roads, this split_road road solution is acceptable so far in terms of NEW length only, adding to RoadBuilder potential_roads";
         // add it to the proads list
         AILogDebug["util_build_best_road"] << "" << calling_function << " non-direct road requested, split_roads, found acceptable-so-far split_road with start_pos " << split_road.get_source() << " and end_pos: " << split_road.get_end(map.get()) << ", creating new proad entry for it";
-        rb.new_proad(split_road_ends, split_road);
+        //rb.new_proad(split_road_ends, split_road);
+        rb.new_proad(split_road_ends, split_road, proad_index++);
+        AILogDebug["util_build_best_road"] << "" << calling_function << " non-direct road requested, created new splitting proad, proad_index = " << proad_index;
         //AILogDebug["util_build_best_road"] << "" << calling_function << " non-direct road requested, split_roads, there are currently " << rb.get_proads().size() << " potential_roads in the list";
 
       } // foreach split road
@@ -1312,16 +1354,29 @@ AI::build_best_road(MapPos start_pos, RoadOptions road_options, Road *built_road
 
     //sofarduration = (std::clock() - start) / static_cast<double>(CLOCKS_PER_SEC);
     //AILogDebug["util_build_best_road"] << "H. " << calling_function << " SO FAR call took " << sofarduration;
+    
+    //
     // foreach potential new road (proad) to be built to a nearby flag
     //  score the existing road (eroad) that begins at the flag/pos where the proad ends
+    //
     AILogDebug["util_build_best_road"] << "" << calling_function << " scoring_proads, preparing to score potential new roads from start_pos to nearby_flag positions";
-    MapPosSet scored_proads;
-    for (std::pair<RoadEnds, RoadBuilderRoad*> pr : rb.get_proads()) {
-      RoadEnds ends = pr.first;
+    //MapPosSet scored_proads;
+    std::vector<std::pair<int, unsigned int>> scored_proads;  // proad_index is key, score is value
+    //for (std::pair<RoadEnds, RoadBuilderRoad*> pr : rb.get_proads()) {
+    for (std::pair<int, RoadBuilderRoad*> pr : rb.get_proads()) {
+      //RoadEnds ends = pr.first;
+      int proad_index = pr.first;
       RoadBuilderRoad *rbroad = pr.second;
       MapPos start_pos = pr.second->get_end1();
       MapPos nearby_flag_pos = pr.second->get_end2();
-      AILogDebug["util_build_best_road"] << "" << calling_function << " scoring_proads, found an potential new road to nearby_flag_pos " << nearby_flag_pos;
+      
+      // debug - print all scores for this solution
+      //for (std::pair<MapPos, unsigned int> adjusted_score : scored_proads){
+      for (std::pair<int, unsigned int> adjusted_score : scored_proads){
+        AILogDebug["util_build_best_road"] << "" << calling_function << " scoring_proads, debug printing ALL scores, found index " << adjusted_score.first << " has score " << adjusted_score.second;
+      }
+
+      AILogDebug["util_build_best_road"] << "" << calling_function << " scoring_proads, rb.get_proads() contains a potential new road to nearby_flag_pos " << nearby_flag_pos;
       // why is this scoring route to castle_flag pos?  shouldn't it be to target_pos for affinity building??
       //if (!score_flag(map, player_index, &rb, road_options, nearby_flag_pos, castle_flag_pos, &ai_mark_pos)) {
       // trying this instead - may04 2020
@@ -1354,15 +1409,18 @@ AI::build_best_road(MapPos start_pos, RoadOptions road_options, Road *built_road
       //             existing flag was not the target of the plot_road call (because it only considers halfway point first, then others)
       //             and so existing flag was ignored in favor of nearby fake-flag.  changing this back to 2.0 to re-evaluate!
       // jan03 2022 ANOTHER UPDATE - setting this very high for stock/warehouse, attempt to reduce road clutter around them
+      // jan12 2023 since implementing passthru, increasing new_length_penalty a bit more for both castle & stocks
       double new_length_penalty;
       if (road_options.test(RoadOption::PenalizeNewLength)) {
         if (inventory_pos != castle_flag_pos){
-          // stock/warehouse area
+          // non-castle (Stocks) parallel economies
           //new_length_penalty = 5.00;  // this might be too high
-          new_length_penalty = 3.50;  // this might be too high
+          //new_length_penalty = 3.50;  // this might be too high
+          new_length_penalty = 4.00;
         }else{
-          // castle area
-          new_length_penalty = 2.00;
+          // castle economy
+          //new_length_penalty = 2.00;
+          new_length_penalty = 3.00;
         }
       }
       else {
@@ -1381,28 +1439,222 @@ AI::build_best_road(MapPos start_pos, RoadOptions road_options, Road *built_road
           AILogDebug["util_build_best_road"] << "" << calling_function << " scoring_proads, applying contains_castle_flag penalty of " << contains_castle_flag_penalty;
         }
       }
-      AILogDebug["util_build_best_road"] << "" << calling_function << " scoring_proads, AFTER penalties, potential road from start_pos " << start_pos << " to nearby_flag_pos " << nearby_flag_pos <<
-        " has tile_dist " << tile_dist << ", flag_dist " << flag_dist << ", new_length " << new_length << ", adjusted_score " << adjusted_score;
-      scored_proads.insert(std::make_pair(nearby_flag_pos, adjusted_score));
-    }
+
+      //
+      // handle passthru roads
+      //  - sanity check (impossible solutions will be frequently found as the pathfinder doesn't check new-Flag validity)
+      //  - store each partial Road segment in passthru_road_segments map, indexed by the MapPos of the end of the entire solution (the nearby_flag_pos)
+      //  - add the passthru flag count to the flag_dist score for the overall solution
+      //
+      ai_mark_pos.clear();
+      int passthru_flags = 0;
+      MapPos pos = start_pos;
+      MapPos segment_start_pos = start_pos;
+      Direction start_dir = rbroad->get_road().get_first();
+      MapPos last_new_flag_pos = bad_map_pos;
+      Road this_solution_passthru_road_segment;
+      Roads this_solution_passthru_road_segments = {};
+      this_solution_passthru_road_segment.start(start_pos);
+
+      /* this logic is now implemented!  delete this code once confirmed stable
+      // now that following along EXISTING paths is allowed for passthru solutions, must somehow indicate this
+      //  so that we do not attempt to build a new path "along this path" which is obviously not possible
+      // for now, just note that the condition is identified
+      if (map->has_path(start_pos, start_dir)){
+        AILogDebug["util_build_best_road"] << "in passthru check, NOTE - this road segment follow along an existing path!  it will fail to build, new logic needed";
+        AILogError["util_build_best_road"] << "in passthru check, NOTE - this road segment follow along an existing path!  marking start_pos in green, next pos in red, and pausing AI";
+        ai_mark_pos.insert(ColorDot(start_pos, "green"));
+        ai_mark_pos.insert(ColorDot(map->move(start_pos,start_dir), "red"));
+        AILogWarn["util_build_best_road"] << "SLEEPING AI FOR LONG TIME";
+        std::this_thread::sleep_for(std::chrono::milliseconds(1000000));
+        AILogWarn["util_build_best_road"] << "DONE SLEEPING";
+      }
+      */
+
+      bool reject_solution = false;
+      //ai_mark_pos.insert(ColorDot(start_pos, "blue"));
+      AILogDebug["util_build_best_road"] << "tracing this Road's paths to see if it is a passthru solution";
+      for (Direction dir : rbroad->get_road().get_dirs()){
+        AILogDebug["util_build_best_road"] << "in passthru check, found Dir " << dir;
+        //rbroad->set_is_passthru_solution();  // do NOT set this here!  if it is invalidated it will confuse things later
+
+        if (reject_solution){ break; }
+        MapPos last_pos = pos;
+        pos = map->move(pos, dir);
+        AILogDebug["util_build_best_road"] << "in passthru check, pos is " << pos;
+
+        this_solution_passthru_road_segment.extend(dir);
+        // if this pos has no flag and is blocked by an existing path, but a flag could be built here AND this is not the end pos, this is a new-splitting passthru flag
+        //  OR
+        // if this pos has a flag but it isn't the start or end flag, this is an existing passthru flag
+        if ( (!map->is_road_segment_valid(last_pos, dir) && game->can_build_flag(pos, player) && map->has_any_path(pos) && pos != nearby_flag_pos)
+          || (map->has_flag(pos) && pos != start_pos && pos != nearby_flag_pos)
+                ){
+          AILogDebug["util_build_best_road"] << "" << calling_function << " this is a passthru solution";
+          passthru_flags++;  // ... it is a passthru new splitting flag
+          // Flags cannot be created right next to each other, so reject any solution that depends on this
+          // ALSO, if the end of the road ALSO requires a new flag, reject if the end of the road is one pos away
+          if (passthru_flags > 1){
+            AILogDebug["util_build_best_road"] << "" << calling_function << " passthru check sanity-checking pos surrounding " << pos << " to see if any are the last_new_flag_pos " << last_new_flag_pos;
+            for (Direction check_dir : cycle_directions_cw()){
+              if (map->move(pos, check_dir) == last_new_flag_pos
+               || map->move(pos, check_dir) == nearby_flag_pos){
+                AILogDebug["util_build_best_road"] << "" << calling_function << " passthru check sanity-check rejecting this passthru solution because it depends on multiple new flags impossibly close to each other";
+                reject_solution = true;
+                //ai_mark_pos.insert(ColorDot(pos, "red"));
+                //sleep_speed_adjusted(200);
+                // hmm, it seems that the plot_road filtering cannot be relied on to reject "new flag too close to another flag" passthru solutions
+                //  because there is a single open/closed list shared by entire search, but no specific splitting pos is always invalid, it is only in
+                //  the scope of a complete road solution that this can be determined
+                //throw ExceptionFreeserf("build_best_road passthru sanity check failed!  this previously passed check during plot_road call, how could this happen?");
+                break;
+              }
+            }
+            if (reject_solution){ continue; }
+          }
+
+          //if (map->has_flag(pos)){
+          //  ai_mark_pos.insert(ColorDot(pos, "lt_green"));
+          //}else{
+            //ai_mark_pos.insert(ColorDot(pos, "yellow"));
+          //}
+          MapPos segment_end_pos = pos;
+          last_new_flag_pos = segment_end_pos;
+          this_solution_passthru_road_segments.push_back(this_solution_passthru_road_segment);
+          AILogDebug["util_build_best_road"] << "" << calling_function << " passthru sanity-check ok, appending this partial Road with segment_start_pos " << segment_start_pos << " segment_end_pos " << segment_end_pos << " to segments vector for orig start_pos " << start_pos << ", and final end pos " << nearby_flag_pos << ", this solution now contains " << this_solution_passthru_road_segments.size() << " Roads";
+          // reset the Road so it can be used for next segment
+          this_solution_passthru_road_segment.invalidate(); // clear it
+          this_solution_passthru_road_segment.start(segment_end_pos);  // start it with current pos
+          //AILogDebug["util_build_best_road"] << "" << calling_function << " DEBUG - current passthru Road this_solution_passthru_road_segment now contains " << this_solution_passthru_road_segment.get_dirs().size() << " elements";
+          AILogDebug["util_build_best_road"] << "" << calling_function << " passthru Roads list this_solution_passthru_road_segments now contains " << this_solution_passthru_road_segments.size() << " elements";
+
+        }else if (pos == nearby_flag_pos) {
+          //ai_mark_pos.insert(ColorDot(pos, "dk_blue"));  // end pos
+          AILogDebug["util_build_best_road"] << "" << calling_function << " passthru check, this pos " << pos << " is the end pos flag";
+        }else{
+          //ai_mark_pos.insert(ColorDot(pos, "white"));  // normal pos
+          AILogDebug["util_build_best_road"] << "" << calling_function << " passthru check, this pos " << pos << " contains nothing blocking";
+        }
+        //sleep_speed_adjusted(200);
+
+        AILogDebug["util_build_best_road"] << "" << calling_function << " DEBUG2 - current passthru Road this_solution_passthru_road_segment now contains " << this_solution_passthru_road_segment.get_dirs().size() << " elements";
+
+      }
+
+      AILogDebug["util_build_best_road"] << "" << calling_function << " DEBUG3 - current passthru Road this_solution_passthru_road_segment now contains " << this_solution_passthru_road_segment.get_dirs().size() << " elements";
+
+      if (!reject_solution){
+        if (passthru_flags > 0){
+          rbroad->set_is_passthru_solution();
+
+          AILogDebug["util_build_best_road"] << "" << calling_function << " done passthru check, this is a passthru solution with " << passthru_flags << " passthru_flags, adding these to flag_dist";
+          flag_dist += passthru_flags;
+
+          // append the last segment of the solution now!
+          if (segment_start_pos == this_solution_passthru_road_segment.get_end(map.get())){
+            // if the last segment is zero length, it isn't actually a passthru segment
+            //  but rather a splitting flag termination point (though it could be at the end 
+            //  of a passthru solution
+            AILogDebug["util_build_best_road"] << "" << calling_function << " final segment start and end pos are same, " << segment_start_pos << ", this must be the end of the road, not adding another segment";
+          }else{
+            this_solution_passthru_road_segments.push_back(this_solution_passthru_road_segment);
+            AILogDebug["util_build_best_road"] << "" << calling_function << " appending final segment Road with segment_start_pos " << segment_start_pos << " segment_end_pos " << this_solution_passthru_road_segment.get_end(map.get()) << " to this_solution_passthru_road_segments vector for original start_pos " << start_pos << ", and final end pos " << nearby_flag_pos << ", this solution now contains " << this_solution_passthru_road_segments.size() << " Roads";
+          }
+
+          AILogDebug["util_build_best_road"] << "" << calling_function << " done passthru check, this is a passthru solution comprised of " << this_solution_passthru_road_segments.size() << " roads, storing in passthru_road_segments map ";
+          // ????????
+          // does this also need a unique index / primary key instead of using MapPos?
+          //  ?????????
+          passthru_road_segments.insert(std::make_pair(nearby_flag_pos, this_solution_passthru_road_segments));
+        }else{
+          AILogDebug["util_build_best_road"] << "" << calling_function << " done passthru check, this is not a passthru solution";
+        }
+        //sleep_speed_adjusted(200);
+      }
+
+      if (reject_solution){
+        // this doesn't work because it sets bad_score for the nearby_flag_pos which might have other better routes available?
+        AILogDebug["util_build_best_road"] << "" << calling_function << " scoring_proads, this solution was rejected, setting bad_score " << bad_score << " for nearby_flag_pos " << nearby_flag_pos;
+        //scored_proads.insert(std::make_pair(nearby_flag_pos, bad_score));
+        scored_proads.push_back(std::make_pair(proad_index, bad_score));
+      }else{
+        AILogDebug["util_build_best_road"] << "" << calling_function << " scoring_proads, AFTER penalties, potential road from start_pos " << start_pos << " to nearby_flag_pos " << nearby_flag_pos <<
+          " has tile_dist " << tile_dist << ", flag_dist " << flag_dist << ", new_length " << new_length << ", adjusted_score " << adjusted_score;
+        //scored_proads.insert(std::make_pair(nearby_flag_pos, adjusted_score));
+        scored_proads.push_back(std::make_pair(proad_index, adjusted_score));
+      }
+
+    }  // foreach potential new road found rb.get_proads()
+
     AILogDebug["util_build_best_road"] << "" << calling_function << " scoring_proads, done scoring proads";
 
 
     // sort the potential new roads by their score, best (lowest) score first
     AILogDebug["util_build_best_road"] << "" << calling_function << " scoring_proads, preparing to sort scored_proads into a MapPosVector";
-    MapPosVector sorted_scored_proads = sort_by_val_asc(scored_proads);
+    //MapPosVector sorted_scored_proads = sort_by_val_asc(scored_proads);
+    std::vector<unsigned int> sorted_scored_proads = sort_scores_by_val_asc(scored_proads);
+
+    // debug - print all scores for this solution
+    //for (std::pair<MapPos, unsigned int> adjusted_score : scored_proads){
+    for (std::pair<int, unsigned int> adjusted_score : scored_proads){
+      AILogDebug["util_build_best_road"] << "" << calling_function << " sorted_scored_proads, debug printing ALL scores, found index " << adjusted_score.first << " has score " << adjusted_score.second;
+    }
 
     //sofarduration = (std::clock() - start) / static_cast<double>(CLOCKS_PER_SEC);
     //AILogDebug["util_build_best_road"] << "I. " << calling_function << " SO FAR call took " << sofarduration;
+
+    //
     // try to build a road, starting with the best scoring potential_road end flag, until successful
+    //
     AILogDebug["util_build_best_road"] << "" << calling_function << " sorted_scored_proads, preparing to iterate over sorted_scored_proads to try to build roads to best nearby_flag";
-    for (MapPos end_pos : sorted_scored_proads) {
-      AILogDebug["util_build_best_road"] << "" << calling_function << " sorted_scored_proads, considering building road from start_pos " << start_pos << " to end_pos " << end_pos;
-      if (roads_built >= target_count) {
-        AILogDebug["util_build_best_road"] << "" << calling_function << " sorted_scored_proads, roads_built " << roads_built << " >= target_count " << target_count << ", done building roads";
+    //for (MapPos end_pos : sorted_scored_proads) {
+    for (int proad_index : sorted_scored_proads) {
+
+      // because sorted_scored_proads are now indexed by a primary key instead of
+      //  an end_pos (which might not actually be unique!) we should be able to 
+      //  determine the "end" pos (as opposed to the start_pos) simply because
+      //  there is only a single fixed start_pos for each solution so the pos
+      //  that is NOT the start pos must by the end pos
+      RoadBuilderRoad *proad = rb.get_proad(proad_index);
+      MapPos end1_pos = proad->get_end1();
+      MapPos end2_pos = proad->get_end2();
+      MapPos end_pos = bad_map_pos;
+      if (end1_pos == start_pos){
+        end_pos = end2_pos;
+        AILogDebug["util_build_best_road"] << "" << calling_function << " sorted_scored_proads, proad end1_pos is start_pos " << start_pos << ", so the end_pos must be the other pos " << end_pos;
+      }else if (end2_pos == start_pos){
+        end_pos = end1_pos;
+        AILogDebug["util_build_best_road"] << "" << calling_function << " sorted_scored_proads, proad end2_pos is start_pos " << start_pos << ", so the end_pos must be the other pos " << end_pos;
+      }else{
+        // fail
+        AILogDebug["util_build_best_road"] << "" << calling_function << " sorted_scored_proads, neither of proad end pos end1_pos " << end1_pos << " nor end2_pos " << end2_pos << " match start_pos " << start_pos << "!  crashing";
+        throw ExceptionFreeserf("sorted_scored_proads, neither of proad end pos end1_pos nor end2_pos match start_pos");
+      }
+      
+
+      // debug - find the score for this solution
+      unsigned int score = 0;
+      bool found_score = false;
+      for (std::pair<MapPos, unsigned int> adjusted_score : scored_proads){
+        if (adjusted_score.first == proad_index){
+          score = adjusted_score.second;
+          found_score = true;
+          break;
+        }
+      }
+      if (!found_score){
+        throw ExceptionFreeserf("score not found for end_pos in sorted_scored_proad");
+      }
+
+      AILogDebug["util_build_best_road"] << "" << calling_function << " sorted_scored_proads, considering building road from start_pos " << start_pos << " to end_pos " << end_pos << ", this proad has score " << score;
+      if (complete_roads_built >= target_count) {
+        AILogDebug["util_build_best_road"] << "" << calling_function << " sorted_scored_proads, complete_roads_built " << complete_roads_built << " >= target_count " << target_count << ", done building roads";
         return true;
       }
-      RoadBuilderRoad *proad = rb.get_proad(end_pos);
+
+      //RoadBuilderRoad *proad = rb.get_proad(end_pos);
+      // this is now retrieved earlier so start_pos and end_pos can be determined
+      //RoadBuilderRoad *proad = rb.get_proad(proad_index);
 
       if (road_options.test(RoadOption::ReconnectNetwork)){
         AILogDebug["util_build_best_road"] << "" << calling_function << " RoadOption::ReconnectNetwork set, NOT checking vs existing (ineffective) solutions";
@@ -1412,9 +1664,13 @@ AI::build_best_road(MapPos start_pos, RoadOptions road_options, Road *built_road
         // if not, skip this target and move on to next target
         if (game->get_flag_at_pos(start_pos) != nullptr && game->get_flag_at_pos(start_pos)->is_connected() && road_options.test(RoadOption::Improve)) {
           bool skip_target = false;
-          for (std::pair<MapPos, unsigned int> ppair : scored_proads) {
-            if (ppair.first != end_pos) {
-              continue;
+          //for (std::pair<MapPos, unsigned int> ppair : scored_proads) {
+          for (std::pair<int, unsigned int> ppair : scored_proads) {
+            if (ppair.first != proad_index) {
+              continue;  // this is correct here, do NOT break
+              // NO NO NO // now that passthru is allowed, must break instead of continue
+              // NO NO NO //  as multiple road segments could comprise a solution, and this check must reject the ENTIRE solution
+              //break; // NO DO NOT BREAK HERE AS THIS IS A CHECK FOR A MATCHING INDEX ONLY!
             }
             AILogDebug["util_build_best_road"] << "" << calling_function << " checking vs existing solution, found adjusted_score of " << ppair.second << " for this proad ending at end_pos " << end_pos;
             // it must be SIGNIFICANTLY better, say 50% + 2?
@@ -1441,182 +1697,392 @@ AI::build_best_road(MapPos start_pos, RoadOptions road_options, Road *built_road
         } // is potential new solution better than existing solution?
       } // if RoadOption::ReconnectNetworks
 
-
-
-      Road road = proad->get_road();
-      AILogDebug["util_build_best_road"] << "" << calling_function << " preparing to build road, trying to build road from " << start_pos << " to " << end_pos << " as specified in proad";
-
-
-      // check to see if this is a water road about to be built
-      //  it should only be possible for BOTH ends to be in water, but checking both just to be sure
-      bool water_road = false;
-      if (map->road_segment_in_water(end_pos, reverse_direction(road.get_last()))){
-        AILogDebug["util_build_best_road"] << "" << calling_function << " preparing to build road, end_pos is in water!";
-        water_road = true;
-      }
-      if (map->road_segment_in_water(start_pos, road.get_first())){
-        AILogDebug["util_build_best_road"] << "" << calling_function << " preparing to build road, start_pos is in water!";
-        water_road = true;
-      }
-      if (water_road) {
-        if (!road_options.test(RoadOption::AllowWaterRoad)) {
-          AILogDebug["util_build_best_road"] << "" << calling_function << " preparing to build road, this solution is a water road, but AllowWaterRoad RoadOption is not set, skipping";
-          continue;
-        }
-        RoadOptions recursive_land_road_options = road_options;
-        recursive_land_road_options.reset(RoadOption::AllowWaterRoad);
-        // does this return true if an existing (better?) land road already exists?? or only if it creates one?
-        Road notused; // not used here
-        bool land_road_was_built = AI::build_best_road(start_pos, recursive_land_road_options, &notused);
-        if (land_road_was_built) {
-          AILogDebug["util_build_best_road"] << "" << calling_function << " preparing to build road, successfully built land road, allowing a water road to " << start_pos;
-        }
-        else {
-          AILogDebug["util_build_best_road"] << "" << calling_function << " preparing to build road, failed to build land road, NOT allowing a water road to " << start_pos;
-          continue;
-        }
-      }
-
-      /* figured out how to get actual adjusted score
-      // if there are two targets to connect to check if the second road is actually better 
-      //  than the first road built (if one was built)  otherwise, don't build. 
-      // for now only checking flag score, I am not sure how to get the adjusted score at this point
-      if (targets.size() > 1){
-        if (roads_built){
-          if (rb.get_score(end_pos).get_flag_dist() < first_target_road_score){
-            AILogDebug["util_build_best_road"] << "" << calling_function << " this is the second of " << targets.size() << " targets, and this flag-score of " << rb.get_score(end_pos).get_flag_dist() << " is better than the other road's score of " << first_target_road_score << " will try to create the road";
-          }else{
-            AILogDebug["util_build_best_road"] << "" << calling_function << " this is the second of " << targets.size() << " targets, and this flag-score of " << rb.get_score(end_pos).get_flag_dist() << " is NOT better than the other road's score of " << first_target_road_score << ", not building this road";
-            continue;
+      Roads roads_to_build;
+      if (proad->get_is_passthru_solution()){
+        AILogDebug["util_build_best_road"] << "" << calling_function << " this is a passthru multi-segment Road, collecting road segments from passthru_road_segments map";
+        AILogDebug["util_build_best_road"] << "" << calling_function << " looking for an entry in passthru_road_segments map for end_pos " << end_pos;
+        if (passthru_road_segments.count(end_pos) > 0){
+          AILogDebug["util_build_best_road"] << "" << calling_function << " found entry in passthru_road_segments for end_pos " << end_pos << ", it contains " << passthru_road_segments.at(end_pos).size() << " individual Road segments";
+          for (Road segment : passthru_road_segments.at(end_pos)){
+            AILogDebug["util_build_best_road"] << "" << calling_function << " adding Road with start pos " << segment.get_source() << " and end pos " << segment.get_end(map.get());
+            roads_to_build.push_back(segment);
           }
         }else{
-          // seeing bad_score here sometimes, try excluding it
-          //  possibly because it is a fake flag?  maybe need to do the adjacent-flag check??
-          if (rb.get_score(end_pos).get_flag_dist() != bad_score){
-            // store the score of this road so it can be compared for the next one
-            first_target_road_score = rb.get_score(end_pos).get_flag_dist();
-            AILogDebug["util_build_best_road"] << "" << calling_function << " this is the first of " << targets.size() << " targets, saving flag-score of " << first_target_road_score << " for next target road to compare to";
+          AILogError["util_build_best_road"] << "" << calling_function << " could not find passthru_road_segments entry for this proad solution with end_pos " << end_pos << "! skipping this solution";
+          //continue;
+          // now that passthru is allowed, must break instead of continue
+          //  as multiple road segments could comprise a solution, and this length check must reject the ENTIRE solution
+          break;
+        }
+      }else{
+        AILogDebug["util_build_best_road"] << "" << calling_function << " this is a normal Road, not a passthru";
+        //Road road = proad->get_road();
+        roads_to_build.push_back(proad->get_road());
+      }
+
+      //
+      // build the road[s] to this target
+      //
+      int road_segment_num = 0;
+      int road_segments_count = roads_to_build.size();
+      //MapPosVector failed_solution_flags = {};  // ugh, need to track and demolish any created Road segments also, skipping this for now
+      for (Road road : roads_to_build){
+        road_segment_num++;  // start at 1 for human readability
+        MapPos this_segment_start_pos = road.get_source();
+        MapPos this_segment_end_pos = road.get_end(map.get());
+        Direction this_segment_start_dir = road.get_first();
+        AILogDebug["util_build_best_road"] << "" << calling_function << " segment " << road_segment_num << " of " << road_segments_count << ", preparing to build road from this_segment_start_pos " << this_segment_start_pos << " to " << this_segment_end_pos << ", with final end pos " << end_pos << " and original start_pos of " << start_pos;
+
+        /* no longer allowing water roads for AI - jan13 2023
+        //
+        // check to see if this is a water road about to be built
+        //  it should only be possible for BOTH ends to be in water, but checking both just to be sure
+        //
+        bool water_road = false;
+        if (map->road_segment_in_water(this_segment_end_pos, reverse_direction(road.get_last()))){
+          AILogDebug["util_build_best_road"] << "" << calling_function << " preparing to build road, this_segment_end_pos " << this_segment_end_pos << " is in water!";
+          water_road = true;
+        }
+        if (map->road_segment_in_water(this_segment_start_pos, road.get_first())){
+          AILogDebug["util_build_best_road"] << "" << calling_function << " preparing to build road, this_segment_start_pos " << this_segment_start_pos << " is in water!";
+          water_road = true;
+        }
+        */
+
+        /* no longer allowing AI to create water roads at all
+        //  tlongstretch Jan 2023
+        if (water_road) {
+          if (!road_options.test(RoadOption::AllowWaterRoad)) {
+            AILogDebug["util_build_best_road"] << "" << calling_function << " preparing to build road, this solution is a water road, but AllowWaterRoad RoadOption is not set, skipping";
+            //continue;
+            // now that passthru is allowed, must break instead of continue
+            //  as multiple road segments could comprise a solution, and this length check must reject the ENTIRE solution
+            break;
+          }
+          RoadOptions recursive_land_road_options = road_options;
+          recursive_land_road_options.reset(RoadOption::AllowWaterRoad);
+          // sanity check, disallow water roads from multi-road passthru solutions
+          if (road_segments_count > 0){
+            AILogError["util_build_best_road"] << "" << calling_function << " found a passthru solution containing a water road!  this is not possible";
+            throw ExceptionFreeserf("found a passthru solution containing a water road!  this is not possible");
+          }
+          // does this return true if an existing (better?) land road already exists?? or only if it creates one?
+          Road notused; // not used here
+          bool land_road_was_built = AI::build_best_road(start_pos, recursive_land_road_options, &notused);  // it is okay to use regular start_pos here because multi-road solutions forbidden
+          if (land_road_was_built) { 
+            AILogDebug["util_build_best_road"] << "" << calling_function << " preparing to build road, successfully built land road, allowing a water road to " << start_pos;  // it is okay to use regular start_pos here because multi-road solutions forbidden
+          }
+          else {
+            AILogDebug["util_build_best_road"] << "" << calling_function << " preparing to build road, failed to build land road, NOT allowing a water road to " << start_pos;  // it is okay to use regular start_pos here because multi-road solutions forbidden
+            //continue;
+            // now that passthru is allowed, must break instead of continue
+            //  as multiple road segments could comprise a solution, and this length check must reject the ENTIRE solution
+            break;
           }
         }
-      }*/
-      // if there are two targets to connect to check if the second road is actually better 
-      //  than the first road built (if one was built) even though the target is different
-      // If it is not better, do not build.  Often the targets are in the same general
-      //  direction and there is no benefit to a second road
-      // NOTE - this should be comparing the adjusted proad score of the first road
-      //  to the first target, TO the score of the first road to the SECOND target
-      if (targets.size() > 1){
-        if (roads_built == 0){
-          // this is the first road
-          // store the end_pos of this road so it can be compared for the next one
-          first_target_road_end = end_pos;
-          AILogDebug["util_build_best_road"] << "" << calling_function << " this is the first of " << targets.size() << " targets, saving first_target_road_end of " << first_target_road_end << " for next target road to compare to";
-        }else{
-          // this is the 2nd+ road
-          // find the adjusted score of the first road to the first target
-          // to the adjusted score of the *first road* to the *second target*
-          // by using the scored_proads from the *second target* (does it share one scored_proad set?)
-          unsigned int this_target_score = bad_score;
-          unsigned int first_target_score = bad_score;
-          for (std::pair<MapPos, unsigned int> pair : scored_proads){
-            if (pair.first == end_pos){ this_target_score = pair.second; }
-            if (pair.first == first_target_road_end){ first_target_score = pair.second; }
-          }
-          if (this_target_score == bad_score || first_target_score == bad_score){
-            AILogWarn["util_build_best_road"] << "" << calling_function << " this is the second of " << targets.size() << " targets, one of the two scores is bad_score!  not comparing! continueing... is that okay?  this_target_score " << this_target_score << ", first_target_score " << first_target_score;
-            continue;
-          }
-          if (this_target_score + 10 < first_target_score){  // it must be significantly better
-            AILogDebug["util_build_best_road"] << "" << calling_function << " this is the second of " << targets.size() << " targets, and this adjusted proad score of " << this_target_score << " is significantly better than the other road's score of " << first_target_score << " will try to create the road";
+        */
+
+
+
+        //    *************************************************************************
+        //      I THINK THIS CHECK NEEDS TO BE MOVED OUTSIDE OF THE road_sements LOOP
+        //        to the complete road solutions loop!!!!!!
+        //    *************************************************************************
+        // if there are two targets to connect to check if the second road is actually better 
+        //  than the first road built (if one was built) even though the target is different
+        // If it is not better, do not build.  Often the targets are in the same general
+        //  direction and there is no benefit to a second road
+        // NOTE - this should be comparing the adjusted proad score of the first road
+        //  to the first target, TO the score of the first road to the SECOND target
+        if (targets.size() > 1){
+          if (complete_roads_built == 0){
+            // this is the first road
+            // store the end_pos of this road so it can be compared for the next one
+            // note that this is the FINAL END POS in case this is a multi-path solution, not the segment end pos
+            //  because the intent is to compare the score of the existing true end pos
+            first_target_road_end = end_pos;   // end_pos IS NOT A TYPO!
+            AILogDebug["util_build_best_road"] << "" << calling_function << " this is the first of " << targets.size() << " targets, saving first_target_road_end of " << first_target_road_end << " for next target road to compare to";
           }else{
-            // don't try additional positions because they all have worse scores than the first, because they are sorted by score
-            AILogDebug["util_build_best_road"] << "" << calling_function << " this is the second of " << targets.size() << " targets, and this adjusted proad score of " << this_target_score << " is NOT significantly better than the other road's score of " << first_target_score << ", not building a second road for this building";
-            // return true because the first road was successful
-            return true;
+            // this is the 2nd+ road
+            // find the adjusted score of the first road to the first target
+            // to the adjusted score of the *first road* to the *second target*
+            // by using the scored_proads from the *second target* (does it share one scored_proad set?)
+            unsigned int this_target_score = bad_score;
+            unsigned int first_target_score = bad_score;
+            for (std::pair<MapPos, unsigned int> pair : scored_proads){
+              if (pair.first == end_pos){ this_target_score = pair.second; }  // end_pos IS NOT A TYPO!
+              if (pair.first == first_target_road_end){ first_target_score = pair.second; }
+            }
+            if (this_target_score == bad_score && first_target_score == bad_score){
+              AILogWarn["util_build_best_road"] << "" << calling_function << " this is the second of " << targets.size() << " targets, BOTH two scores is bad_score!  not sure what this means, quitting this build_best_road call, returning true because at least one road built";
+              // return true because at least one road was built
+              return true;
+            }
+            if (this_target_score == bad_score || first_target_score == bad_score){
+              AILogWarn["util_build_best_road"] << "" << calling_function << " this is the second of " << targets.size() << " targets, one of the two scores is bad_score!  not comparing! continueing... is that okay?  this_target_score " << this_target_score << ", first_target_score " << first_target_score;
+              //continue;
+              // now that passthru is allowed, must break instead of continue
+              //  as multiple road segments could comprise a solution, and this length check must reject the ENTIRE solution
+              break;
+            }
+            if (this_target_score + 10 < first_target_score){  // it must be significantly better
+              AILogDebug["util_build_best_road"] << "" << calling_function << " this is the second of " << targets.size() << " targets, and this adjusted proad score of " << this_target_score << " is significantly better than the other road's score of " << first_target_score << " will try to create the road";
+            }else{
+              // don't try additional positions because they all have worse scores than the first, because they are sorted by score
+              AILogDebug["util_build_best_road"] << "" << calling_function << " this is the second of " << targets.size() << " targets, and this adjusted proad score of " << this_target_score << " is NOT significantly better than the other road's score of " << first_target_score << ", not building a second road for this building";
+              // return true because the first road was successful
+              return true;
+            }
           }
         }
-      }
+        // end of "is this a 2nd target complete road, and if so is the solution actually better than the last one built?"
+        //*****************************************************************************************************************
 
-      // avoid creation extremely long roads
-      if (road.get_length() > 30){
-        AILogDebug["util_build_best_road"] << "" << calling_function << " road is over 30 tiles long!  not building this road";
-        continue;
-      }
 
-      // add support for RoadOption::PlotOnlyNoBuild
-      if (road_options.test(RoadOption::PlotOnlyNoBuild)){
-        AILogDebug["util_build_best_road"] << "" << calling_function << " RoadOption::PlotOnlyNoBuild is set, not actually building the road.  returning Road object containing it";
-        *built_road = *(&road);
-        return true;
-      } 
 
-      // build a new flag if this solution ends with no flag (i.e. a split road solution)
-      bool created_new_flag = false;
-      if (!map->has_flag(end_pos)) {
-        AILogDebug["util_build_best_road"] << "" << calling_function << " end_pos " << end_pos << " has no flag, must be fake flag/split road, trying to create a real flag";
-        mutex_lock("AI::build_best_road calling game->build_flag (split road)");
-        bool was_built = game->build_flag(end_pos, player);
-        mutex_unlock();
-        if (was_built) {
-          AILogDebug["util_build_best_road"] << "" << calling_function << " successfully built new flag at end_pos " << end_pos << ", splitting the road";
-          created_new_flag = true;
-          // IMPROVEMENT/hack 
-          //  because split-road solutions do not "heapify, the last segment of the road is not sorted by "score", and often dog-legs for no good reason when a straight
-          //  segment is possible.  It isn't obvious to me how to re-heapify the splitting path when it is being made, so instead, re-plot the road as a direct road so it
-          //  gets the actual best path.  This means the road actually built should be at least as good as the originally scored splitting road, but could be 1 tile better!
-          //  the HoldBuildingPos feature must be passed also to be sure replotted road can't interfere
-          AILogDebug["util_build_best_road"] << "" << calling_function << " because this is a splitting flag solution, REPLOT THE ROAD so the last segment can't dogleg";
-          Roads notused;  // this already a splitting road, no additional split roads considered
-          Road road = plot_road(map, player_index, start_pos, end_pos, &notused, road_options.test(RoadOption::HoldBuildingPos));
+        // avoid creation extremely long roads
+        if (road.get_length() > 30){
+          AILogDebug["util_build_best_road"] << "" << calling_function << " road is over 30 tiles long!  not building this road";
+          //continue;
+          // now that passthru is allowed, must break instead of continue
+          //  as multiple road segments could comprise a solution, and this length check must reject the ENTIRE solution
+          break;
+        }
+
+        // add support for RoadOption::PlotOnlyNoBuild
+        //   INVESTIGATE HOW THIS IS USED, SEE IF IT CONFLICTS WITH NEW AllowPassthru LOGIC!
+        if (road_options.test(RoadOption::PlotOnlyNoBuild)){
+          AILogDebug["util_build_best_road"] << "" << calling_function << " RoadOption::PlotOnlyNoBuild is set, not actually building the road.  returning Road object containing it";
+          *built_road = *(&road);
+          return true;
+        } 
+
+        // build a new flag if this solution ends with no flag (i.e. a split road solution)
+        bool created_new_flag = false;
+        if (!map->has_flag(this_segment_end_pos)) {
+          AILogDebug["util_build_best_road"] << "" << calling_function << " this_segment_end_pos " << this_segment_end_pos << ", on way to final end_pos " << end_pos << " has no flag, must be fake flag/split road, trying to create a real flag";
+          mutex_lock("AI::build_best_road calling game->build_flag (split road)");
+          bool was_built = game->build_flag(this_segment_end_pos, player);
+          mutex_unlock();
+          if (was_built) {
+            AILogDebug["util_build_best_road"] << "" << calling_function << " successfully built new flag at this_segment_end_pos " << this_segment_end_pos << ", on way to final end_pos " << end_pos << ", splitting the road";
+            created_new_flag = true;
+            // disabling this as it doesn't even work 100% and slows things down
+            //   or maybe, only do this for initial castle and not once multiple Inventories?
+            //  ALSO - this is itself creating new split-road solutions which is wasteful!
+            // RE-ENABLING, I think this is actually essential!!!
+            //  find a better way to fix up the end of the road without having to re-do the entire pathfinding
+
+          /* temp disabling again when testing passthru sanity checking early rejection and recheck
+            // IMPROVEMENT/hack 
+            //  because split-road solutions do not "heapify, the last segment of the road is not sorted by "score", and often dog-legs for no good reason when a straight
+            //  segment is possible.  It isn't obvious to me how to re-heapify the splitting path when it is being made, so instead, re-plot the road as a direct road so it
+            //  gets the actual best path.  This means the road actually built should be at least as good as the originally scored splitting road, but could be 1 tile better!
+            //  the HoldBuildingPos feature must be passed also to be sure replotted road can't interfere
+            AILogDebug["util_build_best_road"] << "" << calling_function << " because this is a splitting flag solution, REPLOT THE ROAD so the last segment can't dogleg";
+            Roads notused;  // this already a splitting road, no additional split roads considered
+            //Road road = plot_road(map, player_index, start_pos, end_pos, &notused, road_options.test(RoadOption::HoldBuildingPos));
+            road = plot_road(map, player_index, this_segment_start_pos, this_segment_end_pos, &notused, road_options.test(RoadOption::HoldBuildingPos));
+          */
+          }
+          else {
+            AILogDebug["util_build_best_road"] << "" << calling_function << " failed to build flag at this_segment_end_pos " << this_segment_end_pos << ", on way to final end_pos " << end_pos << ", FIND OUT WHY!  not trying to build this road.  marking pos in cyan";
+            ai_mark_pos.insert(ColorDot(this_segment_end_pos, "cyan"));
+            //// I'm not sure what is causing this yet, but it seems to happen for many-segment complex roads near busy areas, and isn't all that of a big deal to use alternate solution
+            //AILogWarn["util_build_best_road"] << "SLEEPING AI FOR LONG TIME";
+            //std::this_thread::sleep_for(std::chrono::milliseconds(1000000));
+            //AILogWarn["util_build_best_road"] << "DONE SLEEPING";
+            //continue;
+            // now that passthru is allowed, must break instead of continue
+            //  as multiple road segments could comprise a solution, and this length check must reject the ENTIRE solution
+            break;
+          }
+        }// if no flag at  this_segment_end_pos
+          
+        // build the road!
+        //ai_mark_road = &road;
+
+        // now that multi-segment passthru routes are allowed, we must check EACH SEGMENT to see if
+        //  there already exists a road connection between the two segment flags, and if this proposed new
+        //  path is significantly better than the existing one.  Because the passthru logic disallows following
+        //  existing routes, it will be VERY COMMON for a passthru route to be plotted that suggests new road 
+        //  segments when it would be much better to instead use the existing path for that segment, even if other
+        //  segments are new.
+        bool skip_segment = false;
+            
+        // check and see if this segment is significantly shorter than any existing segment between the same two flags
+        if (map->has_flag(this_segment_start_pos) && map->has_flag(this_segment_end_pos)) {
+          AILogDebug["util_build_best_road"] << "" << calling_function << " segment_start_pos " << this_segment_start_pos << ", segment_end_pos " << this_segment_end_pos << ", checking for existing solution for this segment, flags already exist at both segment start and segment end pos, checking for a path between them";
+          for (Direction check_dir : cycle_directions_cw()){
+            if (map->has_path_IMPROVED(road.get_source(), check_dir)){
+              AILogDebug["util_build_best_road"] << "" << calling_function << " segment_start_pos " << this_segment_start_pos << ", segment_end_pos " << this_segment_end_pos << ", checking for existing solution for this segment, there is a path from segment start in Dir" << check_dir;
+              Flag *segment_start_flag = game->get_flag_at_pos(this_segment_start_pos);
+              //if (segment_start_flag == nullptr){
+              if (segment_start_flag->get_other_end_flag(check_dir)->get_position() == this_segment_end_pos){
+                AILogDebug["util_build_best_road"] << "" << calling_function << " segment_start_pos " << this_segment_start_pos << ", segment_end_pos " << this_segment_end_pos << ", checking for existing solution for this segment, Dir" << check_dir << " leads to segment_end_pos flag at " << this_segment_end_pos;
+                Road existing_segment_road = trace_existing_road(map, this_segment_start_pos, check_dir);
+                AILogDebug["util_build_best_road"] << "" << calling_function << " segment_start_pos " << this_segment_start_pos << ", segment_end_pos " << this_segment_end_pos << ", checking for existing solution for this segment, existing road between these two flags has length " << existing_segment_road.get_length();
+                if (road.get_length() * 1.5 < existing_segment_road.get_length()){
+                  AILogDebug["util_build_best_road"] << "" << calling_function << " segment_start_pos " << this_segment_start_pos << ", segment_end_pos " << this_segment_end_pos << ", checking for existing solution for this segment, this new road segment is significantly better than the current one, will try to build it";
+                }else{
+                  AILogDebug["util_build_best_road"] << "" << calling_function << " segment_start_pos " << this_segment_start_pos << ", segment_end_pos " << this_segment_end_pos << ", checking for existing solution for this segment, this road segment is not significantly better than the current one, skipping it to re-use existing";
+                  skip_segment = true;
+                  break;
+                }
+              }
+            }
+          }
+        }
+
+        /*
+
+          // at the very least, this segment doesn't need to be built
+          //for (std::pair<MapPos, unsigned int> ppair : scored_proads) {
+          for (std::pair<int, unsigned int> ppair : scored_proads) {
+            if (ppair.first != proad_index) {
+              continue;  // this is correct here, do NOT break
+              // NO NO NO // now that passthru is allowed, must break instead of continue
+              // NO NO NO //  as multiple road segments could comprise a solution, and this check must reject the ENTIRE solution
+              //break; // NO DO NOT BREAK HERE AS THIS IS A CHECK FOR A MATCHING INDEX ONLY!
+            }
+            AILogDebug["util_build_best_road"] << "" << calling_function << " checking vs existing solution, found adjusted_score of " << ppair.second << " for this proad ending at end_pos " << end_pos;
+            // it must be SIGNIFICANTLY better, say 50% + 2?
+            // reducing from 50% to 20% + 2 on dec04 2021
+            double modified_prod_score = static_cast<double>(ppair.second) * static_cast<double>(1.20) + 2;
+            //if (best_eroad_score <= ppair.second) {
+            if (best_eroad_score <= modified_prod_score) {
+              AILogDebug["util_build_best_road"] << "" << calling_function << " checking vs existing solution, proad from start_pos " << start_pos << " to end_pos " << end_pos << " has +20%+2 score " << modified_prod_score << " which is not significantly better than best_eroad_score " << best_eroad_score << ", skipping this target";
+              skip_target = true;
+              break;
+            }
+            else {
+              AILogDebug["util_build_best_road"] << "" << calling_function << " checking vs existing solution, proad from start_pos " << start_pos << " to end_pos " << end_pos << " has +20%+2 score " << modified_prod_score << " which is significantly better than best_eroad_score " << best_eroad_score << ", will build new road";
+              break;
+            }
+          }
+          if (skip_target == true) {
+            AILogDebug["util_build_best_road"] << "" << calling_function << " checking vs existing solution, skip_target is true, breaking from foreach sorted_scored_proads - not building road to this target";
+            break;
+          }
         }
         else {
-          AILogDebug["util_build_best_road"] << "" << calling_function << " failed to build flag at end_pos " << end_pos << ", FIND OUT WHY!  not trying to build this road.  marking pos in blue";
-          ai_mark_pos.insert(ColorDot(end_pos, "blue"));
-          //sleep_speed_adjusted(5000);
-          continue;
+          AILogDebug["util_build_best_road"] << "" << calling_function << " sorted_scored_proads, start_pos " << start_pos << " has no paths, or RoadOption::Improve not set, not comparing this solution to any best_eroad_score";
+        } // is potential new solution better than existing solution?
+        */
+
+        
+        // DEBUG
+        AILogDebug["util_build_best_road"] << "" << calling_function << " DEBUG PRINTING DIRS about to build road with source=" << this_segment_start_pos << ", end=" << this_segment_end_pos;
+        for (Direction debug_dir : road.get_dirs()){
+          AILogDebug["util_build_best_road"] << "" << calling_function << " DEBUG PRINTING DIRS, Dir" << debug_dir;
         }
-      }
-        
-      // build the road!
-      AILogDebug["util_build_best_road"] << "" << calling_function << " about to build road with source=" << road.get_source() << ", end=" << road.get_end(game->get_map().get());
-      mutex_lock("AI::build_best_road calling game->build_road (non-direct road)");
-      bool was_built = game->build_road(road, game->get_player(player_index));
-      mutex_unlock();
-      if (was_built) {
-        roads_built++;
-        AILogDebug["util_build_best_road"] << "" << calling_function << " successfully built road from " << start_pos << " to " << end_pos << " as specified in PotentialRoad, roads_built: " << roads_built;
-        // set this so the calling function can tell the exact Road built if it needs it
-        *built_road = *(&road);
-        
-        // for debugging, keep track of the largest road built to get an idea of what is a reasonable limit to set for performance reasons
-        //  also, consider making the limit an argument to this function, so that high limits can be allowed for certain roads but low limits
-        //  for others in plot_road AI util function
-        //if (road.get_length() > longest_road_so_far.get_length()){
-        //  AILogDebug["build_best_road"] << "this road is the new longest road built by this AI so far, with length " << road.get_length() << ", highlighting it as ai_mark_road";
-        //  longest_road_so_far = road; 
-        //  ai_mark_road = &longest_road_so_far;
-        //}
+        AILogDebug["util_build_best_road"] << "" << calling_function << " DONE PRINTING DIRS about to build road with source=" << this_segment_start_pos << ", end=" << this_segment_end_pos;
 
-        continue;
-      }
-      else {
-        AILogWarn["util_build_best_road"] << "" << calling_function << " ERROR - failed to build road from " << start_pos << " to " << end_pos << ", FIND OUT WHY!  marking pos in dk_green, trying next best solution...";
-        ai_mark_pos.insert(ColorDot(end_pos, "dk_green"));
-        //sleep_speed_adjusted(5000);
-      }
+        // now that re-use of existing paths as segments is allowed for multi-road passthru solutions,
+        //  we cannot attempt (and fail) to build these paths as they already exist
+        // To avoid this, see if there is already a path IN THE DIRECTION of the Road dir
+        //  and if so simply don't build, but continue with the next solution part
+        if (map->has_path(this_segment_start_pos, this_segment_start_dir)){
+          AILogDebug["util_build_best_road"] << "" << calling_function << " this road segment appears to be re-using an existing path";
+          if (road_segments_count > 1){
+            AILogDebug["util_build_best_road"] << "" << calling_function << " this road segment appears to be re-using an existing path and is part of a multi-road passthru solution so it is allowed, not attempting to build this segment";
+            skip_segment = true;  // could just 'continue' here
+          }else{
+            AILogError["util_build_best_road"] << "" << calling_function << " this road segment appears to be re-using an existing path but it is a single segment solution, nothing to build";
+            // I think this is actually not a problem at all, preventing it would mean extra logic in plot_road that isn't really needed.  Simply skip this solution
+            skip_segment = true;  // could just 'continue' here
+            /* 
+            //return false;
+            // instead of returning false, for now throw exception for debugging
+            //throw ExceptionFreeserf("util_build_best_road found re-use of existing path in single path solution");
+            AILogError["util_build_best_road"] << "" << calling_function << " this road segment appears to be re-using an existing path, marking start in blue and end in yellow";
+            ai_mark_pos.insert(ColorDot(this_segment_start_pos, "blue"));
+            ai_mark_pos.insert(ColorDot(this_segment_end_pos, "yellow"));
+            AILogWarn["util_build_best_road"] << "SLEEPING AI FOR LONG TIME";
+            std::this_thread::sleep_for(std::chrono::milliseconds(1000000));
+            AILogWarn["util_build_best_road"] << "DONE SLEEPING";
+            */
+          }
+        }
 
-      // if a new flag was built but the road creation failed, destroy the newly built flag
-      if (created_new_flag) {
-        AILogDebug["util_build_best_road"] << "" << calling_function << " removing the newly created flag at end_pos so it doesn't screw up the rest of the road solutions";
-        mutex_lock("AI::build_best_road calling game->demolish_flag (couldn't connect new flag)");
-        game->demolish_flag(end_pos, game->get_player(player_index));
-        mutex_unlock();
-      }
-      AILogDebug["util_build_best_road"] << "" << calling_function << " done trying to build road from " << start_pos << " to " << end_pos;
+        if (!skip_segment){
+          AILogDebug["util_build_best_road"] << "" << calling_function << " about to build road with source=" << this_segment_start_pos << ", end=" << this_segment_end_pos << " and size " << road.get_length();
+          mutex_lock("AI::build_best_road calling game->build_road (non-direct road)");
+          bool was_built = game->build_road(road, game->get_player(player_index));
+          mutex_unlock();
+          if (was_built) {
+            //roads_built++;
+            AILogDebug["util_build_best_road"] << "" << calling_function << " successfully built road segment from " << this_segment_start_pos << " to " << this_segment_end_pos << ", with final end_pos " << end_pos << " as specified in PotentialRoad, roads segments built this target solution: " << road_segment_num;
+
+            // see if this is the last (or only) segment
+            if (road_segment_num == road_segments_count){
+              AILogDebug["util_build_best_road"] << "" << calling_function << " successfully built complete road solution from original start_pos " << start_pos << " to final end_pos " << end_pos << ", " << road_segment_num << " out of " << road_segments_count << ", complete road solutions (targets) built: " << complete_roads_built;
+              complete_roads_built++;
+
+              // ???????
+              // how to handle this so it returns the complete road instead of a segment?
+              //  AND - how is this used by calling function?  it likely needs updating
+              //  ???????
+              // set this so the calling function can tell the exact Road built if it needs it
+              //   I guess this only works to return the last road built...
+              *built_road = *(&road);
+              
+              // for debugging, keep track of the largest road built to get an idea of what is a reasonable limit to set for performance reasons
+              //  also, consider making the limit an argument to this function, so that high limits can be allowed for certain roads but low limits
+              //  for others in plot_road AI util function
+              //if (road.get_length() > longest_road_so_far.get_length()){
+              //  AILogDebug["build_best_road"] << "this road is the new longest road built by this AI so far, with length " << road.get_length() << ", highlighting it as ai_mark_road";
+              //  longest_road_so_far = road; 
+              //  ai_mark_road = &longest_road_so_far;
+              //}
+
+              //continue;
+            }else{
+              AILogDebug["util_build_best_road"] << "" << calling_function << " this road solution is not done building yet, still " << road_segments_count - road_segment_num << "segments remain in this target's solution";
+            }
+            continue;
+          }else{
+            AILogWarn["util_build_best_road"] << "" << calling_function << " ERROR - failed to build road from " << this_segment_start_pos << " to " << this_segment_end_pos << ", with final end_pos " << end_pos << ", FIND OUT WHY!  marking pos in dk_green, trying next best solution...";
+            /* disabling this for now as it happens only for really convoluted solutions that aren't very helpful anyway
+            ai_mark_pos.erase(end_pos);
+            ai_mark_pos.insert(ColorDot(end_pos, "dk_green"));
+            AILogWarn["util_build_best_road"] << "SLEEPING AI FOR LONG TIME";
+            std::this_thread::sleep_for(std::chrono::milliseconds(1000000));
+            AILogWarn["util_build_best_road"] << "DONE SLEEPING";
+            AILogWarn["util_build_best_road"] << "" << calling_function << " ERROR - failed to build road, returning early for debugging";
+            return false;
+            */
+            break;
+          }
+
+          // if a new flag was built but the road creation failed, destroy the newly built flag
+          if (created_new_flag) {
+
+            // this should create a list of flags (and Roads) build and remove them all, but not bothering with this yet, still testing the initial logic
+            //AILogDebug["util_build_best_road"] << "" << calling_function << " marking the newly created flag at this_segment_end_pos " << this_segment_end_pos << " for deletion so it doesn't pollute the road network";
+            //failed_solution_flags.push_back(this_segment_end_pos);
+
+            AILogDebug["util_build_best_road"] << "" << calling_function << " removing the newly created flag at end_pos so it doesn't screw up the rest of the road solutions";
+            mutex_lock("AI::build_best_road calling game->demolish_flag (couldn't connect new flag)");
+            game->demolish_flag(end_pos, game->get_player(player_index));
+            mutex_unlock();
+          }
+
+          if (!was_built){
+            AILogDebug["util_build_best_road"] << "" << calling_function << " failed to create at least one segment in this road segment list, abandoning the entire solution";
+            break;
+          }
+
+          AILogDebug["util_build_best_road"] << "" << calling_function << " successfully built road from " << this_segment_start_pos << " to " << this_segment_end_pos << ", with final end_pos " << end_pos << " and original start_pos of " << start_pos;
+
+        } // if !skip_segment (because it is a re-used path part of a multi-part passthru solution
+
+      }  // for each road_to_build (which is always one for non-passthru roads, but can be multiple for passthru roads)
+         //  this is NOT the same as multiple TARGETS, up to two targets can receive individual roads, which may or may not be passthru 
 
     } // end foreach end_pos (of sorted_scored_road solutions)
 
-    AILogDebug["util_build_best_road"] << "" << calling_function << " done building roads from start_pos " << start_pos << " to target_pos " << target_pos;
+    AILogDebug["util_build_best_road"] << "" << calling_function << " done building roads from original start_pos " << start_pos << " to final target_pos " << target_pos;
 
   } //foreach target
 
@@ -1625,11 +2091,11 @@ AI::build_best_road(MapPos start_pos, RoadOptions road_options, Road *built_road
   duration = (std::clock() - start) / static_cast<double>(CLOCKS_PER_SEC);
   AILogDebug["util_build_best_road"] << "" << calling_function << " build_best_road call took " << duration;
 
-  if (roads_built < 1) {
+  if (complete_roads_built < 1) {
     AILogDebug["util_build_best_road"] << "" << calling_function << " failed to connect specified flag to road system!";
     return false;
   }
-  AILogDebug["util_build_best_road"] << "" << calling_function << " done with build_best_road, roads built: " << roads_built << ", out of target_count: " << target_count;
+  AILogDebug["util_build_best_road"] << "" << calling_function << " done with build_best_road, complete_roads_built: " << complete_roads_built << ", out of target_count: " << target_count;
   // sleep a bit to be more human like
   sleep_speed_adjusted(2000);
   return true;
@@ -2309,6 +2775,31 @@ AI::sort_by_val_desc(MapPosSet set) {
   return sorted_vector;
 }
 
+// sort a MapPosVector<int,unsigned int> of proad_index:scores by value, ascending, and return as sorted vector of the keys (throwing the values away)
+std::vector<unsigned int>
+AI::sort_scores_by_val_asc(std::vector<std::pair<int, unsigned int>> scores) {
+  //AILogDebug["util_sort_by_val_asc"] << "inside AI::sort_scores_by_val_asc";
+  // this is C++14 only?  worked on visual studio 2017 on windows but not VC code w/gcc on linux
+  auto cmp = [](const auto &p1, const auto &p2) { return p2.second > p1.second || !(p1.second > p2.second) && p1.first > p2.first; };
+  //std::vector< std::pair<int, unsigned int>, decltype(cmp)> sorted_scores(scores.begin(), scores.end(), cmp);
+  std::sort(scores.begin(), scores.end(), cmp);
+  std::vector<unsigned int> sorted_keys;
+  //for (auto pair : sorted_scores) {
+  for (std::pair<int, unsigned int> pair : scores){
+    AILogDebug["util_sort_by_val_asc"] << "sorted scores list contains index: " << pair.first << ", score: " << pair.second;
+    sorted_keys.push_back(pair.first);
+  }
+  return sorted_keys;
+}
+
+/* desc might not even be used, leaving it out until needed
+// sort a MapPosVector<int,unsigned int> of proad_index:scores by value, descending, and return as sorted vector of the keys (throwing the values away)
+std::vector<unsigned int>
+AI::sort_scores_by_val_desc(std::vector<std::pair<int, unsigned int>> scores) {
+// copy from sort_scores_by_val_asc if needed
+*/
+
+
 // return count of individual objects of the specified type range, such as trees or geologist signs
 unsigned int
 AI::count_objects_near_pos(MapPos center_pos, unsigned int distance, Map::Object res_start_index, Map::Object res_end_index, std::string color) {
@@ -2563,7 +3054,15 @@ AI::build_near_pos(MapPos center_pos, unsigned int distance, Building::Type buil
         //  the closest Inventory building by flagsearch is not the current one
         //
         Road notused; // not used here
-        road_built = AI::build_best_road(flag_pos, road_options, &notused, "build_near_pos:"+NameBuilding[building_type]+"@"+std::to_string(flag_pos), building_type, Building::TypeNone, bad_map_pos, verify_stock);
+        road_built = AI::build_best_road(flag_pos, road_options, &notused, "build_near_pos(canPassthru):"+NameBuilding[building_type]+"@"+std::to_string(flag_pos), building_type, Building::TypeNone, bad_map_pos, verify_stock);
+        // now that passthru roads are enabled, the older style "go around" basically never happens
+        //  so if no road was built with passthru enabled, try again without it to see if going around works
+        if (!road_built && road_options.test(RoadOption::AllowPassthru)){
+          AILogDebug["util_build_near_pos"] << "failed to build road using Passthru, trying again without it";
+          road_options.reset(RoadOption::AllowPassthru);
+          road_built = AI::build_best_road(flag_pos, road_options, &notused, "build_near_pos(nonPassthru):"+NameBuilding[building_type]+"@"+std::to_string(flag_pos), building_type, Building::TypeNone, bad_map_pos, verify_stock);
+          road_options.set(RoadOption::AllowPassthru);
+        }
       }else{
         AILogDebug["util_build_near_pos"] << "the flag already at flag_pos " << flag_pos << " is already connected to road system.  For potential new building of type " << NameBuilding[building_type] << " at pos " << pos;
         // must do the verify_stock check here on this flag, because normally it is done when placing the road but this
@@ -2623,7 +3122,7 @@ AI::build_near_pos(MapPos center_pos, unsigned int distance, Building::Type buil
     mutex_unlock();
     if (!was_built) {
       AILogDebug["util_build_near_pos"] << "failed to build building of type " << NameBuilding[building_type] << " despite can_build being true!  WAITING 10sec - look at the pos in coral!";
-      ai_mark_pos.insert(ColorDot(pos, "coral"));
+      //ai_mark_pos.insert(ColorDot(pos, "coral"));
       //sleep_speed_adjusted(10000);
       continue;
     }
@@ -2957,7 +3456,7 @@ AI::score_enemy_area(MapPos center_pos, unsigned int distance) {
   for (unsigned int i = 0; i < distance; i++) {
     MapPos pos = map->pos_add_extended_spirally(center_pos, i);
     Map::Object obj = map->get_obj(pos);
-    ////ai_mark_pos.erase(pos);
+    //ai_mark_pos.erase(pos);
     //ai_mark_pos.insert(ColorDot(pos, "gray"));
     //sleep_speed_adjusted(100);
       

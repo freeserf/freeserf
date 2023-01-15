@@ -10,12 +10,16 @@
 
 #include "src/ai_roadbuilder.h"
 
-RoadBuilderRoad::RoadBuilderRoad() {
+//RoadBuilderRoad::RoadBuilderRoad() {
+RoadBuilderRoad::RoadBuilderRoad(int index_) {
   end1 = bad_map_pos;
   end2 = bad_map_pos;
   dir1 = DirectionNone;
   dir2 = DirectionNone;
+  index = index_; // adding this to use as key instead of the ends, as I am discovering the ends are not always unique, at least since allowing passthru solutions
   contains_castle_flag = false;
+  is_passthru_solution = false;
+  //Log::Debug["roadbuilder_init"] << "constructed new empty RoadBuilderRoad::RoadBuilderRoad with index " << index << ", end1 " << end1 << ", dir1 " << NameDirection[dir1] << ", end2 " << end2 << ", dir2 " << NameDirection[dir2] << ", road length " << road.get_length();
 }
 
 /*
@@ -28,7 +32,8 @@ RoadBuilderRoad::RoadBuilderRoad(MapPos e1, Direction d1, MapPos e2, Direction d
 }
 */
 
-RoadBuilderRoad::RoadBuilderRoad(RoadEnds ends, Road r) {
+//RoadBuilderRoad::RoadBuilderRoad(RoadEnds ends, Road r) {
+  RoadBuilderRoad::RoadBuilderRoad(RoadEnds ends, Road r, int index_) {
   // need to make these able to log to AILogs
   //Log::Debug["roadbuilder_init"] << "inside RoadBuilderRoad::RoadBuilderRoad";
   end1 = std::get<0>(ends);
@@ -36,21 +41,23 @@ RoadBuilderRoad::RoadBuilderRoad(RoadEnds ends, Road r) {
   end2 = std::get<2>(ends);
   dir2 = std::get<3>(ends);
   road = r;
+  index = index_;  // adding this to use as key instead of the ends, as I am discovering the ends are not always unique, at least since allowing passthru solutions
   contains_castle_flag = false;
-  //Log::Debug["roadbuilder_init"] << "constructed RoadBuilderRoad::RoadBuilderRoad with end1 " << end1 << ", dir1 " << NameDirection[dir1] << ", end2 " << end2 << ", dir2 " << NameDirection[dir2] << ", road length " << road.get_length();
+  is_passthru_solution = false;
+  //Log::Debug["roadbuilder_init"] << "constructed RoadBuilderRoad::RoadBuilderRoad with index " << index << ", end1 " << end1 << ", dir1 " << NameDirection[dir1] << ", end2 " << end2 << ", dir2 " << NameDirection[dir2] << ", road length " << road.get_length();
 }
 
 
 FlagScore::FlagScore() {
-  unsigned int flag_dist = 0;
-  unsigned int tile_dist = 0;
-  bool contains_castle_flag = false;
+  flag_dist = 0;
+  tile_dist = 0;
+  contains_castle_flag = false;
 }
 
 FlagScore::FlagScore(unsigned int fd, unsigned int td) {
-  unsigned int flag_dist = fd;
-  unsigned int tile_dist = td;
-  bool contains_castle_flag = false;
+  flag_dist = fd;
+  tile_dist = td;
+  contains_castle_flag = false;
 }
 
 RoadBuilder::RoadBuilder() {

@@ -817,7 +817,31 @@ Graphics::set_zoom_factor(float factor) {
   return video->set_zoom_factor(factor);
 }
 
+int
+Graphics::get_zoom_type() {
+  return video->get_zoom_type();
+}
+
+void
+Graphics::set_zoom_type(int type) {
+  video->set_zoom_type(type);
+}
+
+
+void
+Graphics::get_mouse_cursor_coord(int *x, int *y) {
+  // it seems like this gives inverted x coord?
+  video->get_mouse_cursor_coord(x, y);
+}
+
+
+// what is the purpose of screen factor?  it seems to always be set to 1
 void
 Graphics::get_screen_factor(float *fx, float *fy) {
   video->get_screen_factor(fx, fy);
+}
+
+void
+Graphics::get_screen_size(int *x, int *y) {
+  video->get_screen_size(x, y);
 }

@@ -38,6 +38,7 @@ class EventLoopSDL : public EventLoop {
  protected:
   std::list<DeferredCall> deferred_calls;
   float zoom_factor;
+  //int zoom_type; // to distinguish between keyboard and mousewheel zoom for centering purpose
   float screen_factor_x;
   float screen_factor_y;
   bool button_left_down = false;
@@ -53,7 +54,8 @@ class EventLoopSDL : public EventLoop {
   virtual void deferred_call(DeferredCall call, void *data);
 
  protected:
-  void zoom(float delta);
+  //void zoom(float delta);
+  void zoom(float delta, int type); // adding zoom type to distinguish between keyboard zoom and mouse zoom for centering purpose
   static Uint32 timer_callback(Uint32 interval, void *param);
 };
 

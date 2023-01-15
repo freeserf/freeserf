@@ -900,6 +900,7 @@ Serf::send_off_to_fight(int dist_col, int dist_row) {
 
 void
 Serf::stay_idle_in_stock(unsigned int inventory) {
+  Log::Debug["serf.cc"] << "inside Serf::stay_idle_in_stock";
   set_state(StateIdleInStock);
   s.idle_in_stock.inv_index = inventory;
 }
@@ -1091,8 +1092,8 @@ Serf::handle_serf_idle_in_stock_state() {
       case TypeKnight3:
         inventory->knight_training(this, 500);
         break;
-      case TypeSmelter: /* TODO ??? */
-        break;
+      //case TypeSmelter: /* TODO ??? */    // I think this was a bug in the original game code, it results in idle Smelter's not being dispatched from an Inventory
+      //  break;
       default:
         inventory->serf_idle_in_stock(this);
         break;
@@ -2221,6 +2222,7 @@ Serf::handle_serf_transporting_state() {
 
 void
 Serf::enter_inventory() {
+  //Log::Debug["serf.cc"] << " inside Serf::enter_inventory, for a serf with index " << get_index() << ", and type " << NameSerf[get_type()];
   game->get_map()->set_serf_index(pos, 0);
   Building *building = game->get_building_at_pos(pos);
   if (building == nullptr){
@@ -6863,7 +6865,7 @@ Serf::handle_serf_cleaning_rubble_state() {
 //
 void
 Serf::update() {
-  //Log::Debug["serf.cc"] << "inside Serf::update, serf with index " << get_index() << " has type " << get_type();
+  //Log::Debug["serf.cc"] << "inside Serf::update, serf with index " << get_index() << " has type " << get_type() << " and state name " << get_state_name(get_state());
   switch (state) {
   case StateNull: /* 0 */
     break;

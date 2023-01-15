@@ -243,16 +243,20 @@ Inventory::call_out_serf(Serf::Type type) {
 bool
 Inventory::call_internal(Serf *serf) {
   if (serfs[serf->get_type()] != serf->get_index()) {
+    //Log::Debug["inventory.cc"] << "inside Inventory::call_internal for specific serf with index " << serf->get_index() << " type is wrong, returning false";
     return false;
   }
 
   serfs[serf->get_type()] = 0;
+
+  Log::Debug["inventory.cc"] << "inside Inventory::call_internal for specific serf with index " << serf->get_index() << " type is correct type " << serf->get_type() << ", returning false";
 
   return true;
 }
 
 Serf*
 Inventory::call_internal(Serf::Type type) {
+  Log::Debug["inventory.cc"] << "inside Inventory::call_internal for serf type " << type;
   if (serfs[type] == 0) {
     return NULL;
   }
@@ -288,6 +292,16 @@ Inventory::promote_serf_to_knight(Serf *serf) {
 Serf*
 Inventory::spawn_serf_generic() {
   Serf *serf = game->get_player(owner)->spawn_serf_generic();
+
+  /* debug
+  Log::Debug["inventory"] << "TEST DUMP ALL SERFS inside spawn_serf_generic, inventory serfs[] array contains";
+  int x =0 ;
+  for ( auto foo : serfs ){
+    auto type = foo.first;
+    auto index = foo.second;
+    Log::Debug["inventory"] << "TEST DUMP ALL SERFS inside spawn_serf_generic, inventory serfs[" << x++ <<" ] array contains serf type " << type << ", serf index? " << index;
+  }
+  */
 
   if (serf != NULL) {
     serf->init_generic(this);
