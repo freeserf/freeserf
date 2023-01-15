@@ -1987,6 +1987,7 @@ AI::find_flag_path_and_tile_dist_between_flags(PMap map, MapPos start_pos, MapPo
           // also trace the road to determine length in tiles of the solution
           Road tmp_road = trace_existing_road(map, solution_node->parent->pos, solution_node->dir);
           *(tile_dist) += tmp_road.get_length();
+          AILogDebug["find_flag_path_and_tile_dist_between_flags"] << "solution tile_dist so far is " << *(tile_dist);
 
           solution_node = solution_node->parent;
           

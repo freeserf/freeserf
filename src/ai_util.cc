@@ -1429,6 +1429,9 @@ AI::build_best_road(MapPos start_pos, RoadOptions road_options, Road *built_road
       if (road_options.test(RoadOption::ReducedNewLengthPenalty)) {
         new_length_penalty = 1.50;
       }
+      if (road_options.test(RoadOption::IncreasedNewLengthPenalty)){
+        new_length_penalty = new_length_penalty * 2;
+      }
       AILogDebug["util_build_best_road"] << "" << calling_function << " using new_length_penalty of " << new_length_penalty << "x for this scoring, based on RoadOptions";
       unsigned int adjusted_score = static_cast<unsigned int>(static_cast<double>(tile_dist * 1) + static_cast<double>(new_length) * new_length_penalty + static_cast<double>(flag_dist * 1));
       if (road_options.test(RoadOption::PenalizeCastleFlag) && contains_castle_flag == true) {
@@ -1909,7 +1912,8 @@ AI::build_best_road(MapPos start_pos, RoadOptions road_options, Road *built_road
         //  segments when it would be much better to instead use the existing path for that segment, even if other
         //  segments are new.
         bool skip_segment = false;
-            
+        
+        /*
         // check and see if this segment is significantly shorter than any existing segment between the same two flags
         if (map->has_flag(this_segment_start_pos) && map->has_flag(this_segment_end_pos)) {
           AILogDebug["util_build_best_road"] << "" << calling_function << " segment_start_pos " << this_segment_start_pos << ", segment_end_pos " << this_segment_end_pos << ", checking for existing solution for this segment, flags already exist at both segment start and segment end pos, checking for a path between them";
@@ -1931,6 +1935,29 @@ AI::build_best_road(MapPos start_pos, RoadOptions road_options, Road *built_road
                 }
               }
             }
+          }
+        }*/
+
+        // check that this new segment is significantly better than any existing complete multi-flag path that may exist between these two flags
+        if (map->has_flag(this_segment_start_pos) && map->has_flag(this_segment_end_pos)) {
+          AILogDebug["util_build_best_road"] << "" << calling_function << " segment_start_pos " << this_segment_start_pos << ", segment_end_pos " << this_segment_end_pos << ", checking for existing solution for this segment, flags already exist at both segment start and segment end pos, checking any existing connection";
+          //if (find_nearest_inventory(map, player_index, flag_pos, DistType::FlagAndStraightLine, &ai_mark_pos) != inventory_pos){
+          MapPosVector existing_solution_flags;  // this is the list of flags in the solution, will be used to count flag score
+          unsigned int existing_solution_tile_dist = 0;
+          if (find_flag_path_and_tile_dist_between_flags(map, this_segment_start_pos, this_segment_end_pos, &existing_solution_flags, &existing_solution_tile_dist, &ai_mark_pos)){
+            AILogDebug["util_build_best_road"] << "" << calling_function << " segment_start_pos " << this_segment_start_pos << ", segment_end_pos " << this_segment_end_pos << ", found solution existing solution with flag count " << existing_solution_flags.size() << " and tile count " << existing_solution_tile_dist;
+            float new_segment_versus_existing_penalty = 1.5f;
+            if (road_options.test(RoadOption::IncreasedNewLengthPenalty)){
+               new_segment_versus_existing_penalty = new_segment_versus_existing_penalty * 2;
+            }
+            if (road.get_length() * new_segment_versus_existing_penalty + 8 < existing_solution_tile_dist + existing_solution_flags.size()){  // path pos with flags are penalized one aditional point like usual
+              AILogDebug["util_build_best_road"] << "" << calling_function << " segment_start_pos " << this_segment_start_pos << ", segment_end_pos " << this_segment_end_pos << ", found solution existing solution, this new road segment is significantly better than the current solution, will try to build it";
+            }else{
+              AILogDebug["util_build_best_road"] << "" << calling_function << " segment_start_pos " << this_segment_start_pos << ", segment_end_pos " << this_segment_end_pos << ", found solution existing solution, this new road segment is not significantly better than the current solution, skipping it to re-use existing";
+              skip_segment = true;
+            }
+          }else{
+            AILogDebug["util_build_best_road"] << "" << calling_function << " segment_start_pos " << this_segment_start_pos << ", segment_end_pos " << this_segment_end_pos << ", no existing connection found between these flags";
           }
         }
 
@@ -2005,7 +2032,10 @@ AI::build_best_road(MapPos start_pos, RoadOptions road_options, Road *built_road
           }
         }
 
-        if (!skip_segment){
+        if (skip_segment){
+          AILogDebug["util_build_best_road"] << "" << calling_function << " not building this road segment because skip_segment is true";
+        }else{
+          // build the Road!
           AILogDebug["util_build_best_road"] << "" << calling_function << " about to build road with source=" << this_segment_start_pos << ", end=" << this_segment_end_pos << " and size " << road.get_length();
           mutex_lock("AI::build_best_road calling game->build_road (non-direct road)");
           bool was_built = game->build_road(road, game->get_player(player_index));
@@ -3256,7 +3286,7 @@ AI::expand_borders() {
       // Also, it makes the "check for circumnavigating the globe" obsolete because that is way more than ten tiles
       for (int tiles_moved = 0; tiles_moved < 11; tiles_moved++){
         pos = map->move(pos, dir);
-  AILogDebug["util_expand_borders"] << "mappos " << pos << " is owned by player " << map->get_owner(pos) << " and has_owner is " << map->has_owner(pos);
+  //AILogDebug["util_expand_borders"] << "mappos " << pos << " is owned by player " << map->get_owner(pos) << " and has_owner is " << map->has_owner(pos);
         if (map->get_owner(pos) != player_index){
           unsigned int score = AI::score_area(pos, AI::spiral_dist(6));
           AILogDebug["util_expand_borders"] << "border in direction " << dir << " has score " << score;
@@ -3282,7 +3312,11 @@ AI::expand_borders() {
     duration = (std::clock() - start) / static_cast<double>(CLOCKS_PER_SEC);
     AILogDebug["util_expand_borders"] << "SO FAR util_expand_borders call took " << duration;
 
+    road_options.set(RoadOption::IncreasedNewLengthPenalty);
+    road_options.reset(RoadOption::AllowPassthru);
     built_pos = AI::build_near_pos(corner_pos, AI::spiral_dist(4), Building::TypeHut);
+    road_options.reset(RoadOption::IncreasedNewLengthPenalty);
+    road_options.set(RoadOption::AllowPassthru);
     if (built_pos != bad_map_pos && built_pos != notplaced_pos){
       AILogDebug["util_expand_borders"] << "built a knight hut at pos " << built_pos;
       stock_building_counts.at(inventory_pos).unfinished_hut_count++;

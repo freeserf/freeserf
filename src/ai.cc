@@ -81,6 +81,7 @@ AI::AI(PGame current_game, unsigned int _player_index) {
   road_options.reset(RoadOption::PlotOnlyNoBuild);
   road_options.reset(RoadOption::ReconnectNetwork);
   road_options.set(RoadOption::AllowPassthru);
+  road_options.reset(RoadOption::IncreasedNewLengthPenalty);
 
   need_tools = false;
 
@@ -898,13 +899,13 @@ AI::do_spiderweb_roads() {
         road_options.reset(RoadOption::AllowPassthru);
         AILogDebug["do_spiderweb_roads"] << inventory_pos << " about to call build_best_road";
         Road built_road;
-        was_built = build_best_road(area_flag_pos, road_options, &built_road, "do_spiderweb_roads(canPassthru)", Building::TypeNone, Building::TypeNone, other_area_flag_pos);
-        if (!was_built && road_options.test(RoadOption::AllowPassthru)){
-          AILogDebug["do_spiderweb_roads"] << "failed to build road using Passthru, trying again without it";
-          road_options.reset(RoadOption::AllowPassthru);
-          was_built = build_best_road(area_flag_pos, road_options, &built_road, "do_spiderweb_roads(nonPassthru)", Building::TypeNone, Building::TypeNone, other_area_flag_pos);
-          road_options.set(RoadOption::AllowPassthru);
-        }
+        was_built = build_best_road(area_flag_pos, road_options, &built_road, "do_spiderweb_roads", Building::TypeNone, Building::TypeNone, other_area_flag_pos);
+        //if (!was_built && road_options.test(RoadOption::AllowPassthru)){
+        //  AILogDebug["do_spiderweb_roads"] << "failed to build road using Passthru, trying again without it";
+        //  road_options.reset(RoadOption::AllowPassthru);
+        //  was_built = build_best_road(area_flag_pos, road_options, &built_road, "do_spiderweb_roads(nonPassthru)", Building::TypeNone, Building::TypeNone, other_area_flag_pos);
+        //  road_options.set(RoadOption::AllowPassthru);
+        //}
         road_options.reset(RoadOption::Improve);
         //road_options.set(RoadOption::PenalizeNewLength);
         road_options.reset(RoadOption::ReducedNewLengthPenalty);
@@ -1638,13 +1639,17 @@ AI::do_send_geologists() {
             }
             
             Road notused; // not used here, can I just pass a zero instead of &notused to build_best_road and skip initialization of a wasted object?
+            //road_options.set(RoadOption::IncreasedNewLengthPenalty);
+            road_options.reset(RoadOption::AllowPassthru);
             bool road_was_built = build_best_road(pos, road_options, &notused, "do_send_geologists(canPassthru)");
-            if (!road_was_built && road_options.test(RoadOption::AllowPassthru)){
-              AILogDebug["do_send_geologists"] << "failed to build road using Passthru, trying again without it";
-              road_options.reset(RoadOption::AllowPassthru);
-              road_was_built = build_best_road(pos, road_options, &notused, "do_send_geologists(nonPassthru)");
-              road_options.set(RoadOption::AllowPassthru);
-            }
+            //road_options.reset(RoadOption::IncreasedNewLengthPenalty);
+            road_options.set(RoadOption::AllowPassthru);
+            //if (!road_was_built && road_options.test(RoadOption::AllowPassthru)){
+            //  AILogDebug["do_send_geologists"] << "failed to build road using Passthru, trying again without it";
+            //  road_options.reset(RoadOption::AllowPassthru);
+            //  road_was_built = build_best_road(pos, road_options, &notused, "do_send_geologists(nonPassthru)");
+            //  road_options.set(RoadOption::AllowPassthru);
+            //}
             if (!road_was_built){
               AILogDebug["do_send_geologists"] << inventory_pos << " failed to connect new gologist flag to road network!  removing the flag";
               mutex_lock("AI::do_send_geologists calling demolish_flag (built for geoligist, couldn't connect)");
@@ -1756,7 +1761,11 @@ AI::do_build_rangers() {
       if (AI::building_exists_near_pos(pos, AI::spiral_dist(8), Building::TypeForester))
         continue;
       AILogDebug["do_build_rangers"] << "lumberjack at " << pos << " has < min trees and no ranger nearby, trying to place ranger";
+      road_options.set(RoadOption::IncreasedNewLengthPenalty);
+      road_options.reset(RoadOption::AllowPassthru);
       MapPos built_pos = AI::build_near_pos(pos, AI::spiral_dist(6), Building::TypeForester);
+      road_options.reset(RoadOption::IncreasedNewLengthPenalty);
+      road_options.set(RoadOption::AllowPassthru);
       if (built_pos != bad_map_pos && built_pos != notplaced_pos)
         AILogDebug["do_build_rangers"] << "built ranger at pos " << built_pos;
     }
@@ -3051,8 +3060,12 @@ AI::do_build_sawmill_lumberjacks() {
               break;
             }
             AILogDebug["do_build_sawmill_lumberjacks"] << inventory_pos << " trying to build a lumberjack near pos " << search_pos;
+            road_options.set(RoadOption::IncreasedNewLengthPenalty);
+            road_options.reset(RoadOption::AllowPassthru);
             built_pos = bad_map_pos;
             built_pos = AI::build_near_pos(search_pos, AI::spiral_dist(4), Building::TypeLumberjack);
+            road_options.reset(RoadOption::IncreasedNewLengthPenalty);
+            road_options.set(RoadOption::AllowPassthru);
             if (built_pos != bad_map_pos && built_pos != notplaced_pos) {
               AILogInfo["do_build_sawmill_lumberjacks"] << inventory_pos << " built lumberjack at pos " << built_pos;
               stock_building_counts.at(inventory_pos).count[Building::TypeLumberjack]++;
@@ -3201,7 +3214,11 @@ AI::do_build_stonecutter() {
           }
           // try each specific pos one at a time
           AILogDebug["do_build_stonecutter"] << inventory_pos << " trying to build stonecutter near pos " << pos;
+          //road_options.set(RoadOption::IncreasedNewLengthPenalty);
+          road_options.reset(RoadOption::AllowPassthru);
           built_pos = AI::build_near_pos(pos, 1, Building::TypeStonecutter);
+          //road_options.reset(RoadOption::IncreasedNewLengthPenalty);
+          road_options.set(RoadOption::AllowPassthru);
           if (built_pos != bad_map_pos && built_pos != notplaced_pos) {
             AILogInfo["do_build_stonecutter"] << inventory_pos << " built stonecutter at pos " << built_pos;
             stock_building_counts.at(inventory_pos).count[Building::TypeStonecutter]++;
@@ -3256,7 +3273,11 @@ AI::do_build_toolmaker_steelsmelter() {
   if (toolmaker_count < 1) {
     if (need_tools) {
       AILogInfo["do_build_toolmaker_steelsmelter"] << inventory_pos << " need tools but have no toolmaker, trying to build one near castle or current inventory";
+      road_options.set(RoadOption::IncreasedNewLengthPenalty);
+      road_options.reset(RoadOption::AllowPassthru);
       MapPos built_pos = AI::build_near_pos(inventory_pos, AI::spiral_dist(24), Building::TypeToolMaker);
+      road_options.reset(RoadOption::IncreasedNewLengthPenalty);
+      road_options.set(RoadOption::AllowPassthru);
       if (built_pos != bad_map_pos && built_pos != notplaced_pos) {
         AILogInfo["do_build_toolmaker_steelsmelter"] << inventory_pos << " built toolmaker at pos " << built_pos;
         stock_building_counts.at(inventory_pos).count[Building::TypeToolMaker]++;
@@ -3335,8 +3356,12 @@ AI::do_build_food_buildings() {
       if (count >= waters_min) {
         if (!AI::building_exists_near_pos(corner_pos, AI::spiral_dist(8), Building::TypeFisher)) {
           AILogInfo["do_build_food_buildings"] << inventory_pos << " water found and no fisherman nearby, want to build fisherman";
+          road_options.set(RoadOption::IncreasedNewLengthPenalty);
+          road_options.reset(RoadOption::AllowPassthru);
           built_pos = bad_map_pos;
           built_pos = AI::build_near_pos(corner_pos, AI::spiral_dist(4), Building::TypeFisher);
+          road_options.reset(RoadOption::IncreasedNewLengthPenalty);
+          road_options.set(RoadOption::AllowPassthru);
           if (built_pos != bad_map_pos && built_pos != notplaced_pos) {
             AILogInfo["do_build_food_buildings"] << inventory_pos << " built fisherman at pos " << built_pos;
             // BUG NOTICE:
@@ -4969,7 +4994,11 @@ AI::do_build_3rd_lumberjack() {
     MapPos built_pos = bad_map_pos;
     for (MapPos corner_pos : search_positions) {
       AILogDebug["do_build_3rd_lumberjack"] << inventory_pos << " try to build lumberjack near pos " << corner_pos;
+      road_options.set(RoadOption::IncreasedNewLengthPenalty);
+      road_options.reset(RoadOption::AllowPassthru);
       built_pos = AI::build_near_pos(corner_pos, AI::spiral_dist(4), Building::TypeLumberjack);
+      road_options.reset(RoadOption::IncreasedNewLengthPenalty);
+      road_options.set(RoadOption::AllowPassthru);
       if (built_pos != bad_map_pos && built_pos != notplaced_pos) {
         AILogDebug["do_build_3rd_lumberjack"] << inventory_pos << " built 3rd lumberjack at pos " << built_pos;
         stock_building_counts.at(inventory_pos).count[Building::TypeLumberjack]++;
