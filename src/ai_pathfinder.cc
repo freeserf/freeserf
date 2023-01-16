@@ -495,7 +495,7 @@ AI::plot_road(PMap map, unsigned int player_index, MapPos start_pos, MapPos end_
           // if the current node->pos leading to this new_pos/dir has a flag or can build one, we can start following this new path
           //  NOTE that the impossibly-close-new-splitting-flag check later should catch an illegal follow... actually I don't think an illegally close
           //   new split flag could even happen here as if this is a path it already prevents illegal flags I think
-          if (map->has_flag(node->pos)
+          if ((map->has_flag(node->pos) && road_options.test(RoadOption::AllowPassthru) == true)
            || (game->can_build_flag(node->pos, player) && road_options.test(RoadOption::AllowPassthru) == true && road_options.test(RoadOption::SplitRoads) == true)){
             // start following this path from the flag
             AILogDebug["plot_road"] << start_pos << " to " << end_pos << ", " << node->pos << "->dir" << d << ", is valid? new_pos " << new_pos << " is along a path from a flag at the current node->pos, will start following this new existing path.  NOT setting must_follow_path to true because we could still exit this path if this dir doesn't work out for other reasons";
