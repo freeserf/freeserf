@@ -110,6 +110,8 @@ class AI {
   Log::Logger AILogWarn{ Log::LevelWarn, "Warn" };
   Log::Logger AILogError{ Log::LevelError, "Error" };
 
+  bool cannot_expand_borders = false; // if AI can no longer expand by building huts, alter its behavior
+
 
  protected:
   // all the tuning variables were moved outside the class to satisfy gcc/g++ which threw compile errors when they were here
@@ -304,6 +306,7 @@ class AI {
     MapPosVector forbidden_paths_ring1 = {};
     MapPosVector forbidden_paths_ring2 = {};
     MapPosVector occupied_military_pos;
+    bool inv_cannot_expand_borders = false;
   };
 
   // the count of buildings inv various completion states attached *by shortest flag dist* to this stock, plus the list of military buildings

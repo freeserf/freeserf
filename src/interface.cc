@@ -1437,13 +1437,15 @@ Interface::handle_key_pressed(char key, int modifier) {
     case 'w':
       Log::Info["interface.cc"] << "'w' key pressed, toggling FourSeasons";
       if (option_FourSeasons){
+        clear_custom_graphics_cache();  // to ensure any mutated sprites are restored
         option_FourSeasons = false;
         Log::Info["interface.cc"] << "Disabling FourSeasons and clearing image cache";
       }else{
         option_FourSeasons = true;
+        clear_custom_graphics_cache();  // to ensure new changes applied
         Log::Info["interface.cc"] << "Enabling FourSeasons and clearing image cache";
       }
-      clear_custom_graphics_cache();
+      //clear_custom_graphics_cache();
       viewport->set_size(width, height);  // this does the magic refresh without affecting popups (as Interface->layout() does)
       GameOptions::get_instance().save_options_to_file();
       break;

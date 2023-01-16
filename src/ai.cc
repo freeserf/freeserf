@@ -2619,13 +2619,20 @@ AI::do_manage_tool_priorities() {
       }
       unsigned int steel = building->get_res_count_in_stock(1);
       if (steel <= 1) {
-        AILogDebug["do_manage_tool_priorities"] << "toolmaker at pos " << pos << " has only " << steel << " steel, setting priority to max and zeroing blacksmith priority";
-        player->set_steel_toolmaker(65500);
-        player->set_steel_weaponsmith(0);
-        AILogDebug["do_manage_tool_priorities"] << "to avoid running out of coal for steel, also zeroing coal priority to gold and weaponsmiths, maxing to steel smelter";
-        player->set_coal_goldsmelter(0);
-        player->set_coal_weaponsmith(0);
-        player->set_coal_steelsmelter(65550);
+        if (cannot_expand_borders){
+          // to avoid condition where gold is not smelted because no iron ore available to make steel, and cannot expand borders
+          //  to find iron ore, simply leave normal resource priorities to allow processing and hope that AI can attack somewhere to gain iron
+          AILogDebug["do_manage_tool_priorities"] << "toolmaker at pos " << pos << " has only " << steel << " steel, but cannot_expand_borders bool is true, leaving normal resource priorities";
+        }else{
+          // normal behavior
+          AILogDebug["do_manage_tool_priorities"] << "toolmaker at pos " << pos << " has only " << steel << " steel, setting priority to max and zeroing blacksmith priority";
+          player->set_steel_toolmaker(65500);
+          player->set_steel_weaponsmith(0);
+          AILogDebug["do_manage_tool_priorities"] << "to avoid running out of coal for steel, also zeroing coal priority to gold and weaponsmiths, maxing to steel smelter";
+          player->set_coal_goldsmelter(0);
+          player->set_coal_weaponsmith(0);
+          player->set_coal_steelsmelter(65550);
+        }
       }
       
     }
@@ -4090,6 +4097,19 @@ AI::do_attack() {
     AILogDebug["do_attack"] << "idle_knights " << idle_knights << " is at least knights_min " << knights_min << ", loss tolerance is " << loss_tolerance;
   }else{
     AILogDebug["do_attack"] << "idle_knights " << idle_knights << " is at below knights_min " << knights_min << ", loss tolerance is " << loss_tolerance << ", NOT ATTACKING";
+  }
+
+  // if we can no longer expand by building Huts, alter the attack behavior to make desperate attacks to claim resources
+  cannot_expand_borders = true;
+  for (MapPos inv_pos : stocks_pos) {
+    if (stock_building_counts.at(inventory_pos).inv_cannot_expand_borders = false){
+      AILogDebug["do_attack"] << "at least one Inventory can expand borders, not making desperate attacks";
+      cannot_expand_borders = false;
+      break;
+    }
+  }
+  if (cannot_expand_borders == true){
+    AILogDebug["do_attack"] << "AI CANNOT EXPAND BORDERS OF ANY INVENTORY AREA BY BUILDING HUTS, MUST ATTACK AGGRESSIVELY!";
   }
 
   if (loss_tolerance > 0){
