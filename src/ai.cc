@@ -1641,7 +1641,7 @@ AI::do_send_geologists() {
             Road notused; // not used here, can I just pass a zero instead of &notused to build_best_road and skip initialization of a wasted object?
             //road_options.set(RoadOption::IncreasedNewLengthPenalty);
             road_options.reset(RoadOption::AllowPassthru);
-            bool road_was_built = build_best_road(pos, road_options, &notused, "do_send_geologists(canPassthru)");
+            bool road_was_built = build_best_road(pos, road_options, &notused, "do_send_geologists");
             //road_options.reset(RoadOption::IncreasedNewLengthPenalty);
             road_options.set(RoadOption::AllowPassthru);
             //if (!road_was_built && road_options.test(RoadOption::AllowPassthru)){

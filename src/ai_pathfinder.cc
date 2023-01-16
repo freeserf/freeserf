@@ -328,6 +328,11 @@ AI::plot_road(PMap map, unsigned int player_index, MapPos start_pos, MapPos end_
               }
               if (reject_solution){ break; }
             }
+            if (passthru_flags > max_passthru_flags_per_solution){
+              AILogDebug["plot_road"] << start_pos << " to " << end_pos << ", plot_road: breached max_passthru_flags_per_solution of " << max_passthru_flags_per_solution << ", rejecting this solution";
+              reject_solution = true;
+              break;
+            }
             last_new_flag_pos = alternate_node->pos;
             AILogDebug["plot_road"] << start_pos << " to " << end_pos << ", plot_road: alternate existing-flag solution sanity check, pos " << alternate_node->pos << " in new-split-flag passthru sanity check, no illegal flag placement found, allowing this new-split-flag node";
           }

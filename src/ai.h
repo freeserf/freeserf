@@ -504,6 +504,8 @@ static const unsigned int plot_road_max_pos_considered = 4000;  // the maximum n
 static const unsigned int plot_road_max_length = 150;  // the maximum length of a road solution for plot_road before giving up
 // NEED TO ADD EXCEPTION IF straight_line_dist is very long also, indicating a long road is required!
 
+static const unsigned int max_passthru_flags_per_solution = 4;  // limit the total passthru flags alowed to avoid plotting long complex roads that just result in clutter
+
 
 // fixed penalty for a non-direct road that contains the castle flag (but doesn't start/end there)
 static const unsigned int contains_castle_flag_penalty = 20;  //increased this from 10 to 20 on dec04 2021

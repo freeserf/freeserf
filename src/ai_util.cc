@@ -919,8 +919,8 @@ AI::build_best_road(MapPos start_pos, RoadOptions road_options, Road *built_road
       //  CONSIDER REMOVING THIS CHECK AND ONLY CHECKING INSIDE THE for (end_pos : nearby_flags) loop!
       //   but then it will use up the "nearby flags" check with invalid options!
       if (road_options.test(RoadOption::ReconnectNetwork)){   
-        MapPosVector notused;
-        unsigned int notused2;
+        MapPosVector notused = {};
+        unsigned int notused2 = 0;
         if (find_flag_path_and_tile_dist_between_flags(map, start_pos, pos, &notused, &notused2, &ai_mark_pos)){
           AILogDebug["util_build_best_road"] << "" << calling_function << " non-direct road requested, nearby flags to halfway_pos - RoadOption::ReconnectNetwork is true, flag at pos " << pos << " is on the same network, not including it";
           continue;
@@ -983,8 +983,8 @@ AI::build_best_road(MapPos start_pos, RoadOptions road_options, Road *built_road
       // adding support for RoadOption::ReconnectNetwork
       //  CONSIDER REMOVING THIS CHECK AND ONLY CHECKING INSIDE THE for (end_pos : nearby_flags) loop!
       if (road_options.test(RoadOption::ReconnectNetwork)){   
-        MapPosVector notused;
-        unsigned int notused2;
+        MapPosVector notused = {};
+        unsigned int notused2 = 0;
         if (find_flag_path_and_tile_dist_between_flags(map, start_pos, pos, &notused, &notused2, &ai_mark_pos)){
           AILogDebug["util_build_best_road"] << "" << calling_function << " non-direct road requested, nearby flags to start_pos - RoadOption::ReconnectNetwork is true, flag at pos " << pos << " is on the same network, not including it";
           continue;
@@ -1104,8 +1104,8 @@ AI::build_best_road(MapPos start_pos, RoadOptions road_options, Road *built_road
         //  WOULD IT MAKE MORE SENSE TO HAVE THIS BE THE ONLY ReconnectNetwork CHECK AND DITCH ALL THE EARLIER ONES?
         //
         if (road_options.test(RoadOption::ReconnectNetwork)){   
-          MapPosVector notused;
-          unsigned int notused2;
+          MapPosVector notused = {};
+          unsigned int notused2 = 0;
           if (find_flag_path_and_tile_dist_between_flags(map, start_pos, end_pos, &notused, &notused2, &ai_mark_pos)){
             AILogDebug["util_build_best_road"] << "" << calling_function << " non-direct road requested, plotting direct roads to nearby_flags, - RoadOption::ReconnectNetwork is true, flag at pos " << end_pos << " is on the same network, not including it";
             break;
@@ -1202,8 +1202,8 @@ AI::build_best_road(MapPos start_pos, RoadOptions road_options, Road *built_road
             if (map->has_path_IMPROVED(split_end_pos, dir)) {
               Road split_road = trace_existing_road(map, split_end_pos, dir);
               MapPos adjacent_flag_pos = split_road.get_end(map.get());
-              MapPosVector notused;
-              unsigned int notused2;
+              MapPosVector notused = {};
+              unsigned int notused2 = 0;
               if (find_flag_path_and_tile_dist_between_flags(map, start_pos, adjacent_flag_pos, &notused, &notused2, &ai_mark_pos)){
                 AILogDebug["util_build_best_road"] << "" << calling_function << " non-direct road requested, split_roads, RoadOption::ReconnectNetwork is true, splitting-flag at pos " << split_end_pos << " is on the same network, not including it";
                 disqualified++;
@@ -1514,6 +1514,11 @@ AI::build_best_road(MapPos start_pos, RoadOptions road_options, Road *built_road
               }
             }
             if (reject_solution){ continue; }
+          }
+          if (passthru_flags > max_passthru_flags_per_solution){
+            AILogDebug["util_build_best_road"] << "" << calling_function << " breached max_passthru_flags_per_solution of " << max_passthru_flags_per_solution << ", rejecting this solution";
+            reject_solution = true;
+            break;
           }
 
           //if (map->has_flag(pos)){
@@ -1942,18 +1947,18 @@ AI::build_best_road(MapPos start_pos, RoadOptions road_options, Road *built_road
         if (map->has_flag(this_segment_start_pos) && map->has_flag(this_segment_end_pos)) {
           AILogDebug["util_build_best_road"] << "" << calling_function << " segment_start_pos " << this_segment_start_pos << ", segment_end_pos " << this_segment_end_pos << ", checking for existing solution for this segment, flags already exist at both segment start and segment end pos, checking any existing connection";
           //if (find_nearest_inventory(map, player_index, flag_pos, DistType::FlagAndStraightLine, &ai_mark_pos) != inventory_pos){
-          MapPosVector existing_solution_flags;  // this is the list of flags in the solution, will be used to count flag score
+          MapPosVector existing_solution_flags = {};  // this is the list of flags in the solution, will be used to count flag score
           unsigned int existing_solution_tile_dist = 0;
           if (find_flag_path_and_tile_dist_between_flags(map, this_segment_start_pos, this_segment_end_pos, &existing_solution_flags, &existing_solution_tile_dist, &ai_mark_pos)){
-            AILogDebug["util_build_best_road"] << "" << calling_function << " segment_start_pos " << this_segment_start_pos << ", segment_end_pos " << this_segment_end_pos << ", found solution existing solution with flag count " << existing_solution_flags.size() << " and tile count " << existing_solution_tile_dist;
+            AILogDebug["util_build_best_road"] << "" << calling_function << " segment_start_pos " << this_segment_start_pos << ", segment_end_pos " << this_segment_end_pos << ", found existing solution with flag count " << existing_solution_flags.size() << " and tile count " << existing_solution_tile_dist;
             float new_segment_versus_existing_penalty = 1.5f;
             if (road_options.test(RoadOption::IncreasedNewLengthPenalty)){
                new_segment_versus_existing_penalty = new_segment_versus_existing_penalty * 2;
             }
             if (road.get_length() * new_segment_versus_existing_penalty + 8 < existing_solution_tile_dist + existing_solution_flags.size()){  // path pos with flags are penalized one aditional point like usual
-              AILogDebug["util_build_best_road"] << "" << calling_function << " segment_start_pos " << this_segment_start_pos << ", segment_end_pos " << this_segment_end_pos << ", found solution existing solution, this new road segment is significantly better than the current solution, will try to build it";
+              AILogDebug["util_build_best_road"] << "" << calling_function << " segment_start_pos " << this_segment_start_pos << ", segment_end_pos " << this_segment_end_pos << ", found existing solution, this new road segment is significantly better than the current solution, will try to build it";
             }else{
-              AILogDebug["util_build_best_road"] << "" << calling_function << " segment_start_pos " << this_segment_start_pos << ", segment_end_pos " << this_segment_end_pos << ", found solution existing solution, this new road segment is not significantly better than the current solution, skipping it to re-use existing";
+              AILogDebug["util_build_best_road"] << "" << calling_function << " segment_start_pos " << this_segment_start_pos << ", segment_end_pos " << this_segment_end_pos << ", found existing solution, this new road segment is not significantly better than the current solution, skipping it to re-use existing";
               skip_segment = true;
             }
           }else{
