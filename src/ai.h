@@ -110,7 +110,10 @@ class AI {
   Log::Logger AILogWarn{ Log::LevelWarn, "Warn" };
   Log::Logger AILogError{ Log::LevelError, "Error" };
 
-  bool cannot_expand_borders = false; // if AI can no longer expand by building huts, alter its behavior
+  bool cannot_expand_borders = false; // if AI can no longer expand by building huts, alter its behavior.  Also affects toolmaker coal allocation logic!
+  bool no_coal_within_borders = true;
+  bool no_ironore_within_borders = true;
+  bool no_goldore_within_borders = true;
 
 
  protected:
@@ -307,6 +310,9 @@ class AI {
     MapPosVector forbidden_paths_ring2 = {};
     MapPosVector occupied_military_pos;
     bool inv_cannot_expand_borders = false;
+    bool inv_has_no_coal = false;
+    bool inv_has_no_ironore = false;
+    bool inv_has_no_goldore = false;
   };
 
   // the count of buildings inv various completion states attached *by shortest flag dist* to this stock, plus the list of military buildings

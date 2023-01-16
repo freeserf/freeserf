@@ -298,6 +298,7 @@ Frame::draw_sprite(int x, int y, Data::Resource res, unsigned int index, bool us
   
   // if image not found already cached, fetch it and cache it
   if (image == nullptr) {
+    //Log::Debug["gfx.cc"] << "inside Frame::draw_sprite, res " << res << ", sprite index " << index << ", this image is not yet cached, fetching it";
     Data::PSprite s;
 
     // handle special sprites, either mutated-originals or totally new Custom sprites

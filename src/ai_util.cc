@@ -3530,26 +3530,46 @@ AI::score_enemy_area(MapPos center_pos, unsigned int distance) {
     //
     // mined resources
     //
-    unsigned int gold_signs = 0;
-    unsigned int iron_signs = 0;
-    unsigned int coal_signs = 0;
-    if (obj == Map::ObjectSignLargeGold) { gold_signs += 2; }
-    if (obj == Map::ObjectSignSmallGold) { gold_signs += 1; }
-    if (obj == Map::ObjectSignSmallGold || obj == Map::ObjectSignLargeGold) {
-      pos_value += expand_towards.count("gold_ore") * gold_ore_weight * gold_signs;
-      //AILogDebug["util_score_enemy_area"] << "adding gold_ore count " << gold_signs << " with value " << expand_towards.count("gold_ore") * gold_ore_weight * gold_signs;
+    if (cannot_expand_borders && !no_goldore_within_borders){
+      // disregard this resource, some other resource is desperately needed
+      AILogDebug["util_score_enemy_area"] << "cannot_expand_borders is true but gold is already within our borders. not counting gold towards total";
+    }else{
+      // normal behavior
+      unsigned int gold_signs = 0;
+      if (obj == Map::ObjectSignLargeGold) { gold_signs += 2; }
+      if (obj == Map::ObjectSignSmallGold) { gold_signs += 1; }
+      if (obj == Map::ObjectSignSmallGold || obj == Map::ObjectSignLargeGold) {
+        pos_value += expand_towards.count("gold_ore") * gold_ore_weight * gold_signs;
+        //AILogDebug["util_score_enemy_area"] << "adding gold_ore count " << gold_signs << " with value " << expand_towards.count("gold_ore") * gold_ore_weight * gold_signs;
+      }
     }
-    if (obj == Map::ObjectSignLargeIron) { iron_signs += 2; }
-    if (obj == Map::ObjectSignSmallIron) { iron_signs += 1; }
-    if (obj == Map::ObjectSignSmallIron || obj == Map::ObjectSignLargeIron) {
-      pos_value += expand_towards.count("iron_ore") * iron_ore_weight * iron_signs;
-      //AILogDebug["util_score_enemy_area"] << "adding iron_ore count " << iron_signs << " with value " << expand_towards.count("iron_ore") * iron_ore_weight * iron_signs;
+
+    if (cannot_expand_borders && !no_ironore_within_borders){
+      // disregard this resource, some other resource is desperately needed
+      AILogDebug["util_score_enemy_area"] << "cannot_expand_borders is true but iron is already within our borders. not counting iron towards total";
+    }else{
+      // normal behavior
+      unsigned int iron_signs = 0;
+      if (obj == Map::ObjectSignLargeIron) { iron_signs += 2; }
+      if (obj == Map::ObjectSignSmallIron) { iron_signs += 1; }
+      if (obj == Map::ObjectSignSmallIron || obj == Map::ObjectSignLargeIron) {
+        pos_value += expand_towards.count("iron_ore") * iron_ore_weight * iron_signs;
+        //AILogDebug["util_score_enemy_area"] << "adding iron_ore count " << iron_signs << " with value " << expand_towards.count("iron_ore") * iron_ore_weight * iron_signs;
+      }
     }
-    if (obj == Map::ObjectSignLargeCoal) { coal_signs += 2; }
-    if (obj == Map::ObjectSignSmallCoal) { coal_signs += 1; }
-    if (obj == Map::ObjectSignSmallCoal || obj == Map::ObjectSignLargeCoal) {
-      pos_value += expand_towards.count("coal")      * coal_weight * coal_signs;
-      //AILogDebug["util_score_enemy_area"] << "adding coal count " << coal_signs << " with value " << expand_towards.count("coal_ore") * coal_weight * coal_signs;
+
+    if (cannot_expand_borders && !no_coal_within_borders){
+      // disregard this resource, some other resource is desperately needed
+      AILogDebug["util_score_enemy_area"] << "cannot_expand_borders is true but coal is already within our borders. not counting coal towards total";
+    }else{
+      // normal behavior
+      unsigned int coal_signs = 0;
+      if (obj == Map::ObjectSignLargeCoal) { coal_signs += 2; }
+      if (obj == Map::ObjectSignSmallCoal) { coal_signs += 1; }
+      if (obj == Map::ObjectSignSmallCoal || obj == Map::ObjectSignLargeCoal) {
+        pos_value += expand_towards.count("coal")      * coal_weight * coal_signs;
+        //AILogDebug["util_score_enemy_area"] << "adding coal count " << coal_signs << " with value " << expand_towards.count("coal_ore") * coal_weight * coal_signs;
+      }
     }
 
     //  NEED TO ADD LOGIC TO "BEELINE" TO ENEMY CASTLE
@@ -3852,9 +3872,10 @@ AI::attack_best_target(MapPosSet *scored_targets, int loss_tolerance) {
     }
     AILogDebug["util_attack_best_target"] << "can send up to " << attacking_knights << " knights to attack enemy building at pos " << target_pos;
     
-    // if AI can no longer expand by building huts, it MUST ATTACK
-    //  to gain resources
-    if (!cannot_expand_borders){
+    // if AI can no longer expand by building huts and has little to none of one or more resources, it MUST ATTACK to gain them
+    if (cannot_expand_borders && (no_coal_within_borders || no_ironore_within_borders || no_goldore_within_borders)){
+      AILogDebug["util_attack_best_target"] << "at least one mined resource is totally unavailable within our borders, and we cannot expand borders, will make desperate attacks for resouces!";
+    }else{
       //
       // handle normal case where AI can still expand, use caution
       //
@@ -3902,11 +3923,6 @@ AI::attack_best_target(MapPosSet *scored_targets, int loss_tolerance) {
       }else{
         throw ExceptionFreeserf("AI::attack_best_target was called with loss_tolerance of <1 or >3, this should not happen");
       }
-    }else{
-      //
-      // AI can no longer expand by building huts, throw caution to the wind and attack best target 
-      //
-      AILogDebug["util_attack_best_target"] << "cannot_expand_borders is true!  AI will attack best target regardless of risk!";
     }
     AILogDebug["util_attack_best_target"] << "PROCEEDING WITH THE ATTACK on target_pos " << target_pos;
     player->building_attacked = target_building->get_index();
