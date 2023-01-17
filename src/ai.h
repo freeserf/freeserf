@@ -364,6 +364,7 @@ class AI {
   void do_place_coal_mines(); //wrapper around do_place_mines
   void do_place_iron_mines(); //wrapper around do_place_mines
   void do_place_gold_mines(); //wrapper around do_place_mines
+  void do_place_stone_mines(); //wrapper around do_place_mines
   void do_build_sawmill_lumberjacks();
   void do_build_3rd_lumberjack();
   bool do_wait_until_sawmill_lumberjacks_built();
@@ -373,6 +374,7 @@ class AI {
   void do_build_food_buildings();
   void do_connect_coal_mines();
   void do_connect_iron_mines();
+  void do_connect_stone_mines();
   void do_build_steelsmelter();
   void do_build_blacksmith();
   void do_build_gold_smelter_and_connect_gold_mines();
@@ -474,6 +476,7 @@ static constexpr double geologist_sign_density_max = 0.60;
 static constexpr double coal_sign_density_min = 0.30;
 static constexpr double iron_sign_density_min = 0.30;
 static constexpr double gold_sign_density_min = 0.15;  // lower min for gold mines because even a small flag is usually enough gold, and gold is rare
+static constexpr double stone_sign_density_min = 0.15;  // lower min for stone mines because we must be desperate already if mining for stone
 
 // may need to do something to account for the fact that minerals come in clusters
 //    because once a few signs are found to indicate a cluster, the true value doesn't change

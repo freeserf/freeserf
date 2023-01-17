@@ -637,11 +637,11 @@ AI::do_connect_disconnected_flags() {
     // try to connect it to road network
     AILogDebug["do_connect_disconnected_flags"] << "flag at pos " << flag_pos << " has no connected road, trying to connect it";
     Road notused; // not used here, can I just pass a zero instead of &notused to build_best_road and skip initialization of a wasted object?
-    bool was_built = AI::build_best_road(flag_pos, road_options, &notused, "do_connect_disconnected_flags(canPassthru):Flag@"+std::to_string(flag->get_position()));
+    bool was_built = AI::build_best_road(flag_pos, road_options, &notused, "do_connect_disconnected_flags(canPassthru):Flag@"+std::to_string(flag_pos));
     if (!was_built && road_options.test(RoadOption::AllowPassthru)){
       AILogDebug["do_connect_disconnected_flags"] << "failed to build road using Passthru, trying again without it";
       road_options.reset(RoadOption::AllowPassthru);
-      was_built = AI::build_best_road(flag_pos, road_options, &notused, "do_connect_disconnected_flags(nonPassthru):Flag@"+std::to_string(flag->get_position()));
+      was_built = AI::build_best_road(flag_pos, road_options, &notused, "do_connect_disconnected_flags(nonPassthru):Flag@"+std::to_string(flag_pos));
       road_options.set(RoadOption::AllowPassthru);
     }
     if (!was_built) {
@@ -2997,6 +2997,14 @@ AI::do_place_mines(std::string type, Building::Type building_type, Map::Object l
               AILogDebug["do_place_mines"] << inventory_pos << " this inventory has little to no gold ore stored or at flags, and no gold mines, and no gold in borders to mine, and cannot expand borders.  Must attack for gold!";
               stock_building_counts.at(inventory_pos).inv_has_no_goldore = true;
             }
+          // do not do this yet, currently only stone PILES above ground are considered for desperate attacks
+          //}else if (building_type == Building::TypeStoneMine){
+          //  if (get_stock_inv()->get_count_of(Resource::TypeStone) + stock_res_sitting_at_flags.at(inventory_pos)[Resource::TypeStone] > stones_max){  // using stones max here
+          //    AILogDebug["do_place_mines"] << inventory_pos << " this inventory already has more than stones_max " << stones_max << " stones stored or at flags, not considering gold to be unavailable in this Inv area yet";
+          //  }else{
+          //    AILogDebug["do_place_mines"] << inventory_pos << " this inventory has little to no stone stored or at flags, and no stone mines, and no stone in borders to mine, and cannot expand borders.  Must attack for gold!";
+          //    stock_building_counts.at(inventory_pos).inv_has_no_stone = true;
+          //  }
           }else{
             throw ExceptionFreeserf("unexpected mine type");
           }
@@ -3030,6 +3038,17 @@ AI::do_place_gold_mines(){
   stock_building_counts.at(inventory_pos).inv_has_no_goldore = false;
   do_place_mines("gold", Building::TypeGoldMine, Map::ObjectSignLargeGold, Map::ObjectSignSmallGold, gold_sign_density_min);
 }
+
+void
+AI::do_place_stone_mines(){
+  AILogDebug["do_place_stone_mines"] << "inside do_place_stone_mines()";
+  if (no_stone_within_borders){
+    do_place_mines("stone", Building::TypeStoneMine, Map::ObjectSignLargeStone, Map::ObjectSignSmallStone, stone_sign_density_min);
+  }else{
+    AILogDebug["do_place_stone_mines"] << "not considering building stone mines until all reachable above-ground stone piles are exhausted";
+  }
+}
+
 
 
 
@@ -3834,11 +3853,11 @@ AI::do_connect_iron_mines() {
       Road notused; // not used here, can I just pass a zero instead of &notused to build_best_road and skip initialization of a wasted object?
       //bool was_built = AI::build_best_road(flag->get_position(), road_options, &notused, "do_connect_iron_mines");
       // updated with verify_stock = true
-      bool was_built = AI::build_best_road(flag->get_position(), road_options, &notused, "do_connect_iron_mines(canPassthru):Building::TypeIronMine@"+std::to_string(flag->get_position()), Building::TypeNone, Building::TypeNone, bad_map_pos, true);
+      bool was_built = AI::build_best_road(flag->get_position(), road_options, &notused, "do_connect_iron_mines(canPassthru):Building::TypeIronMine@"+std::to_string(flag_pos), Building::TypeNone, Building::TypeNone, bad_map_pos, true);
       if (!was_built && road_options.test(RoadOption::AllowPassthru)){
         AILogDebug["do_connect_iron_mines"] << "failed to build road using Passthru, trying again without it";
         road_options.reset(RoadOption::AllowPassthru);
-        was_built = AI::build_best_road(flag->get_position(), road_options, &notused, "do_connect_iron_mines(nonPassthru):Building::TypeIronMine@"+std::to_string(flag->get_position()), Building::TypeNone, Building::TypeNone, bad_map_pos, true);
+        was_built = AI::build_best_road(flag->get_position(), road_options, &notused, "do_connect_iron_mines(nonPassthru):Building::TypeIronMine@"+std::to_string(flag_pos), Building::TypeNone, Building::TypeNone, bad_map_pos, true);
         road_options.set(RoadOption::AllowPassthru);
       }
       if (!was_built) {
@@ -3876,6 +3895,69 @@ AI::do_connect_iron_mines() {
   AILogDebug["do_connect_iron_mines"] << inventory_pos << " done do_connect_iron_mines";
 }
 
+
+// stone mines are only placed when all above ground stone within our borders is exhausted
+void
+AI::do_connect_stone_mines() {
+  ai_status.assign("do_connect_stone_mines");
+  AILogDebug["do_connect_stone_mines"] << inventory_pos << " inside do_connect_stone_mines()";
+  if (stock_building_counts.at(inventory_pos).needs_stone) {
+    // connect any disconnected stone mine that was placed if conditions are right
+    Flags flags_copy = *(game->get_flags());  // create a copy so we don't conflict with the game thread, and don't want to mutex lock for a long function
+    for (Flag *flag : flags_copy) {
+      if (flag == nullptr || flag->get_owner() != player_index || flag->is_connected() || !flag->has_building())
+        continue;
+      if (flag->get_building()->get_type() != Building::TypeStoneMine)
+        continue;
+      MapPos flag_pos = flag->get_position();
+      MapPos building_pos = flag->get_building()->get_position();
+      AILogDebug["do_connect_stone_mines"] << inventory_pos << " disconnected stone mine found with flag pos " << flag_pos;
+      AILogInfo["do_connect_stone_mines"] << inventory_pos << " trying to connect unfinished stone mine flag to road system";
+      Road notused; // not used here, can I just pass a zero instead of &notused to build_best_road and skip initialization of a wasted object?
+      //bool was_built = AI::build_best_road(flag->get_position(), road_options, &notused, "do_connect_stone_mines");
+      // updated with verify_stock = true
+      bool was_built = AI::build_best_road(flag->get_position(), road_options, &notused, "do_connect_stone_mines(canPassthru):Building::TypeStoneMine@"+std::to_string(flag_pos), Building::TypeNone, Building::TypeNone, bad_map_pos, true);
+      if (!was_built && road_options.test(RoadOption::AllowPassthru)){
+        AILogDebug["do_connect_stone_mines"] << "failed to build road using Passthru, trying again without it";
+        road_options.reset(RoadOption::AllowPassthru);
+        was_built = AI::build_best_road(flag->get_position(), road_options, &notused, "do_connect_stone_mines(nonPassthru):Building::TypeStoneMine@"+std::to_string(flag_pos), Building::TypeNone, Building::TypeNone, bad_map_pos, true);
+        road_options.set(RoadOption::AllowPassthru);
+      }
+      if (!was_built) {
+        AILogInfo["do_connect_stone_mines"] << inventory_pos << " failed to connect stone mine to road network!  demolishing it and its flag ";
+        // the build_best road call can be long, double-check to make sure this building and flag even still exist!
+        Flag *failed_flag = game->get_flag_at_pos(flag_pos);
+        Building *failed_building = game->get_building_at_pos(building_pos);
+        mutex_lock("AI::do_connect_stone_mines calling demolish flag&building (failed to connect stone mine)");
+        if (failed_building == nullptr){
+          AILogInfo["do_connect_stone_mines"] << inventory_pos << " the failed building no longer exists, nothing to demolish";
+        }else{
+          game->demolish_building(building_pos, player);
+        }
+        AILogDebug["do_connect_stone_mines"] << inventory_pos << " demolishing flag for stone mine that could not be connected to road network";
+        if (failed_flag == nullptr){
+          AILogInfo["do_connect_stone_mines"] << inventory_pos << " the failed flag no longer exists, nothing to demolish";
+        }else{
+          game->demolish_flag(flag_pos, player);
+        }
+        mutex_unlock();
+        // sleep to appear more human
+        sleep_speed_adjusted(3000);
+      }
+      else {
+        AILogInfo["do_connect_stone_mines"] << inventory_pos << " successfully connected unfinished stone mine to road network";
+        stock_building_counts.at(inventory_pos).count[Building::TypeStoneMine]++;
+        stock_building_counts.at(inventory_pos).unfinished_count++;
+        break;
+      }
+    }
+  }
+  else {
+    AILogDebug["do_connect_stone_mines"] << inventory_pos << " have sufficient stone and/or stone buildings, skipping";
+  }
+  AILogDebug["do_connect_stone_mines"] << inventory_pos << " done do_connect_stone_mines";
+}
+
 // build a steel smelter if one wasn't already created earlier to support toolmaker
 void
 AI::do_build_steelsmelter() {
@@ -3898,7 +3980,7 @@ AI::do_build_steelsmelter() {
   }
 
   AILogInfo["do_build_steelsmelter"] << inventory_pos << " want to build steelsmelter";
-  // try to place steel smelter halfway between a coal mine and iron mine if both exist, preferring active ones
+  // try to place steel smelter halfway between a coal mine and stone mine if both exist, preferring active ones
   // re-enabling halfway_pos checking again
   //  ehh I still think this is never going to be used effectively
   //  and even if it were able to, the build_better_road and normal
@@ -4103,11 +4185,11 @@ AI::do_build_gold_smelter_and_connect_gold_mines() {
       Road notused; // not used here, can I just pass a zero instead of &notused to build_best_road and skip initialization of a wasted object?
       //bool was_built = AI::build_best_road(flag->get_position(), road_options, &notused, "do_connect_gold_mines");
       // updated with verify_stock = true
-      bool was_built = AI::build_best_road(flag->get_position(), road_options, &notused, "do_connect_gold_mines(canPassthru):Building::TypeGoldMine@"+std::to_string(flag->get_position()), Building::TypeNone, Building::TypeNone, bad_map_pos, true);
+      bool was_built = AI::build_best_road(flag->get_position(), road_options, &notused, "do_connect_gold_mines(canPassthru):Building::TypeGoldMine@"+std::to_string(flag_pos), Building::TypeNone, Building::TypeNone, bad_map_pos, true);
       if (!was_built && road_options.test(RoadOption::AllowPassthru)){
         AILogDebug["do_connect_gold_mines"] << "failed to build road using Passthru, trying again without it";
         road_options.reset(RoadOption::AllowPassthru);
-        was_built = AI::build_best_road(flag->get_position(), road_options, &notused, "do_connect_gold_mines(nonPassthru):Building::TypeGoldMine@"+std::to_string(flag->get_position()), Building::TypeNone, Building::TypeNone, bad_map_pos, true);
+        was_built = AI::build_best_road(flag->get_position(), road_options, &notused, "do_connect_gold_mines(nonPassthru):Building::TypeGoldMine@"+std::to_string(flag_pos), Building::TypeNone, Building::TypeNone, bad_map_pos, true);
         road_options.set(RoadOption::AllowPassthru);
       }
       if (!was_built) {
@@ -5040,7 +5122,7 @@ AI::do_connect_disconnected_road_networks(){
         road_options.set(RoadOption::ReconnectNetwork);
         road_options.reset(RoadOption::AllowPassthru); // passthru is not a good idea for this
         // BUG - seeing a road attempt to be "reconnected" to a new-splitting-flag part of SAME NETWORK
-        bool was_plotted = AI::build_best_road(flag_pos, road_options, &road_solution, "do_connect_disconnected_road_networks:Flag@"+std::to_string(flag->get_position()));
+        bool was_plotted = AI::build_best_road(flag_pos, road_options, &road_solution, "do_connect_disconnected_road_networks:Flag@"+std::to_string(flag_pos));
         if (was_plotted && road_solution.get_length() > 0){
           MapPos end_pos = road_solution.get_end(map.get());
           AILogDebug["do_connect_disconnected_road_networks"] << "DISCONNECTED ROAD SYSTEM: network[" << i << "], was able to plot a road from flag at pos " << flag_pos << " to end_pos " << end_pos << " with new length " << road_solution.get_length();
