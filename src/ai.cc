@@ -244,6 +244,7 @@ AI::next_loop(){
     do_place_coal_mines(); sleep_speed_adjusted(1000); do_send_geologists();
     do_place_iron_mines(); sleep_speed_adjusted(1000); do_send_geologists();
     do_place_gold_mines(); sleep_speed_adjusted(1000); do_send_geologists();
+    do_place_stone_mines(); sleep_speed_adjusted(1000); do_send_geologists();
 
     // if this is the Castle, don't place any other buildings until these have their materials
     if (inventory_pos == castle_flag_pos && do_wait_until_sawmill_lumberjacks_built() == false)
@@ -262,6 +263,7 @@ AI::next_loop(){
     do_place_coal_mines(); sleep_speed_adjusted(1000); do_send_geologists();
     do_place_iron_mines(); sleep_speed_adjusted(1000); do_send_geologists();
     do_place_gold_mines(); sleep_speed_adjusted(1000); do_send_geologists();
+    do_place_stone_mines(); sleep_speed_adjusted(1000); do_send_geologists();
 
     if(do_can_build_other())
       {do_build_3rd_lumberjack(); sleep_speed_adjusted(1000); do_send_geologists();}
@@ -285,6 +287,7 @@ AI::next_loop(){
     do_place_coal_mines(); sleep_speed_adjusted(1000); do_send_geologists();
     do_place_iron_mines(); sleep_speed_adjusted(1000); do_send_geologists();
     do_place_gold_mines(); sleep_speed_adjusted(1000); do_send_geologists();
+    do_place_stone_mines(); sleep_speed_adjusted(1000); do_send_geologists();
     
     do_demolish_excess_lumberjacks(); do_send_geologists();
     do_demolish_excess_foresters(); do_send_geologists();
@@ -3021,14 +3024,13 @@ AI::do_place_mines(std::string type, Building::Type building_type, Map::Object l
               AILogDebug["do_place_mines"] << inventory_pos << " this inventory has little to no gold ore stored or at flags, and no gold mines, and no gold in borders to mine, and cannot expand borders.  Must attack for gold!";
               stock_building_counts.at(inventory_pos).inv_has_no_goldore = true;
             }
-          // do not do this yet, currently only stone PILES above ground are considered for desperate attacks
-          //}else if (building_type == Building::TypeStoneMine){
-          //  if (get_stock_inv()->get_count_of(Resource::TypeStone) + stock_res_sitting_at_flags.at(inventory_pos)[Resource::TypeStone] > stones_max){  // using stones max here
-          //    AILogDebug["do_place_mines"] << inventory_pos << " this inventory already has more than stones_max " << stones_max << " stones stored or at flags, not considering gold to be unavailable in this Inv area yet";
-          //  }else{
-          //    AILogDebug["do_place_mines"] << inventory_pos << " this inventory has little to no stone stored or at flags, and no stone mines, and no stone in borders to mine, and cannot expand borders.  Must attack for gold!";
-          //    stock_building_counts.at(inventory_pos).inv_has_no_stone = true;
-          //  }
+          }else if (building_type == Building::TypeStoneMine){
+            if (get_stock_inv()->get_count_of(Resource::TypeStone) + stock_res_sitting_at_flags.at(inventory_pos)[Resource::TypeStone] > stones_max){  // using stones max here
+              AILogDebug["do_place_mines"] << inventory_pos << " this inventory already has more than stones_max " << stones_max << " stones stored or at flags, not considering gold to be unavailable in this Inv area yet";
+            }else{
+              AILogDebug["do_place_mines"] << inventory_pos << " this inventory has little to no stone stored or at flags, and no stone mines, and no stone in borders to mine, and cannot expand borders.  Must attack for gold!";
+              stock_building_counts.at(inventory_pos).inv_has_no_stone = true;
+            }
           }else{
             throw ExceptionFreeserf("unexpected mine type");
           }
@@ -3066,10 +3068,23 @@ AI::do_place_gold_mines(){
 void
 AI::do_place_stone_mines(){
   AILogDebug["do_place_stone_mines"] << "inside do_place_stone_mines()";
+  /* CHANGING LOGIC - if there are no stone piles in this Inventory area, maybe
+       building a stone mine isn't so bad?  switching to just using the local value
+  // check to see if we are out of above-ground stonepiles
+  //  I tried putting this in check_resource_needs but I think it gets reset before it can be effective
+  no_stone_within_borders = true;
+  for (MapPos stock_pos : stocks_pos){
+    if (stock_building_counts.at(stock_pos).inv_has_no_stone == false){
+      AILogDebug["do_place_stone_mines"] << "at least one Inventory (ex. " << stock_pos << ") has stone, not building StoneMines or making desperate attacks for stone";
+      no_stone_within_borders = false;
+    }
+  }
   if (no_stone_within_borders){
+  */
+  if (stock_building_counts.at(inventory_pos).inv_has_no_stone == false){
     do_place_mines("stone", Building::TypeStoneMine, Map::ObjectSignLargeStone, Map::ObjectSignSmallStone, stone_sign_density_min);
   }else{
-    AILogDebug["do_place_stone_mines"] << "not considering building stone mines until all reachable above-ground stone piles are exhausted";
+    AILogDebug["do_place_stone_mines"] << "not considering building stone mines until all above-ground stone piles in this Inventory area exhausted";
   }
 }
 
@@ -3277,6 +3292,7 @@ void
 AI::do_build_stonecutter() {
   AILogDebug["do_build_stonecutter"] << inventory_pos << " Main Loop - stones & stonecutters";
   ai_status.assign("do_build_stonecutter");
+  stock_building_counts.at(inventory_pos).inv_has_no_stone = false;
   if (stock_building_counts.at(inventory_pos).needs_stone) {
     int stonecutter_count = stock_building_counts.at(inventory_pos).count[Building::TypeStonecutter];
     if (stonecutter_count >= 1) {
@@ -4302,10 +4318,10 @@ AI::do_attack() {
   no_coal_within_borders = true;
   no_ironore_within_borders = true;
   no_goldore_within_borders = true;
-  no_stone_within_borders = true;  // this currently only counts above-ground stone piles, not mined stone
+  no_stone_within_borders = true;
 
   for (MapPos tmp_inv_pos : stocks_pos) {
-    AILogDebug["do_attack"] << "DEBUG stock_building_counts.at(" << tmp_inv_pos << ").inv_cannot_expand_borders is " << stock_building_counts.at(tmp_inv_pos).inv_cannot_expand_borders;
+    //AILogDebug["do_attack"] << "DEBUG stock_building_counts.at(" << tmp_inv_pos << ").inv_cannot_expand_borders is " << stock_building_counts.at(tmp_inv_pos).inv_cannot_expand_borders;
     if (stock_building_counts.at(tmp_inv_pos).inv_cannot_expand_borders == false){
       AILogDebug["do_attack"] << "at least one Inventory (ex. " << tmp_inv_pos << ") can expand borders, not making desperate attacks";
       cannot_expand_borders = false;

@@ -111,10 +111,10 @@ class AI {
   Log::Logger AILogError{ Log::LevelError, "Error" };
 
   bool cannot_expand_borders = false; // if AI can no longer expand by building huts, alter its behavior.  Also affects toolmaker coal allocation logic!
-  bool no_coal_within_borders = true;
-  bool no_ironore_within_borders = true;
-  bool no_goldore_within_borders = true;
-  bool no_stone_within_borders = true; // this currently only counts above-ground stone piles, not mined stone
+  bool no_coal_within_borders = false;
+  bool no_ironore_within_borders = false;
+  bool no_goldore_within_borders = false;
+  bool no_stone_within_borders = false;
 
 
  protected:

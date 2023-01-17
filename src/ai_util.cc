@@ -3548,6 +3548,7 @@ AI::score_enemy_area(MapPos center_pos, unsigned int distance) {
     //
     // mined resources
     //
+    // Gold
     if (cannot_expand_borders && !no_goldore_within_borders){
       // disregard this resource, some other resource is desperately needed
       AILogDebug["util_score_enemy_area"] << "cannot_expand_borders is true but gold is already within our borders. not counting gold towards total";
@@ -3561,7 +3562,7 @@ AI::score_enemy_area(MapPos center_pos, unsigned int distance) {
         //AILogDebug["util_score_enemy_area"] << "adding gold_ore count " << gold_signs << " with value " << expand_towards.count("gold_ore") * gold_ore_weight * gold_signs;
       }
     }
-
+    // Iron
     if (cannot_expand_borders && !no_ironore_within_borders){
       // disregard this resource, some other resource is desperately needed
       AILogDebug["util_score_enemy_area"] << "cannot_expand_borders is true but iron is already within our borders. not counting iron towards total";
@@ -3575,7 +3576,7 @@ AI::score_enemy_area(MapPos center_pos, unsigned int distance) {
         //AILogDebug["util_score_enemy_area"] << "adding iron_ore count " << iron_signs << " with value " << expand_towards.count("iron_ore") * iron_ore_weight * iron_signs;
       }
     }
-
+    // Coal
     if (cannot_expand_borders && !no_coal_within_borders){
       // disregard this resource, some other resource is desperately needed
       AILogDebug["util_score_enemy_area"] << "cannot_expand_borders is true but coal is already within our borders. not counting coal towards total";
@@ -3587,6 +3588,19 @@ AI::score_enemy_area(MapPos center_pos, unsigned int distance) {
       if (obj == Map::ObjectSignSmallCoal || obj == Map::ObjectSignLargeCoal) {
         pos_value += expand_towards.count("coal")      * coal_weight * coal_signs;
         //AILogDebug["util_score_enemy_area"] << "adding coal count " << coal_signs << " with value " << expand_towards.count("coal_ore") * coal_weight * coal_signs;
+      }
+    }
+    // Stone in mountains
+    if (cannot_expand_borders && !no_stone_within_borders){
+      // disregard this resource, some other resource is desperately needed
+      AILogDebug["util_score_enemy_area"] << "cannot_expand_borders is true but stone is already within our borders. not counting mined-stone-in-mountains towards total";
+    }else{
+      // normal behavior
+      unsigned int stone_signs = 0;
+      if (obj == Map::ObjectSignLargeStone) { stone_signs += 2; }
+      if (obj == Map::ObjectSignSmallStone) { stone_signs += 1; }
+      if (obj == Map::ObjectSignSmallStone || obj == Map::ObjectSignLargeStone) {
+        pos_value += expand_towards.count("stone") * stone_signs;
       }
     }
 
