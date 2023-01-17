@@ -1537,6 +1537,10 @@ Interface::handle_event(const Event *event) {
   switch (event->type) {
     case Event::TypeResize:
       set_size(event->dx, event->dy);
+      viewport->store_prev_window_size();
+      break;
+    case Event::TypeZoom:
+      set_size(event->dx, event->dy);
       break;
     case Event::TypeUpdate:
       update();

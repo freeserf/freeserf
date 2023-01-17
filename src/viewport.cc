@@ -456,7 +456,28 @@ Viewport::draw_down_tile_col(MapPos pos, int x_base, int y_base,
 void
 Viewport::layout() {
   Log::Debug["viewport.cc"] << "inside Viewport::layout(), flushing entire landscape_tiles cache";
+//  last_res_height = height;
+//  last_res_width = width;
+//  Log::Debug["viewport.cc"] << "inside Viewport::layout(), updating last_res_width/height to " << last_res_width << "," << last_res_height;
+//  last_window_width = width;
+//  last_window_height = height;
+//  Log::Debug["viewport.cc"] << "inside Viewport::layout(), updating last_window_width/height to " << last_window_width << "," << last_window_height;
   landscape_tiles.clear();
+}
+
+// work-around because GUIObject can't directly reference Viewport vars
+//void
+//Viewport::store_prev_res() {
+//  last_res_height = height;
+//  last_res_width = width;
+//  Log::Debug["viewport.cc"] << "inside Viewport::store_prev_res(), updating last_res_width/height to " << last_res_width << "," << last_res_height;
+//}
+// work-around because GUIObject can't directly reference Viewport vars
+void
+Viewport::store_prev_window_size() {
+  last_window_height = height;
+  last_window_width = width;
+  Log::Debug["viewport.cc"] << "inside Viewport::store_prev_window_size(), updating last_window_height/height to " << last_window_height << "," << last_window_width;
 }
 
 // flush a single tile, which is 16x16 block of MapPos triangle-pairs
@@ -4450,6 +4471,8 @@ Viewport::Viewport(Interface *_interface, PMap _map)
   last_zoom_factor = 1.00f;  // tlongstretch, attempt to recenter screen when zooming
   last_res_width = 0; // tlongstretch, attempt to recenter screen when zooming
   last_res_height = 0; // tlongstretch, attempt to recenter screen when zooming
+  last_window_width = 0; // tlongstretch, attempt to recenter screen when zooming
+  last_window_height = 0; // tlongstretch, attempt to recenter screen when zooming
 
   last_tick = 0;
 
@@ -4667,13 +4690,15 @@ Viewport::update() {
   Graphics &gfx = Graphics::get_instance();
 
   // at start of game, resolution is unknown/zero, if so set last_res_width/height
-  if (last_res_height == 0 || last_res_width == 0){
-    Log::Debug["viewport.cc"] << "inside Viewport::update, this is probably the first update, setting last_res_width and last_res_height for later zoom checks";
+  if (last_res_height == 0 || last_res_width == 0 || last_window_width == 0 || last_window_height == 0){
+    Log::Debug["viewport.cc"] << "inside Viewport::update, this is probably the first update, setting last_res_width and last_res_height and last_window_width and last_window_height for later zoom checks";
     unsigned int res_width; 
     unsigned int res_height;
     gfx.get_resolution(&res_width, &res_height);
     last_res_width = res_width;
     last_res_height = res_height;
+    last_window_width = res_width; // tlongstretch, attempt to recenter screen when zooming
+    last_window_height = res_height; // tlongstretch, attempt to recenter screen when zooming
   }
 
   float zoom_factor = gfx.get_zoom_factor();
@@ -4687,14 +4712,27 @@ Viewport::update() {
       unsigned int res_width; 
       unsigned int res_height;
       gfx.get_resolution(&res_width, &res_height);
-      int width_change = last_res_width - res_width;
-      int height_change = last_res_height - res_height;
+      int last_width = 0;
+      int last_height = 0;
+      Log::Debug["viewport.cc"] << "inside Viewport::update, the zoom factor was just changed, last_res_width/height " << last_res_width << "," << last_res_height << " and last_window_width/height " << last_window_width << "," << last_window_height;
+      // if the window was resized since last zoom change, use the previous WINDOW size instead
+      if (last_res_height != last_window_height || last_res_width != last_window_width){
+        Log::Debug["viewport.cc"] << "inside Viewport::update, the game window was resized since last zoom, using previous WINDOW size instead of previous resolution";
+        last_width = last_window_width;
+        last_height = last_window_height;
+      }else{
+        Log::Debug["viewport.cc"] << "inside Viewport::update, the game window was not resized since last zoom, using previous RESOLUTION for comparison";
+        last_width = last_res_width;
+        last_height = last_res_height;
+      }
+      int width_change = last_width - res_width;
+      int height_change = last_height - res_height;
       int zoom_type = gfx.get_zoom_type();
       if (zoom_type == 0){  // keyboard zoom, centered on center of viewport
-        Log::Debug["viewport.cc"] << "inside Viewport::update, zoom type " << zoom_type << " (keyboard zoom), the prev resolution was " << last_res_width << "x" <<  last_res_height << ", new res is " << res_width << "x" << res_height << ", diff is " << width_change << "," << height_change;
+        Log::Debug["viewport.cc"] << "inside Viewport::update, zoom type " << zoom_type << " (keyboard zoom), the prev resolution was " << last_width << "x" <<  last_height << ", new res is " << res_width << "x" << res_height << ", diff is " << width_change << "," << height_change;
         move_by_pixels(width_change/2, height_change/2);
       }else{
-        Log::Debug["viewport.cc"] << "inside Viewport::update, zoom type " << zoom_type << " (mousewheel zoom), the prev resolution was " << last_res_width << "x" <<  last_res_height << ", new res is " << res_width << "x" << res_height << ", diff is " << width_change << "," << height_change;
+        Log::Debug["viewport.cc"] << "inside Viewport::update, zoom type " << zoom_type << " (mousewheel zoom), the prev resolution was " << last_width << "x" <<  last_height << ", new res is " << res_width << "x" << res_height << ", diff is " << width_change << "," << height_change;
         // mousewheel zoom, centered on current mouse pointer location
         int mouse_x = 0;
         int mouse_y = 0;
@@ -4738,6 +4776,8 @@ Viewport::update() {
       }
       last_res_width = res_width;
       last_res_height = res_height;
+      last_window_width = res_width;
+      last_window_height = res_height;
     }
   }
 

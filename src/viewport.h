@@ -65,6 +65,8 @@ class Viewport : public GuiObject, public Map::Handler {
   float last_zoom_factor;  // tlongstretch, attempt to recenter screen when zooming
   unsigned int last_res_width; // tlongstretch, attempt to recenter screen when zooming
   unsigned int last_res_height; // tlongstretch, attempt to recenter screen when zooming
+  unsigned int last_window_width; // tlongstretch, attempt to recenter screen when zooming
+  unsigned int last_window_height; // tlongstretch, attempt to recenter screen when zooming
 
   const int fall_1st_colors[8] = {  0, 10, 20, 60, 10,  0, 50, 40};  // for option_FourSeasons fall tree coloration
   const int fall_2nd_colors[8] = { 20, 30, 50, 20, 70, 30, 70, 50};  // for option_FourSeasons fall tree coloration
@@ -368,6 +370,9 @@ class Viewport : public GuiObject, public Map::Handler {
 
   void update();
 
+  //virtual void store_prev_res();
+  virtual void store_prev_window_size();
+
  protected:
   Map::Terrain special_terrain_type(MapPos pos, Map::Terrain type);  // convenience function to allow changes to both draw_triangle_up & _down without code duplication
   void draw_triangle_up(int x, int y, int m, int left, int right, MapPos pos,
@@ -427,6 +432,8 @@ class Viewport : public GuiObject, public Map::Handler {
 
   virtual void internal_draw();
   virtual void layout();
+  //virtual void store_prev_res();
+  //void store_prev_res();
   virtual bool handle_left_click(int x, int y, int modifier);
   //virtual bool handle_right_click(int x, int y);
   virtual bool handle_dbl_click(int x, int y, Event::Button button);
