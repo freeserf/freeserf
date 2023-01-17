@@ -3528,6 +3528,24 @@ AI::score_enemy_area(MapPos center_pos, unsigned int distance) {
     }
 
     //
+    // stone piles above ground
+    //
+    if (cannot_expand_borders && !no_stone_within_borders){
+      // disregard this resource, some other resource is desperately needed
+      AILogDebug["util_score_enemy_area"] << "cannot_expand_borders is true but stone is already within our borders. not counting stone towards total";
+    }else{
+      // normal behavior
+      if (map->get_obj(pos) >= Map::ObjectStone0 && map->get_obj(pos) <= Map::ObjectStone7) {
+        //AILogDebug["util_count_stones_near_pos"] << "getting value of map object at pos: " << pos << " with map obj type " << NameObject[map->get_obj(pos)];
+        // because the higher MapObject indexes represent smaller resource values, the difference is negative
+        //   so invert the difference and add one, because it starts at zero
+        int value = 1 + (-1 * (map->get_obj(pos) - Map::ObjectStone7));
+        pos_value += expand_towards.count("stone") * value;
+        //AILogDebug["util_score_enemy_area"] << "adding stones count " << value << " with value " << expand_towards.count("stones") * value;
+      }
+    }
+
+    //
     // mined resources
     //
     if (cannot_expand_borders && !no_goldore_within_borders){

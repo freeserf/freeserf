@@ -114,6 +114,7 @@ class AI {
   bool no_coal_within_borders = true;
   bool no_ironore_within_borders = true;
   bool no_goldore_within_borders = true;
+  bool no_stone_within_borders = true; // this currently only counts above-ground stone piles, not mined stone
 
 
  protected:
@@ -313,6 +314,7 @@ class AI {
     bool inv_has_no_coal = false;
     bool inv_has_no_ironore = false;
     bool inv_has_no_goldore = false;
+    bool inv_has_no_stone = false;
   };
 
   // the count of buildings inv various completion states attached *by shortest flag dist* to this stock, plus the list of military buildings

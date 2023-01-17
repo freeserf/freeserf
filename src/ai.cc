@@ -1223,7 +1223,7 @@ AI::do_fix_missing_transporters() {
         bool found_transporter = false;
         Road road;
         if (!map->has_path_IMPROVED(flag->get_position(), dir)) {
-          AILogVerbose["do_fix_missing_transporters"] << "no path found for flag with pos " << flag->get_position() << ", index " << flag_index << ", dir " << dir << " / " << NameDirection[dir] << " during no_transporter check!  FIND OUT WHY";
+          AILogWarn["do_fix_missing_transporters"] << "no path found for flag with pos " << flag->get_position() << ", index " << flag_index << ", dir " << dir << " / " << NameDirection[dir] << " during no_transporter check!  FIND OUT WHY";
         }
         MapPos pos = flag->get_position();
         Direction tmp_dir = dir;
@@ -1310,11 +1310,12 @@ AI::do_fix_missing_transporters() {
           //game->pause();
         }
         else {
-          AILogVerbose["do_fix_missing_transporters"] << "found expected transporter with Flag #" << flag->get_index() << " at pos " << flag->get_position() << " on road in dir " << NameDirection[dir];
+          //AILogDebug["do_fix_missing_transporters"] << "found expected transporter with Flag #" << flag->get_index() << " at pos " << flag->get_position() << " on road in dir " << NameDirection[dir];
         }
 
       }
-      /* I think I finally fixed this, it was due to typo in the path_splited road splitting logic
+      /*
+      // I think I finally fixed this, it was due to typo in the path_splited road splitting logic
       //
       // check for common missing transporter bug, where no transporter is assigned at all
       //  I added some debugging and I see that the leave_building call is made so a serf is dispatched, but not sure if it ever actually
@@ -1342,7 +1343,7 @@ AI::do_fix_missing_transporters() {
           //  Maybe make more advanced and check to see if there is an outgoing transporter serf with this destination flag/dir??
           // jan05 2021 - setting this 25x now that I am looking at it closer.  It should be either extremely long timer or
           //    based on the distance from the inventory (warehouse/stock) that is dispatching the serf
-          no_transporter_timers.insert(std::make_pair(std::make_pair(flag_index, dir), game->get_tick() + 50000);
+          no_transporter_timers.insert(std::make_pair(std::make_pair(flag_index, dir), game->get_tick() + 50000));
           AILogDebug["do_fix_missing_transporters"] << "there are now " << no_transporter_timers.count(std::make_pair(flag_index, dir)) << " no_transporter_timers set for this flag with pos " << flag->get_position() << ", index " << flag_index << ", dir " << dir << " / " << NameDirection[dir] << ", value is: " << no_transporter_timers.at(std::make_pair(flag_index, dir));
 
           // try to find a serf that is on way to this Flag-dir
@@ -1365,6 +1366,7 @@ AI::do_fix_missing_transporters() {
         }
       }
       */
+
     }
   }
   duration = (std::clock() - start) / static_cast<double>(CLOCKS_PER_SEC);
@@ -3241,6 +3243,7 @@ AI::do_build_stonecutter() {
     AILogInfo["do_build_stonecutter"] << inventory_pos << " want to build stonecutter";
     // count stones near military buildings
     MapPosSet count_by_corner;
+    MapPos built_pos = bad_map_pos;
     for (MapPos center_pos : stock_building_counts.at(inventory_pos).occupied_military_pos) {
       stonecutter_count = stock_building_counts.at(inventory_pos).count[Building::TypeStonecutter];
       if (stonecutter_count >= 1) {
@@ -3257,7 +3260,6 @@ AI::do_build_stonecutter() {
       }
       // build stonecutter near corner with most stones
       MapPosVector search_positions = AI::sort_by_val_desc(count_by_corner);
-      MapPos built_pos = bad_map_pos;
       for (MapPos corner_pos : search_positions) {
         //ai_mark_pos.clear();
         AILogDebug["do_build_stonecutter"] << inventory_pos << " try to build stonecutter near corner pos " << corner_pos;
@@ -3299,6 +3301,13 @@ AI::do_build_stonecutter() {
         if (built_pos != bad_map_pos && built_pos != notplaced_pos) { break; }
       }
     } // foreach military building
+    
+    // note lack of stone, affects AI attack logic
+    if (built_pos == bad_map_pos || built_pos == notplaced_pos) {
+      AILogDebug["do_build_stonecutter"] << inventory_pos << " could not place stonecutter around this Inventory, setting inv_has_no_stone bool to true";
+      stock_building_counts.at(inventory_pos).inv_has_no_stone = true;
+    }
+
   }
   else {
     AILogDebug["do_build_stonecutter"] << inventory_pos << " have sufficient stone and/or stonecutters, skipping";
@@ -4187,7 +4196,7 @@ AI::do_attack() {
   no_coal_within_borders = true;
   no_ironore_within_borders = true;
   no_goldore_within_borders = true;
-  // also consider stone and trees?
+  no_stone_within_borders = true;  // this currently only counts above-ground stone piles, not mined stone
 
   for (MapPos tmp_inv_pos : stocks_pos) {
     AILogDebug["do_attack"] << "DEBUG stock_building_counts.at(" << tmp_inv_pos << ").inv_cannot_expand_borders is " << stock_building_counts.at(tmp_inv_pos).inv_cannot_expand_borders;
@@ -4208,9 +4217,13 @@ AI::do_attack() {
       AILogDebug["do_attack"] << "at least one Inventory (ex. " << tmp_inv_pos << ") has goldore, not making desperate attacks for gold";
       no_goldore_within_borders = false;
     }
+    if (stock_building_counts.at(tmp_inv_pos).inv_has_no_stone == false){
+      AILogDebug["do_attack"] << "at least one Inventory (ex. " << tmp_inv_pos << ") has stone, not making desperate attacks for stone";
+      no_stone_within_borders = false;
+    }
   }
 
-  if (cannot_expand_borders && (no_coal_within_borders || no_ironore_within_borders || no_goldore_within_borders)){
+  if (cannot_expand_borders && (no_coal_within_borders || no_ironore_within_borders || no_goldore_within_borders || no_stone_within_borders)){
     AILogDebug["do_attack"] << "at least one resource is totally unavailable within our borders, and we cannot expand borders, will make desperate attacks for resouces!";
   }
 
