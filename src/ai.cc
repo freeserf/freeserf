@@ -2494,6 +2494,21 @@ AI::do_disconnect_or_demolish_excess_gold_mines() {
 }
 
 
+void
+AI::do_disconnect_or_demolish_excess_stone_mines() {
+  ai_status.assign("do_disconnect_or_demolish_excess_stone_mines");
+  AILogDebug["do_disconnect_or_demolish_excess_stone_mines"] << inventory_pos << " inside do_disconnect_or_demolish_excess_stone_mines()";
+  if (stock_building_counts.at(inventory_pos).excess_stone) {
+    AILogDebug["do_disconnect_or_demolish_excess_stone_mines"] << inventory_pos << " excess_stone_ore is true, calling do_disconnect_or_demolish_excess_mines()";
+    do_disconnect_or_demolish_excess_mines("stone", Building::TypeStoneMine);
+  }else {
+    AILogDebug["do_disconnect_or_demolish_excess_stone_mines"] << inventory_pos << " needs more stone and/or stone buildings, skipping";
+  }
+  AILogDebug["do_disconnect_or_demolish_excess_stone_mines"] << inventory_pos << " done do_disconnect_or_demolish_excess_stone_mines";
+}
+
+
+
 // adjust tool priorities to match needed tools, reset unneccessary tools to default
 void
 AI::do_manage_tool_priorities() {
@@ -2683,6 +2698,7 @@ AI::do_manage_mine_food_priorities() {
   unsigned int coal_count = realm_inv[Resource::TypeCoal];
   unsigned int iron_ore_count = realm_inv[Resource::TypeIronOre];
   unsigned int gold_ore_count = realm_inv[Resource::TypeGoldOre];
+  unsigned int stone_count = realm_inv[Resource::TypeStone];
   //6550 is a near-zero value I chose to use as "very low priority"
   // default food priorities:
   //food_stonemine = 13100;
@@ -2712,6 +2728,14 @@ AI::do_manage_mine_food_priorities() {
   } else if (gold_ore_count > gold_ore_min) {
     AILogDebug["do_manage_mine_food_priorities"] << "gold_ore_count " << gold_ore_count << " is greater than gold_ore_min " << gold_ore_min << ", greatly reducing food priority to gold mines";
     player->set_food_goldmine(6550);
+  }
+  // stone
+  if (stone_count > stones_max) {
+    AILogDebug["do_manage_mine_food_priorities"] << "stone_count " << stone_count << " is greater than stones_max " << stones_max << ", setting stone mine food priority to zero";
+    player->set_food_stonemine(0);
+  } else if (stone_count > stones_min) {
+    AILogDebug["do_manage_mine_food_priorities"] << "stone_count " << stone_count << " is greater than stones_min " << stones_min << ", greatly reducing food priority to stone mines";
+    player->set_food_stonemine(6550);
   }
   // avoid issue where all food goes to gold mining while running out of knights
   unsigned int idle_knights = serfs_idle[Serf::TypeKnight0] + serfs_idle[Serf::TypeKnight1] + serfs_idle[Serf::TypeKnight2] + serfs_idle[Serf::TypeKnight3] + serfs_idle[Serf::TypeKnight4];

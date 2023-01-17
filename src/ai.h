@@ -357,6 +357,7 @@ class AI {
   void do_disconnect_or_demolish_excess_coal_mines(); //wrapper around do_disconnect_excess_mines
   void do_disconnect_or_demolish_excess_iron_mines(); //wrapper around do_disconnect_excess_mines
   void do_disconnect_or_demolish_excess_gold_mines(); //wrapper around do_disconnect_excess_mines
+  void do_disconnect_or_demolish_excess_stone_mines(); //wrapper around do_disconnect_excess_mines
   void do_balance_sword_shield_priorities();
   void do_attack();
   void do_manage_knight_occupation_levels();
