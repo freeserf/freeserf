@@ -60,6 +60,8 @@ class PanelBar : public GuiObject, public Timer::Handler {
   int panel_btns[5];
   Timer *blink_timer;
   bool blink_trigger;
+  int blink_slowdown;  // dumb hack to slow the time back down to its original speed now that the timer is shortened 7x
+  int amiga_star_anim_frame;
 
  public:
   explicit PanelBar(Interface *interface);

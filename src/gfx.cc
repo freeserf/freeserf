@@ -264,7 +264,7 @@ Graphics::get_instance() {
 //
 void
 Frame::draw_sprite(int x, int y, Data::Resource res, unsigned int index, bool use_off, const Color &color, float progress, int mutate) {
-  //Log::Debug["gfx.cc"] << "start of Frame::draw_sprite with res " << res << " and index " << index << ", mutate int is " << mutate;
+  Log::Debug["gfx.cc"] << "start of Frame::draw_sprite with res " << res << " and index " << index << ", mutate int is " << mutate;
   Data::Sprite::Color pc = {color.get_blue(),
                             color.get_green(),
                             color.get_red(),
@@ -285,7 +285,7 @@ Frame::draw_sprite(int x, int y, Data::Resource res, unsigned int index, bool us
     if (res == Data::AssetMapObject){
       // this is pretty arbitrary
       id = Data::Sprite::create_id(res, index + 3000, 0, 0, pc);
-      //Log::Debug["gfx.cc"] << "inside Frame::draw_sprite with res " << res << " and index " << index << ", mutate int is " << mutate << ", caching with fake high id " << index + 3000;
+      Log::Debug["gfx.cc"] << "inside Frame::draw_sprite with res " << res << " and index " << index << ", mutate int is " << mutate << ", caching with fake high id " << index + 3000;
     } else{
       throw ExceptionFreeserf("inside Frame::draw_sprite, unexpected Data::Asset type to mutate!");      
     }
@@ -298,7 +298,7 @@ Frame::draw_sprite(int x, int y, Data::Resource res, unsigned int index, bool us
   
   // if image not found already cached, fetch it and cache it
   if (image == nullptr) {
-    //Log::Debug["gfx.cc"] << "inside Frame::draw_sprite, res " << res << ", sprite index " << index << ", this image is not yet cached, fetching it";
+    Log::Debug["gfx.cc"] << "inside Frame::draw_sprite, res " << res << ", sprite index " << index << ", this image is not yet cached, fetching it";
     Data::PSprite s;
 
     // handle special sprites, either mutated-originals or totally new Custom sprites
@@ -339,7 +339,8 @@ Frame::draw_sprite(int x, int y, Data::Resource res, unsigned int index, bool us
        || res == Data::AssetMapObject  // new custom trees, flowers
        || res == Data::AssetMapShadow  // shadows for new custom trees
        || res == Data::AssetIcon   // for game-init icons
-       || res == Data::AssetMapWaves){  // for splashes on water objects
+       || res == Data::AssetMapWaves  // for splashes on water objects
+       || res == Data::AssetPanelButton){  // for spinning amiga style star animated sprite
         // these types, if having beyond-original indexes, are new graphics
         //  loaded from actual PN  files using the data_source_Custom
         //Log::Debug["gfx.cc"] << "inside Frame::draw_sprite, sprite index " << index << " trying to load custom data source";
@@ -351,6 +352,8 @@ Frame::draw_sprite(int x, int y, Data::Resource res, unsigned int index, bool us
           orig_index = 32;  // normal Water sprite
         }else if (res == Data::AssetIcon){
           orig_index = 262; // human with thumbs up player icon
+        }else if (res == Data::AssetPanelButton){
+          orig_index = 13; // this is a generic fallback, need to create a table of fallbacks as they aren't linear
         }else{
           // Trees
           // stripping the first two digits results in 0-7 which hold the original Trees & Tree-shadows
