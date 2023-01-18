@@ -42,11 +42,16 @@ PanelBar::PanelBar(Interface *_interface) {
   panel_btns[3] = ButtonStats;
   panel_btns[4] = ButtonSett;
 
-  blink_timer = Timer::create(1, 700, this);
+  // tlongstretch - it seems that the panelbar only updates when this blink timer expires, making buttons seem slightly
+  //  unresponsive.  Noticed this when testing amiga spinning star animation and wondering why it wasn't spinning faster
+  //blink_timer = Timer::create(1, 700, this);  // Freeserf orig
+  blink_timer = Timer::create(1, 50, this);
   if (blink_timer != NULL) {
     blink_timer->run();
   }
   blink_trigger = false;
+  blink_slowdown = 0;
+  amiga_star_anim_frame = -1;
 }
 
 PanelBar::~PanelBar() {
@@ -125,6 +130,7 @@ PanelBar::draw_return_arrow() {
 /* Draw buttons in action panel. */
 void
 PanelBar::draw_panel_buttons() {
+  //Log::Debug["panel.cc"] << "inside PanelBar::draw_panel_buttons";
   if (enabled) {
     Player *player = interface->get_player();
     /* Blinking message icon. */
@@ -148,21 +154,49 @@ PanelBar::draw_panel_buttons() {
     ButtonSettInactive
   };
 
+
   for (int i = 0; i < 5; i++) {
     int button = panel_btns[i];
     if (!enabled) button = inactive_buttons[i];
 
     int sx = 64 + i*48;
     int sy = 4;
-    frame->draw_sprite(sx, sy, Data::AssetPanelButton, button);
-  }
+    // if this is a starred button, draw the amiga style spinning star overlay instead of the normal static one
+    if (option_SpinningAmigaStar && button >= Button::ButtonBuildSmallStarred){
+      // get the original non-starred button as the base
+      switch (button){
+        case Button::ButtonBuildSmallStarred: button = ButtonBuildSmall; break;
+        case Button::ButtonBuildLargeStarred: button = ButtonBuildLarge; break;
+        case Button::ButtonMapStarred: button = ButtonMap; break;
+        case Button::ButtonStatsStarred: button = ButtonStats; break;
+        case Button::ButtonSettStarred: button = ButtonSett; break;
+        case Button::ButtonGroundAnalysisStarred: button = ButtonGroundAnalysis; break;
+        case Button::ButtonBuildMineStarred: button = ButtonBuildMine; break;
+        case Button::ButtonBuildRoadStarred: button = ButtonBuildRoad; break;
+        default: NOT_REACHED(); break;
+      }
+      frame->draw_sprite(sx, sy, Data::AssetPanelButton, button);
+      // draw star overtop
+      amiga_star_anim_frame++;
+      if (amiga_star_anim_frame > 16){
+        amiga_star_anim_frame = 0;
+      }
+      //Log::Debug["panel.cc"] << "inside PanelBar::draw_panel_buttons, tick " << interface->get_game()->get_tick() << ", star_anim_frame " << amiga_star_anim_frame;
+      frame->draw_sprite(sx, sy, Data::AssetPanelButton, 50 + amiga_star_anim_frame, 1);  // 1 means use offset from meta.ini
+    }else{
+      // draw normal button
+      frame->draw_sprite(sx, sy, Data::AssetPanelButton, button);
+    }
+  } // for each of the five buttons to be drawn
 }
 
 void
 PanelBar::internal_draw() {
+  //Log::Debug["panel.cc"] << "inside PanelBar::internal_draw";
   draw_panel_frame();
   draw_panel_buttons();
 }
+
 
 /* Handle a click on the panel buttons. */
 void
@@ -625,6 +659,13 @@ PanelBar::update() {
 
 void
 PanelBar::on_timer_fired(unsigned int id) {
-  blink_trigger = !blink_trigger;
+  //Log::Debug["panel.cc"] << "inside PanelBar::on_timer_fired";
+  // original the blink happened ever timer, and timer was 700 ticks
+  //  now timer is 50 ticks, so 15x faster
+  blink_slowdown++;
+  if (blink_slowdown > 15){
+    blink_trigger = !blink_trigger;
+    blink_slowdown = 0;
+  }
   set_redraw();
 }

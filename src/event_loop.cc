@@ -167,6 +167,17 @@ EventLoop::notify_resize(unsigned int width, unsigned int height) {
 }
 
 bool
+EventLoop::notify_zoom_resize(unsigned int width, unsigned int height) {
+  Event event;
+  event.type = Event::TypeZoom;
+  event.x = 0;
+  event.y = 0;
+  event.dx = width;
+  event.dy = height;
+  return notify_handlers(&event);
+}
+
+bool
 EventLoop::notify_update() {
   Event event;
   event.type = Event::TypeUpdate;

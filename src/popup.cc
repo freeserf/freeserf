@@ -323,6 +323,7 @@ typedef enum Action {
   ACTION_GAME_OPTIONS_RandomizeInstruments,
   ACTION_GAME_OPTIONS_ForesterMonoculture,
   ACTION_GAME_OPTIONS_CheckPathBeforeAttack,
+  ACTION_GAME_OPTIONS_SpinningAmigaStar,
   ACTION_MAPGEN_ADJUST_TREES,
   ACTION_MAPGEN_ADJUST_STONEPILES,
   ACTION_MAPGEN_ADJUST_FISH,
@@ -2156,8 +2157,8 @@ PopupBox::draw_game_options3_box() {
   draw_green_string(3, 86, "Require Clear Route To Attack");
   draw_popup_icon(1, 83, option_CheckPathBeforeAttack ? 288 : 220);  // this is currently forced on
 
-  //draw_green_string(3, 105, "Sailors Move Faster");
-  //draw_popup_icon(1, 102, option_SailorsMoveFaster ? 288 : 220);
+  draw_green_string(3, 105, "Amiga-Style Spinning Star");
+  draw_popup_icon(1, 102, option_SpinningAmigaStar ? 288 : 220);
 
   draw_green_string(18, 131, "Page 4 of 4");
   draw_popup_icon(30, 128, 0x3d); // flipbox to previous page
@@ -4113,6 +4114,14 @@ PopupBox::handle_action(int action, int x_, int /*y_*/) {
     play_sound(Audio::TypeSfxNotAccepted);
     //GameOptions::get_instance().save_options_to_file();
     break;
+  case ACTION_GAME_OPTIONS_SpinningAmigaStar:
+    if (option_SpinningAmigaStar){
+      option_SpinningAmigaStar = false;
+    } else{
+      option_SpinningAmigaStar = true;
+    }
+    GameOptions::get_instance().save_options_to_file();
+    break;
   case ACTION_MAPGEN_ADJUST_TREES:
     Log::Info["popup"] << "ACTION_MAPGEN_ADJUST_TREES x_ = " << x_ << ", gui_get_slider_click_value(x_) = " << gui_get_slider_click_value(x_) << ", unint16_t(gui_get_slider_click_value(x_)) = " << uint16_t(gui_get_slider_click_value(x_));
     interface->set_custom_map_generator_trees(gui_get_slider_click_value(x_));         
@@ -4587,7 +4596,7 @@ PopupBox::handle_box_game_options3_clk(int cx, int cy) {
     ACTION_GAME_OPTIONS_ForesterMonoculture, 7, 64, 150, 16,
     ACTION_GAME_OPTIONS_CheckPathBeforeAttack, 7, 83, 150, 16,
     //ACTION_GAME_OPTIONS_AdvancedDemolition, 7, 83, 150, 16,  /* removing AdvancedDemolition for now, see https://github.com/forkserf/forkserf/issues/180/
-    //ACTION_GAME_OPTIONS_SailorsMoveFaster, 7, 102, 150, 16,
+    ACTION_GAME_OPTIONS_SpinningAmigaStar, 7, 102, 150, 16,
     ActionShowOptions, 239, 126, 16, 16,  // flip button
     ACTION_CLOSE_OPTIONS, 255, 126, 16, 16, // exit button
     -1

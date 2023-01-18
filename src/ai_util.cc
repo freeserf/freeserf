@@ -919,8 +919,8 @@ AI::build_best_road(MapPos start_pos, RoadOptions road_options, Road *built_road
       //  CONSIDER REMOVING THIS CHECK AND ONLY CHECKING INSIDE THE for (end_pos : nearby_flags) loop!
       //   but then it will use up the "nearby flags" check with invalid options!
       if (road_options.test(RoadOption::ReconnectNetwork)){   
-        MapPosVector notused;
-        unsigned int notused2;
+        MapPosVector notused = {};
+        unsigned int notused2 = 0;
         if (find_flag_path_and_tile_dist_between_flags(map, start_pos, pos, &notused, &notused2, &ai_mark_pos)){
           AILogDebug["util_build_best_road"] << "" << calling_function << " non-direct road requested, nearby flags to halfway_pos - RoadOption::ReconnectNetwork is true, flag at pos " << pos << " is on the same network, not including it";
           continue;
@@ -983,8 +983,8 @@ AI::build_best_road(MapPos start_pos, RoadOptions road_options, Road *built_road
       // adding support for RoadOption::ReconnectNetwork
       //  CONSIDER REMOVING THIS CHECK AND ONLY CHECKING INSIDE THE for (end_pos : nearby_flags) loop!
       if (road_options.test(RoadOption::ReconnectNetwork)){   
-        MapPosVector notused;
-        unsigned int notused2;
+        MapPosVector notused = {};
+        unsigned int notused2 = 0;
         if (find_flag_path_and_tile_dist_between_flags(map, start_pos, pos, &notused, &notused2, &ai_mark_pos)){
           AILogDebug["util_build_best_road"] << "" << calling_function << " non-direct road requested, nearby flags to start_pos - RoadOption::ReconnectNetwork is true, flag at pos " << pos << " is on the same network, not including it";
           continue;
@@ -1104,8 +1104,8 @@ AI::build_best_road(MapPos start_pos, RoadOptions road_options, Road *built_road
         //  WOULD IT MAKE MORE SENSE TO HAVE THIS BE THE ONLY ReconnectNetwork CHECK AND DITCH ALL THE EARLIER ONES?
         //
         if (road_options.test(RoadOption::ReconnectNetwork)){   
-          MapPosVector notused;
-          unsigned int notused2;
+          MapPosVector notused = {};
+          unsigned int notused2 = 0;
           if (find_flag_path_and_tile_dist_between_flags(map, start_pos, end_pos, &notused, &notused2, &ai_mark_pos)){
             AILogDebug["util_build_best_road"] << "" << calling_function << " non-direct road requested, plotting direct roads to nearby_flags, - RoadOption::ReconnectNetwork is true, flag at pos " << end_pos << " is on the same network, not including it";
             break;
@@ -1202,8 +1202,8 @@ AI::build_best_road(MapPos start_pos, RoadOptions road_options, Road *built_road
             if (map->has_path_IMPROVED(split_end_pos, dir)) {
               Road split_road = trace_existing_road(map, split_end_pos, dir);
               MapPos adjacent_flag_pos = split_road.get_end(map.get());
-              MapPosVector notused;
-              unsigned int notused2;
+              MapPosVector notused = {};
+              unsigned int notused2 = 0;
               if (find_flag_path_and_tile_dist_between_flags(map, start_pos, adjacent_flag_pos, &notused, &notused2, &ai_mark_pos)){
                 AILogDebug["util_build_best_road"] << "" << calling_function << " non-direct road requested, split_roads, RoadOption::ReconnectNetwork is true, splitting-flag at pos " << split_end_pos << " is on the same network, not including it";
                 disqualified++;
@@ -1429,6 +1429,9 @@ AI::build_best_road(MapPos start_pos, RoadOptions road_options, Road *built_road
       if (road_options.test(RoadOption::ReducedNewLengthPenalty)) {
         new_length_penalty = 1.50;
       }
+      if (road_options.test(RoadOption::IncreasedNewLengthPenalty)){
+        new_length_penalty = new_length_penalty * 2;
+      }
       AILogDebug["util_build_best_road"] << "" << calling_function << " using new_length_penalty of " << new_length_penalty << "x for this scoring, based on RoadOptions";
       unsigned int adjusted_score = static_cast<unsigned int>(static_cast<double>(tile_dist * 1) + static_cast<double>(new_length) * new_length_penalty + static_cast<double>(flag_dist * 1));
       if (road_options.test(RoadOption::PenalizeCastleFlag) && contains_castle_flag == true) {
@@ -1511,6 +1514,11 @@ AI::build_best_road(MapPos start_pos, RoadOptions road_options, Road *built_road
               }
             }
             if (reject_solution){ continue; }
+          }
+          if (passthru_flags > max_passthru_flags_per_solution){
+            AILogDebug["util_build_best_road"] << "" << calling_function << " breached max_passthru_flags_per_solution of " << max_passthru_flags_per_solution << ", rejecting this solution";
+            reject_solution = true;
+            break;
           }
 
           //if (map->has_flag(pos)){
@@ -1909,7 +1917,8 @@ AI::build_best_road(MapPos start_pos, RoadOptions road_options, Road *built_road
         //  segments when it would be much better to instead use the existing path for that segment, even if other
         //  segments are new.
         bool skip_segment = false;
-            
+        
+        /*
         // check and see if this segment is significantly shorter than any existing segment between the same two flags
         if (map->has_flag(this_segment_start_pos) && map->has_flag(this_segment_end_pos)) {
           AILogDebug["util_build_best_road"] << "" << calling_function << " segment_start_pos " << this_segment_start_pos << ", segment_end_pos " << this_segment_end_pos << ", checking for existing solution for this segment, flags already exist at both segment start and segment end pos, checking for a path between them";
@@ -1931,6 +1940,29 @@ AI::build_best_road(MapPos start_pos, RoadOptions road_options, Road *built_road
                 }
               }
             }
+          }
+        }*/
+
+        // check that this new segment is significantly better than any existing complete multi-flag path that may exist between these two flags
+        if (map->has_flag(this_segment_start_pos) && map->has_flag(this_segment_end_pos)) {
+          AILogDebug["util_build_best_road"] << "" << calling_function << " segment_start_pos " << this_segment_start_pos << ", segment_end_pos " << this_segment_end_pos << ", checking for existing solution for this segment, flags already exist at both segment start and segment end pos, checking any existing connection";
+          //if (find_nearest_inventory(map, player_index, flag_pos, DistType::FlagAndStraightLine, &ai_mark_pos) != inventory_pos){
+          MapPosVector existing_solution_flags = {};  // this is the list of flags in the solution, will be used to count flag score
+          unsigned int existing_solution_tile_dist = 0;
+          if (find_flag_path_and_tile_dist_between_flags(map, this_segment_start_pos, this_segment_end_pos, &existing_solution_flags, &existing_solution_tile_dist, &ai_mark_pos)){
+            AILogDebug["util_build_best_road"] << "" << calling_function << " segment_start_pos " << this_segment_start_pos << ", segment_end_pos " << this_segment_end_pos << ", found existing solution with flag count " << existing_solution_flags.size() << " and tile count " << existing_solution_tile_dist;
+            float new_segment_versus_existing_penalty = 1.5f;
+            if (road_options.test(RoadOption::IncreasedNewLengthPenalty)){
+               new_segment_versus_existing_penalty = new_segment_versus_existing_penalty * 2;
+            }
+            if (road.get_length() * new_segment_versus_existing_penalty + 8 < existing_solution_tile_dist + existing_solution_flags.size()){  // path pos with flags are penalized one aditional point like usual
+              AILogDebug["util_build_best_road"] << "" << calling_function << " segment_start_pos " << this_segment_start_pos << ", segment_end_pos " << this_segment_end_pos << ", found existing solution, this new road segment is significantly better than the current solution, will try to build it";
+            }else{
+              AILogDebug["util_build_best_road"] << "" << calling_function << " segment_start_pos " << this_segment_start_pos << ", segment_end_pos " << this_segment_end_pos << ", found existing solution, this new road segment is not significantly better than the current solution, skipping it to re-use existing";
+              skip_segment = true;
+            }
+          }else{
+            AILogDebug["util_build_best_road"] << "" << calling_function << " segment_start_pos " << this_segment_start_pos << ", segment_end_pos " << this_segment_end_pos << ", no existing connection found between these flags";
           }
         }
 
@@ -2005,7 +2037,10 @@ AI::build_best_road(MapPos start_pos, RoadOptions road_options, Road *built_road
           }
         }
 
-        if (!skip_segment){
+        if (skip_segment){
+          AILogDebug["util_build_best_road"] << "" << calling_function << " not building this road segment because skip_segment is true";
+        }else{
+          // build the Road!
           AILogDebug["util_build_best_road"] << "" << calling_function << " about to build road with source=" << this_segment_start_pos << ", end=" << this_segment_end_pos << " and size " << road.get_length();
           mutex_lock("AI::build_best_road calling game->build_road (non-direct road)");
           bool was_built = game->build_road(road, game->get_player(player_index));
@@ -3218,17 +3253,17 @@ AI::expand_borders() {
   std::clock_t start;
   double duration;
   start = std::clock();
-  AILogDebug["util_expand_borders"] << "inside AI::expand_borders for inventory_pos " << inventory_pos;
+  AILogDebug["util_expand_borders"] << inventory_pos << " start of AI::expand_borders";
   ai_status.assign("EXPANDING BORDERS");
 
   // don't expand borders if running low of knights AND already have all 3 mine types
   unsigned int idle_knights = serfs_idle[Serf::TypeKnight0] + serfs_idle[Serf::TypeKnight1] + serfs_idle[Serf::TypeKnight2] + serfs_idle[Serf::TypeKnight3] + serfs_idle[Serf::TypeKnight4];
   if (idle_knights <= knights_med) {
-    AILogDebug["util_expand_borders"] << "running low on idle_knights, checking to see if already have all three mine types";
+    AILogDebug["util_expand_borders"] << inventory_pos << " running low on idle_knights, checking to see if already have all three mine types";
     if (realm_building_count[Building::TypeCoalMine] > 0 &&
         realm_building_count[Building::TypeIronMine] > 0 &&
         realm_building_count[Building::TypeGoldMine] > 0){
-      AILogDebug["util_expand_borders"] << "running low on idle_knights and have at least one of each mine type, not expanding borders";
+      AILogDebug["util_expand_borders"] << inventory_pos << " running low on idle_knights and have at least one of each mine type, not expanding borders";
       return;
     }
   }
@@ -3237,18 +3272,18 @@ AI::expand_borders() {
   MapPosSet count_by_corner;
 
   for (std::string goal : expand_towards) {
-    AILogDebug["util_expand_borders"] << "expand_towards goal list includes item: " << goal;
+    AILogDebug["util_expand_borders"] << inventory_pos << " expand_towards goal list includes item: " << goal;
   }
 
   // search outward from each military building until border pos reached
   //  then score that area
   for (MapPos center_pos : stock_building_counts.at(inventory_pos).occupied_military_pos) {
     duration = (std::clock() - start) / static_cast<double>(CLOCKS_PER_SEC);
-    AILogDebug["util_expand_borders"] << "about to check around pos " << center_pos << ", SO FAR util_expand_borders call took " << duration;
+    AILogDebug["util_expand_borders"] << inventory_pos << " about to check around pos " << center_pos << ", SO FAR util_expand_borders call took " << duration;
     // find territory edge in each direction
     for (Direction dir : cycle_directions_rand_cw()) {
       MapPos pos = center_pos;
-      AILogDebug["util_expand_borders"] << "looking for territory edge from pos " << pos << " in direction " << dir << " / " << NameDirection[dir];
+      AILogDebug["util_expand_borders"] << inventory_pos << " looking for territory edge from pos " << pos << " in direction " << dir << " / " << NameDirection[dir];
       // give up after 10 tiles because we should only be looking from huts that are right on the borders, not internal ones
       //  these huts should be at most 8 tiles or so from the border
       // Without this optimization every single dir from every hut is followed to borders and area scored, resulting
@@ -3256,10 +3291,10 @@ AI::expand_borders() {
       // Also, it makes the "check for circumnavigating the globe" obsolete because that is way more than ten tiles
       for (int tiles_moved = 0; tiles_moved < 11; tiles_moved++){
         pos = map->move(pos, dir);
-  AILogDebug["util_expand_borders"] << "mappos " << pos << " is owned by player " << map->get_owner(pos) << " and has_owner is " << map->has_owner(pos);
+  //AILogDebug["util_expand_borders"] << "mappos " << pos << " is owned by player " << map->get_owner(pos) << " and has_owner is " << map->has_owner(pos);
         if (map->get_owner(pos) != player_index){
           unsigned int score = AI::score_area(pos, AI::spiral_dist(6));
-          AILogDebug["util_expand_borders"] << "border in direction " << dir << " has score " << score;
+          AILogDebug["util_expand_borders"] << inventory_pos << " border in direction " << dir << " has score " << score;
           // include all corners so we'll at least expand *somewhere* even if no goal resources found
           //   the sort function will still prefer areas with resources
           count_by_corner.insert(std::make_pair(pos, score));
@@ -3277,20 +3312,31 @@ AI::expand_borders() {
       AILogDebug["util_expand_borders"] << inventory_pos << " Inventory unfinished_huts_count limit " << max_unfinished_huts << " reached, cannot build knight huts for this Inventory";
       break;
     }
-    AILogDebug["util_expand_borders"] << "try to build knight hut near pos " << corner_pos;
+    AILogDebug["util_expand_borders"] << inventory_pos << " try to build knight hut near pos " << corner_pos;
 
     duration = (std::clock() - start) / static_cast<double>(CLOCKS_PER_SEC);
-    AILogDebug["util_expand_borders"] << "SO FAR util_expand_borders call took " << duration;
+    AILogDebug["util_expand_borders"] << inventory_pos << " SO FAR util_expand_borders call took " << duration;
 
+    road_options.set(RoadOption::IncreasedNewLengthPenalty);
+    road_options.reset(RoadOption::AllowPassthru);
     built_pos = AI::build_near_pos(corner_pos, AI::spiral_dist(4), Building::TypeHut);
+    road_options.reset(RoadOption::IncreasedNewLengthPenalty);
+    road_options.set(RoadOption::AllowPassthru);
     if (built_pos != bad_map_pos && built_pos != notplaced_pos){
-      AILogDebug["util_expand_borders"] << "built a knight hut at pos " << built_pos;
+      AILogDebug["util_expand_borders"] << inventory_pos << " built a knight hut at pos " << built_pos;
       stock_building_counts.at(inventory_pos).unfinished_hut_count++;
     }
   }
 
+  // if we can no longer expand by building Huts, alter the attack behavior to make desperate attacks to claim resources
+  stock_building_counts.at(inventory_pos).inv_cannot_expand_borders = false;
+  if (built_pos == bad_map_pos || built_pos == notplaced_pos){
+    AILogDebug["util_expand_borders"] << inventory_pos << " no knight huts could be placed around this Inventory.  Setting inv_cannot_expand_borders bool to true";
+    stock_building_counts.at(inventory_pos).inv_cannot_expand_borders = true;
+  }
+
   duration = (std::clock() - start) / static_cast<double>(CLOCKS_PER_SEC);
-  AILogDebug["util_expand_borders"] << "done util_expand_borders call took " << duration;
+  AILogDebug["util_expand_borders"] << inventory_pos << " done util_expand_borders call took " << duration;
 
   // this function used to accept and return a MapPos, but no longer does so just return
   return;
@@ -3466,38 +3512,96 @@ AI::score_enemy_area(MapPos center_pos, unsigned int distance) {
     //
     // prioritize any enemy building that is close to OUR castle
     //
-    if (obj == Map::ObjectCastle && map->get_owner(pos) == player_index){
-      AILogDebug["util_score_enemy_area"] << "found our own castle in attack area!  scoring this area highly to reduce risk of our castle flag paths becoming blocked";
-      if (obj == Map::ObjectCastle){
-        pos_value += 75;
-        //AILogDebug["util_score_enemy_area"] << "adding attack value 75 for enemy building near our own castle at pos " << pos;
-        continue;
+    if (cannot_expand_borders){
+      // do NOT count enemy buildings for scoring, only resources
+      AILogDebug["util_score_enemy_area"] << "cannot_expand_borders is true, not counting enemy buildings towards total";
+    }else{
+      // normal behavior
+      if (obj == Map::ObjectCastle && map->get_owner(pos) == player_index){
+        AILogDebug["util_score_enemy_area"] << "found our own castle in attack area!  scoring this area highly to reduce risk of our castle flag paths becoming blocked";
+        if (obj == Map::ObjectCastle){
+          pos_value += 75;
+          //AILogDebug["util_score_enemy_area"] << "adding attack value 75 for enemy building near our own castle at pos " << pos;
+          continue;
+        }
+      }
+    }
+
+    //
+    // stone piles above ground
+    //
+    if (cannot_expand_borders && !no_stone_within_borders){
+      // disregard this resource, some other resource is desperately needed
+      AILogDebug["util_score_enemy_area"] << "cannot_expand_borders is true but stone is already within our borders. not counting stone towards total";
+    }else{
+      // normal behavior
+      if (map->get_obj(pos) >= Map::ObjectStone0 && map->get_obj(pos) <= Map::ObjectStone7) {
+        //AILogDebug["util_count_stones_near_pos"] << "getting value of map object at pos: " << pos << " with map obj type " << NameObject[map->get_obj(pos)];
+        // because the higher MapObject indexes represent smaller resource values, the difference is negative
+        //   so invert the difference and add one, because it starts at zero
+        int value = 1 + (-1 * (map->get_obj(pos) - Map::ObjectStone7));
+        pos_value += expand_towards.count("stone") * value;
+        //AILogDebug["util_score_enemy_area"] << "adding stones count " << value << " with value " << expand_towards.count("stones") * value;
       }
     }
 
     //
     // mined resources
     //
-    unsigned int gold_signs = 0;
-    unsigned int iron_signs = 0;
-    unsigned int coal_signs = 0;
-    if (obj == Map::ObjectSignLargeGold) { gold_signs += 2; }
-    if (obj == Map::ObjectSignSmallGold) { gold_signs += 1; }
-    if (obj == Map::ObjectSignSmallGold || obj == Map::ObjectSignLargeGold) {
-      pos_value += expand_towards.count("gold_ore") * gold_ore_weight * gold_signs;
-      //AILogDebug["util_score_enemy_area"] << "adding gold_ore count " << gold_signs << " with value " << expand_towards.count("gold_ore") * gold_ore_weight * gold_signs;
+    // Gold
+    if (cannot_expand_borders && !no_goldore_within_borders){
+      // disregard this resource, some other resource is desperately needed
+      AILogDebug["util_score_enemy_area"] << "cannot_expand_borders is true but gold is already within our borders. not counting gold towards total";
+    }else{
+      // normal behavior
+      unsigned int gold_signs = 0;
+      if (obj == Map::ObjectSignLargeGold) { gold_signs += 2; }
+      if (obj == Map::ObjectSignSmallGold) { gold_signs += 1; }
+      if (obj == Map::ObjectSignSmallGold || obj == Map::ObjectSignLargeGold) {
+        pos_value += expand_towards.count("gold_ore") * gold_ore_weight * gold_signs;
+        //AILogDebug["util_score_enemy_area"] << "adding gold_ore count " << gold_signs << " with value " << expand_towards.count("gold_ore") * gold_ore_weight * gold_signs;
+      }
     }
-    if (obj == Map::ObjectSignLargeIron) { iron_signs += 2; }
-    if (obj == Map::ObjectSignSmallIron) { iron_signs += 1; }
-    if (obj == Map::ObjectSignSmallIron || obj == Map::ObjectSignLargeIron) {
-      pos_value += expand_towards.count("iron_ore") * iron_ore_weight * iron_signs;
-      //AILogDebug["util_score_enemy_area"] << "adding iron_ore count " << iron_signs << " with value " << expand_towards.count("iron_ore") * iron_ore_weight * iron_signs;
+    // Iron
+    if (cannot_expand_borders && !no_ironore_within_borders){
+      // disregard this resource, some other resource is desperately needed
+      AILogDebug["util_score_enemy_area"] << "cannot_expand_borders is true but iron is already within our borders. not counting iron towards total";
+    }else{
+      // normal behavior
+      unsigned int iron_signs = 0;
+      if (obj == Map::ObjectSignLargeIron) { iron_signs += 2; }
+      if (obj == Map::ObjectSignSmallIron) { iron_signs += 1; }
+      if (obj == Map::ObjectSignSmallIron || obj == Map::ObjectSignLargeIron) {
+        pos_value += expand_towards.count("iron_ore") * iron_ore_weight * iron_signs;
+        //AILogDebug["util_score_enemy_area"] << "adding iron_ore count " << iron_signs << " with value " << expand_towards.count("iron_ore") * iron_ore_weight * iron_signs;
+      }
     }
-    if (obj == Map::ObjectSignLargeCoal) { coal_signs += 2; }
-    if (obj == Map::ObjectSignSmallCoal) { coal_signs += 1; }
-    if (obj == Map::ObjectSignSmallCoal || obj == Map::ObjectSignLargeCoal) {
-      pos_value += expand_towards.count("coal")      * coal_weight * coal_signs;
-      //AILogDebug["util_score_enemy_area"] << "adding coal count " << coal_signs << " with value " << expand_towards.count("coal_ore") * coal_weight * coal_signs;
+    // Coal
+    if (cannot_expand_borders && !no_coal_within_borders){
+      // disregard this resource, some other resource is desperately needed
+      AILogDebug["util_score_enemy_area"] << "cannot_expand_borders is true but coal is already within our borders. not counting coal towards total";
+    }else{
+      // normal behavior
+      unsigned int coal_signs = 0;
+      if (obj == Map::ObjectSignLargeCoal) { coal_signs += 2; }
+      if (obj == Map::ObjectSignSmallCoal) { coal_signs += 1; }
+      if (obj == Map::ObjectSignSmallCoal || obj == Map::ObjectSignLargeCoal) {
+        pos_value += expand_towards.count("coal")      * coal_weight * coal_signs;
+        //AILogDebug["util_score_enemy_area"] << "adding coal count " << coal_signs << " with value " << expand_towards.count("coal_ore") * coal_weight * coal_signs;
+      }
+    }
+    // Stone in mountains
+    if (cannot_expand_borders && !no_stone_within_borders){
+      // disregard this resource, some other resource is desperately needed
+      AILogDebug["util_score_enemy_area"] << "cannot_expand_borders is true but stone is already within our borders. not counting mined-stone-in-mountains towards total";
+    }else{
+      // normal behavior
+      unsigned int stone_signs = 0;
+      if (obj == Map::ObjectSignLargeStone) { stone_signs += 2; }
+      if (obj == Map::ObjectSignSmallStone) { stone_signs += 1; }
+      if (obj == Map::ObjectSignSmallStone || obj == Map::ObjectSignLargeStone) {
+        pos_value += expand_towards.count("stone") * stone_signs;
+      }
     }
 
     //  NEED TO ADD LOGIC TO "BEELINE" TO ENEMY CASTLE
@@ -3508,35 +3612,41 @@ AI::score_enemy_area(MapPos center_pos, unsigned int distance) {
     //
     // enemy buildings
     //
-    if (map->get_owner(pos) != player_index && map->has_owner(pos) && map->has_building(pos)){
-      //AILogDebug["util_score_enemy_area"] << "potential attack area contains a building of type " << NameBuilding[game->get_building_at_pos(pos)->get_type()];
-      if (obj == Map::ObjectCastle){
-        pos_value += 25;  // this needs to be high enough to ensure that a nearly-isolated castle is still worth isolating even if no resources nearby
-        //AILogDebug["util_score_enemy_area"] << "adding attack value 20 for enemy castle at pos " << pos;
-      }
-      if (obj == Map::ObjectLargeBuilding && game->get_building_at_pos(pos)->get_type() == Building::TypeStock){
-        pos_value += 25;
-        //AILogDebug["util_score_enemy_area"] << "adding additional attack value 12 for enemy stock/warehouse at pos " << pos;
-      }
-      if (obj == Map::ObjectLargeBuilding && !game->get_building_at_pos(pos)->is_military()) {
-        pos_value += 9;
-        //AILogDebug["util_score_enemy_area"] << "adding attack value 9 for large civilian building of type " << NameBuilding[game->get_building_at_pos(pos)->get_type()] << " at pos " << pos;
-      }
-      if (obj == Map::ObjectSmallBuilding && game->get_building_at_pos(pos)->get_type() == Building::TypeCoalMine){
-        pos_value += 6;
-        //AILogDebug["util_score_enemy_area"] << "adding additional attack value 6 for building of type " << NameBuilding[game->get_building_at_pos(pos)->get_type()] << " at pos " << pos;
-      }
-      if (obj == Map::ObjectSmallBuilding && game->get_building_at_pos(pos)->get_type() == Building::TypeIronMine) {
-        pos_value += 12;
-        //AILogDebug["util_score_enemy_area"] << "adding additional attack value 12 for building of type " << NameBuilding[game->get_building_at_pos(pos)->get_type()] << " at pos " << pos;
-      }
-      if (obj == Map::ObjectSmallBuilding && game->get_building_at_pos(pos)->get_type() == Building::TypeGoldMine) {
-        pos_value += 25;
-        //AILogDebug["util_score_enemy_area"] << "adding additional attack value 18 for building of type " << NameBuilding[game->get_building_at_pos(pos)->get_type()] << " at pos " << pos;
-      }
-      if (obj == Map::ObjectSmallBuilding && !game->get_building_at_pos(pos)->is_military()) {
-        pos_value += 3;
-        //AILogDebug["util_score_enemy_area"] << "adding attack value 3 for small civilian building of type " << NameBuilding[game->get_building_at_pos(pos)->get_type()] << " at pos " << pos;
+    if (cannot_expand_borders){
+      // do NOT count enemy buildings for scoring, only resources
+      AILogDebug["util_score_enemy_area"] << "cannot_expand_borders is true, not counting enemy buildings towards total";
+    }else{
+      // normal behavior
+      if (map->get_owner(pos) != player_index && map->has_owner(pos) && map->has_building(pos)){
+        //AILogDebug["util_score_enemy_area"] << "potential attack area contains a building of type " << NameBuilding[game->get_building_at_pos(pos)->get_type()];
+        if (obj == Map::ObjectCastle){
+          pos_value += 25;  // this needs to be high enough to ensure that a nearly-isolated castle is still worth isolating even if no resources nearby
+          //AILogDebug["util_score_enemy_area"] << "adding attack value 20 for enemy castle at pos " << pos;
+        }
+        if (obj == Map::ObjectLargeBuilding && game->get_building_at_pos(pos)->get_type() == Building::TypeStock){
+          pos_value += 25;
+          //AILogDebug["util_score_enemy_area"] << "adding additional attack value 12 for enemy stock/warehouse at pos " << pos;
+        }
+        if (obj == Map::ObjectLargeBuilding && !game->get_building_at_pos(pos)->is_military()) {
+          pos_value += 9;
+          //AILogDebug["util_score_enemy_area"] << "adding attack value 9 for large civilian building of type " << NameBuilding[game->get_building_at_pos(pos)->get_type()] << " at pos " << pos;
+        }
+        if (obj == Map::ObjectSmallBuilding && game->get_building_at_pos(pos)->get_type() == Building::TypeCoalMine){
+          pos_value += 6;
+          //AILogDebug["util_score_enemy_area"] << "adding additional attack value 6 for building of type " << NameBuilding[game->get_building_at_pos(pos)->get_type()] << " at pos " << pos;
+        }
+        if (obj == Map::ObjectSmallBuilding && game->get_building_at_pos(pos)->get_type() == Building::TypeIronMine) {
+          pos_value += 12;
+          //AILogDebug["util_score_enemy_area"] << "adding additional attack value 12 for building of type " << NameBuilding[game->get_building_at_pos(pos)->get_type()] << " at pos " << pos;
+        }
+        if (obj == Map::ObjectSmallBuilding && game->get_building_at_pos(pos)->get_type() == Building::TypeGoldMine) {
+          pos_value += 25;
+          //AILogDebug["util_score_enemy_area"] << "adding additional attack value 18 for building of type " << NameBuilding[game->get_building_at_pos(pos)->get_type()] << " at pos " << pos;
+        }
+        if (obj == Map::ObjectSmallBuilding && !game->get_building_at_pos(pos)->is_military()) {
+          pos_value += 3;
+          //AILogDebug["util_score_enemy_area"] << "adding attack value 3 for small civilian building of type " << NameBuilding[game->get_building_at_pos(pos)->get_type()] << " at pos " << pos;
+        }
       }
     }
 
@@ -3740,8 +3850,8 @@ void
 //AI::attack_best_target(MapPosSet *scored_targets) {
 //AI::attack_best_target(MapPosSet *scored_targets, unsigned int min_score, double min_ratio) {
 AI::attack_best_target(MapPosSet *scored_targets, int loss_tolerance) {
-  AILogDebug["util_attack_best_target"] << "inside AI::attack_best_target with loss_tolerance " << loss_tolerance;
-
+  AILogDebug["util_attack_best_target"] << "inside AI::attack_best_target with loss_tolerance " << loss_tolerance << ", cannot_expand_borders bool is " << cannot_expand_borders;
+  
   MapPosVector sorted_scored_targets = sort_by_val_desc(*(scored_targets));
 
   for (MapPos target_pos : sorted_scored_targets) {
@@ -3794,49 +3904,57 @@ AI::attack_best_target(MapPosSet *scored_targets, int loss_tolerance) {
     }
     AILogDebug["util_attack_best_target"] << "can send up to " << attacking_knights << " knights to attack enemy building at pos " << target_pos;
     
-    //AILogDebug["util_attack_best_target"] << "ENEMY military_score = " << game->get_player(target_player_index)->get_military_score() << ",  ENEMY knight_morale = " << game->get_player(target_player_index)->get_knight_morale();
-    // enemy knight morale does NOT MATTER when attacking because it is always 100% for defenders (even if their attack morale is higher!)
-    double enemy_morale = 100.00;
-    double morale = (100*player->get_knight_morale())/0x1000;  // this should be % morale, not the integer that defaults to 4096
-    // NOTE that this completely ignores knight experience level, because
-    //  for enemies it is unknown (though it is technically possible to track it if knights are observed entering/leaving)
-    //  and for friendly buildings it is not obvious, though it could be determined by checking each building within range
-    //  and accounting for the "send strong/weak to battle" setting
-    // if our morale is > 100, our expected losses are less than one knight per defender
-    // if our morale is < 100, our expected losses are more than one knight per defender
-    unsigned int expected_losses = double(enemy_morale / morale) * estimated_defenders;
-    if (expected_losses < 1){expected_losses = 1;} // avoid divide by zero error
-    AILogDebug["util_attack_best_target"] << "enemy_morale " << enemy_morale << ", our morale " << morale << ", expected_losses to attack this building are " << expected_losses;
-
-    if (loss_tolerance == 3){
-      if (target_score > 100 && attacking_knights > 1 * expected_losses){
-        AILogDebug["util_attack_best_target"] << "loss_tolerance is high, this target has an exceptionally high score of " << target_score << " and victory is possible, will attack";
-      }else if (target_score / expected_losses > 15 && attacking_knights > 1.25 * expected_losses){
-        AILogDebug["util_attack_best_target"] << "loss_tolerance is high, this target_score / expected_losses ratio " << target_score / expected_losses << ":1 is over 15, an acceptable risk, and victory is likely, will attack";
-      }else{
-        AILogDebug["util_attack_best_target"] << "loss_tolerance is high, this target_score / expected_losses ratio " << target_score / expected_losses << ":1 is too low, OR we are not likely to capture it, skipping target";
-        continue;
-      }
-    }else if (loss_tolerance == 2){
-      if (target_score > 100 && attacking_knights > 1.5 * expected_losses){
-        AILogDebug["util_attack_best_target"] << "loss_tolerance is moderate, this target has an exceptionally high score of " << target_score << " and victory is possible, will attack";
-      }else if (target_score / expected_losses > 25 && attacking_knights > 1.5 * expected_losses){
-        AILogDebug["util_attack_best_target"] << "loss_tolerance is moderate, this target_score / expected_losses ratio " << target_score / expected_losses << ":1 is over 25, a worthy risk, and victory is likely, will attack";
-      }else{
-        AILogDebug["util_attack_best_target"] << "loss_tolerance is moderate, this target_score / expected_losses ratio " << target_score / expected_losses << ":1 is too low, OR we are not likely to capture it, skipping target";
-        continue;
-      }
-    }else if (loss_tolerance == 1){
-      if (target_score > 100 && attacking_knights > 2 * expected_losses){
-        AILogDebug["util_attack_best_target"] << "loss_tolerance is low, this target has an exceptionally high score of " << target_score << " and victory is likely, will attack";
-      }else if (target_score / expected_losses > 40 && attacking_knights > 2 * expected_losses){
-        AILogDebug["util_attack_best_target"] << "loss_tolerance is low, this target_score / expected_losses ratio " << target_score / expected_losses << ":1 is over 40, a worthy risk, and victory is likely, will attack";
-      }else{
-        AILogDebug["util_attack_best_target"] << "loss_tolerance is low, this target_score / expected_losses ratio " << target_score / expected_losses << ":1 is too low, OR we are not likely to capture it, skipping target";
-        continue;
-      }
+    // if AI can no longer expand by building huts and has little to none of one or more resources, it MUST ATTACK to gain them
+    if (cannot_expand_borders && (no_coal_within_borders || no_ironore_within_borders || no_goldore_within_borders)){
+      AILogDebug["util_attack_best_target"] << "at least one mined resource is totally unavailable within our borders, and we cannot expand borders, will make desperate attacks for resouces!";
     }else{
-      throw ExceptionFreeserf("AI::attack_best_target was called with loss_tolerance of <1 or >3, this should not happen");
+      //
+      // handle normal case where AI can still expand, use caution
+      //
+      //AILogDebug["util_attack_best_target"] << "ENEMY military_score = " << game->get_player(target_player_index)->get_military_score() << ",  ENEMY knight_morale = " << game->get_player(target_player_index)->get_knight_morale();
+      // enemy knight morale does NOT MATTER when attacking because it is always 100% for defenders (even if their attack morale is higher!)
+      double enemy_morale = 100.00;
+      double morale = (100*player->get_knight_morale())/0x1000;  // this should be % morale, not the integer that defaults to 4096
+      // NOTE that this completely ignores knight experience level, because
+      //  for enemies it is unknown (though it is technically possible to track it if knights are observed entering/leaving)
+      //  and for friendly buildings it is not obvious, though it could be determined by checking each building within range
+      //  and accounting for the "send strong/weak to battle" setting
+      // if our morale is > 100, our expected losses are less than one knight per defender
+      // if our morale is < 100, our expected losses are more than one knight per defender
+      unsigned int expected_losses = double(enemy_morale / morale) * estimated_defenders;
+      if (expected_losses < 1){expected_losses = 1;} // avoid divide by zero error
+      AILogDebug["util_attack_best_target"] << "enemy_morale " << enemy_morale << ", our morale " << morale << ", expected_losses to attack this building are " << expected_losses;
+
+      if (loss_tolerance == 3){
+        if (target_score > 100 && attacking_knights > 1 * expected_losses){
+          AILogDebug["util_attack_best_target"] << "loss_tolerance is high, this target has an exceptionally high score of " << target_score << " and victory is possible, will attack";
+        }else if (target_score / expected_losses > 15 && attacking_knights > 1.25 * expected_losses){
+          AILogDebug["util_attack_best_target"] << "loss_tolerance is high, this target_score / expected_losses ratio " << target_score / expected_losses << ":1 is over 15, an acceptable risk, and victory is likely, will attack";
+        }else{
+          AILogDebug["util_attack_best_target"] << "loss_tolerance is high, this target_score / expected_losses ratio " << target_score / expected_losses << ":1 is too low, OR we are not likely to capture it, skipping target";
+          continue;
+        }
+      }else if (loss_tolerance == 2){
+        if (target_score > 100 && attacking_knights > 1.5 * expected_losses){
+          AILogDebug["util_attack_best_target"] << "loss_tolerance is moderate, this target has an exceptionally high score of " << target_score << " and victory is possible, will attack";
+        }else if (target_score / expected_losses > 25 && attacking_knights > 1.5 * expected_losses){
+          AILogDebug["util_attack_best_target"] << "loss_tolerance is moderate, this target_score / expected_losses ratio " << target_score / expected_losses << ":1 is over 25, a worthy risk, and victory is likely, will attack";
+        }else{
+          AILogDebug["util_attack_best_target"] << "loss_tolerance is moderate, this target_score / expected_losses ratio " << target_score / expected_losses << ":1 is too low, OR we are not likely to capture it, skipping target";
+          continue;
+        }
+      }else if (loss_tolerance == 1){
+        if (target_score > 100 && attacking_knights > 2 * expected_losses){
+          AILogDebug["util_attack_best_target"] << "loss_tolerance is low, this target has an exceptionally high score of " << target_score << " and victory is likely, will attack";
+        }else if (target_score / expected_losses > 40 && attacking_knights > 2 * expected_losses){
+          AILogDebug["util_attack_best_target"] << "loss_tolerance is low, this target_score / expected_losses ratio " << target_score / expected_losses << ":1 is over 40, a worthy risk, and victory is likely, will attack";
+        }else{
+          AILogDebug["util_attack_best_target"] << "loss_tolerance is low, this target_score / expected_losses ratio " << target_score / expected_losses << ":1 is too low, OR we are not likely to capture it, skipping target";
+          continue;
+        }
+      }else{
+        throw ExceptionFreeserf("AI::attack_best_target was called with loss_tolerance of <1 or >3, this should not happen");
+      }
     }
     AILogDebug["util_attack_best_target"] << "PROCEEDING WITH THE ATTACK on target_pos " << target_pos;
     player->building_attacked = target_building->get_index();

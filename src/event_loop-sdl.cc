@@ -433,7 +433,6 @@ EventLoopSDL::run() {
           unsigned int height = event.window.data2;
           gfx.set_resolution(width, height, gfx.is_fullscreen());
           gfx.get_screen_factor(&screen_factor_x, &screen_factor_y);
-          //zoom(0.0); // this re-applies any existing zoom but does not adjust
           zoom(0.0, 0); // this re-applies any existing zoom but does not adjust
           notify_resize(width, height);
         }
@@ -515,7 +514,9 @@ EventLoopSDL::zoom(float delta, int type) {
     unsigned int height = 0;
     gfx.get_resolution(&width, &height);
     //Log::Debug["event_loop-sdl.cc"] << "inside EventLoopSDL::zoom, zoom_factor is now " << gfx.get_zoom_factor() << ", resolution is now " << width << " w / " << height << " h ";
-    notify_resize(width, height);
+    //notify_resize(width, height);
+    notify_zoom_resize(width, height);
+
   }
 
   //debug - this works now

@@ -264,7 +264,7 @@ Graphics::get_instance() {
 //
 void
 Frame::draw_sprite(int x, int y, Data::Resource res, unsigned int index, bool use_off, const Color &color, float progress, int mutate) {
-  //Log::Debug["gfx.cc"] << "start of Frame::draw_sprite with res " << res << " and index " << index << ", mutate int is " << mutate;
+  Log::Debug["gfx.cc"] << "start of Frame::draw_sprite with res " << res << " and index " << index << ", mutate int is " << mutate;
   Data::Sprite::Color pc = {color.get_blue(),
                             color.get_green(),
                             color.get_red(),
@@ -285,7 +285,7 @@ Frame::draw_sprite(int x, int y, Data::Resource res, unsigned int index, bool us
     if (res == Data::AssetMapObject){
       // this is pretty arbitrary
       id = Data::Sprite::create_id(res, index + 3000, 0, 0, pc);
-      //Log::Debug["gfx.cc"] << "inside Frame::draw_sprite with res " << res << " and index " << index << ", mutate int is " << mutate << ", caching with fake high id " << index + 3000;
+      Log::Debug["gfx.cc"] << "inside Frame::draw_sprite with res " << res << " and index " << index << ", mutate int is " << mutate << ", caching with fake high id " << index + 3000;
     } else{
       throw ExceptionFreeserf("inside Frame::draw_sprite, unexpected Data::Asset type to mutate!");      
     }
@@ -298,6 +298,7 @@ Frame::draw_sprite(int x, int y, Data::Resource res, unsigned int index, bool us
   
   // if image not found already cached, fetch it and cache it
   if (image == nullptr) {
+    Log::Debug["gfx.cc"] << "inside Frame::draw_sprite, res " << res << ", sprite index " << index << ", this image is not yet cached, fetching it";
     Data::PSprite s;
 
     // handle special sprites, either mutated-originals or totally new Custom sprites
@@ -338,7 +339,8 @@ Frame::draw_sprite(int x, int y, Data::Resource res, unsigned int index, bool us
        || res == Data::AssetMapObject  // new custom trees, flowers
        || res == Data::AssetMapShadow  // shadows for new custom trees
        || res == Data::AssetIcon   // for game-init icons
-       || res == Data::AssetMapWaves){  // for splashes on water objects
+       || res == Data::AssetMapWaves  // for splashes on water objects
+       || res == Data::AssetPanelButton){  // for spinning amiga style star animated sprite
         // these types, if having beyond-original indexes, are new graphics
         //  loaded from actual PN  files using the data_source_Custom
         //Log::Debug["gfx.cc"] << "inside Frame::draw_sprite, sprite index " << index << " trying to load custom data source";
@@ -350,6 +352,33 @@ Frame::draw_sprite(int x, int y, Data::Resource res, unsigned int index, bool us
           orig_index = 32;  // normal Water sprite
         }else if (res == Data::AssetIcon){
           orig_index = 262; // human with thumbs up player icon
+        }else if (res == Data::AssetPanelButton){
+          // get the original non-starred button as the base
+          //  CANNOT!  because the sprite index at this point purely represents an amiga spinning star frame
+          //   it is not possible to deduce the intended sprite
+          // ACTUALLY it is, can set a 3rd digit that indicates the intended image which could be used to
+          //  get the fallback by reversing below, but I don't feel like it right now
+          /*
+          BuildMine,    // 2
+          ButtonBuildSmall,  // 3
+          ButtonBuildLarge,  // 4
+          ButtonDestroyInactive,
+          ButtonBuildRoad, // 8
+          ButtonMap,  // 10
+          ButtonStats,  // 12
+          ButtonSett,  // 14
+          ButtonGroundAnalysis,  // 16
+          ButtonBuildSmallStarred,  // 17
+          ButtonBuildLargeStarred,  // 18
+          ButtonMapStarred,     // 19
+          ButtonStatsStarred,   // 20
+          ButtonSettStarred,    // 21
+          ButtonGroundAnalysisStarred,  // 22
+          ButtonBuildMineStarred,  // 23
+          ButtonBuildRoadStarred   // 24
+          */
+          // for now just use a placeholder button
+          orig_index = 13;
         }else{
           // Trees
           // stripping the first two digits results in 0-7 which hold the original Trees & Tree-shadows

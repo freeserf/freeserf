@@ -110,6 +110,12 @@ class AI {
   Log::Logger AILogWarn{ Log::LevelWarn, "Warn" };
   Log::Logger AILogError{ Log::LevelError, "Error" };
 
+  bool cannot_expand_borders = false; // if AI can no longer expand by building huts, alter its behavior.  Also affects toolmaker coal allocation logic!
+  bool no_coal_within_borders = false;
+  bool no_ironore_within_borders = false;
+  bool no_goldore_within_borders = false;
+  bool no_stone_within_borders = false;
+
 
  protected:
   // all the tuning variables were moved outside the class to satisfy gcc/g++ which threw compile errors when they were here
@@ -304,6 +310,11 @@ class AI {
     MapPosVector forbidden_paths_ring1 = {};
     MapPosVector forbidden_paths_ring2 = {};
     MapPosVector occupied_military_pos;
+    bool inv_cannot_expand_borders = false;
+    bool inv_has_no_coal = false;
+    bool inv_has_no_ironore = false;
+    bool inv_has_no_goldore = false;
+    bool inv_has_no_stone = false;
   };
 
   // the count of buildings inv various completion states attached *by shortest flag dist* to this stock, plus the list of military buildings
@@ -346,6 +357,7 @@ class AI {
   void do_disconnect_or_demolish_excess_coal_mines(); //wrapper around do_disconnect_excess_mines
   void do_disconnect_or_demolish_excess_iron_mines(); //wrapper around do_disconnect_excess_mines
   void do_disconnect_or_demolish_excess_gold_mines(); //wrapper around do_disconnect_excess_mines
+  void do_disconnect_or_demolish_excess_stone_mines(); //wrapper around do_disconnect_excess_mines
   void do_balance_sword_shield_priorities();
   void do_attack();
   void do_manage_knight_occupation_levels();
@@ -353,6 +365,7 @@ class AI {
   void do_place_coal_mines(); //wrapper around do_place_mines
   void do_place_iron_mines(); //wrapper around do_place_mines
   void do_place_gold_mines(); //wrapper around do_place_mines
+  void do_place_stone_mines(); //wrapper around do_place_mines
   void do_build_sawmill_lumberjacks();
   void do_build_3rd_lumberjack();
   bool do_wait_until_sawmill_lumberjacks_built();
@@ -362,6 +375,7 @@ class AI {
   void do_build_food_buildings();
   void do_connect_coal_mines();
   void do_connect_iron_mines();
+  void do_connect_stone_mines();
   void do_build_steelsmelter();
   void do_build_blacksmith();
   void do_build_gold_smelter_and_connect_gold_mines();
@@ -463,6 +477,7 @@ static constexpr double geologist_sign_density_max = 0.60;
 static constexpr double coal_sign_density_min = 0.30;
 static constexpr double iron_sign_density_min = 0.30;
 static constexpr double gold_sign_density_min = 0.15;  // lower min for gold mines because even a small flag is usually enough gold, and gold is rare
+static constexpr double stone_sign_density_min = 0.15;  // lower min for stone mines because we must be desperate already if mining for stone
 
 // may need to do something to account for the fact that minerals come in clusters
 //    because once a few signs are found to indicate a cluster, the true value doesn't change
@@ -503,6 +518,8 @@ static constexpr double max_convolution = 3.00;
 static const unsigned int plot_road_max_pos_considered = 4000;  // the maximum number of "nodes" (MapPos) considered as part of a single plot_road call before giving up
 static const unsigned int plot_road_max_length = 150;  // the maximum length of a road solution for plot_road before giving up
 // NEED TO ADD EXCEPTION IF straight_line_dist is very long also, indicating a long road is required!
+
+static const unsigned int max_passthru_flags_per_solution = 4;  // limit the total passthru flags alowed to avoid plotting long complex roads that just result in clutter
 
 
 // fixed penalty for a non-direct road that contains the castle flag (but doesn't start/end there)

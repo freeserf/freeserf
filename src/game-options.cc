@@ -88,31 +88,7 @@ GameOptions::load_options_from_file(){
   }else{
     Log::Debug["game-options.cc"] << "inside GameOptions::load_options_from_file, successfully loaded file " << path << "/" << filename;
   }
-    /*
-    bool option_EnableAutoSave = false;
-    //bool option_ImprovedPigFarms = false;  // removing this as it turns out the default behavior for pig farms is to require almost no grain
-    bool option_CanTransportSerfsInBoats = false;
-    bool option_QuickDemoEmptyBuildSites = false;
-    //bool option_AdvancedDemolition = true;  // this needs more playtesting  
-    bool option_TreesReproduce = false;
-    bool option_BabyTreesMatureSlowly = false;
-    bool option_ResourceRequestsTimeOut = true;  // this is forced true to indicate that the code to make them optional isn't added yet
-    bool option_PrioritizeUsableResources = true;    // this is forced true to indicate that the code to make them optional isn't added yet
-    bool option_LostTransportersClearFaster = false;
-    bool option_FourSeasons = false;
-    bool option_AdvancedFarming = false;
-    bool option_FishSpawnSlowly = false;
-    bool option_FogOfWar = false;
-    //bool option_EastSlopesShadeObjects = true;   // make this an option, maybe
-    bool option_InvertMouse = false;
-    bool option_InvertWheelZoom = false;
-    bool option_SpecialClickBoth = true;
-    bool option_SpecialClickMiddle = true;
-    bool option_SpecialClickDouble = true;
-    bool option_SailorsMoveFaster = false;
-    bool option_WaterDepthLuminosity = false;
-    bool option_RandomizeInstruments = false;  // only affects DOS music
-    */
+
   option_FogOfWar = meta_main->value("options", "fogofwar", option_FogOfWar);
   option_EnableAutoSave = meta_main->value("options", "enableautosave", option_EnableAutoSave);
   option_CanTransportSerfsInBoats = meta_main->value("options", "cantransportserfsinboats", option_CanTransportSerfsInBoats);
@@ -132,6 +108,7 @@ GameOptions::load_options_from_file(){
   option_WaterDepthLuminosity = meta_main->value("options", "waterdepthluminosity", option_WaterDepthLuminosity);
   option_RandomizeInstruments = meta_main->value("options", "randomizeinstruments", option_RandomizeInstruments);
   option_ForesterMonoculture = meta_main->value("options", "forestermonoculture", option_ForesterMonoculture);
+  option_SpinningAmigaStar = meta_main->value("options", "spinningamigastar", option_SpinningAmigaStar);
 
   mapgen_size = meta_main->value("mapgen", "size", mapgen_size);
   mapgen_trees = meta_main->value("mapgen", "trees", mapgen_trees);
@@ -187,6 +164,8 @@ GameOptions::save_options_to_file(){
   file << "WaterDepthLuminosity=" << option_WaterDepthLuminosity << "\n";
   file << "RandomizeInstruments=" << option_RandomizeInstruments << "\n";
   file << "option_ForesterMonoculture=" << option_ForesterMonoculture << "\n";
+  file << "option_SpinningAmigaStar=" << option_SpinningAmigaStar << "\n";
+  
 
  /*
   case ACTION_RESET_MAPGEN_DEFAULTS:

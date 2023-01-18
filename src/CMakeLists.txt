@@ -273,6 +273,10 @@ add_custom_command(TARGET Forkserf POST_BUILD
 add_custom_command(TARGET Forkserf POST_BUILD
                    COMMAND ${CMAKE_COMMAND} -E copy_directory
                        ${CMAKE_SOURCE_DIR}/custom_graphics/map_waves $<TARGET_FILE_DIR:Forkserf>/map_waves)
+# Amiga style spinning star for selected panelbar buttons
+add_custom_command(TARGET Forkserf POST_BUILD
+                   COMMAND ${CMAKE_COMMAND} -E copy_directory
+                       ${CMAKE_SOURCE_DIR}/custom_graphics/panel_button $<TARGET_FILE_DIR:Forkserf>/panel_button)
 
 
 # Profiler executable

@@ -81,6 +81,7 @@ AI::AI(PGame current_game, unsigned int _player_index) {
   road_options.reset(RoadOption::PlotOnlyNoBuild);
   road_options.reset(RoadOption::ReconnectNetwork);
   road_options.set(RoadOption::AllowPassthru);
+  road_options.reset(RoadOption::IncreasedNewLengthPenalty);
 
   need_tools = false;
 
@@ -199,7 +200,7 @@ AI::next_loop(){
   do_manage_tool_priorities();
   do_manage_mine_food_priorities();
   do_balance_sword_shield_priorities();
-  do_attack();
+  // do_attack();  moving this to end of loop as it depends on information that is per stock (can expand borders, missing resources)
   do_manage_knight_occupation_levels();
   do_send_geologists();
 
@@ -243,6 +244,7 @@ AI::next_loop(){
     do_place_coal_mines(); sleep_speed_adjusted(1000); do_send_geologists();
     do_place_iron_mines(); sleep_speed_adjusted(1000); do_send_geologists();
     do_place_gold_mines(); sleep_speed_adjusted(1000); do_send_geologists();
+    do_place_stone_mines(); sleep_speed_adjusted(1000); do_send_geologists();
 
     // if this is the Castle, don't place any other buildings until these have their materials
     if (inventory_pos == castle_flag_pos && do_wait_until_sawmill_lumberjacks_built() == false)
@@ -261,6 +263,7 @@ AI::next_loop(){
     do_place_coal_mines(); sleep_speed_adjusted(1000); do_send_geologists();
     do_place_iron_mines(); sleep_speed_adjusted(1000); do_send_geologists();
     do_place_gold_mines(); sleep_speed_adjusted(1000); do_send_geologists();
+    do_place_stone_mines(); sleep_speed_adjusted(1000); do_send_geologists();
 
     if(do_can_build_other())
       {do_build_3rd_lumberjack(); sleep_speed_adjusted(1000); do_send_geologists();}
@@ -284,6 +287,7 @@ AI::next_loop(){
     do_place_coal_mines(); sleep_speed_adjusted(1000); do_send_geologists();
     do_place_iron_mines(); sleep_speed_adjusted(1000); do_send_geologists();
     do_place_gold_mines(); sleep_speed_adjusted(1000); do_send_geologists();
+    do_place_stone_mines(); sleep_speed_adjusted(1000); do_send_geologists();
     
     do_demolish_excess_lumberjacks(); do_send_geologists();
     do_demolish_excess_foresters(); do_send_geologists();
@@ -301,6 +305,9 @@ AI::next_loop(){
 
   // create parallel infrastructure!
   do_build_warehouse(); sleep_speed_adjusted(1000); do_send_geologists();
+
+  // ATTACK ENEMIES
+  do_attack();
 
   AILogDebug["next_loop"] << "Done AI Loop #" << loop_count;
   ai_status.assign("END OF LOOP");
@@ -629,14 +636,15 @@ AI::do_connect_disconnected_flags() {
       }
       */
     }
+    MapPos flag_pos = flag->get_position();
     // try to connect it to road network
-    AILogDebug["do_connect_disconnected_flags"] << "flag at pos " << flag->get_position() << " has no connected road, trying to connect it";
+    AILogDebug["do_connect_disconnected_flags"] << "flag at pos " << flag_pos << " has no connected road, trying to connect it";
     Road notused; // not used here, can I just pass a zero instead of &notused to build_best_road and skip initialization of a wasted object?
-    bool was_built = AI::build_best_road(flag->get_position(), road_options, &notused, "do_connect_disconnected_flags(canPassthru):Flag@"+std::to_string(flag->get_position()));
+    bool was_built = AI::build_best_road(flag_pos, road_options, &notused, "do_connect_disconnected_flags(canPassthru):Flag@"+std::to_string(flag_pos));
     if (!was_built && road_options.test(RoadOption::AllowPassthru)){
       AILogDebug["do_connect_disconnected_flags"] << "failed to build road using Passthru, trying again without it";
       road_options.reset(RoadOption::AllowPassthru);
-      was_built = AI::build_best_road(flag->get_position(), road_options, &notused, "do_connect_disconnected_flags(nonPassthru):Flag@"+std::to_string(flag->get_position()));
+      was_built = AI::build_best_road(flag_pos, road_options, &notused, "do_connect_disconnected_flags(nonPassthru):Flag@"+std::to_string(flag_pos));
       road_options.set(RoadOption::AllowPassthru);
     }
     if (!was_built) {
@@ -654,32 +662,37 @@ AI::do_connect_disconnected_flags() {
       //  when knights win a fight, the excess become Lost and return to castle/Inventory
       //  so, it seems like the problem here in Freeserf/Forkserf is that the knights are not making it back home in reasonable time
 
-      int must_demolish_building = false;
-      if (flag->has_building()) {
-        if (flag->get_building()->is_military()){
-          //AILogDebug["do_connect_disconnected_flags"] << "this unconnectable building is a military, threat_level is " << flag->get_building()->get_threat_level();
-          if (flag->get_building()->get_threat_level() == 3){
-            AILogDebug["do_connect_disconnected_flags"] << "this unconnectable building is a military building near enemy territory, possibly a newly taken one, NOT burning it nor its flag";
-            continue;
+      // the build_best_road call can be long, make sure this flag still exists!
+      if (game->get_flag_at_pos(flag_pos) == nullptr){
+        AILogDebug["do_connect_disconnected_flags"] << "this unconnectable flag no longer exists, no building to check";
+      }else{
+        int must_demolish_building = false;
+        if (flag->has_building()) {
+          if (flag->get_building()->is_military()){
+            //AILogDebug["do_connect_disconnected_flags"] << "this unconnectable building is a military, threat_level is " << flag->get_building()->get_threat_level();
+            if (flag->get_building()->get_threat_level() == 3){
+              AILogDebug["do_connect_disconnected_flags"] << "this unconnectable building is a military building near enemy territory, possibly a newly taken one, NOT burning it nor its flag";
+              continue;
+            }
+          }else{
+            must_demolish_building = true;
           }
-        }else{
-          must_demolish_building = true;
         }
+        // burn any attached building and destroy the flag
+        mutex_lock("AI::do_connect_disconnected_flags calling demolish_flag (and maybe attached building)");
+        if (must_demolish_building){
+          AILogDebug["do_connect_disconnected_flags"] << "failed to connect disconnected flag to road network!  BURNING ATTACHED BUILDING!";
+          // how did this ever work before??
+          //game->demolish_building(flag->get_position(), player);
+          game->demolish_building(map->move_up_left(flag_pos), player);
+          // sleep to appear more human
+          sleep_speed_adjusted(3000);
+        }
+        AILogDebug["do_connect_disconnected_flags"] << "failed to connect disconnected flag to road network!  removing it";
+        // got exception here, adding nullptr check
+        if (flag != nullptr){ game->demolish_flag(flag_pos, player); }
+        mutex_unlock();
       }
-      // burn any attached building and destroy the flag
-      mutex_lock("AI::do_connect_disconnected_flags calling demolish_flag (and maybe attached building)");
-      if (must_demolish_building){
-        AILogDebug["do_connect_disconnected_flags"] << "failed to connect disconnected flag to road network!  BURNING ATTACHED BUILDING!";
-        // how did this ever work before??
-        //game->demolish_building(flag->get_position(), player);
-        game->demolish_building(map->move_up_left(flag->get_position()), player);
-        // sleep to appear more human
-        sleep_speed_adjusted(3000);
-      }
-      AILogDebug["do_connect_disconnected_flags"] << "failed to connect disconnected flag to road network!  removing it";
-      // got exception here, adding nullptr check
-      if (flag != nullptr){ game->demolish_flag(flag->get_position(), player); }
-      mutex_unlock();
     }
   }
 
@@ -898,13 +911,13 @@ AI::do_spiderweb_roads() {
         road_options.reset(RoadOption::AllowPassthru);
         AILogDebug["do_spiderweb_roads"] << inventory_pos << " about to call build_best_road";
         Road built_road;
-        was_built = build_best_road(area_flag_pos, road_options, &built_road, "do_spiderweb_roads(canPassthru)", Building::TypeNone, Building::TypeNone, other_area_flag_pos);
-        if (!was_built && road_options.test(RoadOption::AllowPassthru)){
-          AILogDebug["do_spiderweb_roads"] << "failed to build road using Passthru, trying again without it";
-          road_options.reset(RoadOption::AllowPassthru);
-          was_built = build_best_road(area_flag_pos, road_options, &built_road, "do_spiderweb_roads(nonPassthru)", Building::TypeNone, Building::TypeNone, other_area_flag_pos);
-          road_options.set(RoadOption::AllowPassthru);
-        }
+        was_built = build_best_road(area_flag_pos, road_options, &built_road, "do_spiderweb_roads", Building::TypeNone, Building::TypeNone, other_area_flag_pos);
+        //if (!was_built && road_options.test(RoadOption::AllowPassthru)){
+        //  AILogDebug["do_spiderweb_roads"] << "failed to build road using Passthru, trying again without it";
+        //  road_options.reset(RoadOption::AllowPassthru);
+        //  was_built = build_best_road(area_flag_pos, road_options, &built_road, "do_spiderweb_roads(nonPassthru)", Building::TypeNone, Building::TypeNone, other_area_flag_pos);
+        //  road_options.set(RoadOption::AllowPassthru);
+        //}
         road_options.reset(RoadOption::Improve);
         //road_options.set(RoadOption::PenalizeNewLength);
         road_options.reset(RoadOption::ReducedNewLengthPenalty);
@@ -1213,7 +1226,7 @@ AI::do_fix_missing_transporters() {
         bool found_transporter = false;
         Road road;
         if (!map->has_path_IMPROVED(flag->get_position(), dir)) {
-          AILogVerbose["do_fix_missing_transporters"] << "no path found for flag with pos " << flag->get_position() << ", index " << flag_index << ", dir " << dir << " / " << NameDirection[dir] << " during no_transporter check!  FIND OUT WHY";
+          AILogWarn["do_fix_missing_transporters"] << "no path found for flag with pos " << flag->get_position() << ", index " << flag_index << ", dir " << dir << " / " << NameDirection[dir] << " during no_transporter check!  FIND OUT WHY";
         }
         MapPos pos = flag->get_position();
         Direction tmp_dir = dir;
@@ -1300,11 +1313,12 @@ AI::do_fix_missing_transporters() {
           //game->pause();
         }
         else {
-          AILogVerbose["do_fix_missing_transporters"] << "found expected transporter with Flag #" << flag->get_index() << " at pos " << flag->get_position() << " on road in dir " << NameDirection[dir];
+          //AILogDebug["do_fix_missing_transporters"] << "found expected transporter with Flag #" << flag->get_index() << " at pos " << flag->get_position() << " on road in dir " << NameDirection[dir];
         }
 
       }
-      /* I think I finally fixed this, it was due to typo in the path_splited road splitting logic
+      /*
+      // I think I finally fixed this, it was due to typo in the path_splited road splitting logic
       //
       // check for common missing transporter bug, where no transporter is assigned at all
       //  I added some debugging and I see that the leave_building call is made so a serf is dispatched, but not sure if it ever actually
@@ -1332,7 +1346,7 @@ AI::do_fix_missing_transporters() {
           //  Maybe make more advanced and check to see if there is an outgoing transporter serf with this destination flag/dir??
           // jan05 2021 - setting this 25x now that I am looking at it closer.  It should be either extremely long timer or
           //    based on the distance from the inventory (warehouse/stock) that is dispatching the serf
-          no_transporter_timers.insert(std::make_pair(std::make_pair(flag_index, dir), game->get_tick() + 50000);
+          no_transporter_timers.insert(std::make_pair(std::make_pair(flag_index, dir), game->get_tick() + 50000));
           AILogDebug["do_fix_missing_transporters"] << "there are now " << no_transporter_timers.count(std::make_pair(flag_index, dir)) << " no_transporter_timers set for this flag with pos " << flag->get_position() << ", index " << flag_index << ", dir " << dir << " / " << NameDirection[dir] << ", value is: " << no_transporter_timers.at(std::make_pair(flag_index, dir));
 
           // try to find a serf that is on way to this Flag-dir
@@ -1355,6 +1369,7 @@ AI::do_fix_missing_transporters() {
         }
       }
       */
+
     }
   }
   duration = (std::clock() - start) / static_cast<double>(CLOCKS_PER_SEC);
@@ -1541,8 +1556,14 @@ AI::do_send_geologists() {
   //  good in some ways, but some spots are missed because new huts are built faster than
   //  geologists can be sent/created/work.  To balance this without totally losing the 
   //  preference for evaluating new positions, have a chance of shuffling the positions
-  // 50% chance of shuffle
-  if (rand() > RAND_MAX / 2){
+  //
+  // NOTE - if enemy huts are captured, I expect their original index is retained which means
+  //  that they will not be considered "new" for the purpose of this check.  However I can not
+  //  think of a good way to prioritize them yet...
+  //  for now simply increasing the chance of shuffle
+  //
+  //if (rand() > RAND_MAX / 2){ 50% chance of shuffle
+  if (rand() > RAND_MAX / 3){ // 66% chance of shuffle
     AILogDebug["do_send_geologists"] << inventory_pos << " using shuffled occupied_military_pos list for sending geologists";
     std::random_shuffle(foo.begin(), foo.end());
   }else{
@@ -1638,23 +1659,33 @@ AI::do_send_geologists() {
             }
             
             Road notused; // not used here, can I just pass a zero instead of &notused to build_best_road and skip initialization of a wasted object?
-            bool road_was_built = build_best_road(pos, road_options, &notused, "do_send_geologists(canPassthru)");
-            if (!road_was_built && road_options.test(RoadOption::AllowPassthru)){
-              AILogDebug["do_send_geologists"] << "failed to build road using Passthru, trying again without it";
-              road_options.reset(RoadOption::AllowPassthru);
-              road_was_built = build_best_road(pos, road_options, &notused, "do_send_geologists(nonPassthru)");
-              road_options.set(RoadOption::AllowPassthru);
-            }
+            //road_options.set(RoadOption::IncreasedNewLengthPenalty);
+            road_options.reset(RoadOption::AllowPassthru);
+            bool road_was_built = build_best_road(pos, road_options, &notused, "do_send_geologists");
+            //road_options.reset(RoadOption::IncreasedNewLengthPenalty);
+            road_options.set(RoadOption::AllowPassthru);
+            //if (!road_was_built && road_options.test(RoadOption::AllowPassthru)){
+            //  AILogDebug["do_send_geologists"] << "failed to build road using Passthru, trying again without it";
+            //  road_options.reset(RoadOption::AllowPassthru);
+            //  road_was_built = build_best_road(pos, road_options, &notused, "do_send_geologists(nonPassthru)");
+            //  road_options.set(RoadOption::AllowPassthru);
+            //}
             if (!road_was_built){
               AILogDebug["do_send_geologists"] << inventory_pos << " failed to connect new gologist flag to road network!  removing the flag";
-              mutex_lock("AI::do_send_geologists calling demolish_flag (built for geoligist, couldn't connect)");
-              game->demolish_flag(pos, player);
-              mutex_unlock();
-              sleep_speed_adjusted(2000);
-              AILogDebug["do_send_geologists"] << inventory_pos << " adding this flag pos " << pos << " to bad_building_pos list";
-              // because there is no Building::Type for a plain flag, use Building::TypeNone for now.
-              //  alternatively, could create a new type, or use some number that has no type
-              bad_building_pos.insert(std::make_pair(pos, Building::TypeNone));
+              // build_best_road call can be long, make sure flag still exists
+              if (game->get_flag_at_pos(pos) == nullptr){
+                // it seems this check is not actually required because Game::demolish_flag will check first, oh well
+                AILogDebug["do_send_geologists"] << inventory_pos << " this flag no longer exists!  not removing";
+              }else{
+                mutex_lock("AI::do_send_geologists calling demolish_flag (built for geologist, couldn't connect)");
+                game->demolish_flag(pos, player);
+                mutex_unlock();
+                sleep_speed_adjusted(2000);
+                AILogDebug["do_send_geologists"] << inventory_pos << " adding this flag pos " << pos << " to bad_building_pos list";
+                // because there is no Building::Type for a plain flag, use Building::TypeNone for now.
+                //  alternatively, could create a new type, or use some number that has no type
+                bad_building_pos.insert(std::make_pair(pos, Building::TypeNone));
+              }
             }
           }
         }
@@ -1756,7 +1787,11 @@ AI::do_build_rangers() {
       if (AI::building_exists_near_pos(pos, AI::spiral_dist(8), Building::TypeForester))
         continue;
       AILogDebug["do_build_rangers"] << "lumberjack at " << pos << " has < min trees and no ranger nearby, trying to place ranger";
+      road_options.set(RoadOption::IncreasedNewLengthPenalty);
+      road_options.reset(RoadOption::AllowPassthru);
       MapPos built_pos = AI::build_near_pos(pos, AI::spiral_dist(6), Building::TypeForester);
+      road_options.reset(RoadOption::IncreasedNewLengthPenalty);
+      road_options.set(RoadOption::AllowPassthru);
       if (built_pos != bad_map_pos && built_pos != notplaced_pos)
         AILogDebug["do_build_rangers"] << "built ranger at pos " << built_pos;
     }
@@ -2462,6 +2497,21 @@ AI::do_disconnect_or_demolish_excess_gold_mines() {
 }
 
 
+void
+AI::do_disconnect_or_demolish_excess_stone_mines() {
+  ai_status.assign("do_disconnect_or_demolish_excess_stone_mines");
+  AILogDebug["do_disconnect_or_demolish_excess_stone_mines"] << inventory_pos << " inside do_disconnect_or_demolish_excess_stone_mines()";
+  if (stock_building_counts.at(inventory_pos).excess_stone) {
+    AILogDebug["do_disconnect_or_demolish_excess_stone_mines"] << inventory_pos << " excess_stone_ore is true, calling do_disconnect_or_demolish_excess_mines()";
+    do_disconnect_or_demolish_excess_mines("stone", Building::TypeStoneMine);
+  }else {
+    AILogDebug["do_disconnect_or_demolish_excess_stone_mines"] << inventory_pos << " needs more stone and/or stone buildings, skipping";
+  }
+  AILogDebug["do_disconnect_or_demolish_excess_stone_mines"] << inventory_pos << " done do_disconnect_or_demolish_excess_stone_mines";
+}
+
+
+
 // adjust tool priorities to match needed tools, reset unneccessary tools to default
 void
 AI::do_manage_tool_priorities() {
@@ -2610,13 +2660,20 @@ AI::do_manage_tool_priorities() {
       }
       unsigned int steel = building->get_res_count_in_stock(1);
       if (steel <= 1) {
-        AILogDebug["do_manage_tool_priorities"] << "toolmaker at pos " << pos << " has only " << steel << " steel, setting priority to max and zeroing blacksmith priority";
-        player->set_steel_toolmaker(65500);
-        player->set_steel_weaponsmith(0);
-        AILogDebug["do_manage_tool_priorities"] << "to avoid running out of coal for steel, also zeroing coal priority to gold and weaponsmiths, maxing to steel smelter";
-        player->set_coal_goldsmelter(0);
-        player->set_coal_weaponsmith(0);
-        player->set_coal_steelsmelter(65550);
+        if (cannot_expand_borders){
+          // to avoid condition where gold is not smelted because no iron ore available to make steel, and cannot expand borders
+          //  to find iron ore, simply leave normal resource priorities to allow processing and hope that AI can attack somewhere to gain iron
+          AILogDebug["do_manage_tool_priorities"] << "toolmaker at pos " << pos << " has only " << steel << " steel, but cannot_expand_borders bool is true, leaving normal resource priorities";
+        }else{
+          // normal behavior
+          AILogDebug["do_manage_tool_priorities"] << "toolmaker at pos " << pos << " has only " << steel << " steel, setting priority to max and zeroing blacksmith priority";
+          player->set_steel_toolmaker(65500);
+          player->set_steel_weaponsmith(0);
+          AILogDebug["do_manage_tool_priorities"] << "to avoid running out of coal for steel, also zeroing coal priority to gold and weaponsmiths, maxing to steel smelter";
+          player->set_coal_goldsmelter(0);
+          player->set_coal_weaponsmith(0);
+          player->set_coal_steelsmelter(65550);
+        }
       }
       
     }
@@ -2644,6 +2701,7 @@ AI::do_manage_mine_food_priorities() {
   unsigned int coal_count = realm_inv[Resource::TypeCoal];
   unsigned int iron_ore_count = realm_inv[Resource::TypeIronOre];
   unsigned int gold_ore_count = realm_inv[Resource::TypeGoldOre];
+  unsigned int stone_count = realm_inv[Resource::TypeStone];
   //6550 is a near-zero value I chose to use as "very low priority"
   // default food priorities:
   //food_stonemine = 13100;
@@ -2673,6 +2731,14 @@ AI::do_manage_mine_food_priorities() {
   } else if (gold_ore_count > gold_ore_min) {
     AILogDebug["do_manage_mine_food_priorities"] << "gold_ore_count " << gold_ore_count << " is greater than gold_ore_min " << gold_ore_min << ", greatly reducing food priority to gold mines";
     player->set_food_goldmine(6550);
+  }
+  // stone
+  if (stone_count > stones_max) {
+    AILogDebug["do_manage_mine_food_priorities"] << "stone_count " << stone_count << " is greater than stones_max " << stones_max << ", setting stone mine food priority to zero";
+    player->set_food_stonemine(0);
+  } else if (stone_count > stones_min) {
+    AILogDebug["do_manage_mine_food_priorities"] << "stone_count " << stone_count << " is greater than stones_min " << stones_min << ", greatly reducing food priority to stone mines";
+    player->set_food_stonemine(6550);
   }
   // avoid issue where all food goes to gold mining while running out of knights
   unsigned int idle_knights = serfs_idle[Serf::TypeKnight0] + serfs_idle[Serf::TypeKnight1] + serfs_idle[Serf::TypeKnight2] + serfs_idle[Serf::TypeKnight3] + serfs_idle[Serf::TypeKnight4];
@@ -2869,9 +2935,9 @@ AI::do_place_mines(std::string type, Building::Type building_type, Map::Object l
       if (signs_count < 1 || empty_hills_count < 1)
         continue;
       double sign_density = signs_count / empty_hills_count;
-      AILogVerbose["do_place_mines"] << inventory_pos << " " << type << " mine: corner with center pos " << corner_pos << " has signs_count: " << signs_count << ", empty_hills_count: " << empty_hills_count << ", sign_density: " << sign_density << ", min is " << sign_density_min;
+      AILogDebug["do_place_mines"] << inventory_pos << " " << type << " mine: corner with center pos " << corner_pos << " has signs_count: " << signs_count << ", empty_hills_count: " << empty_hills_count << ", sign_density: " << sign_density << ", min is " << sign_density_min;
       if (sign_density >= sign_density_min) {
-        AILogVerbose["do_place_mines"] << inventory_pos << " sign density " << sign_density << " is over sign_density_min " << sign_density_min;
+        AILogDebug["do_place_mines"] << inventory_pos << " sign density " << sign_density << " is over sign_density_min " << sign_density_min;
       }
       // don't place a mine if there are already another mine of the same type nearby, it is inefficient because of
       //  the way that underground mined resources are depleted, if the first runs out the second will find little or nothing
@@ -2906,6 +2972,7 @@ AI::do_place_mines(std::string type, Building::Type building_type, Map::Object l
       //   did I know that they all consume the same minerals and so if the first is depleted
       //   the second will find nothing!
       //AILogVerbose["do_place_mines"] << inventory_pos << " " << type << " mine: looking for a place to build a " << type << " mine near corner " << corner_pos;
+      MapPos built_pos = bad_map_pos;
       for (unsigned int i = 0; i < AI::spiral_dist(4); i++) {
         MapPos pos = map->pos_add_extended_spirally(corner_pos, i);
         if (!game->can_build_mine(pos)) {
@@ -2915,9 +2982,9 @@ AI::do_place_mines(std::string type, Building::Type building_type, Map::Object l
           continue;
         }
         Map::Object obj = map->get_obj(pos);
+        // check for sign of the appropriate resource type
         if (obj == large_sign || (obj == small_sign && sign_density >= sign_density_min)) {
           AILogDebug["do_place_mines"] << inventory_pos << " trying to build " << type << " mine at pos " << pos;
-          MapPos built_pos = bad_map_pos;
           // note that distance = 1 means ONLY THIS SPOT
           built_pos = AI::build_near_pos(pos, 1, building_type);
           if (built_pos != bad_map_pos && built_pos != notplaced_pos) {
@@ -2928,6 +2995,48 @@ AI::do_place_mines(std::string type, Building::Type building_type, Map::Object l
           }
         }
       } // foreach hills pos spirally
+      
+      // take note if no resources found, affects do_attack logic
+      if (built_pos == bad_map_pos || built_pos == notplaced_pos) {
+        AILogDebug["do_place_mines"] << inventory_pos << " could not place any mine of type " << NameBuilding[building_type] << " in this inventory area, checking to see if any already exist";
+        if (stock_building_counts.at(inventory_pos).count[building_type] == 0){
+          AILogDebug["do_place_mines"] << inventory_pos << " could not place any mine of type " << NameBuilding[building_type] << " in this inventory area and none already exist, marking this inventory cannot_place_mine for res type";
+          if (building_type == Building::TypeCoalMine){
+            if (get_stock_inv()->get_count_of(Resource::TypeCoal) + stock_res_sitting_at_flags.at(inventory_pos)[Resource::TypeCoal] > coal_min){
+              AILogDebug["do_place_mines"] << inventory_pos << " this inventory already has more than coal_min " << coal_min << " coal stored or at flags, not considering coal to be unavailable in this Inv area yet";
+            }else{
+              AILogDebug["do_place_mines"] << inventory_pos << " this inventory has little to no coal stored or at flags, and no coal mines, and no coal in borders to mine, and cannot expand borders.  Must attack for coal!";
+              stock_building_counts.at(inventory_pos).inv_has_no_coal = true;
+            }
+          }else if (building_type == Building::TypeIronMine){
+            int iron_count = get_stock_inv()->get_count_of(Resource::TypeIronOre) + stock_res_sitting_at_flags.at(inventory_pos)[Resource::TypeIronOre];
+            //if (get_stock_inv()->get_count_of(Resource::TypeIronOre) + stock_res_sitting_at_flags.at(inventory_pos)[Resource::TypeIronOre] > iron_ore_min){
+            if (iron_count > iron_ore_min){
+              AILogDebug["do_place_mines"] << inventory_pos << " this inventory already has iron_count " << iron_count << ", more than iron_ore_min " << iron_ore_min << " iron ore stored or at flags, not considering iron to be unavailable in this Inv area yet";
+            }else{
+              AILogDebug["do_place_mines"] << inventory_pos << " this inventory has little to no iron ore stored or at flags, and no iron mines, and no iron in borders to mine, and cannot expand borders.  Must attack for iron!";
+              stock_building_counts.at(inventory_pos).inv_has_no_ironore = true;
+            }
+          }else if (building_type == Building::TypeGoldMine){
+            if (get_stock_inv()->get_count_of(Resource::TypeGoldOre) + stock_res_sitting_at_flags.at(inventory_pos)[Resource::TypeGoldOre] > gold_ore_min){
+              AILogDebug["do_place_mines"] << inventory_pos << " this inventory already has more than gold_ore_min " << gold_ore_min << " gold ore stored or at flags, not considering gold to be unavailable in this Inv area yet";
+            }else{
+              AILogDebug["do_place_mines"] << inventory_pos << " this inventory has little to no gold ore stored or at flags, and no gold mines, and no gold in borders to mine, and cannot expand borders.  Must attack for gold!";
+              stock_building_counts.at(inventory_pos).inv_has_no_goldore = true;
+            }
+          }else if (building_type == Building::TypeStoneMine){
+            if (get_stock_inv()->get_count_of(Resource::TypeStone) + stock_res_sitting_at_flags.at(inventory_pos)[Resource::TypeStone] > stones_max){  // using stones max here
+              AILogDebug["do_place_mines"] << inventory_pos << " this inventory already has more than stones_max " << stones_max << " stones stored or at flags, not considering gold to be unavailable in this Inv area yet";
+            }else{
+              AILogDebug["do_place_mines"] << inventory_pos << " this inventory has little to no stone stored or at flags, and no stone mines, and no stone in borders to mine, and cannot expand borders.  Must attack for gold!";
+              stock_building_counts.at(inventory_pos).inv_has_no_stone = true;
+            }
+          }else{
+            throw ExceptionFreeserf("unexpected mine type");
+          }
+        }
+      }
+
     } // foreach corner
   } // foreach military building
   duration = (std::clock() - start) / static_cast<double>(CLOCKS_PER_SEC);
@@ -2938,20 +3047,47 @@ AI::do_place_mines(std::string type, Building::Type building_type, Map::Object l
 void
 AI::do_place_coal_mines() {
   AILogDebug["do_place_coal_mines"] << "inside do_place_coal_mines()";
+  stock_building_counts.at(inventory_pos).inv_has_no_coal = false;
   do_place_mines("coal", Building::TypeCoalMine, Map::ObjectSignLargeCoal, Map::ObjectSignSmallCoal, coal_sign_density_min);
 }
 
 void
 AI::do_place_iron_mines() {
   AILogDebug["do_place_iron_mines"] << "inside do_place_iron_mines()";
+  stock_building_counts.at(inventory_pos).inv_has_no_ironore = false;
   do_place_mines("iron", Building::TypeIronMine, Map::ObjectSignLargeIron, Map::ObjectSignSmallIron, iron_sign_density_min);
 }
 
 void
 AI::do_place_gold_mines(){
   AILogDebug["do_place_gold_mines"] << "inside do_place_gold_mines()";
+  stock_building_counts.at(inventory_pos).inv_has_no_goldore = false;
   do_place_mines("gold", Building::TypeGoldMine, Map::ObjectSignLargeGold, Map::ObjectSignSmallGold, gold_sign_density_min);
 }
+
+void
+AI::do_place_stone_mines(){
+  AILogDebug["do_place_stone_mines"] << "inside do_place_stone_mines()";
+  /* CHANGING LOGIC - if there are no stone piles in this Inventory area, maybe
+       building a stone mine isn't so bad?  switching to just using the local value
+  // check to see if we are out of above-ground stonepiles
+  //  I tried putting this in check_resource_needs but I think it gets reset before it can be effective
+  no_stone_within_borders = true;
+  for (MapPos stock_pos : stocks_pos){
+    if (stock_building_counts.at(stock_pos).inv_has_no_stone == false){
+      AILogDebug["do_place_stone_mines"] << "at least one Inventory (ex. " << stock_pos << ") has stone, not building StoneMines or making desperate attacks for stone";
+      no_stone_within_borders = false;
+    }
+  }
+  if (no_stone_within_borders){
+  */
+  if (stock_building_counts.at(inventory_pos).inv_has_no_stone == false){
+    do_place_mines("stone", Building::TypeStoneMine, Map::ObjectSignLargeStone, Map::ObjectSignSmallStone, stone_sign_density_min);
+  }else{
+    AILogDebug["do_place_stone_mines"] << "not considering building stone mines until all above-ground stone piles in this Inventory area exhausted";
+  }
+}
+
 
 
 
@@ -3051,8 +3187,12 @@ AI::do_build_sawmill_lumberjacks() {
               break;
             }
             AILogDebug["do_build_sawmill_lumberjacks"] << inventory_pos << " trying to build a lumberjack near pos " << search_pos;
+            road_options.set(RoadOption::IncreasedNewLengthPenalty);
+            road_options.reset(RoadOption::AllowPassthru);
             built_pos = bad_map_pos;
             built_pos = AI::build_near_pos(search_pos, AI::spiral_dist(4), Building::TypeLumberjack);
+            road_options.reset(RoadOption::IncreasedNewLengthPenalty);
+            road_options.set(RoadOption::AllowPassthru);
             if (built_pos != bad_map_pos && built_pos != notplaced_pos) {
               AILogInfo["do_build_sawmill_lumberjacks"] << inventory_pos << " built lumberjack at pos " << built_pos;
               stock_building_counts.at(inventory_pos).count[Building::TypeLumberjack]++;
@@ -3152,6 +3292,7 @@ void
 AI::do_build_stonecutter() {
   AILogDebug["do_build_stonecutter"] << inventory_pos << " Main Loop - stones & stonecutters";
   ai_status.assign("do_build_stonecutter");
+  stock_building_counts.at(inventory_pos).inv_has_no_stone = false;
   if (stock_building_counts.at(inventory_pos).needs_stone) {
     int stonecutter_count = stock_building_counts.at(inventory_pos).count[Building::TypeStonecutter];
     if (stonecutter_count >= 1) {
@@ -3161,6 +3302,7 @@ AI::do_build_stonecutter() {
     AILogInfo["do_build_stonecutter"] << inventory_pos << " want to build stonecutter";
     // count stones near military buildings
     MapPosSet count_by_corner;
+    MapPos built_pos = bad_map_pos;
     for (MapPos center_pos : stock_building_counts.at(inventory_pos).occupied_military_pos) {
       stonecutter_count = stock_building_counts.at(inventory_pos).count[Building::TypeStonecutter];
       if (stonecutter_count >= 1) {
@@ -3177,7 +3319,6 @@ AI::do_build_stonecutter() {
       }
       // build stonecutter near corner with most stones
       MapPosVector search_positions = AI::sort_by_val_desc(count_by_corner);
-      MapPos built_pos = bad_map_pos;
       for (MapPos corner_pos : search_positions) {
         //ai_mark_pos.clear();
         AILogDebug["do_build_stonecutter"] << inventory_pos << " try to build stonecutter near corner pos " << corner_pos;
@@ -3201,7 +3342,11 @@ AI::do_build_stonecutter() {
           }
           // try each specific pos one at a time
           AILogDebug["do_build_stonecutter"] << inventory_pos << " trying to build stonecutter near pos " << pos;
+          //road_options.set(RoadOption::IncreasedNewLengthPenalty);
+          road_options.reset(RoadOption::AllowPassthru);
           built_pos = AI::build_near_pos(pos, 1, Building::TypeStonecutter);
+          //road_options.reset(RoadOption::IncreasedNewLengthPenalty);
+          road_options.set(RoadOption::AllowPassthru);
           if (built_pos != bad_map_pos && built_pos != notplaced_pos) {
             AILogInfo["do_build_stonecutter"] << inventory_pos << " built stonecutter at pos " << built_pos;
             stock_building_counts.at(inventory_pos).count[Building::TypeStonecutter]++;
@@ -3215,6 +3360,13 @@ AI::do_build_stonecutter() {
         if (built_pos != bad_map_pos && built_pos != notplaced_pos) { break; }
       }
     } // foreach military building
+    
+    // note lack of stone, affects AI attack logic
+    if (built_pos == bad_map_pos || built_pos == notplaced_pos) {
+      AILogDebug["do_build_stonecutter"] << inventory_pos << " could not place stonecutter around this Inventory, setting inv_has_no_stone bool to true";
+      stock_building_counts.at(inventory_pos).inv_has_no_stone = true;
+    }
+
   }
   else {
     AILogDebug["do_build_stonecutter"] << inventory_pos << " have sufficient stone and/or stonecutters, skipping";
@@ -3256,7 +3408,11 @@ AI::do_build_toolmaker_steelsmelter() {
   if (toolmaker_count < 1) {
     if (need_tools) {
       AILogInfo["do_build_toolmaker_steelsmelter"] << inventory_pos << " need tools but have no toolmaker, trying to build one near castle or current inventory";
+      road_options.set(RoadOption::IncreasedNewLengthPenalty);
+      road_options.reset(RoadOption::AllowPassthru);
       MapPos built_pos = AI::build_near_pos(inventory_pos, AI::spiral_dist(24), Building::TypeToolMaker);
+      road_options.reset(RoadOption::IncreasedNewLengthPenalty);
+      road_options.set(RoadOption::AllowPassthru);
       if (built_pos != bad_map_pos && built_pos != notplaced_pos) {
         AILogInfo["do_build_toolmaker_steelsmelter"] << inventory_pos << " built toolmaker at pos " << built_pos;
         stock_building_counts.at(inventory_pos).count[Building::TypeToolMaker]++;
@@ -3335,8 +3491,12 @@ AI::do_build_food_buildings() {
       if (count >= waters_min) {
         if (!AI::building_exists_near_pos(corner_pos, AI::spiral_dist(8), Building::TypeFisher)) {
           AILogInfo["do_build_food_buildings"] << inventory_pos << " water found and no fisherman nearby, want to build fisherman";
+          road_options.set(RoadOption::IncreasedNewLengthPenalty);
+          road_options.reset(RoadOption::AllowPassthru);
           built_pos = bad_map_pos;
           built_pos = AI::build_near_pos(corner_pos, AI::spiral_dist(4), Building::TypeFisher);
+          road_options.reset(RoadOption::IncreasedNewLengthPenalty);
+          road_options.set(RoadOption::AllowPassthru);
           if (built_pos != bad_map_pos && built_pos != notplaced_pos) {
             AILogInfo["do_build_food_buildings"] << inventory_pos << " built fisherman at pos " << built_pos;
             // BUG NOTICE:
@@ -3655,29 +3815,36 @@ AI::do_connect_coal_mines() {
         continue;
       if (flag->get_building()->get_type() != Building::TypeCoalMine)
         continue;
-      AILogDebug["do_connect_coal_mines"] << inventory_pos << " disconnected coal mine found with flag pos " << flag->get_position();
+      MapPos flag_pos = flag->get_position();
+      MapPos building_pos = flag->get_building()->get_position();
+      AILogDebug["do_connect_coal_mines"] << inventory_pos << " disconnected coal mine found with flag pos " << flag_pos;
       AILogInfo["do_connect_coal_mines"] << inventory_pos << " trying to connect unfinished coal mine flag to road system";
       Road notused; // not used here, can I just pass a zero instead of &notused to build_best_road and skip initialization of a wasted object?
       //bool was_built = AI::build_best_road(flag->get_position(), road_options, &notused, "do_connect_coal_mines");
       // updated with verify_stock = true
-      bool was_built = AI::build_best_road(flag->get_position(), road_options, &notused, "do_connect_coal_mines(canPassthru):Building::TypeCoalMine@"+std::to_string(flag->get_position()), Building::TypeNone, Building::TypeNone, bad_map_pos, true);
+      bool was_built = AI::build_best_road(flag->get_position(), road_options, &notused, "do_connect_coal_mines(canPassthru):Building::TypeCoalMine@"+std::to_string(flag_pos), Building::TypeNone, Building::TypeNone, bad_map_pos, true);
       if (!was_built && road_options.test(RoadOption::AllowPassthru)){
         AILogDebug["do_connect_coal_mines"] << "failed to build road using Passthru, trying again without it";
         road_options.reset(RoadOption::AllowPassthru);
-        was_built = AI::build_best_road(flag->get_position(), road_options, &notused, "do_connect_coal_mines(nonPassthru):Building::TypeCoalMine@"+std::to_string(flag->get_position()), Building::TypeNone, Building::TypeNone, bad_map_pos, true);
+        was_built = AI::build_best_road(flag->get_position(), road_options, &notused, "do_connect_coal_mines(nonPassthru):Building::TypeCoalMine@"+std::to_string(flag_pos), Building::TypeNone, Building::TypeNone, bad_map_pos, true);
         road_options.set(RoadOption::AllowPassthru);
       }
       if (!was_built) {
         AILogInfo["do_connect_coal_mines"] << inventory_pos << " failed to connect coal mine to road network!  demolishing it and its flag ";
+        // the build_best road call can be long, double-check to make sure this building and flag even still exist!
+        Flag *failed_flag = game->get_flag_at_pos(flag_pos);
+        Building *failed_building = game->get_building_at_pos(building_pos);
         mutex_lock("AI::do_connect_coal_mines calling demolish flag&building (failed to connect coal mine)");
-        game->demolish_building(flag->get_building()->get_position(), player);
-        AILogDebug["do_connect_coal_mines"] << inventory_pos << " demolishing flag for coal mine that could not be connected to road network";
-        // getting crashes here, try checking for flag is nullptr
-        if (flag == nullptr){
-          AILogWarn["do_connect_coal_mines"] << inventory_pos << " debug flag is now nullptr, not running demolish_flag";
+        if (failed_building == nullptr){
+          AILogInfo["do_connect_coal_mines"] << inventory_pos << " the failed building no longer exists, nothing to demolish";
         }else{
-          AILogDebug["do_connect_coal_mines"] << inventory_pos << " debug about to call demolish_flag";
-          game->demolish_flag(flag->get_position(), player);
+          game->demolish_building(building_pos, player);
+        }
+        AILogDebug["do_connect_coal_mines"] << inventory_pos << " demolishing flag for coal mine that could not be connected to road network";
+        if (failed_flag == nullptr){
+          AILogInfo["do_connect_coal_mines"] << inventory_pos << " the failed flag no longer exists, nothing to demolish";
+        }else{
+          game->demolish_flag(flag_pos, player);
         }
         mutex_unlock();
         // sleep to appear more human
@@ -3719,29 +3886,36 @@ AI::do_connect_iron_mines() {
         continue;
       if (flag->get_building()->get_type() != Building::TypeIronMine)
         continue;
-      AILogDebug["do_connect_iron_mines"] << inventory_pos << " disconnected iron mine found with flag pos " << flag->get_position();
+      MapPos flag_pos = flag->get_position();
+      MapPos building_pos = flag->get_building()->get_position();
+      AILogDebug["do_connect_iron_mines"] << inventory_pos << " disconnected iron mine found with flag pos " << flag_pos;
       AILogInfo["do_connect_iron_mines"] << inventory_pos << " trying to connect unfinished iron mine flag to road system";
       Road notused; // not used here, can I just pass a zero instead of &notused to build_best_road and skip initialization of a wasted object?
       //bool was_built = AI::build_best_road(flag->get_position(), road_options, &notused, "do_connect_iron_mines");
       // updated with verify_stock = true
-      bool was_built = AI::build_best_road(flag->get_position(), road_options, &notused, "do_connect_iron_mines(canPassthru):Building::TypeIronMine@"+std::to_string(flag->get_position()), Building::TypeNone, Building::TypeNone, bad_map_pos, true);
+      bool was_built = AI::build_best_road(flag->get_position(), road_options, &notused, "do_connect_iron_mines(canPassthru):Building::TypeIronMine@"+std::to_string(flag_pos), Building::TypeNone, Building::TypeNone, bad_map_pos, true);
       if (!was_built && road_options.test(RoadOption::AllowPassthru)){
         AILogDebug["do_connect_iron_mines"] << "failed to build road using Passthru, trying again without it";
         road_options.reset(RoadOption::AllowPassthru);
-        was_built = AI::build_best_road(flag->get_position(), road_options, &notused, "do_connect_iron_mines(nonPassthru):Building::TypeIronMine@"+std::to_string(flag->get_position()), Building::TypeNone, Building::TypeNone, bad_map_pos, true);
+        was_built = AI::build_best_road(flag->get_position(), road_options, &notused, "do_connect_iron_mines(nonPassthru):Building::TypeIronMine@"+std::to_string(flag_pos), Building::TypeNone, Building::TypeNone, bad_map_pos, true);
         road_options.set(RoadOption::AllowPassthru);
       }
       if (!was_built) {
         AILogInfo["do_connect_iron_mines"] << inventory_pos << " failed to connect iron mine to road network!  demolishing it and its flag ";
+        // the build_best road call can be long, double-check to make sure this building and flag even still exist!
+        Flag *failed_flag = game->get_flag_at_pos(flag_pos);
+        Building *failed_building = game->get_building_at_pos(building_pos);
         mutex_lock("AI::do_connect_iron_mines calling demolish flag&building (failed to connect iron mine)");
-        game->demolish_building(flag->get_building()->get_position(), player);
-        AILogDebug["do_connect_iron_mines"] << inventory_pos << " demolishing flag for iron mine that could not be connected to road network";
-        // getting crashes here, try checking for flag is nullptr
-        if (flag == nullptr){
-          AILogWarn["do_connect_iron_mines"] << inventory_pos << " debug flag is now nullptr, not running demolish_flag";
+        if (failed_building == nullptr){
+          AILogInfo["do_connect_iron_mines"] << inventory_pos << " the failed building no longer exists, nothing to demolish";
         }else{
-          AILogDebug["do_connect_iron_mines"] << inventory_pos << " debug about to call demolish_flag";
-          game->demolish_flag(flag->get_position(), player);
+          game->demolish_building(building_pos, player);
+        }
+        AILogDebug["do_connect_iron_mines"] << inventory_pos << " demolishing flag for iron mine that could not be connected to road network";
+        if (failed_flag == nullptr){
+          AILogInfo["do_connect_iron_mines"] << inventory_pos << " the failed flag no longer exists, nothing to demolish";
+        }else{
+          game->demolish_flag(flag_pos, player);
         }
         mutex_unlock();
         // sleep to appear more human
@@ -3759,6 +3933,69 @@ AI::do_connect_iron_mines() {
     AILogDebug["do_connect_iron_mines"] << inventory_pos << " have sufficient iron and/or iron buildings, skipping";
   }
   AILogDebug["do_connect_iron_mines"] << inventory_pos << " done do_connect_iron_mines";
+}
+
+
+// stone mines are only placed when all above ground stone within our borders is exhausted
+void
+AI::do_connect_stone_mines() {
+  ai_status.assign("do_connect_stone_mines");
+  AILogDebug["do_connect_stone_mines"] << inventory_pos << " inside do_connect_stone_mines()";
+  if (stock_building_counts.at(inventory_pos).needs_stone) {
+    // connect any disconnected stone mine that was placed if conditions are right
+    Flags flags_copy = *(game->get_flags());  // create a copy so we don't conflict with the game thread, and don't want to mutex lock for a long function
+    for (Flag *flag : flags_copy) {
+      if (flag == nullptr || flag->get_owner() != player_index || flag->is_connected() || !flag->has_building())
+        continue;
+      if (flag->get_building()->get_type() != Building::TypeStoneMine)
+        continue;
+      MapPos flag_pos = flag->get_position();
+      MapPos building_pos = flag->get_building()->get_position();
+      AILogDebug["do_connect_stone_mines"] << inventory_pos << " disconnected stone mine found with flag pos " << flag_pos;
+      AILogInfo["do_connect_stone_mines"] << inventory_pos << " trying to connect unfinished stone mine flag to road system";
+      Road notused; // not used here, can I just pass a zero instead of &notused to build_best_road and skip initialization of a wasted object?
+      //bool was_built = AI::build_best_road(flag->get_position(), road_options, &notused, "do_connect_stone_mines");
+      // updated with verify_stock = true
+      bool was_built = AI::build_best_road(flag->get_position(), road_options, &notused, "do_connect_stone_mines(canPassthru):Building::TypeStoneMine@"+std::to_string(flag_pos), Building::TypeNone, Building::TypeNone, bad_map_pos, true);
+      if (!was_built && road_options.test(RoadOption::AllowPassthru)){
+        AILogDebug["do_connect_stone_mines"] << "failed to build road using Passthru, trying again without it";
+        road_options.reset(RoadOption::AllowPassthru);
+        was_built = AI::build_best_road(flag->get_position(), road_options, &notused, "do_connect_stone_mines(nonPassthru):Building::TypeStoneMine@"+std::to_string(flag_pos), Building::TypeNone, Building::TypeNone, bad_map_pos, true);
+        road_options.set(RoadOption::AllowPassthru);
+      }
+      if (!was_built) {
+        AILogInfo["do_connect_stone_mines"] << inventory_pos << " failed to connect stone mine to road network!  demolishing it and its flag ";
+        // the build_best road call can be long, double-check to make sure this building and flag even still exist!
+        Flag *failed_flag = game->get_flag_at_pos(flag_pos);
+        Building *failed_building = game->get_building_at_pos(building_pos);
+        mutex_lock("AI::do_connect_stone_mines calling demolish flag&building (failed to connect stone mine)");
+        if (failed_building == nullptr){
+          AILogInfo["do_connect_stone_mines"] << inventory_pos << " the failed building no longer exists, nothing to demolish";
+        }else{
+          game->demolish_building(building_pos, player);
+        }
+        AILogDebug["do_connect_stone_mines"] << inventory_pos << " demolishing flag for stone mine that could not be connected to road network";
+        if (failed_flag == nullptr){
+          AILogInfo["do_connect_stone_mines"] << inventory_pos << " the failed flag no longer exists, nothing to demolish";
+        }else{
+          game->demolish_flag(flag_pos, player);
+        }
+        mutex_unlock();
+        // sleep to appear more human
+        sleep_speed_adjusted(3000);
+      }
+      else {
+        AILogInfo["do_connect_stone_mines"] << inventory_pos << " successfully connected unfinished stone mine to road network";
+        stock_building_counts.at(inventory_pos).count[Building::TypeStoneMine]++;
+        stock_building_counts.at(inventory_pos).unfinished_count++;
+        break;
+      }
+    }
+  }
+  else {
+    AILogDebug["do_connect_stone_mines"] << inventory_pos << " have sufficient stone and/or stone buildings, skipping";
+  }
+  AILogDebug["do_connect_stone_mines"] << inventory_pos << " done do_connect_stone_mines";
 }
 
 // build a steel smelter if one wasn't already created earlier to support toolmaker
@@ -3783,7 +4020,7 @@ AI::do_build_steelsmelter() {
   }
 
   AILogInfo["do_build_steelsmelter"] << inventory_pos << " want to build steelsmelter";
-  // try to place steel smelter halfway between a coal mine and iron mine if both exist, preferring active ones
+  // try to place steel smelter halfway between a coal mine and stone mine if both exist, preferring active ones
   // re-enabling halfway_pos checking again
   //  ehh I still think this is never going to be used effectively
   //  and even if it were able to, the build_better_road and normal
@@ -3981,29 +4218,36 @@ AI::do_build_gold_smelter_and_connect_gold_mines() {
         continue;
       if (flag->get_building()->get_type() != Building::TypeGoldMine)
         continue;
-      AILogDebug["do_build_gold_smelter_and_connect_gold_mines"] << inventory_pos << " disconnected gold mine found with flag pos " << flag->get_position();
+      MapPos flag_pos = flag->get_position();
+      MapPos building_pos = flag->get_building()->get_position();
+      AILogDebug["do_build_gold_smelter_and_connect_gold_mines"] << inventory_pos << " disconnected gold mine found with flag pos " << flag_pos;
       AILogInfo["do_build_gold_smelter_and_connect_gold_mines"] << inventory_pos << " trying to connect unfinished gold mine flag to road system";
       Road notused; // not used here, can I just pass a zero instead of &notused to build_best_road and skip initialization of a wasted object?
       //bool was_built = AI::build_best_road(flag->get_position(), road_options, &notused, "do_connect_gold_mines");
       // updated with verify_stock = true
-      bool was_built = AI::build_best_road(flag->get_position(), road_options, &notused, "do_connect_gold_mines(canPassthru):Building::TypeGoldMine@"+std::to_string(flag->get_position()), Building::TypeNone, Building::TypeNone, bad_map_pos, true);
+      bool was_built = AI::build_best_road(flag->get_position(), road_options, &notused, "do_connect_gold_mines(canPassthru):Building::TypeGoldMine@"+std::to_string(flag_pos), Building::TypeNone, Building::TypeNone, bad_map_pos, true);
       if (!was_built && road_options.test(RoadOption::AllowPassthru)){
         AILogDebug["do_connect_gold_mines"] << "failed to build road using Passthru, trying again without it";
         road_options.reset(RoadOption::AllowPassthru);
-        was_built = AI::build_best_road(flag->get_position(), road_options, &notused, "do_connect_gold_mines(nonPassthru):Building::TypeGoldMine@"+std::to_string(flag->get_position()), Building::TypeNone, Building::TypeNone, bad_map_pos, true);
+        was_built = AI::build_best_road(flag->get_position(), road_options, &notused, "do_connect_gold_mines(nonPassthru):Building::TypeGoldMine@"+std::to_string(flag_pos), Building::TypeNone, Building::TypeNone, bad_map_pos, true);
         road_options.set(RoadOption::AllowPassthru);
       }
       if (!was_built) {
         AILogInfo["do_build_gold_smelter_and_connect_gold_mines"] << inventory_pos << " failed to connect gold mine to road network!  demolishing it and its flag ";
+        // the build_best road call can be long, double-check to make sure this building and flag even still exist!
+        Flag *failed_flag = game->get_flag_at_pos(flag_pos);
+        Building *failed_building = game->get_building_at_pos(building_pos);
         mutex_lock("AI::do_build_gold_smelter_and_connect_gold_mines calling demolish flag&building (failed to connect gold mine)");
-        game->demolish_building(flag->get_building()->get_position(), player);
-        AILogDebug["do_build_gold_smelter_and_connect_gold_mines"] << inventory_pos << " demolishing flag for gold mine that could not be connected to road network";
-        // getting crashes here, try checking for flag is nullptr
-        if (flag == nullptr){
-          AILogWarn["do_build_gold_smelter_and_connect_gold_mines"] << inventory_pos << " debug flag is now nullptr, not running demolish_flag";
+        if (failed_building == nullptr){
+          AILogInfo["do_build_gold_smelter_and_connect_gold_mines"] << inventory_pos << " the failed building no longer exists, nothing to demolish";
         }else{
-          AILogDebug["do_build_gold_smelter_and_connect_gold_mines"] << inventory_pos << " debug about to call demolish_flag";
-          game->demolish_flag(flag->get_position(), player);
+          game->demolish_building(building_pos, player);
+        }
+        AILogDebug["do_build_gold_smelter_and_connect_gold_mines"] << inventory_pos << " demolishing flag for gold mine that could not be connected to road network";
+        if (failed_flag == nullptr){
+          AILogInfo["do_build_gold_smelter_and_connect_gold_mines"] << inventory_pos << " the failed flag no longer exists, nothing to demolish";
+        }else{
+          game->demolish_flag(flag_pos, player);
         }
         mutex_unlock();
         // sleep to appear more human
@@ -4065,6 +4309,44 @@ AI::do_attack() {
     AILogDebug["do_attack"] << "idle_knights " << idle_knights << " is at least knights_min " << knights_min << ", loss tolerance is " << loss_tolerance;
   }else{
     AILogDebug["do_attack"] << "idle_knights " << idle_knights << " is at below knights_min " << knights_min << ", loss tolerance is " << loss_tolerance << ", NOT ATTACKING";
+  }
+
+  // if we can no longer expand by building Huts AND if no resources of a given type are found within our borders
+  //  alter the attack behavior to make desperate attacks to claim resources
+
+  cannot_expand_borders = true;
+  no_coal_within_borders = true;
+  no_ironore_within_borders = true;
+  no_goldore_within_borders = true;
+  no_stone_within_borders = true;
+
+  for (MapPos tmp_inv_pos : stocks_pos) {
+    //AILogDebug["do_attack"] << "DEBUG stock_building_counts.at(" << tmp_inv_pos << ").inv_cannot_expand_borders is " << stock_building_counts.at(tmp_inv_pos).inv_cannot_expand_borders;
+    if (stock_building_counts.at(tmp_inv_pos).inv_cannot_expand_borders == false){
+      AILogDebug["do_attack"] << "at least one Inventory (ex. " << tmp_inv_pos << ") can expand borders, not making desperate attacks";
+      cannot_expand_borders = false;
+      break;
+    }
+    if (stock_building_counts.at(tmp_inv_pos).inv_has_no_coal == false){
+      AILogDebug["do_attack"] << "at least one Inventory (ex. " << tmp_inv_pos << ") has coal, not making desperate attacks for coal";
+      no_coal_within_borders = false;
+    }
+    if (stock_building_counts.at(tmp_inv_pos).inv_has_no_ironore == false){
+      AILogDebug["do_attack"] << "at least one Inventory (ex. " << tmp_inv_pos << ") has ironore, not making desperate attacks for iron";
+      no_ironore_within_borders = false;
+    }
+    if (stock_building_counts.at(tmp_inv_pos).inv_has_no_goldore == false){
+      AILogDebug["do_attack"] << "at least one Inventory (ex. " << tmp_inv_pos << ") has goldore, not making desperate attacks for gold";
+      no_goldore_within_borders = false;
+    }
+    if (stock_building_counts.at(tmp_inv_pos).inv_has_no_stone == false){
+      AILogDebug["do_attack"] << "at least one Inventory (ex. " << tmp_inv_pos << ") has stone, not making desperate attacks for stone";
+      no_stone_within_borders = false;
+    }
+  }
+
+  if (cannot_expand_borders && (no_coal_within_borders || no_ironore_within_borders || no_goldore_within_borders || no_stone_within_borders)){
+    AILogDebug["do_attack"] << "at least one resource is totally unavailable within our borders, and we cannot expand borders, will make desperate attacks for resouces!";
   }
 
   if (loss_tolerance > 0){
@@ -4880,7 +5162,7 @@ AI::do_connect_disconnected_road_networks(){
         road_options.set(RoadOption::ReconnectNetwork);
         road_options.reset(RoadOption::AllowPassthru); // passthru is not a good idea for this
         // BUG - seeing a road attempt to be "reconnected" to a new-splitting-flag part of SAME NETWORK
-        bool was_plotted = AI::build_best_road(flag_pos, road_options, &road_solution, "do_connect_disconnected_road_networks:Flag@"+std::to_string(flag->get_position()));
+        bool was_plotted = AI::build_best_road(flag_pos, road_options, &road_solution, "do_connect_disconnected_road_networks:Flag@"+std::to_string(flag_pos));
         if (was_plotted && road_solution.get_length() > 0){
           MapPos end_pos = road_solution.get_end(map.get());
           AILogDebug["do_connect_disconnected_road_networks"] << "DISCONNECTED ROAD SYSTEM: network[" << i << "], was able to plot a road from flag at pos " << flag_pos << " to end_pos " << end_pos << " with new length " << road_solution.get_length();
@@ -4969,7 +5251,11 @@ AI::do_build_3rd_lumberjack() {
     MapPos built_pos = bad_map_pos;
     for (MapPos corner_pos : search_positions) {
       AILogDebug["do_build_3rd_lumberjack"] << inventory_pos << " try to build lumberjack near pos " << corner_pos;
+      road_options.set(RoadOption::IncreasedNewLengthPenalty);
+      road_options.reset(RoadOption::AllowPassthru);
       built_pos = AI::build_near_pos(corner_pos, AI::spiral_dist(4), Building::TypeLumberjack);
+      road_options.reset(RoadOption::IncreasedNewLengthPenalty);
+      road_options.set(RoadOption::AllowPassthru);
       if (built_pos != bad_map_pos && built_pos != notplaced_pos) {
         AILogDebug["do_build_3rd_lumberjack"] << inventory_pos << " built 3rd lumberjack at pos " << built_pos;
         stock_building_counts.at(inventory_pos).count[Building::TypeLumberjack]++;

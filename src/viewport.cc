@@ -456,7 +456,28 @@ Viewport::draw_down_tile_col(MapPos pos, int x_base, int y_base,
 void
 Viewport::layout() {
   Log::Debug["viewport.cc"] << "inside Viewport::layout(), flushing entire landscape_tiles cache";
+//  last_res_height = height;
+//  last_res_width = width;
+//  Log::Debug["viewport.cc"] << "inside Viewport::layout(), updating last_res_width/height to " << last_res_width << "," << last_res_height;
+//  last_window_width = width;
+//  last_window_height = height;
+//  Log::Debug["viewport.cc"] << "inside Viewport::layout(), updating last_window_width/height to " << last_window_width << "," << last_window_height;
   landscape_tiles.clear();
+}
+
+// work-around because GUIObject can't directly reference Viewport vars
+//void
+//Viewport::store_prev_res() {
+//  last_res_height = height;
+//  last_res_width = width;
+//  Log::Debug["viewport.cc"] << "inside Viewport::store_prev_res(), updating last_res_width/height to " << last_res_width << "," << last_res_height;
+//}
+// work-around because GUIObject can't directly reference Viewport vars
+void
+Viewport::store_prev_window_size() {
+  last_window_height = height;
+  last_window_width = width;
+  Log::Debug["viewport.cc"] << "inside Viewport::store_prev_window_size(), updating last_window_height/height to " << last_window_height << "," << last_window_width;
 }
 
 // flush a single tile, which is 16x16 block of MapPos triangle-pairs
@@ -1162,6 +1183,7 @@ void
 Viewport::draw_unharmed_building(Building *building, int lx, int ly) {
   Random random;
 
+/* moved this to Viewport class object
   static const int pigfarm_anim[] = {
     0xa2, 0, 0xa2, 0, 0xa2, 0, 0xa2, 0, 0xa2, 0, 0xa3, 0,
     0xa2, 1, 0xa3, 1, 0xa2, 2, 0xa3, 2, 0xa2, 3, 0xa3, 3,
@@ -1186,6 +1208,7 @@ Viewport::draw_unharmed_building(Building *building, int lx, int ly) {
     0xa4, 2, 0xa5, 2, 0xa4, 1, 0xa5, 1, 0xa4, 0, 0xa5, 0,
     0xa2, 0, 0xa2, 0
   };
+  */
 
   if (building->is_done()) {
     Building::Type type = building->get_type();
@@ -1268,6 +1291,7 @@ Viewport::draw_unharmed_building(Building *building, int lx, int ly) {
           }
         }
 
+/* moved to Viewport class object
         int pigs_layout[] = {
           0,   0,   0,  0,
           1,  40,   2, 11,
@@ -1279,6 +1303,7 @@ Viewport::draw_unharmed_building(Building *building, int lx, int ly) {
           7, 180,  -8, 13,
           8, 320,  13, 14,
         };
+*/  
 
         for (int p = 1; p <= pigs_count; p++) {
           if (pigs_count >= pigs_layout[p * 4]) {
@@ -1377,6 +1402,8 @@ Viewport::draw_unharmed_building(Building *building, int lx, int ly) {
 
 void
 Viewport::draw_burning_building(Building *building, int lx, int ly) {
+
+  /* moved these to Viewport class object
   const int building_anim_offset_from_type[] = {
     0, 10, 26, 39, 49, 62, 78, 97, 97, 116,
     129, 157, 167, 198, 211, 236, 255, 277, 305, 324,
@@ -1384,207 +1411,11 @@ Viewport::draw_burning_building(Building *building, int lx, int ly) {
   };
 
   const int building_burn_animation[] = {
-    /* Unfinished */
     0, -8, 2,
     8, 0, 4,
     0, 8, 2, -1,
-
-    /* Fisher */
-    0, -8, -10,
-    0, 4, -12,
-    8, -8, 4,
-    8, 7, 4,
-    0, -2, 8, -1,
-
-    /* Lumberjack */
-    0, 3, -13,
-    0, -8, -10,
-    8, 9, 3,
-    8, -6, 3, -1,
-
-    /* Boat builder */
-    0, -1, -12,
-    8, -8, 11,
-    8, 7, 5, -1,
-
-    /* Stone cutter */
-    0, 6, -14,
-    0, -9, -11,
-    8, -8, 5,
-    8, 6, 5, -1,
-
-    /* Stone mine */
-    8, -4, -40,
-    8, -8, -15,
-    8, 3, -14,
-    8, -9, 4,
-    8, 6, 5, -1,
-
-    /* Coal mine */
-    8, -4, -40,
-    8, -1, -18,
-    8, -8, -15,
-    8, 6, 2,
-    8, 0, 8,
-    8, -8, 9, -1,
-
-    /* Iron mine, gold mine */
-    8, -4, -40,
-    8, -2, -19,
-    8, -9, -14,
-    8, -8, 2,
-    8, 6, 2,
-    0, -4, 8, -1,
-
-    /* Forester */
-    0, 8, -11,
-    0, -6, -8,
-    8, -8, 4,
-    8, 6, 4, -1,
-
-    /* Stock */
-    0, -2, -25,
-    0, 6, -17,
-    0, -9, -16,
-    8, -21, 1,
-    8, 21, 2,
-    0, 15, 18,
-    0, -16, 10,
-    8, -8, 15,
-    8, 5, 15, -1,
-
-    /* Hut */
-    0, 0, -11,
-    8, -8, 5,
-    8, 8, 5, -1,
-
-    /* Farm */
-    8, 22, -2,
-    8, 7, -5,
-    8, -3, -1,
-    8, -23, 0,
-    8, -12, 4,
-    0, 25, 5,
-    0, 21, 13,
-    0, -17, 8,
-    0, -10, 15,
-    0, -2, 15, -1,
-
-    /* Butcher */
-    8, -15, 3,
-    8, 20, 3,
-    8, 7, 3,
-    8, -4, 3, -1,
-
-    /* Pig farm */
-    8, 0, -2,
-    8, 22, 1,
-    8, 15, 5,
-    8, -20, -1,
-    8, -11, 3,
-    0, 20, 12,
-    0, -16, 7,
-    0, -12, 14, -1,
-
-    /* Mill */
-    0, 7, -33,
-    0, 5, -20,
-    8, -2, -24,
-    8, -6, 1,
-    8, 4, 2,
-    0, -3, 6, -1,
-
-    /* Baker */
-    0, -15, -16,
-    0, -4, -19,
-    0, 3, -16,
-    8, -13, 2,
-    8, -9, 7,
-    8, 6, 7,
-    0, 17, 1, -1,
-
-    /* Saw mill */
-    0, 7, -19,
-    0, -1, -14,
-    0, 16, -13,
-    0, 5, -8,
-    8, 14, 4,
-    0, 10, 9,
-    0, -17, 8,
-    8, -11, 10,
-    8, -1, 12, -1,
-
-    /* Steel smelter */
-    0, 5, -19,
-    0, 16, -16,
-    8, -14, 2,
-    8, -10, 5,
-    8, 15, 5,
-    8, 2, 5, -1,
-
-    /* Tool maker */
-    8, 7, -19,
-    0, -11, -17,
-    0, -4, -11,
-    0, 12, -10,
-    8, -20, 0,
-    8, -15, 7,
-    8, 1, 7,
-    8, 15, 7, -1,
-
-    /* Weapon smith */
-    8, -15, 1,
-    8, -10, 3,
-    8, 20, 3,
-    8, 5, 3, -1,
-
-    /* Tower */
-    0, -6, -30,
-    0, 7, -14,
-    8, -11, -3,
-    0, -8, 4,
-    8, 9, 5,
-    8, -4, 5, -1,
-
-    /* Fortress */
-    0, -3, -30,
-    0, -15, -26,
-    0, 21, -29,
-    0, -13, -17,
-    8, 4, -11,
-    8, -2, -6,
-    8, -22, 0,
-    8, -17, 8,
-    8, 20, 1,
-    8, 10, 8,
-    8, 4, 13,
-    8, -11, 15, -1,
-
-    /* Gold smelter */
-    0, -15, -20,
-    0, 10, -22,
-    0, -3, -25,
-    0, -8, -10,
-    0, 7, -10,
-    0, -13, 2,
-    8, -8, 5,
-    8, 6, 5,
-    0, 16, 6, -1,
-
-    /* Castle */
-    0, 11, -46,
-    0, -19, -42,
-    8, 1, -27,
-    8, 10, -13,
-    0, -7, -24,
-    8, -16, -6,
-    0, -23, 4,
-    8, -2, 0,
-    8, 12, 12,
-    8, -14, 17,
-    8, -4, 19,
-    0, 13, 19, -1
-  };
+...
+  */
 
   /* Play sound effect. */
   if (((building->get_burning_counter() >> 3) & 3) == 3 &&
@@ -1679,6 +1510,7 @@ Viewport::draw_flag_and_res(MapPos pos, int lx, int ly) {
   // debug - highlight all flags on Debug overlay
   //interface->get_game()->set_debug_mark_pos(pos, "red");
 
+  /* moved this to inside Viewport class object
   int res_pos[] = {  6, -4,
                     10, -2,
                     -4, -4,
@@ -1687,6 +1519,7 @@ Viewport::draw_flag_and_res(MapPos pos, int lx, int ly) {
                      6,  4,
                     -8,  2,
                     -4,  4 };
+  */
 
   for (unsigned int i = 0; i < 3; i++) {
     if (flag->get_resource_at_slot(i) != Resource::TypeNone) {
@@ -1702,7 +1535,7 @@ Viewport::draw_flag_and_res(MapPos pos, int lx, int ly) {
   //  a flag owner is being set to invalid.   Might be a save/load thing?
   // Also, check and throw error here
   if (pl_num < 0 || pl_num > 3){
-    Log::Error["viewport.cc"] << "inside Viewpot::draw_flag_and_res for MapPos "<< pos << ", flag->get_owner returned invalid player index " << pl_num << "!  get_player_color will return 'black' as a fallback to avoid crashing";
+    Log::Error["viewport.cc"] << "inside Viewport::draw_flag_and_res for MapPos "<< pos << ", flag->get_owner returned invalid player index " << pl_num << "!  get_player_color will return 'black' as a fallback to avoid crashing";
   }
   Color player_color = interface->get_player_color(pl_num);
 
@@ -1716,6 +1549,7 @@ Viewport::draw_flag_and_res(MapPos pos, int lx, int ly) {
         flag->get_resource_at_slot(i) + 1);
     }
   }
+  
 }
 
 void
@@ -1769,9 +1603,9 @@ Viewport::draw_map_objects_row(MapPos pos, int y_base, int cols, int x_base) {
     if (map->get_obj(pos) < Map::ObjectTree0) {
       //Log::Debug["viewport.cc"] << "inside draw_map_objects, pos " << pos << " has flag/building/castle sprite type" << map->get_obj(pos);
       if (map->get_obj(pos) == Map::ObjectFlag) {
-        draw_flag_and_res(pos, x_base, ly);
+        draw_flag_and_res(pos, x_base, ly);  // NOTE, disabling this causes a significant performance gain, look for ways to improve this function
       } else if (map->get_obj(pos) <= Map::ObjectCastle) {
-        draw_building(pos, x_base, ly);
+        draw_building(pos, x_base, ly);  // NOTE, disabling this causes a significant performance gain (though not as large as disabling Flag drawing), look for ways to improve this function
       }
     } else {
       //Log::Debug["viewport.cc"] << "inside draw_map_objects, pos " << pos << " has sprite " << map->get_obj(pos) - Map::ObjectTree0;
@@ -1792,13 +1626,14 @@ Viewport::draw_map_objects_row(MapPos pos, int y_base, int cols, int x_base) {
           // use junk objects that only appear in deserts to trigger desert wind sounds
           //  cannot use desert terrain in view because landscape is not constantly redrawn
           if (map->get_obj(pos) == Map::ObjectCactus0   || map->get_obj(pos) == Map::ObjectCactus1
-          || map->get_obj(pos) == Map::ObjectCadaver0  || map->get_obj(pos) == Map::ObjectCadaver1
+          ||  map->get_obj(pos) == Map::ObjectCadaver0  || map->get_obj(pos) == Map::ObjectCadaver1
           || (map->get_obj(pos) >= Map::ObjectPalm0 && map->get_obj(pos) <= Map::ObjectPalm3)) {
             interface->desert_in_view += 1;
             //Log::Info["viewport.cc"] << "desert junk objects in view: " << interface->desert_in_view;
           }
           // there's a bug with water tile map generation, seems only one water tree is rendered
           //  and always top row, top left??  include all anyway in case I eventually fix that
+          // THAT BUG IS NOW FIXED AND WATER TREES AND STONES CAN APPEAR NORMALLY
           if ((map->get_obj(pos) >= Map::ObjectWaterTree0 && map->get_obj(pos) <= Map::ObjectWaterTree3)
             || map->get_obj(pos) >= Map::ObjectWaterStone0 || map->get_obj(pos) >= Map::ObjectWaterStone1) {
             interface->water_in_view += 1;
@@ -1876,8 +1711,8 @@ Viewport::draw_map_objects_row(MapPos pos, int y_base, int cols, int x_base) {
               // green->0greenyellow->3orangered
               // green->5reddull->7brown
               // green->4redbright->5reddull
-        int fall_1st_colors[8] = {  0, 10, 20, 60, 10,  0, 50, 40};              
-        int fall_2nd_colors[8] = { 20, 30, 50, 20, 70, 30, 70, 50};              
+        //int fall_1st_colors[8] = {  0, 10, 20, 60, 10,  0, 50, 40};    // moved to Viewport class variable            
+        //int fall_2nd_colors[8] = { 20, 30, 50, 20, 70, 30, 70, 50};    // moved to Viewport class variable             
         if (sprite < 8){
           // these are deciduous trees, apply special FourSeasons rules
           if (option_FourSeasons){
@@ -1962,113 +1797,85 @@ Viewport::draw_map_objects_row(MapPos pos, int y_base, int cols, int x_base) {
 
       } // if sprite < 24 (various tree types)
 
-      /* disabling this, instead modifying the rgb palette color of the original sprites
-
-      // FourSeasons - in WINTER make Seed# objects (immature fields) appear as spent fields
-      //   though they are just dormant and will revert to their original graphics in spring
-      //   THIS IS SOLELY BECAUSE THE Seeds0/1/2 are too GREEN and it clashes
-      //  a much better approach is to set a custom graphic that is less green but looks like Seed0
-      //   otherwise and use that for all new fields
-      // ObjectSeeds0, // #105  - 8
-      // ObjectSeeds1,
-      // ObjectSeeds2,
-      // ObjectSeeds3,  <-- these are mature enough to not be "seeds" anymore, leave these
-      // ObjectSeeds4,
-      // ObjectSeeds5, // #110  - 8
-      // ObjectFieldExpired, // #111   - 8
-      if (option_FourSeasons && season == 3){
-        // REMEMBER THAT
-        //  'sprite' is reduced by 8 / Map::ObjectTree0 earlier in this function because 0-7 are some placeholders?
-        if ((sprite >= Map::ObjectSeeds0 - Map::ObjectTree0) && (sprite <= Map::ObjectSeeds2 - Map::ObjectTree0)){  // a bit more snow on mountains in winter
-          Log::Debug["viewport.cc"] << "using alternate sprite 111 ObjectFieldExpired for ObjectSeeds sprite " << sprite;
-          sprite = Map::ObjectFieldExpired - Map::ObjectTree0;
-        }else{
-          Log::Debug["viewport.cc"] << "using original " << sprite << " for non-ObjectSeeds object type #" << sprite;
-        }
-      } 
-      */
-
-
-      /*  moved into crammed animation above
-      // cattails at water edge
-      if (sprite == Map::ObjectCattail0 - Map::ObjectTree0){
-        Log::Debug["viewport.cc"] << "inside Viewport::draw_map_objects_row, found cattail at pos " << pos;
-        use_custom_set = true;
-        sprite = 1150;
-      }
-      */
 
       // normal bright Flowers
-      bool flower = false;  // dumb work-around to avoid being foild by sprite += 1000
+      bool flower = false;  // dumb work-around to avoid being foiled by sprite += 1000
       //if (( sprite >= Map::ObjectFlowerGroupA0 - Map::ObjectTree0 && sprite <= Map::ObjectFlowerGroupA6 - Map::ObjectTree0 )
       //||  ( sprite >= Map::ObjectFlowerGroupB0 - Map::ObjectTree0 && sprite <= Map::ObjectFlowerGroupB6 - Map::ObjectTree0 ) ){
-      if ( ( sprite >= Map::ObjectFlowerGroupA0 - Map::ObjectTree0 && sprite <= Map::ObjectFlowerGroupC6 - Map::ObjectTree0 ) ){
-        if (option_FourSeasons && season == 0){
-          //Log::Debug["viewport.cc"] << "inside Viewport::draw_map_objects_row, subseason is " << subseason;
-          // gradually introduce flowers as Spring progresses
-          if (subseason == 0){
-            // introduce A & C
-            if (sprite >= Map::ObjectFlowerGroupA0 - Map::ObjectTree0 && sprite <= Map::ObjectFlowerGroupA6 - Map::ObjectTree0 ){
-              sprite = Map::ObjectFlowerGroupA0 - Map::ObjectTree0;
+      //if (option_FourSeasons){ // CANNOT DO THIS CHECK because we must identify flowers to be NOT DRAWN even if option_FourSeasons is on
+        if ( ( sprite >= Map::ObjectFlowerGroupA0 - Map::ObjectTree0 && sprite <= Map::ObjectFlowerGroupC6 - Map::ObjectTree0 ) ){
+          if (option_FourSeasons && season == 0){
+            //Log::Debug["viewport.cc"] << "inside Viewport::draw_map_objects_row, subseason is " << subseason;
+            // gradually introduce flowers as Spring progresses
+            if (subseason == 0){
+              // introduce A & C
+              if (sprite >= Map::ObjectFlowerGroupA0 - Map::ObjectTree0 && sprite <= Map::ObjectFlowerGroupA6 - Map::ObjectTree0 ){
+                sprite = Map::ObjectFlowerGroupA0 - Map::ObjectTree0;
+              }
+              if (sprite >= Map::ObjectFlowerGroupB0 - Map::ObjectTree0 && sprite <= Map::ObjectFlowerGroupB6 - Map::ObjectTree0 ){
+                continue;
+              }
+              if (sprite >= Map::ObjectFlowerGroupC0 - Map::ObjectTree0 && sprite <= Map::ObjectFlowerGroupC6 - Map::ObjectTree0 ){
+                sprite = Map::ObjectFlowerGroupC0 - Map::ObjectTree0;
+              }
+            }else if (subseason == 1){
+              // allow 2nd level of A & C
+              if (sprite >= Map::ObjectFlowerGroupA2 - Map::ObjectTree0 && sprite <= Map::ObjectFlowerGroupA6 - Map::ObjectTree0 ){
+                sprite = Map::ObjectFlowerGroupA1 - Map::ObjectTree0;
+              }
+              if (sprite >= Map::ObjectFlowerGroupB0 - Map::ObjectTree0 && sprite <= Map::ObjectFlowerGroupB6 - Map::ObjectTree0 ){
+                continue;
+              }
+              if (sprite >= Map::ObjectFlowerGroupC2 - Map::ObjectTree0 && sprite <= Map::ObjectFlowerGroupC6 - Map::ObjectTree0 ){
+                sprite = Map::ObjectFlowerGroupC1 - Map::ObjectTree0;
+              }
+            }else if (subseason == 2){
+              // introduce B, allow full range of A & C
+              if (sprite >= Map::ObjectFlowerGroupB0 - Map::ObjectTree0 && sprite <= Map::ObjectFlowerGroupB6 - Map::ObjectTree0 ){
+                sprite = Map::ObjectFlowerGroupB0 - Map::ObjectTree0;
+              }
+            }else if (subseason == 3){
+              // allow 2nd level B, allow full range of A & C
+              if (sprite >= Map::ObjectFlowerGroupB2 - Map::ObjectTree0 && sprite <= Map::ObjectFlowerGroupB6 - Map::ObjectTree0 ){
+                sprite = Map::ObjectFlowerGroupB1 - Map::ObjectTree0;
+              }
             }
-            if (sprite >= Map::ObjectFlowerGroupB0 - Map::ObjectTree0 && sprite <= Map::ObjectFlowerGroupB6 - Map::ObjectTree0 ){
-              continue;
+            // allow full range of all
+            
+            // turn them off in reverse order (because else if)
+            if (subseason >= 12){
+              // turn off all
+              if (sprite >= Map::ObjectFlowerGroupA0 - Map::ObjectTree0 && sprite <= Map::ObjectFlowerGroupC6 - Map::ObjectTree0 ){
+                continue;
+              }
+            }else if (subseason >= 10){
+              // turn off A & C
+              if (sprite >= Map::ObjectFlowerGroupA0 - Map::ObjectTree0 && sprite <= Map::ObjectFlowerGroupA6 - Map::ObjectTree0 
+              || sprite >= Map::ObjectFlowerGroupC0 - Map::ObjectTree0 && sprite <= Map::ObjectFlowerGroupC6 - Map::ObjectTree0 ){
+                continue;
+              }
+            }else if (subseason >= 8){
+              // turn off A
+              if (sprite >= Map::ObjectFlowerGroupA0 - Map::ObjectTree0 && sprite <= Map::ObjectFlowerGroupA6 - Map::ObjectTree0 ){
+                continue;
+              }
             }
-            if (sprite >= Map::ObjectFlowerGroupC0 - Map::ObjectTree0 && sprite <= Map::ObjectFlowerGroupC6 - Map::ObjectTree0 ){
-              sprite = Map::ObjectFlowerGroupC0 - Map::ObjectTree0;
-            }
-          }else if (subseason == 1){
-            // allow 2nd level of A & C
-            if (sprite >= Map::ObjectFlowerGroupA2 - Map::ObjectTree0 && sprite <= Map::ObjectFlowerGroupA6 - Map::ObjectTree0 ){
-              sprite = Map::ObjectFlowerGroupA1 - Map::ObjectTree0;
-            }
-            if (sprite >= Map::ObjectFlowerGroupB0 - Map::ObjectTree0 && sprite <= Map::ObjectFlowerGroupB6 - Map::ObjectTree0 ){
-              continue;
-            }
-            if (sprite >= Map::ObjectFlowerGroupC2 - Map::ObjectTree0 && sprite <= Map::ObjectFlowerGroupC6 - Map::ObjectTree0 ){
-              sprite = Map::ObjectFlowerGroupC1 - Map::ObjectTree0;
-            }
-          }else if (subseason == 2){
-            // introduce B, allow full range of A & C
-            if (sprite >= Map::ObjectFlowerGroupB0 - Map::ObjectTree0 && sprite <= Map::ObjectFlowerGroupB6 - Map::ObjectTree0 ){
-              sprite = Map::ObjectFlowerGroupB0 - Map::ObjectTree0;
-            }
-          }else if (subseason == 3){
-            // allow 2nd level B, allow full range of A & C
-            if (sprite >= Map::ObjectFlowerGroupB2 - Map::ObjectTree0 && sprite <= Map::ObjectFlowerGroupB6 - Map::ObjectTree0 ){
-              sprite = Map::ObjectFlowerGroupB1 - Map::ObjectTree0;
-            }
-          }
-          // allow full range of all
-          
-          // turn them off in reverse order (because else if)
-          if (subseason >= 12){
-            // turn off all
-            if (sprite >= Map::ObjectFlowerGroupA0 - Map::ObjectTree0 && sprite <= Map::ObjectFlowerGroupC6 - Map::ObjectTree0 ){
-              continue;
-            }
-          }else if (subseason >= 10){
-            // turn off A & C
-            if (sprite >= Map::ObjectFlowerGroupA0 - Map::ObjectTree0 && sprite <= Map::ObjectFlowerGroupA6 - Map::ObjectTree0 
-             || sprite >= Map::ObjectFlowerGroupC0 - Map::ObjectTree0 && sprite <= Map::ObjectFlowerGroupC6 - Map::ObjectTree0 ){
-              continue;
-            }
-          }else if (subseason >= 8){
-            // turn off A
-            if (sprite >= Map::ObjectFlowerGroupA0 - Map::ObjectTree0 && sprite <= Map::ObjectFlowerGroupA6 - Map::ObjectTree0 ){
-              continue;
-            }
-          }
 
-          sprite += 1000;
-          //Log::Debug["viewport.cc"] << "inside Viewport::draw_map_objects_row, found a flower, using sprite# + 1000, new sprite #" << sprite;
-          use_custom_set = true;
-          flower = true;
-        }else{
-          continue;
-        }
-      }
+            sprite += 1000;
+            //Log::Debug["viewport.cc"] << "inside Viewport::draw_map_objects_row, found a flower, using sprite# + 1000, new sprite #" << sprite;
+            use_custom_set = true;
+            flower = true;
+          }else{
+            // this is a flower, but we aren't going to draw it, so no point in further checks as they are only relevant to other object types
+            continue;
+          }
+        } // if this is a flower
+      //} // if option_FourSeasons is on  CANNOT DO THIS CHECK because we must identify flowers to be NOT DRAWN even if option_FourSeasons is on
 
+      //
+      // shading effect for map objects on shaded steep slopes
+      //   NOTE - this does not seem to have any meaningful performance penalty, tested with it on vs off
+      //
       // check pos two left and one right
       int left2  = map->get_height(map->move_left(map->move_left(pos)));
       //Log::Debug["viewport.cc"] << "inside Viewport::draw_map_objects_row, checking terr height, left2 with pos " << map->move_left(map->move_left(pos)) << " has height " << left2;
@@ -2087,7 +1894,6 @@ Viewport::draw_map_objects_row(MapPos pos, int y_base, int cols, int x_base) {
       //  Currently, short == 0 and tall == 1
       int obj_sprite_height = Map::obj_height_for_slope_darken[map->get_obj(pos)];
       //Log::Debug["viewport.cc"] << "inside Viewport::draw_map_objects_row, pos " << pos << ", obj type " << map->get_obj(pos) << ", obj_sprite_height for sprite #" << sprite << " is " << obj_sprite_height; 
-
 
       bool shaded = false;
 
@@ -3479,7 +3285,9 @@ Viewport::draw_game_objects(int layers_) {
 
   int draw_landscape = layers_ & LayerLandscape;
   int draw_objects = layers_ & LayerObjects;
+  //draw_objects = 0;
   int draw_serfs = layers_ & LayerSerfs;
+  //draw_serfs = 0;
   if (!draw_landscape && !draw_objects && !draw_serfs) return;
 
 
@@ -4663,6 +4471,8 @@ Viewport::Viewport(Interface *_interface, PMap _map)
   last_zoom_factor = 1.00f;  // tlongstretch, attempt to recenter screen when zooming
   last_res_width = 0; // tlongstretch, attempt to recenter screen when zooming
   last_res_height = 0; // tlongstretch, attempt to recenter screen when zooming
+  last_window_width = 0; // tlongstretch, attempt to recenter screen when zooming
+  last_window_height = 0; // tlongstretch, attempt to recenter screen when zooming
 
   last_tick = 0;
 
@@ -4880,13 +4690,15 @@ Viewport::update() {
   Graphics &gfx = Graphics::get_instance();
 
   // at start of game, resolution is unknown/zero, if so set last_res_width/height
-  if (last_res_height == 0 || last_res_width == 0){
-    Log::Debug["viewport.cc"] << "inside Viewport::update, this is probably the first update, setting last_res_width and last_res_height for later zoom checks";
+  if (last_res_height == 0 || last_res_width == 0 || last_window_width == 0 || last_window_height == 0){
+    Log::Debug["viewport.cc"] << "inside Viewport::update, this is probably the first update, setting last_res_width and last_res_height and last_window_width and last_window_height for later zoom checks";
     unsigned int res_width; 
     unsigned int res_height;
     gfx.get_resolution(&res_width, &res_height);
     last_res_width = res_width;
     last_res_height = res_height;
+    last_window_width = res_width; // tlongstretch, attempt to recenter screen when zooming
+    last_window_height = res_height; // tlongstretch, attempt to recenter screen when zooming
   }
 
   float zoom_factor = gfx.get_zoom_factor();
@@ -4900,14 +4712,27 @@ Viewport::update() {
       unsigned int res_width; 
       unsigned int res_height;
       gfx.get_resolution(&res_width, &res_height);
-      int width_change = last_res_width - res_width;
-      int height_change = last_res_height - res_height;
+      int last_width = 0;
+      int last_height = 0;
+      Log::Debug["viewport.cc"] << "inside Viewport::update, the zoom factor was just changed, last_res_width/height " << last_res_width << "," << last_res_height << " and last_window_width/height " << last_window_width << "," << last_window_height;
+      // if the window was resized since last zoom change, use the previous WINDOW size instead
+      if (last_res_height != last_window_height || last_res_width != last_window_width){
+        Log::Debug["viewport.cc"] << "inside Viewport::update, the game window was resized since last zoom, using previous WINDOW size instead of previous resolution";
+        last_width = last_window_width;
+        last_height = last_window_height;
+      }else{
+        Log::Debug["viewport.cc"] << "inside Viewport::update, the game window was not resized since last zoom, using previous RESOLUTION for comparison";
+        last_width = last_res_width;
+        last_height = last_res_height;
+      }
+      int width_change = last_width - res_width;
+      int height_change = last_height - res_height;
       int zoom_type = gfx.get_zoom_type();
       if (zoom_type == 0){  // keyboard zoom, centered on center of viewport
-        Log::Debug["viewport.cc"] << "inside Viewport::update, zoom type " << zoom_type << " (keyboard zoom), the prev resolution was " << last_res_width << "x" <<  last_res_height << ", new res is " << res_width << "x" << res_height << ", diff is " << width_change << "," << height_change;
+        Log::Debug["viewport.cc"] << "inside Viewport::update, zoom type " << zoom_type << " (keyboard zoom), the prev resolution was " << last_width << "x" <<  last_height << ", new res is " << res_width << "x" << res_height << ", diff is " << width_change << "," << height_change;
         move_by_pixels(width_change/2, height_change/2);
       }else{
-        Log::Debug["viewport.cc"] << "inside Viewport::update, zoom type " << zoom_type << " (mousewheel zoom), the prev resolution was " << last_res_width << "x" <<  last_res_height << ", new res is " << res_width << "x" << res_height << ", diff is " << width_change << "," << height_change;
+        Log::Debug["viewport.cc"] << "inside Viewport::update, zoom type " << zoom_type << " (mousewheel zoom), the prev resolution was " << last_width << "x" <<  last_height << ", new res is " << res_width << "x" << res_height << ", diff is " << width_change << "," << height_change;
         // mousewheel zoom, centered on current mouse pointer location
         int mouse_x = 0;
         int mouse_y = 0;
@@ -4951,6 +4776,8 @@ Viewport::update() {
       }
       last_res_width = res_width;
       last_res_height = res_height;
+      last_window_width = res_width;
+      last_window_height = res_height;
     }
   }
 

@@ -40,6 +40,18 @@ GuiObject::layout() {
   //Log::Debug["gui.cc"] << "the useless function GuiObject::layout() has been called";
 }
 
+//void
+//GuiObject::store_prev_res() {
+//  Log::Debug["gui.cc"] << "inside GuiObject::store_prev_res, doing nothing";
+//  //store_prev_res();
+//}
+
+void
+GuiObject::store_prev_window_size() {
+  Log::Debug["gui.cc"] << "inside GuiObject::store_prev_window_size, doing nothing";
+  //store_prev_res();
+}
+
 GuiObject *GuiObject::focused_object = nullptr;
 
 GuiObject::GuiObject() {
@@ -212,11 +224,12 @@ GuiObject::get_position(int *px, int *py) {
 
 void
 GuiObject::set_size(int new_width, int new_height) {
-  //Log::Debug["gui.cc"] << "start of GuiObject::set_size";
+  Log::Debug["gui.cc"] << "start of GuiObject::set_size";
   delete_frame();
   width = new_width;
   height = new_height;
   layout();  // this appears to do nothing for generic GuiObject, but I think it exists because it is overridden by some GuiObject superclasses such as Viewport, Interface, and their layout() is important
+  //store_prev_res();
   set_redraw();
 }
 
