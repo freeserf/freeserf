@@ -353,7 +353,32 @@ Frame::draw_sprite(int x, int y, Data::Resource res, unsigned int index, bool us
         }else if (res == Data::AssetIcon){
           orig_index = 262; // human with thumbs up player icon
         }else if (res == Data::AssetPanelButton){
-          orig_index = 13; // this is a generic fallback, need to create a table of fallbacks as they aren't linear
+          // get the original non-starred button as the base
+          //  CANNOT!  because the sprite index at this point purely represents an amiga spinning star frame
+          //   it is not possible to deduce the intended sprite
+          // ACTUALLY it is, can set a 3rd digit that indicates the intended image which could be used to
+          //  get the fallback by reversing below, but I don't feel like it right now
+          /*
+          BuildMine,    // 2
+          ButtonBuildSmall,  // 3
+          ButtonBuildLarge,  // 4
+          ButtonDestroyInactive,
+          ButtonBuildRoad, // 8
+          ButtonMap,  // 10
+          ButtonStats,  // 12
+          ButtonSett,  // 14
+          ButtonGroundAnalysis,  // 16
+          ButtonBuildSmallStarred,  // 17
+          ButtonBuildLargeStarred,  // 18
+          ButtonMapStarred,     // 19
+          ButtonStatsStarred,   // 20
+          ButtonSettStarred,    // 21
+          ButtonGroundAnalysisStarred,  // 22
+          ButtonBuildMineStarred,  // 23
+          ButtonBuildRoadStarred   // 24
+          */
+          // for now just use a placeholder button
+          orig_index = 13;
         }else{
           // Trees
           // stripping the first two digits results in 0-7 which hold the original Trees & Tree-shadows

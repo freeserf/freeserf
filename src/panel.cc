@@ -154,17 +154,6 @@ PanelBar::draw_panel_buttons() {
     ButtonSettInactive
   };
 
-  //unsigned int star_anim_frame = interface->get_game()->get_tick() % 34;
-  //star_anim_frame = star_anim_frame / 2;
-  //unsigned int star_anim_frame = (interface->get_game()->get_tick() + 50) >> 4;
-  //star_anim_frame = 16;
-  amiga_star_anim_frame++;
-  if (amiga_star_anim_frame > 16){
-    amiga_star_anim_frame = 0;
-  }
-  //amiga_star_anim_frame -= interface->get_game()->get_tick() >> 4;
-  //unsigned int star_anim_frame = (amiga_star_anim_frame % 320) / 20;
-  Log::Debug["panel.cc"] << "inside PanelBar::draw_panel_buttons, tick " << interface->get_game()->get_tick() << ", star_anim_frame " << amiga_star_anim_frame;
 
   for (int i = 0; i < 5; i++) {
     int button = panel_btns[i];
@@ -172,11 +161,33 @@ PanelBar::draw_panel_buttons() {
 
     int sx = 64 + i*48;
     int sy = 4;
-    frame->draw_sprite(sx, sy, Data::AssetPanelButton, button);
-    //int fast_anim = (interface->get_game()->get_tick() + button) >> 4;
-    //int star_anim_frame = interface->get_game()->get_tick() % 34;
-    frame->draw_sprite(sx, sy, Data::AssetPanelButton, 50 + amiga_star_anim_frame, 1);  // 1 means use offset from meta.ini
-  }
+    // if this is a starred button, draw the amiga style spinning star overlay instead of the normal static one
+    if (option_SpinningAmigaStar && button >= Button::ButtonBuildSmallStarred){
+      // get the original non-starred button as the base
+      switch (button){
+        case Button::ButtonBuildSmallStarred: button = ButtonBuildSmall; break;
+        case Button::ButtonBuildLargeStarred: button = ButtonBuildLarge; break;
+        case Button::ButtonMapStarred: button = ButtonMap; break;
+        case Button::ButtonStatsStarred: button = ButtonStats; break;
+        case Button::ButtonSettStarred: button = ButtonSett; break;
+        case Button::ButtonGroundAnalysisStarred: button = ButtonGroundAnalysis; break;
+        case Button::ButtonBuildMineStarred: button = ButtonBuildMine; break;
+        case Button::ButtonBuildRoadStarred: button = ButtonBuildRoad; break;
+        default: NOT_REACHED(); break;
+      }
+      frame->draw_sprite(sx, sy, Data::AssetPanelButton, button);
+      // draw star overtop
+      amiga_star_anim_frame++;
+      if (amiga_star_anim_frame > 16){
+        amiga_star_anim_frame = 0;
+      }
+      //Log::Debug["panel.cc"] << "inside PanelBar::draw_panel_buttons, tick " << interface->get_game()->get_tick() << ", star_anim_frame " << amiga_star_anim_frame;
+      frame->draw_sprite(sx, sy, Data::AssetPanelButton, 50 + amiga_star_anim_frame, 1);  // 1 means use offset from meta.ini
+    }else{
+      // draw normal button
+      frame->draw_sprite(sx, sy, Data::AssetPanelButton, button);
+    }
+  } // for each of the five buttons to be drawn
 }
 
 void
@@ -185,6 +196,7 @@ PanelBar::internal_draw() {
   draw_panel_frame();
   draw_panel_buttons();
 }
+
 
 /* Handle a click on the panel buttons. */
 void

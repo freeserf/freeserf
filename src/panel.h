@@ -31,29 +31,29 @@ class PanelBar : public GuiObject, public Timer::Handler {
   typedef enum Button {
     ButtonBuildInactive = 0,
     ButtonBuildFlag,
-    ButtonBuildMine,
-    ButtonBuildSmall,
-    ButtonBuildLarge,
+    ButtonBuildMine,    // 2
+    ButtonBuildSmall,  // 3
+    ButtonBuildLarge,  // 4
     ButtonBuildCastle,
     ButtonDestroy,
     ButtonDestroyInactive,
-    ButtonBuildRoad,
+    ButtonBuildRoad, // 8
     ButtonMapInactive,
-    ButtonMap,
+    ButtonMap,  // 10
     ButtonStatsInactive,
-    ButtonStats,
+    ButtonStats,  // 12
     ButtonSettInactive,
-    ButtonSett,
+    ButtonSett,  // 14
     ButtonDestroyRoad,
-    ButtonGroundAnalysis,
-    ButtonBuildSmallStarred,
-    ButtonBuildLargeStarred,
-    ButtonMapStarred,
-    ButtonStatsStarred,
-    ButtonSettStarred,
-    ButtonGroundAnalysisStarred,
-    ButtonBuildMineStarred,
-    ButtonBuildRoadStarred
+    ButtonGroundAnalysis,  // 16
+    ButtonBuildSmallStarred,  // 17
+    ButtonBuildLargeStarred,  // 18
+    ButtonMapStarred,     // 19
+    ButtonStatsStarred,   // 20
+    ButtonSettStarred,    // 21
+    ButtonGroundAnalysisStarred,  // 22
+    ButtonBuildMineStarred,  // 23
+    ButtonBuildRoadStarred   // 24
   } Button;
 
   Interface *interface;
