@@ -3124,7 +3124,8 @@ PopupBox::draw_save_box() {
 void
 PopupBox::internal_draw() {
   //Log::Debug["popup.cc"] << "inside PopupBox::internal_draw(), box type is " << box;
-  if (box == Type::TypeOptions || box == Type::TypeGameOptions || box == Type::TypeGameOptions2 || box == Type::TypeGameOptions3
+  if (box == Type::TypeOptions || box == Type::TypeGameOptions || box == Type::TypeGameOptions2
+   || box == Type::TypeGameOptions3 || box == Type::TypeGameOptions4
    || box == Type::TypeEditMapGenerator || box == PopupBox::TypeEditMapGenerator2 || box == Type::TypeLoadSave){
     draw_large_popup_box_frame();
       // work-around for joining of SettSelect and LoadSave popups, but only LoadSave doubled

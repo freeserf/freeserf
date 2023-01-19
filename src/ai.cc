@@ -3574,6 +3574,9 @@ AI::do_build_food_buildings() {
       if (farm_count == 1 && mill_count >= 1 && baker_count >= 1) {
         AILogDebug["do_build_food_buildings"] << inventory_pos << " three completed mines, a mill, and a baker exist.  Need a second wheat farm";
         need_farm = true;
+      }else if (option_HighMinerFoodConsumption && farm_count == 2 && mill_count >= 1 && baker_count >= 1) {
+        AILogDebug["do_build_food_buildings"] << inventory_pos << " two farms, three completed mines, a mill, and a baker exist, but option_HighMinerFoodConsumption is true.  Need a third wheat farm";
+        need_farm = true;
       }else{
         AILogDebug["do_build_food_buildings"] << inventory_pos << " three completed mines, but do not have both mill and baker, not building another wheat farm yet";
       }
