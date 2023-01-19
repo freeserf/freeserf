@@ -314,7 +314,8 @@ class AI {
     bool inv_has_no_coal = false;
     bool inv_has_no_ironore = false;
     bool inv_has_no_goldore = false;
-    bool inv_has_no_stone = false;
+    bool inv_has_no_stone = false;  // no stone in mountains OR above ground
+    bool inv_has_no_stone_piles = false;
   };
 
   // the count of buildings inv various completion states attached *by shortest flag dist* to this stock, plus the list of military buildings

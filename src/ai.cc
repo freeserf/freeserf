@@ -1162,7 +1162,7 @@ AI::do_fix_missing_transporters() {
       else {
         //AILogDebug["do_fix_missing_transporters"] << "timer detected BUG FOUND - NO TRANSPORTER on road at pos " << flag->get_position() << " in dir " << NameDirection[dir] << ", marking flag in cyan and dir in dk_cyan";
         // UPDATE Dec04 2022 - throw exception instead
-        AILogError["do_fix_missing_transporters"] << "timer detected BUG FOUND - NO TRANSPORTER on road at pos " << flag->get_position() << " in dir " << NameDirection[dir] << ", throwing exceptio";
+        AILogError["do_fix_missing_transporters"] << "timer detected BUG FOUND - NO TRANSPORTER on road at pos " << flag->get_position() << " in dir " << NameDirection[dir] << ", throwing exception";
         //ai_mark_pos.insert(ColorDot(flag->get_position(), "cyan"));
         //ai_mark_pos.insert(ColorDot(map->move(flag->get_position(), dir), "dk_cyan"));
         //sleep_speed_adjusted(5000);
@@ -2707,7 +2707,8 @@ AI::do_manage_mine_food_priorities() {
   unsigned int stone_count = realm_inv[Resource::TypeStone];
   //6550 is a near-zero value I chose to use as "very low priority"
   // default food priorities:
-  //food_stonemine = 13100;
+  //food_stonemine = 13100;  // orig game normal default
+  //food_stonemine = 65500;  // new AI default, make stone mine food very high because stone mines are not built unless out of stone, and then its an emergency!
   //food_coalmine = 45850;
   //food_ironmine = 45850;
   //food_goldmine = 65500;
@@ -3031,8 +3032,8 @@ AI::do_place_mines(std::string type, Building::Type building_type, Map::Object l
             if (get_stock_inv()->get_count_of(Resource::TypeStone) + stock_res_sitting_at_flags.at(inventory_pos)[Resource::TypeStone] > stones_max){  // using stones max here
               AILogDebug["do_place_mines"] << inventory_pos << " this inventory already has more than stones_max " << stones_max << " stones stored or at flags, not considering gold to be unavailable in this Inv area yet";
             }else{
-              AILogDebug["do_place_mines"] << inventory_pos << " this inventory has little to no stone stored or at flags, and no stone mines, and no stone in borders to mine, and cannot expand borders.  Must attack for gold!";
-              stock_building_counts.at(inventory_pos).inv_has_no_stone = true;
+              AILogDebug["do_place_mines"] << inventory_pos << " this inventory has little to no stone stored or at flags, and no stone mines, and no stone in borders to mine, and cannot expand borders.  Must attack for stone!";
+              stock_building_counts.at(inventory_pos).inv_has_no_stone = true;  // no stone at all!  we wouldn't even be trying to build a stone mine unless stone_piles also depleted
             }
           }else{
             throw ExceptionFreeserf("unexpected mine type");
@@ -3071,20 +3072,8 @@ AI::do_place_gold_mines(){
 void
 AI::do_place_stone_mines(){
   AILogDebug["do_place_stone_mines"] << "inside do_place_stone_mines()";
-  /* CHANGING LOGIC - if there are no stone piles in this Inventory area, maybe
-       building a stone mine isn't so bad?  switching to just using the local value
-  // check to see if we are out of above-ground stonepiles
-  //  I tried putting this in check_resource_needs but I think it gets reset before it can be effective
-  no_stone_within_borders = true;
-  for (MapPos stock_pos : stocks_pos){
-    if (stock_building_counts.at(stock_pos).inv_has_no_stone == false){
-      AILogDebug["do_place_stone_mines"] << "at least one Inventory (ex. " << stock_pos << ") has stone, not building StoneMines or making desperate attacks for stone";
-      no_stone_within_borders = false;
-    }
-  }
-  if (no_stone_within_borders){
-  */
-  if (stock_building_counts.at(inventory_pos).inv_has_no_stone == false){
+  if (stock_building_counts.at(inventory_pos).inv_has_no_stone_piles == true){
+    stock_building_counts.at(inventory_pos).inv_has_no_stone = false;
     do_place_mines("stone", Building::TypeStoneMine, Map::ObjectSignLargeStone, Map::ObjectSignSmallStone, stone_sign_density_min);
   }else{
     AILogDebug["do_place_stone_mines"] << "not considering building stone mines until all above-ground stone piles in this Inventory area exhausted";
@@ -3294,7 +3283,7 @@ void
 AI::do_build_stonecutter() {
   AILogDebug["do_build_stonecutter"] << inventory_pos << " Main Loop - stones & stonecutters";
   ai_status.assign("do_build_stonecutter");
-  stock_building_counts.at(inventory_pos).inv_has_no_stone = false;
+  stock_building_counts.at(inventory_pos).inv_has_no_stone_piles = false;
   if (stock_building_counts.at(inventory_pos).needs_stone) {
     int stonecutter_count = stock_building_counts.at(inventory_pos).count[Building::TypeStonecutter];
     // never build more than two stonecutters per Inventory area
@@ -3379,8 +3368,8 @@ AI::do_build_stonecutter() {
     
     // note lack of stone, affects AI attack logic
     if (built_pos == bad_map_pos || built_pos == notplaced_pos) {
-      AILogDebug["do_build_stonecutter"] << inventory_pos << " could not place stonecutter around this Inventory, setting inv_has_no_stone bool to true";
-      stock_building_counts.at(inventory_pos).inv_has_no_stone = true;
+      AILogDebug["do_build_stonecutter"] << inventory_pos << " could not place stonecutter around this Inventory, setting inv_has_no_stone_piles bool to true";
+      stock_building_counts.at(inventory_pos).inv_has_no_stone_piles = true;
     }
 
   }
@@ -3968,7 +3957,7 @@ void
 AI::do_connect_stone_mines() {
   ai_status.assign("do_connect_stone_mines");
   AILogDebug["do_connect_stone_mines"] << inventory_pos << " inside do_connect_stone_mines()";
-  if (stock_building_counts.at(inventory_pos).needs_stone && stock_building_counts.at(inventory_pos).inv_has_no_stone) {
+  if (stock_building_counts.at(inventory_pos).needs_stone && stock_building_counts.at(inventory_pos).inv_has_no_stone_piles) {
     if (stock_building_counts.at(inventory_pos).count[Building::TypeStoneMine] >= max_stonemines) {
       AILogDebug["do_connect_coal_mines"] << inventory_pos << " this Inventory area already has max_stonemines "  << max_stonemines << " connected stone mines, not building more";
       return;
@@ -4022,9 +4011,8 @@ AI::do_connect_stone_mines() {
         break;
       }
     }
-  }
-  else {
-    AILogDebug["do_connect_stone_mines"] << inventory_pos << " have sufficient stone and/or stone buildings, skipping";
+  }else {
+    AILogDebug["do_connect_stone_mines"] << inventory_pos << " have sufficient stone and/or above-ground stone piles, skipping";
   }
   AILogDebug["do_connect_stone_mines"] << inventory_pos << " done do_connect_stone_mines";
 }

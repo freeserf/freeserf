@@ -272,7 +272,8 @@ Player::add_timer(int timeout, MapPos pos) {
 /* Set defaults for food distribution priorities. */
 void
 Player::reset_food_priority() {
-  food_stonemine = 13100;
+  //food_stonemine = 13100;  // default
+  food_stonemine = 65500;  // make stone mine food very high because stone mines are not built unless out of stone, and then its an emergency!
   food_coalmine = 45850;
   food_ironmine = 45850;
   food_goldmine = 65500;
