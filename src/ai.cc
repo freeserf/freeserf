@@ -275,6 +275,9 @@ AI::next_loop(){
       {do_connect_iron_mines(); sleep_speed_adjusted(1000); do_send_geologists();}
 
     if(do_can_build_other())
+      {do_connect_stone_mines(); sleep_speed_adjusted(1000); do_send_geologists();}
+
+    if(do_can_build_other())
       {do_build_steelsmelter(); sleep_speed_adjusted(1000); do_send_geologists();}
 
     if(do_can_build_other())
