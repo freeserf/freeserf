@@ -1216,14 +1216,14 @@ Map::update(unsigned int tick, Random *rnd) {
 bool
 Map::can_serf_step_into(MapPos check_pos) const {
   if (Map::map_space_from_obj[get_obj(check_pos)] >= SpaceSemipassable) {
-    //Log::Debug["map.cc"] << "inside Map::can_serf_step_into, check_pos " << check_pos << ", is impassible because of blocking object";
+    Log::Debug["map.cc"] << "inside Map::can_serf_step_into, check_pos " << check_pos << ", is impassible because of blocking object";
     return false;
   }
   if (is_in_water(check_pos)) {
-    //Log::Debug["map.cc"] << "inside Map::can_serf_step_into, check_pos " << check_pos << ", is impassible because it is_in_water";
+    Log::Debug["map.cc"] << "inside Map::can_serf_step_into, check_pos " << check_pos << ", is impassible because it is_in_water";
     return false;
   }
-  //Log::Debug["map.cc"] << "inside Map::can_serf_step_into, check_pos " << check_pos << ", is crossable";
+  Log::Debug["map.cc"] << "inside Map::can_serf_step_into, check_pos " << check_pos << ", is crossable";
   return true;
 }
 

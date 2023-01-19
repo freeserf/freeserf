@@ -3258,6 +3258,7 @@ Viewport::draw_serf_row_behind(MapPos pos, int y_base, int cols, int x_base) {
         // got a segfault here after the "got nullptr" message, maybe the whole draw call needs to be cancelled?  I guess try that if it happens repeatedly
         continue;
       }
+
       if (serf->get_state() == Serf::StateMining &&
           (serf->get_mining_substate() == 3 ||
            serf->get_mining_substate() == 4 ||

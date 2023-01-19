@@ -164,9 +164,9 @@ GameOptions::save_options_to_file(){
   file << "SailorsMoveFaster=" << option_SailorsMoveFaster << "\n";
   file << "WaterDepthLuminosity=" << option_WaterDepthLuminosity << "\n";
   file << "RandomizeInstruments=" << option_RandomizeInstruments << "\n";
-  file << "option_ForesterMonoculture=" << option_ForesterMonoculture << "\n";
-  file << "option_SpinningAmigaStar=" << option_SpinningAmigaStar << "\n";
-  file << "option_HighMinerFoodConsumption=" << option_HighMinerFoodConsumption << "\n";
+  file << "ForesterMonoculture=" << option_ForesterMonoculture << "\n";
+  file << "SpinningAmigaStar=" << option_SpinningAmigaStar << "\n";
+  file << "HighMinerFoodConsumption=" << option_HighMinerFoodConsumption << "\n";
   
 
  /*

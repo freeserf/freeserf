@@ -1089,6 +1089,33 @@ Game::update() {
   }
   */
 
+  // corruption debugging, saw an issue where Building has holder serf, but the holder serf's own state
+  //  and pos indicate he is actually in the castle in IdleInStock
+  ticks_since_last_corruption_detection += game_ticks_per_update;
+  if (ticks_since_last_corruption_detection > 20000){
+    Log::Warn["game.cc"] << "inside Game::update, player building-holder-in-wrong-place-state detection running now, tick " << tick;
+    ticks_since_last_corruption_detection = 0;
+    for (Building *building : buildings) {
+      if (building->get_index() == 0) continue;
+      if (!building->has_serf()) continue;
+      // check for Serfs that are IdleInStock but supposed to be holding a building
+      if (building->get_type() == Building::TypeCastle || building->get_type() == Building::TypeStock) continue;
+      Serf *holder = get_serf(building->get_holder_or_first_knight());
+      if (holder == nullptr){
+        Log::Warn["game.cc"] << "inside Game::update, CORRUPTION DETECTION, a serf holder is nullptr, suppod to be holder to building #" << building->get_index() << " at building pos " << building->get_position();
+        continue;
+      }
+      if (holder->get_index() == 0) continue; // dunno why this index0 serf exists
+      if (holder->get_state() <= Serf::StateTransporting){
+        Log::Error["game.cc"] << "inside Game::update, CORRUPTION DETECTION, serf #" << holder->get_index() << " with serf->pos " << holder->get_pos() << " is marked as holder to building#" << building->get_index() << " at building pos " << building->get_position() << ", BUT HE HAS NON-MATCHING STATE #" << holder->get_state();
+        Log::Error["game.cc"] << "inside Game::update, CORRUPTION DETECTION, marking serf pos in red and held building pos in yellow and pausing";
+        set_debug_mark_pos(building->get_position(), "yellow");
+        set_debug_mark_pos(holder->get_pos(), "red");
+        pause();
+      }
+    }
+  }
+
 /*
   Log::Info["game"] << "option_EnableAutoSave is " << option_EnableAutoSave;
   Log::Info["game"] << "option_ImprovedPigFarms is " << option_ImprovedPigFarms;   // removing this as it turns out the default behavior for pig farms is to require almost no grain

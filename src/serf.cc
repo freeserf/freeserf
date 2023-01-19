@@ -4453,12 +4453,14 @@ Serf::handle_serf_planting_state() {
 
 void
 Serf::handle_serf_planning_stonecutting() {
+  Log::Debug["serf.cc"] << "inside Serf::handle_serf_planning_stonecutting, for serf with index " << get_index() << " and pos " << get_pos();
   uint16_t delta = game->get_tick() - tick;
   tick = game->get_tick();
   counter -= delta;
 
   PMap map = game->get_map();
   while (counter < 0) {
+    Log::Debug["serf.cc"] << "inside Serf::handle_serf_planning_stonecutting, for serf with index " << get_index() << " and pos " << get_pos() << ", counter < 0";
     int dist = (game->random_int() & 0x7f) + 1;
     MapPos pos_ = map->pos_add_spirally(pos, dist);
     int obj = map->get_obj(map->move_up_left(pos_));
@@ -4473,6 +4475,7 @@ Serf::handle_serf_planning_stonecutting() {
       Log::Verbose["serf"] << "planning stonecutting: stone found, dist "
                            << s.leaving_building.field_B << ", "
                            << s.leaving_building.dest << ".";
+      Log::Debug["serf.cc"] << "inside Serf::handle_serf_planning_stonecutting, for serf with index " << get_index() << " and pos " << get_pos() << ", heading to pos_" << pos_;
       return;
     }
 
@@ -4862,14 +4865,14 @@ Serf::handle_serf_mining_state() {
         if (option_HighMinerFoodConsumption){
           // jonls-freeserf "enhanced food consumption" change, where 7/8th chance of NOT requiring food (i.e. almost always consuming food)
           if ((r & 7) == 0) {  
-            s.mining.substate = 2;
+            s.mining.substate = 2; // do not require food
           } else {
             s.mining.substate = 1;
           }
         }else{
           // normal original SerfCity/Settlers1 value, where 1/8th chance of requiring food (i.e. rarely consuming food)
           if ((r & 7) != 0) {  
-            s.mining.substate = 2;
+            s.mining.substate = 2; // do not require food
           } else {
             s.mining.substate = 1;
           }
@@ -6884,7 +6887,7 @@ Serf::handle_serf_cleaning_rubble_state() {
 //
 void
 Serf::update() {
-  //Log::Debug["serf.cc"] << "inside Serf::update, serf with index " << get_index() << " has type " << get_type() << " and state name " << get_state_name(get_state());
+  //Log::Debug["serf.cc"] << "inside Serf::update, serf with index " << get_index() << " has type " << NameSerf[get_type()] << " and state name " << get_state_name(get_state());
   switch (state) {
   case StateNull: /* 0 */
     break;

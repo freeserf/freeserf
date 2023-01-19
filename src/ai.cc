@@ -3287,7 +3287,6 @@ AI::do_wait_until_sawmill_lumberjacks_built() {
 
 
 // build a stonecutter near area with most stones
-//   note that stone *mines* are NEVER built - maybe in future AI improvement
 void
 AI::do_build_stonecutter() {
   AILogDebug["do_build_stonecutter"] << inventory_pos << " Main Loop - stones & stonecutters";
@@ -3295,9 +3294,22 @@ AI::do_build_stonecutter() {
   stock_building_counts.at(inventory_pos).inv_has_no_stone = false;
   if (stock_building_counts.at(inventory_pos).needs_stone) {
     int stonecutter_count = stock_building_counts.at(inventory_pos).count[Building::TypeStonecutter];
-    if (stonecutter_count >= 1) {
-      AILogDebug["do_build_stonecutter"] << inventory_pos << " Already placed stonecutter, not building more";
+    // never build more than two stonecutters per Inventory area
+    if (stonecutter_count >= 2){
+      AILogDebug["do_build_stonecutter"] << inventory_pos << " Already placed two stonecutters, not considering more";
       return;
+    }
+    // build a second stonecutter if the first is occupied and have lots of free pickaxes, or an idle stonecutter already in Inventory
+    if (stonecutter_count == 1){
+      if (stock_building_counts.at(inventory_pos).occupied_count[Building::TypeStonecutter] >= 1
+       && (get_stock_inv()->get_count_of(Resource::TypePick) >= 4 || get_stock_inv()->have_serf(Serf::TypeStonecutter))) {
+        AILogDebug["do_build_stonecutter"] << inventory_pos << " this Inventory has an Occupied stonecutter already, but has at least four pickaxes stored OR an idle_stonecutter_in_stock, will try to build a second stonecutter in this area";
+      }else{
+        AILogDebug["do_build_stonecutter"] << inventory_pos << " this Inventory has at least one stonecutter hut, but either it is not yet Occupied or there are not 4 free pickaxes or one idle stonecutter serf, not building another in this area";
+        return;
+      }
+    }else{
+      AILogDebug["do_build_stonecutter"] << inventory_pos << " this Inventory has no stonecutter huts, will try to build one";
     }
     AILogInfo["do_build_stonecutter"] << inventory_pos << " want to build stonecutter";
     // count stones near military buildings
@@ -3305,10 +3317,6 @@ AI::do_build_stonecutter() {
     MapPos built_pos = bad_map_pos;
     for (MapPos center_pos : stock_building_counts.at(inventory_pos).occupied_military_pos) {
       stonecutter_count = stock_building_counts.at(inventory_pos).count[Building::TypeStonecutter];
-      if (stonecutter_count >= 1) {
-        AILogDebug["do_build_stonecutter"] << inventory_pos << " Already placed stonecutter, not building more";
-        return;
-      }
       MapPosVector corners = AI::get_corners(center_pos);
       for (MapPos corner_pos : corners) {
         unsigned int count = AI::count_stones_near_pos(corner_pos, AI::spiral_dist(4));
@@ -3337,6 +3345,9 @@ AI::do_build_stonecutter() {
           MapPos pos = map->pos_add_extended_spirally(corner_pos, i);
           //unsigned int count = AI::count_stones_near_pos(pos, AI::spiral_dist(4), Map::ObjectStone0, Map::ObjectStone7, "gray");
           unsigned int count = AI::count_stones_near_pos(pos, AI::spiral_dist(4));
+          // near_stones_min is now set to 1, was seeing issue where Inv area had no stones, but wouldn't build a stonecutter hut
+          //  near the only pile of 5 it did have.  Because this function is already sorting by most stones, the best area should
+          //  already be handled first
           if (count < near_stones_min) {
             continue;
           }
@@ -3351,7 +3362,9 @@ AI::do_build_stonecutter() {
             AILogInfo["do_build_stonecutter"] << inventory_pos << " built stonecutter at pos " << built_pos;
             stock_building_counts.at(inventory_pos).count[Building::TypeStonecutter]++;
             stock_building_counts.at(inventory_pos).unfinished_count++;
-            break;
+            //break;
+            AILogInfo["do_build_stonecutter"] << inventory_pos << " not considering building any more stonecutters in this Inventory area this function call";
+            return;
           }
           // if couldn't build, add to bad_building_pos list so it doesn't keep trying every loop
           bad_building_pos.insert(std::make_pair(pos, Building::TypeStonecutter));
@@ -3568,7 +3581,7 @@ AI::do_build_food_buildings() {
     need_farm = true;
   }
   else {
-    // if economy is far enough along, place a second and third farm near existing farm buildings
+    // if economy is far enough along, place a second (and sometimes third) farm near existing farm buildings
     //   (if they indeed exist) by inserting their positions in the front of the queue
     if (mine_count >= 3) {
       if (farm_count == 1 && mill_count >= 1 && baker_count >= 1) {
