@@ -3827,6 +3827,10 @@ AI::do_connect_coal_mines() {
         return;
       }
     }
+    if (stock_building_counts.at(inventory_pos).count[Building::TypeCoalMine] >= max_coalmines) {
+      AILogDebug["do_connect_coal_mines"] << inventory_pos << " this Inventory area already has max_coalmines "  << max_coalmines << " connected coal mines, not building more";
+      return;
+    }
     // connect a disconnected coal mine that was placed if conditions are right
     Flags flags_copy = *(game->get_flags());  // create a copy so we don't conflict with the game thread, and don't want to mutex lock for a long function
     for (Flag *flag : flags_copy) {
@@ -3898,6 +3902,10 @@ AI::do_connect_iron_mines() {
         return;
       }
     }
+    if (stock_building_counts.at(inventory_pos).count[Building::TypeIronMine] >= max_ironmines) {
+      AILogDebug["do_connect_iron_mines"] << inventory_pos << " this Inventory area already has max_ironmines "  << max_ironmines << " connected iron mines, not building more";
+      return;
+    }
     // connect any disconnected iron mine that was placed if conditions are right
     Flags flags_copy = *(game->get_flags());  // create a copy so we don't conflict with the game thread, and don't want to mutex lock for a long function
     for (Flag *flag : flags_copy) {
@@ -3960,7 +3968,11 @@ void
 AI::do_connect_stone_mines() {
   ai_status.assign("do_connect_stone_mines");
   AILogDebug["do_connect_stone_mines"] << inventory_pos << " inside do_connect_stone_mines()";
-  if (stock_building_counts.at(inventory_pos).needs_stone) {
+  if (stock_building_counts.at(inventory_pos).needs_stone && stock_building_counts.at(inventory_pos).inv_has_no_stone) {
+    if (stock_building_counts.at(inventory_pos).count[Building::TypeStoneMine] >= max_stonemines) {
+      AILogDebug["do_connect_coal_mines"] << inventory_pos << " this Inventory area already has max_stonemines "  << max_stonemines << " connected stone mines, not building more";
+      return;
+    }
     // connect any disconnected stone mine that was placed if conditions are right
     Flags flags_copy = *(game->get_flags());  // create a copy so we don't conflict with the game thread, and don't want to mutex lock for a long function
     for (Flag *flag : flags_copy) {
@@ -4223,6 +4235,10 @@ AI::do_build_gold_smelter_and_connect_gold_mines() {
   if (serfs_idle[Serf::TypeMiner] + serfs_potential[Serf::TypeMiner] < 3
     && (stock_building_counts.at(inventory_pos).occupied_count[Building::TypeCoalMine] == 0 || stock_building_counts.at(inventory_pos).occupied_count[Building::TypeIronMine] == 0)) {
     AILogDebug["do_build_gold_smelter_and_connect_gold_mines"] << inventory_pos << " has <2 miners+pickaxes remaining, but not yet both an occupied coal mine and an occupied iron mine.  Not connecting this gold mine";
+    return;
+  }
+  if (stock_building_counts.at(inventory_pos).count[Building::TypeGoldMine] >= max_goldmines) {
+    AILogDebug["do_build_gold_smelter_and_connect_gold_mines"] << inventory_pos << " this Inventory area already has max_goldmines "  << max_goldmines << " connected gold mines, not building more";
     return;
   }
 

@@ -506,6 +506,7 @@ static const unsigned int max_unfinished_huts = 3;
 static const unsigned int max_coalmines = 2;
 static const unsigned int max_ironmines = 1;
 static const unsigned int max_goldmines = 1;
+static const unsigned int max_stonemines = 1;
 
 // max ratio of actual road length compared to ideal straight-line length to determine if road is acceptably short
 //   example, 3.00 means a road of up to 3x the length of a perfectly straight road is acceptable
