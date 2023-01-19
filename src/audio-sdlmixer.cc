@@ -225,6 +225,11 @@ AudioSDL::PlayerSFX::enable(bool enable) {
   }
 }
 
+//bool
+//AudioSDL::PlayerSFX::is_paused() {
+//  return Mix_PausedMusic();
+//}
+
 // change stop to pause and halt to stop
 
 void

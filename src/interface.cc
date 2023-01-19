@@ -1300,7 +1300,7 @@ Interface::handle_key_pressed(char key, int modifier) {
       Audio &audio = Audio::get_instance();
       Audio::PPlayer splayer = audio.get_music_player();
       if (splayer) {
-        Log::Debug["interface.cc"] << "audio splayer exists, state is " << splayer->is_enabled();
+        Log::Debug["interface.cc"] << "music splayer exists, state is " << splayer->is_enabled();
         splayer->enable(!splayer->is_enabled());
       }
       break;
@@ -1311,8 +1311,13 @@ Interface::handle_key_pressed(char key, int modifier) {
       Audio &audio = Audio::get_instance();
       Audio::PPlayer splayer = audio.get_music_player();
       if (!splayer) {
-        Log::Warn["interface.cc"] << "audio splayer does not exist, cannot skip track!";
+        Log::Warn["interface.cc"] << "music splayer does not exist, cannot skip track!";
         break;
+      }else{
+        if(!splayer->is_enabled()){
+          Log::Warn["interface.cc"] << "music is currently disabled, cannot skip track!";
+          break;
+        }
       }
 
       // check if BOTH Amiga and DOS music available

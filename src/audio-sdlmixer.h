@@ -61,6 +61,7 @@ class AudioSDL : public Audio, public Audio::VolumeController {
                     public std::enable_shared_from_this<PlayerSFX> {
    public:
     virtual void enable(bool enable);
+    //virtual bool is_paused();
     virtual Audio::PVolumeController get_volume_controller() {
       return shared_from_this();
     }
