@@ -109,6 +109,7 @@ GameOptions::load_options_from_file(){
   option_RandomizeInstruments = meta_main->value("options", "randomizeinstruments", option_RandomizeInstruments);
   option_ForesterMonoculture = meta_main->value("options", "forestermonoculture", option_ForesterMonoculture);
   option_SpinningAmigaStar = meta_main->value("options", "spinningamigastar", option_SpinningAmigaStar);
+  option_HighMinerFoodConsumption = meta_main->value("options", "highminerfoodconsumption", option_HighMinerFoodConsumption);
 
   mapgen_size = meta_main->value("mapgen", "size", mapgen_size);
   mapgen_trees = meta_main->value("mapgen", "trees", mapgen_trees);
@@ -165,6 +166,7 @@ GameOptions::save_options_to_file(){
   file << "RandomizeInstruments=" << option_RandomizeInstruments << "\n";
   file << "option_ForesterMonoculture=" << option_ForesterMonoculture << "\n";
   file << "option_SpinningAmigaStar=" << option_SpinningAmigaStar << "\n";
+  file << "option_HighMinerFoodConsumption=" << option_HighMinerFoodConsumption << "\n";
   
 
  /*

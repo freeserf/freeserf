@@ -4844,16 +4844,35 @@ Serf::handle_serf_mining_state() {
         /* There is a (????) chance that the miner will
            not require food and skip to state 2. */
 
-        // this is the original SerfCity/Settlers1 value, where 1/8th chance of requiring food (i.e. rarely consuming food)
-        //   per nicymike this is the accurate original value
+        // UPDATE - this is now an option.  If option_HighMinerFoodConsumption is set, the Freeserf 7/8 chance of food consumption used
+        //  if not set, the original Settlers1/SerfCity 1/8 chancege used
+
+                  // this is the original SerfCity/Settlers1 value, where 1/8th chance of requiring food (i.e. rarely consuming food)
+                  //   per nicymike this is the accurate original value
+                  // if ((r & 7) != 0) {
+
+                  // this is the jonls-freeserf "enhanced food consumption" change, where 7/8th chance of NOT requiring food (i.e. almost always consuming food)
+                  //    freeserf commit   https://github.com/freeserf/freeserf/commit/9d0b353215ab8a011259e77e56bd2327435c67a5
+                  // if ((r & 7) == 0) {  
+
         int r = game->random_int();
-        if ((r & 7) != 0) {  
-        // this is the jonls-freeserf "enhanced food consumption" change, where 7/8th chance of NOT requiring food (i.e. almost always consuming food)
-        //    freeserf commit   https://github.com/freeserf/freeserf/commit/9d0b353215ab8a011259e77e56bd2327435c67a5
-        //if ((r & 7) == 0) {   
-          s.mining.substate = 2;
-        } else {
-          s.mining.substate = 1;
+        //
+        // making this overly verbose/redundant to eliminate any confusion
+        //
+        if (option_HighMinerFoodConsumption){
+          // jonls-freeserf "enhanced food consumption" change, where 7/8th chance of NOT requiring food (i.e. almost always consuming food)
+          if ((r & 7) == 0) {  
+            s.mining.substate = 2;
+          } else {
+            s.mining.substate = 1;
+          }
+        }else{
+          // normal original SerfCity/Settlers1 value, where 1/8th chance of requiring food (i.e. rarely consuming food)
+          if ((r & 7) != 0) {  
+            s.mining.substate = 2;
+          } else {
+            s.mining.substate = 1;
+          }
         }
         counter += 100 + (r & 0x1ff);
         break;

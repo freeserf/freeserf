@@ -72,6 +72,7 @@ bool option_RandomizeInstruments = false;  // only affects DOS music
 bool option_ForesterMonoculture = false;  // this looks bad in Spring and Winter, not making default anymore
 bool option_CheckPathBeforeAttack = true;  // this is forced on
 bool option_SpinningAmigaStar = true;
+bool option_HighMinerFoodConsumption = false;
 
 // map generator settings
 /*

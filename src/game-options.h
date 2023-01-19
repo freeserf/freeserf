@@ -46,6 +46,7 @@ extern bool option_RandomizeInstruments;  // only affects DOS music
 extern bool option_ForesterMonoculture;
 extern bool option_CheckPathBeforeAttack;  // this is forced on
 extern bool option_SpinningAmigaStar;
+extern bool option_HighMinerFoodConsumption;
 
 extern unsigned int mapgen_size;
 extern uint16_t mapgen_trees;

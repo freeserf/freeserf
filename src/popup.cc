@@ -298,6 +298,7 @@ typedef enum Action {
   ACTION_GAME_OPTIONS_PAGE2,
   //ACTION_GAME_OPTIONS_PREV_PAGE,
   ACTION_GAME_OPTIONS_PAGE3,
+  ACTION_GAME_OPTIONS_PAGE4,
   ACTION_GAME_OPTIONS_RETURN_TO_OPTIONS,
   ACTION_GAME_OPTIONS_ENABLE_AUTOSAVE,
 //  ACTION_GAME_OPTIONS_IMPROVED_PIG_FARMS, // removing this as it turns out the default behavior for pig farms is to require almost no grain
@@ -324,6 +325,7 @@ typedef enum Action {
   ACTION_GAME_OPTIONS_ForesterMonoculture,
   ACTION_GAME_OPTIONS_CheckPathBeforeAttack,
   ACTION_GAME_OPTIONS_SpinningAmigaStar,
+  ACTION_GAME_OPTIONS_HighMinerFoodConsumption,
   ACTION_MAPGEN_ADJUST_TREES,
   ACTION_MAPGEN_ADJUST_STONEPILES,
   ACTION_MAPGEN_ADJUST_FISH,
@@ -2080,7 +2082,7 @@ PopupBox::draw_options_box() {
 
   //draw_popup_icon(13, 109, 0x3d); /* flipbox to game options */
   //draw_popup_icon(14, 128, 60); /* exit */
-  draw_green_string(18, 131, "Page 1 of 4");
+  draw_green_string(18, 131, "Page 1 of 5");
   draw_popup_icon(30, 128, 0x3d); // flipbox to next page
   draw_popup_icon(32, 128, 60); /* exit */
 }
@@ -2108,7 +2110,7 @@ PopupBox::draw_game_options_box() {
   draw_green_string(3, 105, "Baby Trees Mature Slowly");
   draw_popup_icon(1, 102, option_BabyTreesMatureSlowly ? 288 : 220);
 
-  draw_green_string(18, 131, "Page 2 of 4");
+  draw_green_string(18, 131, "Page 2 of 5");
   draw_popup_icon(30, 128, 0x3d); // flipbox to next page
   draw_popup_icon(32, 128, 60); /* exit */
 }
@@ -2134,7 +2136,7 @@ PopupBox::draw_game_options2_box() {
   draw_green_string(3, 105, "Sailors Move Faster");
   draw_popup_icon(1, 102, option_SailorsMoveFaster ? 288 : 220);
 
-  draw_green_string(18, 131, "Page 3 of 4");
+  draw_green_string(18, 131, "Page 3 of 5");
   draw_popup_icon(30, 128, 0x3d); // flipbox to previous page
   draw_popup_icon(32, 128, 60); /* exit */
 }
@@ -2160,7 +2162,35 @@ PopupBox::draw_game_options3_box() {
   draw_green_string(3, 105, "Amiga-Style Spinning Star");
   draw_popup_icon(1, 102, option_SpinningAmigaStar ? 288 : 220);
 
-  draw_green_string(18, 131, "Page 4 of 4");
+  draw_green_string(18, 131, "Page 4 of 5");
+  draw_popup_icon(30, 128, 0x3d); // flipbox to previous page
+  draw_popup_icon(32, 128, 60); /* exit */
+}
+
+void
+PopupBox::draw_game_options4_box() {
+  draw_large_box_background(PatternDiagonalGreen);
+  draw_green_string(3, 10, "High Miner Food Consumption");
+  draw_popup_icon(1, 7, option_HighMinerFoodConsumption ? 288 : 220);
+
+/*
+  draw_green_string(3, 29, "Randomize Music Instruments");
+  draw_popup_icon(1, 26, option_RandomizeInstruments ? 288 : 220);
+
+  draw_green_string(3, 48, "Advanced Farming");
+  draw_popup_icon(1, 45, option_AdvancedFarming ? 288 : 220);
+
+  draw_green_string(3, 67, "Foresters Create Monocultures");
+  draw_popup_icon(1, 64, option_ForesterMonoculture ? 288 : 220);
+
+  draw_green_string(3, 86, "Require Clear Route To Attack");
+  draw_popup_icon(1, 83, option_CheckPathBeforeAttack ? 288 : 220);  // this is currently forced on
+
+  draw_green_string(3, 105, "Amiga-Style Spinning Star");
+  draw_popup_icon(1, 102, option_SpinningAmigaStar ? 288 : 220);
+*/
+
+  draw_green_string(18, 131, "Page 5 of 5");
   draw_popup_icon(30, 128, 0x3d); // flipbox to previous page
   draw_popup_icon(32, 128, 60); /* exit */
 }
@@ -3221,6 +3251,9 @@ PopupBox::internal_draw() {
   case TypeGameOptions3:
     draw_game_options3_box();
     break;
+  case TypeGameOptions4:
+    draw_game_options4_box();
+    break;
   case TypeEditMapGenerator:
     draw_edit_map_generator_box();
     break;
@@ -3890,6 +3923,9 @@ PopupBox::handle_action(int action, int x_, int /*y_*/) {
   case ACTION_GAME_OPTIONS_PAGE3:
     interface->open_popup(TypeGameOptions3);
     break;
+  case ACTION_GAME_OPTIONS_PAGE4:
+    interface->open_popup(TypeGameOptions4);
+    break;
   //case ???? 
   /* ToDo */
   //set_box((box + 1 <= TypeAdv2Bld) ? (Type)(box + 1) : TypeBasicBldFlip);
@@ -4119,6 +4155,14 @@ PopupBox::handle_action(int action, int x_, int /*y_*/) {
       option_SpinningAmigaStar = false;
     } else{
       option_SpinningAmigaStar = true;
+    }
+    GameOptions::get_instance().save_options_to_file();
+    break;
+  case ACTION_GAME_OPTIONS_HighMinerFoodConsumption:
+    if (option_HighMinerFoodConsumption){
+      option_HighMinerFoodConsumption = false;
+    } else{
+      option_HighMinerFoodConsumption = true;
     }
     GameOptions::get_instance().save_options_to_file();
     break;
@@ -4597,6 +4641,24 @@ PopupBox::handle_box_game_options3_clk(int cx, int cy) {
     ACTION_GAME_OPTIONS_CheckPathBeforeAttack, 7, 83, 150, 16,
     //ACTION_GAME_OPTIONS_AdvancedDemolition, 7, 83, 150, 16,  /* removing AdvancedDemolition for now, see https://github.com/forkserf/forkserf/issues/180/
     ACTION_GAME_OPTIONS_SpinningAmigaStar, 7, 102, 150, 16,
+    ACTION_GAME_OPTIONS_PAGE4, 239, 126, 16, 16,  // flip button
+    ACTION_CLOSE_OPTIONS, 255, 126, 16, 16, // exit button
+    -1
+  };
+  handle_clickmap(cx, cy, clkmap);
+}
+
+
+void
+PopupBox::handle_box_game_options4_clk(int cx, int cy) {
+  //all options need to be defined here for the checkboxes to work,
+  const int clkmap[] = {
+    ACTION_GAME_OPTIONS_HighMinerFoodConsumption, 7, 7, 150, 16,
+    //ACTION_GAME_OPTIONS_RandomizeInstruments, 7, 26, 150, 16,
+    //ACTION_GAME_OPTIONS_AdvancedFarming, 7, 45, 150, 16,
+    //ACTION_GAME_OPTIONS_ForesterMonoculture, 7, 64, 150, 16,
+    //ACTION_GAME_OPTIONS_CheckPathBeforeAttack, 7, 83, 150, 16,
+    //ACTION_GAME_OPTIONS_SpinningAmigaStar, 7, 102, 150, 16,
     ActionShowOptions, 239, 126, 16, 16,  // flip button
     ACTION_CLOSE_OPTIONS, 255, 126, 16, 16, // exit button
     -1
@@ -5324,6 +5386,9 @@ PopupBox::handle_left_click(int cx, int cy, int modifier) {
     break;
   case TypeGameOptions3:
     handle_box_game_options3_clk(cx, cy);
+    break;
+  case TypeGameOptions4:
+    handle_box_game_options4_clk(cx, cy);
     break;
   case TypeEditMapGenerator:
     handle_box_edit_map_generator_clk(cx, cy);
