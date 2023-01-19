@@ -4810,7 +4810,7 @@ AI::do_check_resource_needs(){
   //AILogDebug["do_check_resource_needs"] << inventory_pos << " adjusted food_count at inventory_pos " << inventory_pos << ": " << adjusted_food_count;
   stock_building_counts.at(inventory_pos).needs_foods = false;
   stock_building_counts.at(inventory_pos).excess_foods = false;
-  if (adjusted_food_count < food_max) {
+  if (adjusted_food_count + (food_max * option_HighMinerFoodConsumption) < food_max) {
     AILogDebug["do_check_resource_needs"] << inventory_pos << " desire more food";
     // don't check for food buildings because the do_food_buildings function does, and the checks are too complex to move into here
     //if (stock_building_counts.at(inventory_pos).count[Building::TypeFarm] < 1) {
@@ -4818,7 +4818,7 @@ AI::do_check_resource_needs(){
       stock_building_counts.at(inventory_pos).needs_foods = true;
       expand_towards.insert("foods");
     //}
-  }else if (adjusted_food_count > food_max + anti_flapping_buffer) {
+  }else if (adjusted_food_count > food_max + (food_max * option_HighMinerFoodConsumption) + anti_flapping_buffer) {
     AILogDebug["do_check_resource_needs"] << inventory_pos << " has excess foods, should stop production";
     stock_building_counts.at(inventory_pos).excess_foods = true;
   }
