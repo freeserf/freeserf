@@ -274,8 +274,10 @@ AI::next_loop(){
     if(do_can_build_other())
       {do_connect_iron_mines(); sleep_speed_adjusted(1000); do_send_geologists();}
 
-    if(do_can_build_other())
-      {do_connect_stone_mines(); sleep_speed_adjusted(1000); do_send_geologists();}
+    //if(do_can_build_other())
+    //  {do_connect_stone_mines(); sleep_speed_adjusted(1000); do_send_geologists();}
+    // must always be willing to build & connect stone mines if needed, because once needed they are URGENT
+    do_connect_stone_mines(); sleep_speed_adjusted(1000); do_send_geologists();
 
     if(do_can_build_other())
       {do_build_steelsmelter(); sleep_speed_adjusted(1000); do_send_geologists();}
@@ -2191,7 +2193,8 @@ AI::do_demolish_unproductive_mines() {
     unsigned int current_tick = game->get_tick();
     unsigned int delta = current_tick - first_found_tick;
     //AILogDebug["do_demolish_unproductive_mines"] << "mine of type " << NameBuilding[building_type] << " at pos " << building_pos << " was first noticed active at tick " << first_found_tick << ", current tick is " << current_tick << ", delta is " << delta;
-    if (delta < 100000){
+    //if (delta < 100000){
+    if (delta < 1000000){  // tlongstretch jan19 2023, seeing mines demolished before they even get their first food, making this 10x longer
       //AILogDebug["do_demolish_unproductive_mines"] << "mine of type " << NameBuilding[building_type] << " at pos " << building_pos << " not enough ticks have passed since this was first caught active, not checking productivity";
       continue;
     }
@@ -4613,6 +4616,12 @@ AI::do_can_build_knight_huts() {
     AILogDebug["do_can_build_knight_huts"] << inventory_pos << " realm_planks_count " << realm_planks_count << " is below planks_min " << planks_min << ", cannot build knight huts anywhere";
     return false;
   }
+  // ensure REALM stones above crit
+  unsigned int realm_stones_count = realm_inv[Resource::TypeStone];
+  if (realm_stones_count < stones_min) {
+    AILogDebug["do_can_build_knight_huts"] << inventory_pos << " realm_stones_count " << realm_stones_count << " is below stones_min " << stones_min << ", cannot build knight huts anywhere";
+    return false;
+  }
   // ensure REALM idle knights in Inventories above min
   // NOTE - to avoid issue where at start of new game there are few Knights and Serfs in Castle, but plenty of swords/shields
   //    don't perform this check until at least X knight huts built
@@ -4662,6 +4671,12 @@ AI::do_can_build_other() {
   unsigned int realm_planks_count = realm_inv[Resource::TypePlank];
   if (realm_planks_count < planks_min) {
     AILogDebug["do_can_build_other"] << inventory_pos << " realm_planks_count " << realm_planks_count << " is below planks_min " << planks_min << ", cannot build generic buildings anywhere";
+    return false;
+  }
+  // ensure REALM stones above crit
+  unsigned int realm_stones_count = realm_inv[Resource::TypeStone];
+  if (realm_stones_count < stones_min) {
+    AILogDebug["do_can_build_other"] << inventory_pos << " realm_stones_count " << realm_stones_count << " is below stones_min " << stones_min << ", cannot build generic buildings anywhere";
     return false;
   }
   // ensure Inventory unfinished_count below limit
@@ -4810,7 +4825,7 @@ AI::do_check_resource_needs(){
   //AILogDebug["do_check_resource_needs"] << inventory_pos << " adjusted food_count at inventory_pos " << inventory_pos << ": " << adjusted_food_count;
   stock_building_counts.at(inventory_pos).needs_foods = false;
   stock_building_counts.at(inventory_pos).excess_foods = false;
-  if (adjusted_food_count + (food_max * option_HighMinerFoodConsumption) < food_max) {
+  if (adjusted_food_count < food_max + (food_max * option_HighMinerFoodConsumption)) {
     AILogDebug["do_check_resource_needs"] << inventory_pos << " desire more food";
     // don't check for food buildings because the do_food_buildings function does, and the checks are too complex to move into here
     //if (stock_building_counts.at(inventory_pos).count[Building::TypeFarm] < 1) {

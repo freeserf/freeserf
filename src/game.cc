@@ -789,6 +789,10 @@ Game::send_serf_to_flag(Flag *dest, Serf::Type type, Resource::Type res1,
                         Resource::Type res2) {
   //Log::Debug["game"] << "inside Game::send_serf_to_flag, serf type " << type << ", res1 " << res1 << ", res2 " << res2;         
   Building *building = NULL;
+  if (dest == nullptr){
+    Log::Warn["game"] << "inside Game::send_serf_to_flag, dest Flag is nullptr!  returning false";
+    return false;
+  }
   if (dest->has_building()) {
     building = dest->get_building();
   }

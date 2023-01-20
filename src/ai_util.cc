@@ -290,9 +290,9 @@ AI::update_buildings() {
 
     if (type == Building::TypeCastle) {
       if (!building->is_done()) {
-        AILogDebug["util_update_buildings"] << "player's castle isn't finished building yet";
+        AILogDebug["util_update_buildings"] << "player's castle is not done building yet";
         while (!building->is_done()) {
-          AILogDebug["util_update_buildings"] << "player's castle isn't finished building yet.  Sleeping a bit";
+          AILogDebug["util_update_buildings"] << "player's castle is not done building yet.  Sleeping a bit";
           sleep_speed_adjusted(1000);
         }
         AILogDebug["util_update_buildings"] << "player's castle is now built, updating stocks";
