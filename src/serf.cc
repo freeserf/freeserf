@@ -4453,14 +4453,14 @@ Serf::handle_serf_planting_state() {
 
 void
 Serf::handle_serf_planning_stonecutting() {
-  Log::Debug["serf.cc"] << "inside Serf::handle_serf_planning_stonecutting, for serf with index " << get_index() << " and pos " << get_pos();
+  //Log::Debug["serf.cc"] << "inside Serf::handle_serf_planning_stonecutting, for serf with index " << get_index() << " and pos " << get_pos();
   uint16_t delta = game->get_tick() - tick;
   tick = game->get_tick();
   counter -= delta;
 
   PMap map = game->get_map();
   while (counter < 0) {
-    Log::Debug["serf.cc"] << "inside Serf::handle_serf_planning_stonecutting, for serf with index " << get_index() << " and pos " << get_pos() << ", counter < 0";
+    //Log::Debug["serf.cc"] << "inside Serf::handle_serf_planning_stonecutting, for serf with index " << get_index() << " and pos " << get_pos() << ", counter < 0";
     int dist = (game->random_int() & 0x7f) + 1;
     MapPos pos_ = map->pos_add_spirally(pos, dist);
     int obj = map->get_obj(map->move_up_left(pos_));
@@ -4475,7 +4475,7 @@ Serf::handle_serf_planning_stonecutting() {
       Log::Verbose["serf"] << "planning stonecutting: stone found, dist "
                            << s.leaving_building.field_B << ", "
                            << s.leaving_building.dest << ".";
-      Log::Debug["serf.cc"] << "inside Serf::handle_serf_planning_stonecutting, for serf with index " << get_index() << " and pos " << get_pos() << ", heading to pos_" << pos_;
+      //Log::Debug["serf.cc"] << "inside Serf::handle_serf_planning_stonecutting, for serf with index " << get_index() << " and pos " << get_pos() << ", heading to pos_" << pos_;
       return;
     }
 

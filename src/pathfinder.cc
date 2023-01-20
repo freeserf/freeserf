@@ -227,7 +227,7 @@ pathfinder_map(Map *map, MapPos start, MapPos end, const Road *building_road) {
 // note that this ignores terrain height heuristic
 Road
 pathfinder_freewalking_serf(Map *map, MapPos start, MapPos end, int max_dist) {
-  Log::Debug["pathfinder.cc"] << "inside pathfinder_freewalking_serf, start pos " << start << ", dest pos " << end << ", max_dist " << max_dist << ", remember this is a REVERSE SEARCH";
+  //Log::Debug["pathfinder.cc"] << "inside pathfinder_freewalking_serf, start pos " << start << ", dest pos " << end << ", max_dist " << max_dist << ", remember this is a REVERSE SEARCH";
 
   if (start == bad_map_pos || end == bad_map_pos){
     Log::Error["pathfinder.cc"] << "inside pathfinder_freewalking_serf, either start pos " << start << " or end pos " << end << " is bad_map_pos " << bad_map_pos;
@@ -297,12 +297,12 @@ pathfinder_freewalking_serf(Map *map, MapPos start, MapPos end, int max_dist) {
     }
     //Log::Debug["pathfinder.cc"] << "inside pathfinder_freewalking_serf, current road-length so far for this solution is " << current_length;
     if (current_length >= plot_road_max_length){
-      Log::Debug["pathfinder.cc"] << "inside pathfinder_freewalking_serf, maximum road-length reached (plot_road_max_length) " << current_length << ", ending search early";
+      //Log::Debug["pathfinder.cc"] << "inside pathfinder_freewalking_serf, maximum road-length reached (plot_road_max_length) " << current_length << ", ending search early";
       break;
     }
 
     if (node->pos == start) {
-      Log::Debug["pathfinder.cc"] << "inside pathfinder_freewalking_serf, B  FOUND SOLUTION";
+      //Log::Debug["pathfinder.cc"] << "inside pathfinder_freewalking_serf, B  FOUND SOLUTION";
 
       while (node->parent) {
         Direction dir = node->dir;
@@ -312,11 +312,11 @@ pathfinder_freewalking_serf(Map *map, MapPos start, MapPos end, int max_dist) {
 
       //double duration = (std::clock() - start_pathfinder_freewalking_serf) / static_cast<double>(CLOCKS_PER_SEC);
       //Log::Debug["pathfinder_freewalking_serf"] << "done pathfinder_freewalking_serf, call took " << duration << ", considered " << total_pos_considered << " positions";
-      Log::Debug["pathfinder_freewalking_serf"] << "done pathfinder_freewalking_serf";
+      //Log::Debug["pathfinder_freewalking_serf"] << "done pathfinder_freewalking_serf";
       return solution;
     }
 
-    Log::Debug["pathfinder.cc"] << "inside pathfinder_freewalking_serf, C  KEEP SEARCHING, node->pos " << node->pos << " is not yet the start pos " << start;
+    //Log::Debug["pathfinder.cc"] << "inside pathfinder_freewalking_serf, C  KEEP SEARCHING, node->pos " << node->pos << " is not yet the start pos " << start;
 
     /* Put current node on closed list. */
     closed.push_front(node);
@@ -357,7 +357,7 @@ pathfinder_freewalking_serf(Map *map, MapPos start, MapPos end, int max_dist) {
       //    (map->get_obj(new_pos) == Map::ObjectFlag && new_pos != start)) {
         
       if (!map->can_serf_step_into(new_pos)){
-        Log::Debug["pathfinder.cc"] << "inside pathfinder_freewalking_serf, E  serf CANNOT step from node->pos " << node->pos << " into next pos " << new_pos << " in dir " << d;
+        //Log::Debug["pathfinder.cc"] << "inside pathfinder_freewalking_serf, E  serf CANNOT step from node->pos " << node->pos << " into next pos " << new_pos << " in dir " << d;
         continue;
       }
       //Log::Debug["pathfinder.cc"] << "inside pathfinder_freewalking_serf, E  serf can step from node->pos " << node->pos << " into next pos " << new_pos << " in dir " << d;
