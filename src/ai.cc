@@ -274,6 +274,11 @@ AI::next_loop(){
     if(do_can_build_other())
       {do_connect_iron_mines(); sleep_speed_adjusted(1000); do_send_geologists();}
 
+    //if(do_can_build_other())
+    //  {do_connect_stone_mines(); sleep_speed_adjusted(1000); do_send_geologists();}
+    // must always be willing to build & connect stone mines if needed, because once needed they are URGENT
+    do_connect_stone_mines(); sleep_speed_adjusted(1000); do_send_geologists();
+
     if(do_can_build_other())
       {do_build_steelsmelter(); sleep_speed_adjusted(1000); do_send_geologists();}
 
@@ -1159,7 +1164,7 @@ AI::do_fix_missing_transporters() {
       else {
         //AILogDebug["do_fix_missing_transporters"] << "timer detected BUG FOUND - NO TRANSPORTER on road at pos " << flag->get_position() << " in dir " << NameDirection[dir] << ", marking flag in cyan and dir in dk_cyan";
         // UPDATE Dec04 2022 - throw exception instead
-        AILogError["do_fix_missing_transporters"] << "timer detected BUG FOUND - NO TRANSPORTER on road at pos " << flag->get_position() << " in dir " << NameDirection[dir] << ", throwing exceptio";
+        AILogError["do_fix_missing_transporters"] << "timer detected BUG FOUND - NO TRANSPORTER on road at pos " << flag->get_position() << " in dir " << NameDirection[dir] << ", throwing exception";
         //ai_mark_pos.insert(ColorDot(flag->get_position(), "cyan"));
         //ai_mark_pos.insert(ColorDot(map->move(flag->get_position(), dir), "dk_cyan"));
         //sleep_speed_adjusted(5000);
@@ -2188,7 +2193,8 @@ AI::do_demolish_unproductive_mines() {
     unsigned int current_tick = game->get_tick();
     unsigned int delta = current_tick - first_found_tick;
     //AILogDebug["do_demolish_unproductive_mines"] << "mine of type " << NameBuilding[building_type] << " at pos " << building_pos << " was first noticed active at tick " << first_found_tick << ", current tick is " << current_tick << ", delta is " << delta;
-    if (delta < 100000){
+    //if (delta < 100000){
+    if (delta < 1000000){  // tlongstretch jan19 2023, seeing mines demolished before they even get their first food, making this 10x longer
       //AILogDebug["do_demolish_unproductive_mines"] << "mine of type " << NameBuilding[building_type] << " at pos " << building_pos << " not enough ticks have passed since this was first caught active, not checking productivity";
       continue;
     }
@@ -2704,7 +2710,8 @@ AI::do_manage_mine_food_priorities() {
   unsigned int stone_count = realm_inv[Resource::TypeStone];
   //6550 is a near-zero value I chose to use as "very low priority"
   // default food priorities:
-  //food_stonemine = 13100;
+  //food_stonemine = 13100;  // orig game normal default
+  //food_stonemine = 65500;  // new AI default, make stone mine food very high because stone mines are not built unless out of stone, and then its an emergency!
   //food_coalmine = 45850;
   //food_ironmine = 45850;
   //food_goldmine = 65500;
@@ -3028,8 +3035,8 @@ AI::do_place_mines(std::string type, Building::Type building_type, Map::Object l
             if (get_stock_inv()->get_count_of(Resource::TypeStone) + stock_res_sitting_at_flags.at(inventory_pos)[Resource::TypeStone] > stones_max){  // using stones max here
               AILogDebug["do_place_mines"] << inventory_pos << " this inventory already has more than stones_max " << stones_max << " stones stored or at flags, not considering gold to be unavailable in this Inv area yet";
             }else{
-              AILogDebug["do_place_mines"] << inventory_pos << " this inventory has little to no stone stored or at flags, and no stone mines, and no stone in borders to mine, and cannot expand borders.  Must attack for gold!";
-              stock_building_counts.at(inventory_pos).inv_has_no_stone = true;
+              AILogDebug["do_place_mines"] << inventory_pos << " this inventory has little to no stone stored or at flags, and no stone mines, and no stone in borders to mine, and cannot expand borders.  Must attack for stone!";
+              stock_building_counts.at(inventory_pos).inv_has_no_stone = true;  // no stone at all!  we wouldn't even be trying to build a stone mine unless stone_piles also depleted
             }
           }else{
             throw ExceptionFreeserf("unexpected mine type");
@@ -3068,20 +3075,8 @@ AI::do_place_gold_mines(){
 void
 AI::do_place_stone_mines(){
   AILogDebug["do_place_stone_mines"] << "inside do_place_stone_mines()";
-  /* CHANGING LOGIC - if there are no stone piles in this Inventory area, maybe
-       building a stone mine isn't so bad?  switching to just using the local value
-  // check to see if we are out of above-ground stonepiles
-  //  I tried putting this in check_resource_needs but I think it gets reset before it can be effective
-  no_stone_within_borders = true;
-  for (MapPos stock_pos : stocks_pos){
-    if (stock_building_counts.at(stock_pos).inv_has_no_stone == false){
-      AILogDebug["do_place_stone_mines"] << "at least one Inventory (ex. " << stock_pos << ") has stone, not building StoneMines or making desperate attacks for stone";
-      no_stone_within_borders = false;
-    }
-  }
-  if (no_stone_within_borders){
-  */
-  if (stock_building_counts.at(inventory_pos).inv_has_no_stone == false){
+  if (stock_building_counts.at(inventory_pos).inv_has_no_stone_piles == true){
+    stock_building_counts.at(inventory_pos).inv_has_no_stone = false;
     do_place_mines("stone", Building::TypeStoneMine, Map::ObjectSignLargeStone, Map::ObjectSignSmallStone, stone_sign_density_min);
   }else{
     AILogDebug["do_place_stone_mines"] << "not considering building stone mines until all above-ground stone piles in this Inventory area exhausted";
@@ -3287,17 +3282,29 @@ AI::do_wait_until_sawmill_lumberjacks_built() {
 
 
 // build a stonecutter near area with most stones
-//   note that stone *mines* are NEVER built - maybe in future AI improvement
 void
 AI::do_build_stonecutter() {
   AILogDebug["do_build_stonecutter"] << inventory_pos << " Main Loop - stones & stonecutters";
   ai_status.assign("do_build_stonecutter");
-  stock_building_counts.at(inventory_pos).inv_has_no_stone = false;
+  stock_building_counts.at(inventory_pos).inv_has_no_stone_piles = false;
   if (stock_building_counts.at(inventory_pos).needs_stone) {
     int stonecutter_count = stock_building_counts.at(inventory_pos).count[Building::TypeStonecutter];
-    if (stonecutter_count >= 1) {
-      AILogDebug["do_build_stonecutter"] << inventory_pos << " Already placed stonecutter, not building more";
+    // never build more than two stonecutters per Inventory area
+    if (stonecutter_count >= 2){
+      AILogDebug["do_build_stonecutter"] << inventory_pos << " Already placed two stonecutters, not considering more";
       return;
+    }
+    // build a second stonecutter if the first is occupied and have lots of free pickaxes, or an idle stonecutter already in Inventory
+    if (stonecutter_count == 1){
+      if (stock_building_counts.at(inventory_pos).occupied_count[Building::TypeStonecutter] >= 1
+       && (get_stock_inv()->get_count_of(Resource::TypePick) >= 4 || get_stock_inv()->have_serf(Serf::TypeStonecutter))) {
+        AILogDebug["do_build_stonecutter"] << inventory_pos << " this Inventory has an Occupied stonecutter already, but has at least four pickaxes stored OR an idle_stonecutter_in_stock, will try to build a second stonecutter in this area";
+      }else{
+        AILogDebug["do_build_stonecutter"] << inventory_pos << " this Inventory has at least one stonecutter hut, but either it is not yet Occupied or there are not 4 free pickaxes or one idle stonecutter serf, not building another in this area";
+        return;
+      }
+    }else{
+      AILogDebug["do_build_stonecutter"] << inventory_pos << " this Inventory has no stonecutter huts, will try to build one";
     }
     AILogInfo["do_build_stonecutter"] << inventory_pos << " want to build stonecutter";
     // count stones near military buildings
@@ -3305,10 +3312,6 @@ AI::do_build_stonecutter() {
     MapPos built_pos = bad_map_pos;
     for (MapPos center_pos : stock_building_counts.at(inventory_pos).occupied_military_pos) {
       stonecutter_count = stock_building_counts.at(inventory_pos).count[Building::TypeStonecutter];
-      if (stonecutter_count >= 1) {
-        AILogDebug["do_build_stonecutter"] << inventory_pos << " Already placed stonecutter, not building more";
-        return;
-      }
       MapPosVector corners = AI::get_corners(center_pos);
       for (MapPos corner_pos : corners) {
         unsigned int count = AI::count_stones_near_pos(corner_pos, AI::spiral_dist(4));
@@ -3337,6 +3340,9 @@ AI::do_build_stonecutter() {
           MapPos pos = map->pos_add_extended_spirally(corner_pos, i);
           //unsigned int count = AI::count_stones_near_pos(pos, AI::spiral_dist(4), Map::ObjectStone0, Map::ObjectStone7, "gray");
           unsigned int count = AI::count_stones_near_pos(pos, AI::spiral_dist(4));
+          // near_stones_min is now set to 1, was seeing issue where Inv area had no stones, but wouldn't build a stonecutter hut
+          //  near the only pile of 5 it did have.  Because this function is already sorting by most stones, the best area should
+          //  already be handled first
           if (count < near_stones_min) {
             continue;
           }
@@ -3351,7 +3357,9 @@ AI::do_build_stonecutter() {
             AILogInfo["do_build_stonecutter"] << inventory_pos << " built stonecutter at pos " << built_pos;
             stock_building_counts.at(inventory_pos).count[Building::TypeStonecutter]++;
             stock_building_counts.at(inventory_pos).unfinished_count++;
-            break;
+            //break;
+            AILogInfo["do_build_stonecutter"] << inventory_pos << " not considering building any more stonecutters in this Inventory area this function call";
+            return;
           }
           // if couldn't build, add to bad_building_pos list so it doesn't keep trying every loop
           bad_building_pos.insert(std::make_pair(pos, Building::TypeStonecutter));
@@ -3363,8 +3371,8 @@ AI::do_build_stonecutter() {
     
     // note lack of stone, affects AI attack logic
     if (built_pos == bad_map_pos || built_pos == notplaced_pos) {
-      AILogDebug["do_build_stonecutter"] << inventory_pos << " could not place stonecutter around this Inventory, setting inv_has_no_stone bool to true";
-      stock_building_counts.at(inventory_pos).inv_has_no_stone = true;
+      AILogDebug["do_build_stonecutter"] << inventory_pos << " could not place stonecutter around this Inventory, setting inv_has_no_stone_piles bool to true";
+      stock_building_counts.at(inventory_pos).inv_has_no_stone_piles = true;
     }
 
   }
@@ -3568,11 +3576,14 @@ AI::do_build_food_buildings() {
     need_farm = true;
   }
   else {
-    // if economy is far enough along, place a second and third farm near existing farm buildings
+    // if economy is far enough along, place a second (and sometimes third) farm near existing farm buildings
     //   (if they indeed exist) by inserting their positions in the front of the queue
     if (mine_count >= 3) {
       if (farm_count == 1 && mill_count >= 1 && baker_count >= 1) {
         AILogDebug["do_build_food_buildings"] << inventory_pos << " three completed mines, a mill, and a baker exist.  Need a second wheat farm";
+        need_farm = true;
+      }else if (option_HighMinerFoodConsumption && farm_count == 2 && mill_count >= 1 && baker_count >= 1) {
+        AILogDebug["do_build_food_buildings"] << inventory_pos << " two farms, three completed mines, a mill, and a baker exist, but option_HighMinerFoodConsumption is true.  Need a third wheat farm";
         need_farm = true;
       }else{
         AILogDebug["do_build_food_buildings"] << inventory_pos << " three completed mines, but do not have both mill and baker, not building another wheat farm yet";
@@ -3808,6 +3819,10 @@ AI::do_connect_coal_mines() {
         return;
       }
     }
+    if (stock_building_counts.at(inventory_pos).count[Building::TypeCoalMine] >= max_coalmines) {
+      AILogDebug["do_connect_coal_mines"] << inventory_pos << " this Inventory area already has max_coalmines "  << max_coalmines << " connected coal mines, not building more";
+      return;
+    }
     // connect a disconnected coal mine that was placed if conditions are right
     Flags flags_copy = *(game->get_flags());  // create a copy so we don't conflict with the game thread, and don't want to mutex lock for a long function
     for (Flag *flag : flags_copy) {
@@ -3879,6 +3894,10 @@ AI::do_connect_iron_mines() {
         return;
       }
     }
+    if (stock_building_counts.at(inventory_pos).count[Building::TypeIronMine] >= max_ironmines) {
+      AILogDebug["do_connect_iron_mines"] << inventory_pos << " this Inventory area already has max_ironmines "  << max_ironmines << " connected iron mines, not building more";
+      return;
+    }
     // connect any disconnected iron mine that was placed if conditions are right
     Flags flags_copy = *(game->get_flags());  // create a copy so we don't conflict with the game thread, and don't want to mutex lock for a long function
     for (Flag *flag : flags_copy) {
@@ -3941,7 +3960,11 @@ void
 AI::do_connect_stone_mines() {
   ai_status.assign("do_connect_stone_mines");
   AILogDebug["do_connect_stone_mines"] << inventory_pos << " inside do_connect_stone_mines()";
-  if (stock_building_counts.at(inventory_pos).needs_stone) {
+  if (stock_building_counts.at(inventory_pos).needs_stone && stock_building_counts.at(inventory_pos).inv_has_no_stone_piles) {
+    if (stock_building_counts.at(inventory_pos).count[Building::TypeStoneMine] >= max_stonemines) {
+      AILogDebug["do_connect_coal_mines"] << inventory_pos << " this Inventory area already has max_stonemines "  << max_stonemines << " connected stone mines, not building more";
+      return;
+    }
     // connect any disconnected stone mine that was placed if conditions are right
     Flags flags_copy = *(game->get_flags());  // create a copy so we don't conflict with the game thread, and don't want to mutex lock for a long function
     for (Flag *flag : flags_copy) {
@@ -3991,9 +4014,8 @@ AI::do_connect_stone_mines() {
         break;
       }
     }
-  }
-  else {
-    AILogDebug["do_connect_stone_mines"] << inventory_pos << " have sufficient stone and/or stone buildings, skipping";
+  }else {
+    AILogDebug["do_connect_stone_mines"] << inventory_pos << " have sufficient stone and/or above-ground stone piles, skipping";
   }
   AILogDebug["do_connect_stone_mines"] << inventory_pos << " done do_connect_stone_mines";
 }
@@ -4204,6 +4226,10 @@ AI::do_build_gold_smelter_and_connect_gold_mines() {
   if (serfs_idle[Serf::TypeMiner] + serfs_potential[Serf::TypeMiner] < 3
     && (stock_building_counts.at(inventory_pos).occupied_count[Building::TypeCoalMine] == 0 || stock_building_counts.at(inventory_pos).occupied_count[Building::TypeIronMine] == 0)) {
     AILogDebug["do_build_gold_smelter_and_connect_gold_mines"] << inventory_pos << " has <2 miners+pickaxes remaining, but not yet both an occupied coal mine and an occupied iron mine.  Not connecting this gold mine";
+    return;
+  }
+  if (stock_building_counts.at(inventory_pos).count[Building::TypeGoldMine] >= max_goldmines) {
+    AILogDebug["do_build_gold_smelter_and_connect_gold_mines"] << inventory_pos << " this Inventory area already has max_goldmines "  << max_goldmines << " connected gold mines, not building more";
     return;
   }
 
@@ -4590,6 +4616,12 @@ AI::do_can_build_knight_huts() {
     AILogDebug["do_can_build_knight_huts"] << inventory_pos << " realm_planks_count " << realm_planks_count << " is below planks_min " << planks_min << ", cannot build knight huts anywhere";
     return false;
   }
+  // ensure REALM stones above crit
+  unsigned int realm_stones_count = realm_inv[Resource::TypeStone];
+  if (realm_stones_count < stones_min) {
+    AILogDebug["do_can_build_knight_huts"] << inventory_pos << " realm_stones_count " << realm_stones_count << " is below stones_min " << stones_min << ", cannot build knight huts anywhere";
+    return false;
+  }
   // ensure REALM idle knights in Inventories above min
   // NOTE - to avoid issue where at start of new game there are few Knights and Serfs in Castle, but plenty of swords/shields
   //    don't perform this check until at least X knight huts built
@@ -4639,6 +4671,12 @@ AI::do_can_build_other() {
   unsigned int realm_planks_count = realm_inv[Resource::TypePlank];
   if (realm_planks_count < planks_min) {
     AILogDebug["do_can_build_other"] << inventory_pos << " realm_planks_count " << realm_planks_count << " is below planks_min " << planks_min << ", cannot build generic buildings anywhere";
+    return false;
+  }
+  // ensure REALM stones above crit
+  unsigned int realm_stones_count = realm_inv[Resource::TypeStone];
+  if (realm_stones_count < stones_min) {
+    AILogDebug["do_can_build_other"] << inventory_pos << " realm_stones_count " << realm_stones_count << " is below stones_min " << stones_min << ", cannot build generic buildings anywhere";
     return false;
   }
   // ensure Inventory unfinished_count below limit
@@ -4787,7 +4825,7 @@ AI::do_check_resource_needs(){
   //AILogDebug["do_check_resource_needs"] << inventory_pos << " adjusted food_count at inventory_pos " << inventory_pos << ": " << adjusted_food_count;
   stock_building_counts.at(inventory_pos).needs_foods = false;
   stock_building_counts.at(inventory_pos).excess_foods = false;
-  if (adjusted_food_count < food_max) {
+  if (adjusted_food_count < food_max + (food_max * option_HighMinerFoodConsumption)) {
     AILogDebug["do_check_resource_needs"] << inventory_pos << " desire more food";
     // don't check for food buildings because the do_food_buildings function does, and the checks are too complex to move into here
     //if (stock_building_counts.at(inventory_pos).count[Building::TypeFarm] < 1) {
@@ -4795,7 +4833,7 @@ AI::do_check_resource_needs(){
       stock_building_counts.at(inventory_pos).needs_foods = true;
       expand_towards.insert("foods");
     //}
-  }else if (adjusted_food_count > food_max + anti_flapping_buffer) {
+  }else if (adjusted_food_count > food_max + (food_max * option_HighMinerFoodConsumption) + anti_flapping_buffer) {
     AILogDebug["do_check_resource_needs"] << inventory_pos << " has excess foods, should stop production";
     stock_building_counts.at(inventory_pos).excess_foods = true;
   }

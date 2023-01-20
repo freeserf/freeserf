@@ -162,7 +162,8 @@ Interface::open_popup(int box) {
   //  TypeLoadSave save a popup window size, and in order to make the LoadSave popup double-wide it must
   //  be referred to as SettSelect here, which makes SettSelect off-center because it is not actually
   //  double-wide but is offset as if it were.  Attempting to fix by simply reverting the offset for this
-  if (box == PopupBox::TypeOptions || box == PopupBox::TypeGameOptions || box == PopupBox::TypeGameOptions2 || box == PopupBox::TypeGameOptions3
+  if (box == PopupBox::TypeOptions || box == PopupBox::TypeGameOptions || box == PopupBox::TypeGameOptions2
+   || box == PopupBox::TypeGameOptions3 || box == PopupBox::TypeGameOptions4
    || box == PopupBox::TypeEditMapGenerator || box == PopupBox::TypeEditMapGenerator2 || box == PopupBox::TypeSettSelect){
      //Log::Debug["interface.cc"] << "inside Interface::open_popup(), for popup type " << box << ", drawing double-wide";
     // double wide, normal height
@@ -1299,7 +1300,7 @@ Interface::handle_key_pressed(char key, int modifier) {
       Audio &audio = Audio::get_instance();
       Audio::PPlayer splayer = audio.get_music_player();
       if (splayer) {
-        Log::Debug["interface.cc"] << "audio splayer exists, state is " << splayer->is_enabled();
+        Log::Debug["interface.cc"] << "music splayer exists, state is " << splayer->is_enabled();
         splayer->enable(!splayer->is_enabled());
       }
       break;
@@ -1310,8 +1311,13 @@ Interface::handle_key_pressed(char key, int modifier) {
       Audio &audio = Audio::get_instance();
       Audio::PPlayer splayer = audio.get_music_player();
       if (!splayer) {
-        Log::Warn["interface.cc"] << "audio splayer does not exist, cannot skip track!";
+        Log::Warn["interface.cc"] << "music splayer does not exist, cannot skip track!";
         break;
+      }else{
+        if(!splayer->is_enabled()){
+          Log::Warn["interface.cc"] << "music is currently disabled, cannot skip track!";
+          break;
+        }
       }
 
       // check if BOTH Amiga and DOS music available

@@ -314,7 +314,8 @@ class AI {
     bool inv_has_no_coal = false;
     bool inv_has_no_ironore = false;
     bool inv_has_no_goldore = false;
-    bool inv_has_no_stone = false;
+    bool inv_has_no_stone = false;  // no stone in mountains OR above ground
+    bool inv_has_no_stone_piles = false;
   };
 
   // the count of buildings inv various completion states attached *by shortest flag dist* to this stock, plus the list of military buildings
@@ -447,7 +448,7 @@ static const unsigned int near_trees_min = 5; // only place sawmills near at lea
 static const unsigned int min_pct_open_positions_burn_excess_forester = 40;//%  // when max_planks reached, burn any forester that has fewer than this % open grass positions within its working radius
 static const unsigned int stones_min = 10;
 static const unsigned int stones_max = 25;
-static const unsigned int near_stones_min = 5;  // don't place castle unless sufficient stones, considers pile size
+static const unsigned int near_stones_min = 1;  // don't place castle unless sufficient stones, considers pile size //was seeing issue where Inv area had no stones, but wouldn't build a stonecutter hut near the only pile of 5 it did have.  Because this function is already sorting by most stones, the best area should already be handled first
 static const unsigned int food_max = 40;  // demolish all food buildings if stored food over this amount (includes food at flags and unprocessed food up to a certain cap)
 static const unsigned int lower_min_openspace_farm = 15; // absolute minimum open tiles in area to build farm (existing fields count favorably, though).  The number of available knights is added to allow for taking better territory
 static const unsigned int upper_min_openspace_farm = 45; // upper limit of min open tiles in area to build farm (existing fields count favorably, though). FYI: there are 60 tiles in spiral_dist(4)
@@ -506,6 +507,7 @@ static const unsigned int max_unfinished_huts = 3;
 static const unsigned int max_coalmines = 2;
 static const unsigned int max_ironmines = 1;
 static const unsigned int max_goldmines = 1;
+static const unsigned int max_stonemines = 1;
 
 // max ratio of actual road length compared to ideal straight-line length to determine if road is acceptably short
 //   example, 3.00 means a road of up to 3x the length of a perfectly straight road is acceptable

@@ -104,6 +104,7 @@ class PopupBox : public GuiObject {
     TypeGameOptions,
     TypeGameOptions2,
     TypeGameOptions3,
+    TypeGameOptions4,
     TypeEditMapGenerator,
     TypeEditMapGenerator2,
     TypePleaseWaitSaving,  // added for option_EnableAutoSave
@@ -248,6 +249,7 @@ class PopupBox : public GuiObject {
   void draw_game_options_box();
   void draw_game_options2_box();
   void draw_game_options3_box();
+  void draw_game_options4_box();
   void draw_edit_map_generator_box();
   void draw_edit_map_generator2_box();
   void draw_castle_res_box();
@@ -284,6 +286,7 @@ class PopupBox : public GuiObject {
   void handle_box_game_options_clk(int x, int y);
   void handle_box_game_options2_clk(int x, int y);
   void handle_box_game_options3_clk(int x, int y);
+  void handle_box_game_options4_clk(int x, int y);
   void handle_box_edit_map_generator_clk(int x, int y);
   void handle_box_edit_map_generator2_clk(int x, int y);
   void handle_mine_building_clk(int x, int y);

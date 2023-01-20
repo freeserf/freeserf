@@ -224,7 +224,7 @@ GuiObject::get_position(int *px, int *py) {
 
 void
 GuiObject::set_size(int new_width, int new_height) {
-  Log::Debug["gui.cc"] << "start of GuiObject::set_size";
+  //Log::Debug["gui.cc"] << "start of GuiObject::set_size";
   delete_frame();
   width = new_width;
   height = new_height;

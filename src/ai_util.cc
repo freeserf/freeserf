@@ -290,9 +290,9 @@ AI::update_buildings() {
 
     if (type == Building::TypeCastle) {
       if (!building->is_done()) {
-        AILogDebug["util_update_buildings"] << "player's castle isn't finished building yet";
+        AILogDebug["util_update_buildings"] << "player's castle is not done building yet";
         while (!building->is_done()) {
-          AILogDebug["util_update_buildings"] << "player's castle isn't finished building yet.  Sleeping a bit";
+          AILogDebug["util_update_buildings"] << "player's castle is not done building yet.  Sleeping a bit";
           sleep_speed_adjusted(1000);
         }
         AILogDebug["util_update_buildings"] << "player's castle is now built, updating stocks";
@@ -1892,8 +1892,7 @@ AI::build_best_road(MapPos start_pos, RoadOptions road_options, Road *built_road
             //Road road = plot_road(map, player_index, start_pos, end_pos, &notused, road_options.test(RoadOption::HoldBuildingPos));
             road = plot_road(map, player_index, this_segment_start_pos, this_segment_end_pos, &notused, road_options.test(RoadOption::HoldBuildingPos));
           */
-          }
-          else {
+          }else {
             AILogDebug["util_build_best_road"] << "" << calling_function << " failed to build flag at this_segment_end_pos " << this_segment_end_pos << ", on way to final end_pos " << end_pos << ", FIND OUT WHY!  not trying to build this road.  marking pos in cyan";
             ai_mark_pos.insert(ColorDot(this_segment_end_pos, "cyan"));
             //// I'm not sure what is causing this yet, but it seems to happen for many-segment complex roads near busy areas, and isn't all that of a big deal to use alternate solution
@@ -1903,7 +1902,14 @@ AI::build_best_road(MapPos start_pos, RoadOptions road_options, Road *built_road
             //continue;
             // now that passthru is allowed, must break instead of continue
             //  as multiple road segments could comprise a solution, and this length check must reject the ENTIRE solution
-            break;
+            //break;
+            // UPDATE - I am seeing rare issue where a bunch of cyan pos on raods appear for failed flags, and then I see
+            //   a bunch of junk flags polluting the same area, I think from related failed passthru solutions where it 
+            //   seems to have created new splitting flags but then abandoned the solution.  As a work-around trying 
+            //   a return here instead of break
+            // saw this Jan19 when building Stonecutter
+            AILogDebug["util_build_best_road"] << "" << calling_function << " failed to build flag at this_segment_end_pos " << this_segment_end_pos << ", on way to final end_pos " << end_pos << ", FIND OUT WHY!  not trying to build this road.  RETURNING EARLY";
+            return false;
           }
         }// if no flag at  this_segment_end_pos
           
