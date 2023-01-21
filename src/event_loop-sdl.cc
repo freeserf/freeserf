@@ -194,7 +194,7 @@ EventLoopSDL::run() {
       }
     }
     unsigned int current_ticks = SDL_GetTicks();
-    SDL_Keymod mod = SDL_GetModState();
+    //SDL_Keymod mod = SDL_GetModState();
 
     //timenow = time(0); // for FPS counter
     //zoom_changed = false; // trying to solve erratic zoom issue
@@ -224,6 +224,7 @@ EventLoopSDL::run() {
               notify_special_click(x, y);
             }
           }else if (event.button.button == 1){
+            SDL_Keymod mod = SDL_GetModState();
             notify_left_click(x, y, mod, (Event::Button)event.button.button);
           }else if (event.button.button == 3){
             notify_right_click(x, y);
@@ -281,6 +282,13 @@ EventLoopSDL::run() {
               drag_button = button;
               drag_x = event.motion.x;
               drag_y = event.motion.y;
+              /* this doesn't work
+              int wtf_x = 0;
+              int wtf_y = 0;
+              SDL_GetRelativeMouseState(&wtf_x, &wtf_y);
+              drag_x = wtf_x;
+              drag_y = wtf_y;
+              */
             }
 
             Log::Debug["event_loop-sdl.cc"] << "inside EventLoopSDL::run(), type SDL_MOUSEMOTION, drag_button " << drag_button << ", drag_x " << drag_x << ", drag_y " << drag_y;
