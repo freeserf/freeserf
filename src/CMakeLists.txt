@@ -85,14 +85,12 @@ set(PLATFORM_HEADERS video.h
                      audio.h
                      event_loop.h)
 
-if(SDL2_FOUND)
-  include_directories(${INCLUDE_DIRECTORIES} ${SDL2_INCLUDE_DIR})
+if(SDL2_DIR)
   list(APPEND PLATFORM_SOURCES video-sdl.cc event_loop-sdl.cc)
   list(APPEND PLATFORM_HEADERS video-sdl.h event_loop-sdl.h)
 endif()
 
-if(ENABLE_SDL2_MIXER AND SDL2_MIXER_FOUND)
-  include_directories(${INCLUDE_DIRECTORIES} ${SDL2_MIXER_INCLUDE_DIR})
+if(ENABLE_SDL2_MIXER AND SDL2_mixer_DIR)
   list(APPEND PLATFORM_SOURCES audio-sdlmixer.cc)
   list(APPEND PLATFORM_HEADERS audio-sdlmixer.h)
 else()
@@ -101,6 +99,10 @@ else()
 endif()
 
 add_library(platform STATIC ${PLATFORM_SOURCES} ${PLATFORM_HEADERS})
+target_link_libraries(platform SDL2::SDL2)
+if(ENABLE_SDL2_MIXER AND SDL2_mixer_DIR)
+  target_link_libraries(platform SDL2_image::SDL2_image)
+endif()
 target_check_style(platform)
 
 # Data library
@@ -128,14 +130,16 @@ set(DATA_HEADERS data.h
                  data-source.h
                  sprite-file.h)
 
-if(ENABLE_SDL2_IMAGE AND SDL2_IMAGE_FOUND)
-  include_directories(${INCLUDE_DIRECTORIES} ${SDL2_IMAGE_INCLUDE_DIR})
+if(ENABLE_SDL2_IMAGE AND SDL2_image_DIR)
   list(APPEND DATA_SOURCES sprite-file-sdl.cc)
 else()
   list(APPEND DATA_SOURCES sprite-file-dummy.cc)
 endif()
 
 add_library(data STATIC ${DATA_SOURCES} ${DATA_HEADERS})
+if(ENABLE_SDL2_IMAGE AND SDL2_image_DIR)
+  target_link_libraries(data SDL2::SDL2 SDL2_image::SDL2_image)
+endif()
 target_check_style(data)
 
 # Forkserf executable
@@ -180,16 +184,16 @@ add_executable(Forkserf MACOSX_BUNDLE WIN32 ${FORKSERF_SOURCES} ${FORKSERF_HEADE
 target_check_style(Forkserf)
 
 target_link_libraries(Forkserf game platform data tools)
-if(SDL2_FOUND)
-  target_link_libraries(Forkserf optimized ${SDL2_LIBRARY} debug ${SDL2_LIBRARY_DEBUG})
+if(SDL2_DIR)
+  target_link_libraries(Forkserf SDL2::SDL2)
   if(WIN32)
-    target_link_libraries(Forkserf optimized ${SDL2_MAIN_LIBRARY} debug ${SDL2_MAIN_LIBRARY_DEBUG})
+    target_link_libraries(Forkserf SDL2::SDL2main)
   endif()
-  if(SDL2_MIXER_FOUND)
-    target_link_libraries(Forkserf optimized ${SDL2_MIXER_LIBRARY} debug ${SDL2_MIXER_LIBRARY_DEBUG})
+  if(SDL2_mixer_DIR)
+    target_link_libraries(Forkserf SDL2_mixer::SDL2_mixer)
   endif()
-  if(SDL2_IMAGE_FOUND)
-    target_link_libraries(Forkserf optimized ${SDL2_IMAGE_LIBRARY} debug ${SDL2_IMAGE_LIBRARY_DEBUG})
+  if(SDL2_image_DIR)
+    target_link_libraries(Forkserf SDL2_image::SDL2_image)
   endif()
 endif()
 install(TARGETS Forkserf DESTINATION ".")
