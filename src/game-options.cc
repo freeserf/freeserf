@@ -42,7 +42,6 @@ GameOptions::GameOptions(){
     ::CoTaskMemFree(saved_games_path);
     folder_path += '\\';
     */
-    folder_path = '';
     #elif defined(__APPLE__)
     folder_path = std::string(std::getenv("HOME"));
     folder_path += "/Library/Application Support";
