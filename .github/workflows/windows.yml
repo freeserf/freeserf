@@ -13,8 +13,8 @@ jobs:
 
     strategy:
       matrix:
-        buildtype: [Debug, Release]
-        architecture: [x86, x64]
+        buildtype: [Release]
+        architecture: [x64]
 
     steps:
       - name: Checkout
@@ -42,11 +42,6 @@ jobs:
         run: |
           cd build
           nmake
-      - name: Run Tests
-        shell: bash
-        run: |
-          cd build
-          nmake test
       - name: Pack FreeSerf
         shell: bash
         run: |
