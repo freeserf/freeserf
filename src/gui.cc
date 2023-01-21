@@ -119,9 +119,14 @@ GuiObject::handle_event(const Event *event) {
       event->type == Event::TypeSpecialClick ||
       event->type == Event::TypeDrag) {
     // I think this is adjusting by the offset of the GUI object's starting pos 0,0 (top-left) for popup, panelbar, etc.
+    Log::Debug["event_loop.cc"] << "inside GuiObject::handle_event";
+    if (event->type == Event::TypeDrag) {
+      Log::Debug["event_loop.cc"] << "inside GuiObject::handle_event is TypeDrag";
+    }
     event_x = event->x - x;  
     event_y = event->y - y;
     if (event_x < 0 || event_y < 0 || event_x > width || event_y > height) {
+      Log::Debug["event_loop.cc"] << "inside GuiObject::handle_event returning false because out of bounds";
       return false;
     }
   }
@@ -149,6 +154,7 @@ GuiObject::handle_event(const Event *event) {
       result = handle_left_click(event_x, event_y, event->dy);
       break;
     case Event::TypeDrag:
+      Log::Debug["event_loop.cc"] << "inside GuiObject::handle_event cae TypeDrag claling result = handle_drag";
       result = handle_drag(event->dx, event->dy);
       break;
     case Event::TypeRightClick:

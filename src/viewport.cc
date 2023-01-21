@@ -4306,7 +4306,7 @@ Viewport::handle_dbl_click(int lx, int ly, Event::Button button) {
   if (button != Event::ButtonLeft){
     return false;
   }
-  handle_special_click(lx, ly);
+  return handle_special_click(lx, ly);
 }
 
 bool
@@ -4453,6 +4453,7 @@ Viewport::handle_special_click(int lx, int ly) {
 
 bool
 Viewport::handle_drag(int lx, int ly) {
+  Log::Debug["event_loop.cc"] << "inside Viewport::handle_drag lx,ly = " << lx << "," << ly;
   if (lx != 0 || ly != 0) {
     move_by_pixels(lx, ly);
   }
@@ -4658,6 +4659,7 @@ Viewport::move_to_map_pos(MapPos pos) {
 
 void
 Viewport::move_by_pixels(int lx, int ly) {
+  Log::Debug["event_loop.cc"] << "inside Viewport::move_by_pixels lx,ly = " << lx << "," << ly;
   int lwidth = map->get_cols() * MAP_TILE_WIDTH;
   int lheight = map->get_rows() * MAP_TILE_HEIGHT;
 
