@@ -125,10 +125,10 @@ EventLoopSDL::run() {
   gfx.get_screen_factor(&screen_factor_x, &screen_factor_y);
   
   // for FPS counter
-  int frames = 0;
-  int timenow = time(0);
-  int last_time = timenow;
-  int target_fps = 49;  // default game speed 2 is 49-50fps.  Adjusted later for game_speed
+  //int frames = 0;
+  //int timenow = time(0);
+  //int last_time = timenow;
+  //int target_fps = 49;  // default game speed 2 is 49-50fps.  Adjusted later for game_speed
 
   // trying to debug zoom issues with quickly changing zoom
   bool zoom_changed = false;
@@ -196,7 +196,7 @@ EventLoopSDL::run() {
     unsigned int current_ticks = SDL_GetTicks();
     SDL_Keymod mod = SDL_GetModState();
 
-    timenow = time(0); // for FPS counter
+    //timenow = time(0); // for FPS counter
     //zoom_changed = false; // trying to solve erratic zoom issue
     //MouseState * m = (MouseState*) userdata;  // trying to solve issue with mouse pointer not being reported exactly correctly
 
@@ -461,16 +461,16 @@ EventLoopSDL::run() {
         if (event.type == eventUserTypeStep) {
 
           // show frames/updates per second
-          frames++;
-          int time_delta = timenow - last_time;
-          if (time_delta >= 1){
-            target_fps = 1000 / tick_length; // same as TICKS_PER_SEC
-            int fps_lag = target_fps - (frames / time_delta);
-            if (fps_lag < 0){fps_lag = 0;}
-            Log::Info["event_loop-sdl.cc"] << "in past " << time_delta << "sec, processed " << frames << " frames, target_fps " << target_fps << ", FPS loss:" << fps_lag;
-            frames = 0;
-            last_time = timenow;
-          }
+          //frames++;
+          //int time_delta = timenow - last_time;
+          //if (time_delta >= 1){
+          //  target_fps = 1000 / tick_length; // same as TICKS_PER_SEC
+          //  int fps_lag = target_fps - (frames / time_delta);
+          //  if (fps_lag < 0){fps_lag = 0;}
+          //  Log::Info["event_loop-sdl.cc"] << "in past " << time_delta << "sec, processed " << frames << " frames, target_fps " << target_fps << ", FPS loss:" << fps_lag;
+          //  frames = 0;
+          //  last_time = timenow;
+          //}
 
           // Update and draw interface
           notify_update();

@@ -3767,7 +3767,7 @@ AI::score_enemy_targets(MapPosSet *scored_targets) {
         AILogDebug["util_score_enemy_targets"] << "target_building is nullptr!  at pos " << pos;
         continue;
       }
-      if (!target_building->is_military() || !target_building->is_active() || !building->get_threat_level() == 3){
+      if (!target_building->is_military() || !target_building->is_active() || building->get_threat_level() != 3){
         continue;
       }
       MapPos target_pos = pos;

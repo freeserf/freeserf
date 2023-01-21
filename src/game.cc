@@ -3277,23 +3277,23 @@ Game::clear_search_id() {
 // iterations and changes between game and AI threads
 void
 Game::mutex_lock(const char* message){
-  Log::Verbose["game.cc"] << "inside Game::mutex_lock, thread #" << std::this_thread::get_id() << " about to lock mutex, message: " << message;
-  clock_t start = std::clock();
+  //Log::Verbose["game.cc"] << "inside Game::mutex_lock, thread #" << std::this_thread::get_id() << " about to lock mutex, message: " << message;
+  //clock_t start = std::clock();
   mutex.lock();
-  double wait_for_mutex = (std::clock() - start) / static_cast<double>(CLOCKS_PER_SEC);
-  Log::Verbose["game.cc"] << "inside Game::mutex_lock, thread #" << std::this_thread::get_id() << " has locked mutex, message: " << mutex_message << ", waited " << wait_for_mutex << "sec for lock";
+  //double wait_for_mutex = (std::clock() - start) / static_cast<double>(CLOCKS_PER_SEC);
+  //Log::Verbose["game.cc"] << "inside Game::mutex_lock, thread #" << std::this_thread::get_id() << " has locked mutex, message: " << mutex_message << ", waited " << wait_for_mutex << "sec for lock";
   // store the lock message and start a timer so message and time-in-mutex can be printed on unlock
   mutex_message = message;
-  mutex_timer_start = std::clock();
+  //mutex_timer_start = std::clock();
 }
 
 void
 Game::mutex_unlock(){
   // message is known from lock
   //Log::Error["game.cc"] << "inside Game::mutex_unlock, thread #" << std::this_thread::get_id() << " about to unlock mutex, message: " << mutex_message;
-  double time_in_mutex = (std::clock() - mutex_timer_start) / static_cast<double>(CLOCKS_PER_SEC);
+  //double time_in_mutex = (std::clock() - mutex_timer_start) / static_cast<double>(CLOCKS_PER_SEC);
   mutex.unlock();
-  Log::Verbose["game.cc"] << "inside Game::mutex_unlock, thread #" << std::this_thread::get_id() << " has unlocked mutex, message: " << mutex_message << ", spent " << time_in_mutex << "sec holding lock";
+  //Log::Verbose["game.cc"] << "inside Game::mutex_unlock, thread #" << std::this_thread::get_id() << " has unlocked mutex, message: " << mutex_message << ", spent " << time_in_mutex << "sec holding lock";
 }
 
 SaveReaderBinary&
