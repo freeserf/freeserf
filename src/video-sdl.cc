@@ -423,6 +423,7 @@ VideoSDL::swap_buffers() {
   SDL_RenderPresent(renderer);
 }
 
+// this sets the mouse pointer cursor, NOT the game/map cursor
 void
 VideoSDL::set_cursor(void *data, unsigned int width, unsigned int height) {
   if (cursor != nullptr) {

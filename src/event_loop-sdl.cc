@@ -277,6 +277,7 @@ EventLoopSDL::run() {
         for (int button = 1; button <= 3; button++) {
           if (event.motion.state & SDL_BUTTON(button)) {
             if (drag_button == 0) {
+              Log::Debug["event_loop-sdl.cc"] << "inside EventLoopSDL::run(), type SDL_MOUSEMOTION, drag_button was 0, seting drag_button and drag_x/y";
               drag_button = button;
               drag_x = event.motion.x;
               drag_y = event.motion.y;
