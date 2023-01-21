@@ -948,10 +948,13 @@ Interface::build_flag() {
 /* Build a new building. */
 void
 Interface::build_building(Building::Type type) {
+  Log::Debug["interface.cc"] << "inside Interface::build_building, type " << NameBuilding[type];
   if (!game->build_building(map_cursor_pos, type, player)) {
+    Log::Debug["interface.cc"] << "inside Interface::build_building, CANNOT build type " << NameBuilding[type];
     play_sound(Audio::TypeSfxNotAccepted);
     return;
   }
+  Log::Debug["interface.cc"] << "inside Interface::build_building, can build type " << NameBuilding[type];
 
   play_sound(Audio::TypeSfxAccepted);
   close_popup();

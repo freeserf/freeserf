@@ -4661,20 +4661,20 @@ void
 Serf::handle_serf_lost_state() {
   if (this->get_building_held() != 0){
     Log::Warn["serf.cc"] << "inside Serf::handle_serf_lost_state, serf #" << this->get_index() << " of type " << NameSerf[this->get_type()] << " at pos " << this->get_pos() << " is Lost but also is holder to building #" << this->get_building_held() << "!";
-    Log::Warn["serf.cc"] << "inside Serf::handle_serf_lost_state, marking serf #" << this->get_index() << " in lavender";
-    game->set_debug_mark_pos(this->get_pos(), "lavender");
+    //Log::Warn["serf.cc"] << "inside Serf::handle_serf_lost_state, marking serf #" << this->get_index() << " in lavender";
+    //game->set_debug_mark_pos(this->get_pos(), "lavender");
     Building *held_building = game->get_building(this->get_building_held());
     if (held_building == nullptr){
       Log::Warn["serf.cc"] << "inside Serf::handle_serf_lost_state, serf #" << this->get_index() << " of type " << NameSerf[this->get_type()] << " at pos " << this->get_pos() << " is Lost but also is holder to building #" << this->get_building_held() << " and held building is nullptr!";
     }else{
       Log::Warn["serf.cc"] << "inside Serf::handle_serf_lost_state, serf #" << this->get_index() << " of type " << NameSerf[this->get_type()] << " at pos " << this->get_pos() << " is Lost but also is holder to building #" << this->get_building_held() << " which has building pos " << held_building->get_position();
-      Log::Warn["serf.cc"] << "inside Serf::handle_serf_lost_state, marking held building in seafoam";
-      game->set_debug_mark_pos(held_building->get_position(), "seafoam");
+      //Log::Warn["serf.cc"] << "inside Serf::handle_serf_lost_state, marking held building in seafoam";
+      //game->set_debug_mark_pos(held_building->get_position(), "seafoam");
     }
 
-    game->speed_reset();
-    game->speed_decrease();
-    game->pause();
+    //game->speed_reset();
+    //game->speed_decrease();
+    //game->pause();
   }
   //
   // general note about Lost state, it seems that serfs are only Lost very briefly and then transition to another state such as
