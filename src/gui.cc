@@ -115,6 +115,7 @@ GuiObject::handle_event(const Event *event) {
   int event_x = event->x;
   int event_y = event->y;
   Log::Debug["event_loop.cc"] << "inside GuiObject::handle_event before type check event_x = " << event_x << ", event_y = " << event_y;
+  Log::Debug["event_loop.cc"] << "inside GuiObject::handle_event before type check event->dx = " << event->dx << ", event->dy = " << event->dy;
   if (event->type == Event::TypeLeftClick ||
       event->type == Event::TypeRightClick ||
       event->type == Event::TypeDoubleClick ||

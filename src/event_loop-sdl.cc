@@ -204,10 +204,10 @@ EventLoopSDL::run() {
     switch (event.type) {
       case SDL_MOUSEBUTTONUP:
         Log::Debug["event_loop-sdl.cc"] << "inside EventLoopSDL::run(), type SDL_MOUSEBUTTONUP";
-        //if (drag_button == event.button.button) {
+        if (drag_button == event.button.button) {
           drag_button = 0;
           Log::Debug["event_loop-sdl.cc"] << "inside EventLoopSDL::run(), type SDL_MOUSEBUTTONUP, drag_button = 0";
-        //}
+        }
 
         if (event.button.button <= 3) {
           Log::Debug["event_loop-sdl.cc"] << "inside EventLoopSDL::run(), type SDL_MOUSEBUTTONUP, event.button.button " << event.button.button << " is <= 3";
@@ -281,11 +281,10 @@ EventLoopSDL::run() {
               drag_x = event.motion.x;
               drag_y = event.motion.y;
             }
-            //drag_x = event.motion.x;
-            //drag_y = event.motion.y;
 
             Log::Debug["event_loop-sdl.cc"] << "inside EventLoopSDL::run(), type SDL_MOUSEMOTION, drag_button " << drag_button << ", drag_x " << drag_x << ", drag_y " << drag_y;
             Log::Debug["event_loop-sdl.cc"] << "inside EventLoopSDL::run(), type SDL_MOUSEMOTION, zoom_factor " << zoom_factor << ", screen_factor_x " << screen_factor_x << ", screen_factor_y " << screen_factor_y;
+            Log::Debug["event_loop-sdl.cc"] << "inside EventLoopSDL::run(), type SDL_MOUSEMOTION, event.motion.x " << event.motion.x << ", event.motion.y " << event.motion.y;
 
             int x = static_cast<int>(static_cast<float>(drag_x) *
                                      zoom_factor * screen_factor_x);
