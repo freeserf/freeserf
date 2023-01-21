@@ -8,7 +8,7 @@ on:
 
 jobs:
   build:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-latest
 
     strategy:
       matrix:
@@ -16,7 +16,7 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
         with:
           submodules: 'recursive'
 
@@ -46,7 +46,7 @@ jobs:
           ls -l
       # it seems the default cmake make package version is 0.1.1, see https://stackoverflow.com/questions/40.5.063/how-to-idiomatically-set-the-version-number-in-a-cmake-cpack-project
       - name: Upload artifact
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v3
         with:
           name: Forkserf-0.5.2-Linux-glibc3.4.tar
           path: build/src/Forkserf-0.5.2-Linux-glibc3.4.tar
