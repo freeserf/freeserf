@@ -136,7 +136,7 @@ EventLoop::notify_key_pressed(unsigned char key, unsigned char modifier) {
 
 // 0=up, 1=down, 3=left, 4=right
 bool
-EventLoop::notify_arrow_key_pressed(uint8_t key) {
+EventLoop::notify_arrow_key_pressed(unsigned char key) {
   Event event;
   event.type = Event::TypeArrowKeyPressed;
   event.x = 0;
