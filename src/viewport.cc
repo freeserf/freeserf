@@ -1899,7 +1899,8 @@ Viewport::draw_active_serf(Serf *serf, MapPos pos, int x_base, int y_base) {
       serf->get_state() == Serf::StateKnightPrepareAttackingFree ||
       serf->get_state() == Serf::StateKnightAttackingFree ||
       serf->get_state() == Serf::StateKnightAttackingVictoryFree ||
-      serf->get_state() == Serf::StateKnightAttackingDefeatFree) {
+      serf->get_state() == Serf::StateKnightAttackingDefeatFree ||
+      serf->get_state() == Serf::StateKnightAttackingVictory) {
     int index = serf->get_attacking_def_index();
     if (index != 0) {
       Serf *def_serf = interface->get_game()->get_serf(index);

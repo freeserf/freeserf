@@ -227,6 +227,10 @@ EventLoopSDL::run() {
           case SDLK_f:
             if (event.key.keysym.mod & KMOD_CTRL) {
               gfx.set_fullscreen(!gfx.is_fullscreen());
+            } else {
+                // if this isn't handled the 'f' key
+                // doesn't work for savegame names
+                notify_key_pressed(event.key.keysym.sym, modifier);
             }
             break;
           case SDLK_RIGHTBRACKET:
@@ -257,7 +261,10 @@ EventLoopSDL::run() {
           unsigned int height = event.window.data2;
           gfx.set_resolution(width, height, gfx.is_fullscreen());
           gfx.get_screen_factor(&screen_factor_x, &screen_factor_y);
+          float factor = (gfx.get_zoom_factor() - 1);
+          zoom(-factor);
           notify_resize(width, height);
+          zoom(factor);
         }
         break;
       case SDL_USEREVENT:

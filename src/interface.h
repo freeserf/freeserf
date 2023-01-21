@@ -65,6 +65,20 @@ class Interface : public GuiObject, public GameManager::Handler {
     BuildPossibilityCastle,
   } BuildPossibility;
 
+  typedef enum StatAspect {
+    StatAspectAll = 0,
+    StatAspectLand,
+    StatAspectBuildings,
+    StatAspectMilitary
+  } StatAspect;
+
+  typedef enum StatScale {
+    StatScale30Min = 0,
+    StatScale60Min,
+    StatScale600Min,
+    StatScale3000Min
+  } StatScale;
+
  protected:
   typedef struct SpriteLoc {
     int sprite;
@@ -99,8 +113,9 @@ class Interface : public GuiObject, public GameManager::Handler {
 
   SpriteLoc map_cursor_sprites[7];
 
-  int current_stat_8_mode;
-  int current_stat_7_item;
+  StatScale selected_stat_scale;
+  StatAspect selected_stat_aspect;
+  Resource::Type selected_stat_resource;
 
   int water_in_view;
   int trees_in_view;
@@ -136,10 +151,20 @@ class Interface : public GuiObject, public GameManager::Handler {
   bool get_msg_flag(int i) const { return (BIT_TEST(msg_flags, i) != 0); }
   void set_msg_flag(int i) { msg_flags |= BIT(i); }
 
-  int get_current_stat_8_mode() const { return current_stat_8_mode; }
-  void set_current_stat_8_mode(int mode) { current_stat_8_mode = mode; }
-  int get_current_stat_7_item() const { return current_stat_7_item; }
-  void set_current_stat_7_item(int item) { current_stat_7_item = item; }
+  StatScale get_selected_stat_scale() const { return selected_stat_scale; }
+  void set_selected_stat_scale(StatScale scale) { selected_stat_scale = scale; }
+  StatAspect get_selected_stat_aspect() const {
+    return selected_stat_aspect;
+  }
+  void set_selected_stat_aspect(StatAspect aspect) {
+    selected_stat_aspect = aspect;
+  }
+  Resource::Type get_selected_stat_resource() const {
+      return selected_stat_resource;
+  }
+  void set_selected_stat_resource(Resource::Type item) {
+      selected_stat_resource = item;
+  }
 
   BuildPossibility get_build_possibility() const { return build_possibility; }
 

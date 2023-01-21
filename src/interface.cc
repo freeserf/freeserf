@@ -62,8 +62,9 @@ Interface::Interface()
   msg_flags = 0;
   return_timeout = 0;
 
-  current_stat_8_mode = 0;
-  current_stat_7_item = 7;
+  selected_stat_scale = StatScale30Min;
+  selected_stat_aspect = StatAspectAll;
+  selected_stat_resource = Resource::Type::TypePlank;
 
   map_cursor_sprites[0].sprite = 32;
   map_cursor_sprites[1].sprite = 33;
