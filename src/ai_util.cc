@@ -200,7 +200,8 @@ AI::place_castle(PGame game, MapPos center_pos, unsigned int desperation) {
     AILogDebug["util_place_castle"] << "not enough trees, min is " << near_trees_min * 4 << ", returning false.  Desperation is " << desperation;
     return false;
   }
-  if (stones + desperation < near_stones_min) {
+  //if (stones + desperation < near_stones_min) {
+  if (stones + desperation < 10) {  // now that near_stones_min is set to 1 for placing stonecutters, just hardcode higher value for castle placement
     AILogDebug["util_place_castle"] << "not enough stones, min is " << near_stones_min << ", returning false.  Desperation is " << desperation;
     return false;
   }

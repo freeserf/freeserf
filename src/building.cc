@@ -231,6 +231,10 @@ Building::set_holder_or_first_knight(unsigned int serf_index) {
   }
   holder_or_first_knight = serf_index;
 
+  // store the building's index for bug detection
+  Log::Debug["serf.cc"] << "inside Serf::set_holder_or_first_knight(), serf #" << serf->get_index() << " with serf type " << NameSerf[serf->get_type()] << " being set to Holder of building #" << this->get_index() << " of building type " << NameBuilding[this->get_type()];
+  serf->set_building_held(this->get_index());
+
   /* Test whether building is already occupied by knights */
   if (!active) {
     active = true;
@@ -1038,6 +1042,13 @@ Building::requested_serf_lost() {
   }
 }
 
+// tlongstretch, adding this to fix https://github.com/freeserf/freeserf/issues/521
+void
+Building::clear_holder() {
+  holder = false;
+  holder_or_first_knight = 0;
+}
+
 void
 Building::requested_serf_reached(Serf *serf) {
   holder = true;  // this is the only place in code where holder bool is set to true (except for initial castle creation)
@@ -1045,6 +1056,10 @@ Building::requested_serf_reached(Serf *serf) {
   if (serf_requested) {
     //Log::Debug["building.cc"] << "inside Building::requested_serf_reached, a serf was requested, holder_or_first_knight being set to this serf with index " << serf->get_index() << ", serf type " << serf->get_type();
     holder_or_first_knight = serf->get_index();
+    // store the building's index for bug detection
+    Log::Debug["serf.cc"] << "inside Building::requested_serf_reached, serf #" << serf->get_index() << " with serf type " << NameSerf[serf->get_type()] << " being set to Holder of building #" << this->get_index() << " of building type " << NameBuilding[this->get_type()];
+    serf->set_building_held(this->get_index());
+
   }
   serf_requested = false;
 }
@@ -1763,6 +1778,9 @@ Building::update_castle() {
         serf->add_to_defending_queue(holder_or_first_knight, false);
         holder_or_first_knight = serf->get_index();
         player->increase_castle_knights();
+        //// store the building's index for bug detection
+        //Log::Debug["serf.cc"] << "inside Building::update_castle, serf #" << serf->get_index() << " with serf type " << NameSerf[serf->get_type()] << " being set to Holder of building #" << this->get_index() << " of building type " << NameBuilding[this->get_type()];
+        //serf->set_building_held(this->get_index());
       } else {
         //Log::Debug["building.cc"] << "inside Building::update_castle(), want to send_serf_to_building of TypeNone (-1) i.e. a knight) if tick_send_delay is true";
         if (player->tick_send_knight_delay()) {  // game_speed adjusted for time warp speeds
@@ -1775,6 +1793,9 @@ Building::update_castle() {
       serf->add_to_defending_queue(holder_or_first_knight, true);
       holder_or_first_knight = serf->get_index();
       player->increase_castle_knights();
+      //// store the building's index for bug detection
+      //Log::Debug["serf.cc"] << "inside Building::update_castle, serf #" << serf->get_index() << " with serf type " << NameSerf[serf->get_type()] << " being set to Holder of building #" << this->get_index() << " of building type " << NameBuilding[this->get_type()];
+      //serf->set_building_held(this->get_index());
     }
   } else {
     player->decrease_castle_knights();
@@ -1782,6 +1803,9 @@ Building::update_castle() {
     int _serf_index = holder_or_first_knight;
     Serf *serf = game->get_serf(_serf_index);
     holder_or_first_knight = serf->get_next();
+    // store the building's index for bug detection
+    //Log::Debug["serf.cc"] << "inside Building::update_castle, serf #" << serf->get_index() << " with serf type " << NameSerf[serf->get_type()] << " being set to Holder of building #" << this->get_index() << " of building type " << NameBuilding[this->get_type()];
+    //serf->set_building_held(this->get_index());
 
     serf->stay_idle_in_stock(inventory->get_index());
   }
@@ -1906,6 +1930,9 @@ Building::update_military() {
       /* Remove leaving serf from list. */
       if (leaving_serf->get_index() == holder_or_first_knight) {
         holder_or_first_knight = leaving_serf->get_next();
+        //// store the building's index for bug detection
+        //Log::Debug["serf.cc"] << "inside Building::update_military, serf #" << serf->get_index() << " with serf type " << NameSerf[serf->get_type()] << " being set to Holder of building #" << this->get_index() << " of building type " << NameBuilding[this->get_type()];
+        //serf->set_building_held(this->get_index());
       } else {
         _serf_index = holder_or_first_knight;
         while (_serf_index != 0) {

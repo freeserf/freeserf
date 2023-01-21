@@ -1527,8 +1527,20 @@ Game::remove_road_forwards(MapPos pos, Direction dir) {
     if (map->has_serf(pos)) {
       Serf *serf = get_serf_at_pos(pos);
       if (!map->has_flag(pos)) {
-        serf->set_lost_state();
-        //Log::Debug["game"] << "about to call set_lost_state on serf at pos " << pos << " case1, map says no flag here";;
+        Log::Debug["game"] << "considering calling set_lost_state on serf #" << serf->get_index() << " at pos " << pos << " case1, map says no flag here";
+        // I think this is causing issues with free walking serfs that Hold a building, such as lumberjacks, rangers, farmers, stonecutters
+        //  when they are on a road that gets removed, they become Lost and their building loses its Holder.  These serfs should NOT become
+        //  Lost unless they are walking/waiting on the road.
+        // here are the states I think are possible for "serf walking on a path to get somewhere"
+        //  ALL OTHER STATES I assume are either serf is in a building or serf is free walking or otherwise doing something that isn't tied to a road
+        if (serf->get_state() == Serf::StateWalking || serf->get_state() == Serf::StateTransporting || serf->get_state() == Serf::StateReadyToEnter
+         || serf->get_state() == Serf::StateDelivering || serf->get_state() == Serf::StateIdleOnPath || serf->get_state() == Serf::StateWaitIdleOnPath 
+         || serf->get_state() == Serf::StateWakeAtFlag || serf->get_state() == Serf::StateWakeOnPath || serf->get_state() == Serf::StateWaitForBoat ){
+          Log::Debug["game"] << "serf #" << serf->get_index() << " at pos " << pos << " in a walking-on-a-path compatible state, calling set_lost_state on serf #" << serf->get_index() << " at pos " << pos << " case1, map says no flag here";
+          serf->set_lost_state();
+        }else{
+          Log::Debug["game"] << "serf #" << serf->get_index() << " at pos " << pos << " is in state #" << serf->get_state() << " which is NOT requiring being on a road, NOT calling set_lost_state on serf #" << serf->get_index() << " at pos " << pos << " case1, map says no flag here";
+        }
       } else {
         /* Handle serf close to flag, where
            it should only be lost if walking
@@ -3578,9 +3590,11 @@ Game::place_castle(MapPos center_pos, int player_index, unsigned int distance, u
   unsigned int building_sites = 0;
 
   // COPIED THESE FROM AI!  maybe make global?
-  static const unsigned int near_building_sites_min = 450;
-  static const unsigned int near_trees_min = 5;
-  static const unsigned int near_stones_min = 5;
+  const unsigned int near_building_sites_min = 450;
+  //const unsigned int near_trees_min = 5;
+  const unsigned int near_trees_min = 10;
+  //static const unsigned int near_stones_min = 5;
+  const unsigned int near_stones_min = 10;
 
   for (unsigned int i = 0; i < distance; i++) {
     MapPos pos = map->pos_add_extended_spirally(center_pos, i);

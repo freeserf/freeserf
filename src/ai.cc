@@ -2588,8 +2588,8 @@ AI::do_manage_tool_priorities() {
     //  AILogDebug["do_manage_tool_priorities"] << "need more available serfs of job type " << NameSerf[i];
     //  need_tools = true;
     //}
-    
-    if (i == Serf::TypeBuilder || i == Serf::TypeGeologist || i == Serf::TypeWeaponSmith){
+  
+    if (i == Serf::TypeBuilder || i == Serf::TypeGeologist || i == Serf::TypeWeaponSmith || i == Serf::TypeBoatBuilder || i == Serf::TypeToolmaker){
       if (forbid_hammers){
         AILogDebug["do_manage_tool_priorities"] << "forbid_hammers is true, not considering needs_tools for hammer-requiring profession " << NameSerf[i];
         continue;
@@ -2603,6 +2603,7 @@ AI::do_manage_tool_priorities() {
       if (i == Serf::TypeSailor)
         continue;
       need_tools = true;
+      AILogDebug["do_manage_tool_priorities"] << "setting needs_tools to true";
     }
   }
   

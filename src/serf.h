@@ -182,6 +182,7 @@ class Serf : public GameObject {
   //
   bool split_merge_tainted = false;    // note if serf has ever been involved in a fill_path_data call from a merged/split road
   unsigned int recent_dest = 0;  // store the most recent destination for each serf, in case they become Lost, try to send another serf.  Flag index
+  unsigned int building_held = 0;  // the index of a building that this serf is Holder to, for sanity/corruption checks
   //
   // TODO - add a variable that stores the index of the building this Serf is holder to, if he has oen
   //   this variable then can be used to cross-check for missing serfs.  Currently it is very difficult to
@@ -412,6 +413,8 @@ class Serf : public GameObject {
   Type get_type() const { return type; }
   void set_type(Type type);
   void set_serf_state(Serf::State state);
+  void set_building_held(unsigned int building_index) { building_held = building_index; }
+  unsigned int get_building_held() {return building_held; }
 
   bool playing_sfx() const { return sound; }
   void start_playing_sfx() { sound = true; }

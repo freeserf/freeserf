@@ -532,7 +532,7 @@ Serf::path_deleted(unsigned int dest, Direction dir) {
         s.ready_to_leave_inventory.dest = 0;
       }
       break;
-    case StateLeavingBuilding:
+    case StateLeavingBuilding:  
     case StateReadyToLeave:
       if (s.leaving_building.dest == dest &&
           s.leaving_building.field_B == dir &&
@@ -617,7 +617,7 @@ Serf::flag_deleted(MapPos flag_pos) {
         //}else{
         //  Log::Debug["serf"] << "inside flag_deleted, serf of type " << NameSerf[type] << " being set to Lost, dest when it exited Inventory was flag #" << recent_dest << " which is a nullptr";
         //}
-
+        Log::Debug["serf"] << "inside flag_deleted, serf #" << this->get_index() << " of type " << NameSerf[type] << " being set to Lost";
         set_state(StateLost);
       }
       break;
@@ -666,6 +666,18 @@ Serf::building_deleted(MapPos building_pos) {
   //    set_type(TypeTransporter);
   //  }
   //}
+
+  Building *deleted_building = game->get_building_at_pos(this->get_pos());
+  if (deleted_building == nullptr){
+    Log::Debug["serf.cc"] << "inside Serf::building_deleted, pos " << building_pos << ", serf with index #" << get_index() << " and type " << NameSerf[this->get_type()] << ".  building at serf pos is nullptr!";
+  }else{
+    Log::Debug["serf.cc"] << "inside Serf::building_deleted, pos " << building_pos << ", serf with index #" << get_index() << " and type " << NameSerf[this->get_type()] << ".  building at serf pos has index #" << deleted_building->get_index();
+  }
+  Log::Debug["serf.cc"] << "inside Serf::building_deleted, pos " << building_pos << ", serf with index #" << get_index() << " and type " << NameSerf[this->get_type()] << ".  setting serf->building_held to 0";
+  Log::Debug["serf.cc"] << "inside Serf::building_deleted, pos " << building_pos << ", serf with index #" << get_index() << " and type " << NameSerf[this->get_type()] << ".  current building_held if any is #" << this->get_building_held();
+  this->set_building_held(0);
+  Log::Debug["serf.cc"] << "inside Serf::building_deleted, pos " << building_pos << ", serf with index #" << get_index() << " and type " << NameSerf[this->get_type()] << ".  current building_held if any is #" << this->get_building_held() << " THIS BETTER BE ZERO!!!";
+
   counter = 0;
   // if serf Holder is out working somewhere...
   if (game->get_map()->get_serf_index(pos) == index) {
@@ -940,7 +952,7 @@ Serf::set_lost_state() {
     //}else{
     //  Log::Debug["serf"] << "inside set_lost_state A, serf of type " << NameSerf[type] << " being set to Lost, dest when it exited Inventory was flag #" << recent_dest << " which is a nullptr";
     //}
-
+    Log::Debug["serf"] << "inside set_lost_state A, serf #" << this->get_index() << " of type " << NameSerf[type] << " being set to Lost";
     set_state(StateLost);
     s.lost.field_B = 0;
   } else if (state == StateTransporting || state == StateDelivering) {
@@ -961,6 +973,7 @@ Serf::set_lost_state() {
       //  Log::Debug["serf"] << "inside set_lost_state, B serf of type " << NameSerf[type] << " being set to Lost, dest when it exited Inventory was flag #" << recent_dest << " which is a nullptr";
       //}
 
+      Log::Debug["serf"] << "inside set_lost_state B, serf #" << this->get_index() << " of type " << NameSerf[type] << " being set to Lost";
       set_state(StateLost);
       s.lost.field_B = 0;
     } else {
@@ -974,7 +987,22 @@ Serf::set_lost_state() {
     //}else{
     //  Log::Debug["serf"] << "inside set_lost_state C, serf of type " << NameSerf[type] << " being set to Lost, dest when it exited Inventory was flag #" << recent_dest << " which is a nullptr";
     //}
-
+    Log::Debug["serf"] << "inside set_lost_state C, serf #" << this->get_index() << " of type " << NameSerf[type] << " being set to Lost";
+    // check to see if this serf is Holder to some building, and if free it
+    if (this->get_building_held() != 0){
+      Log::Debug["serf"] << "inside set_lost_state C, serf #" << this->get_index() << " of type " << NameSerf[type] << " being set to Lost, this serf is holder to building #" << this->get_building_held() << ", trying to free it";
+      Building *building = game->get_building(this->get_building_held());
+      if (building == nullptr){
+        Log::Debug["serf"] << "inside set_lost_state C, serf #" << this->get_index() << " of type " << NameSerf[type] << " being set to Lost, this serf is holder to building #" << this->get_building_held() << " but the building is nullptr, nothing to do";
+      }else{
+        Log::Debug["serf"] << "inside set_lost_state C, serf #" << this->get_index() << " of type " << NameSerf[type] << " being set to Lost, this serf is holder to building #" << this->get_building_held() << " calling building->requested_serf_lost();";
+        building->requested_serf_lost();
+        Log::Debug["serf"] << "inside set_lost_state C, serf #" << this->get_index() << " of type " << NameSerf[type] << " being set to Lost, this serf is holder to building #" << this->get_building_held() << " calling building->clear_holder();";
+        building->clear_holder();
+      }
+    }else{
+      Log::Debug["serf"] << "inside set_lost_state C, serf #" << this->get_index() << " of type " << NameSerf[type] << " being set to Lost, this serf is not holder to any building";
+    }
     set_state(StateLost);
     s.lost.field_B = 0;
   }
@@ -1611,7 +1639,7 @@ Serf::enter_building(int field_B, int join_pos) {
 
   Building *building = game->get_building_at_pos(pos);
   if (building == nullptr){
-    Log::Warn["serf.cc"] << "inside Serf::enter_building, serf with index " << get_index() << " at pos " << get_pos() << " is trying to enter a building, but Building is unexpectedly a nullptr! setting serf to Lost";
+    Log::Warn["serf.cc"] << "inside Serf::enter_building, serf with index #" << get_index() << " at pos " << get_pos() << " is trying to enter a building, but Building is unexpectedly a nullptr! setting serf to Lost";
     //throw ExceptionFreeserf("inside Serf::enter_building, building is unexpectedly a nullptr!");
     set_lost_state();
     return;
@@ -1659,6 +1687,7 @@ Serf::handle_serf_walking_state_dest_reached() {
     Building *building = game->get_building_at_pos(map->move_up_left(pos));
     if (building == nullptr){
       Log::Warn["serf.cc"] << "inside Serf::handle_serf_walking_state_dest_reached(), building is nullptr!  cannot enter, setting serf to Lost";
+      Log::Debug["serf"] << "inside Serf::handle_serf_walking_state_dest_reached(), building is nullptr!, serf #" << this->get_index() << " of type " << NameSerf[type] << " being set to Lost";
       set_state(Serf::StateLost);
       //s.lost.field_B = 1;  // not sure what this does, copied from another set Lost segment. It seems to control whether closest or farther away flag is preferred as next dest?
       s.lost.field_B = 0;  // this seems to be correct for "the building I am about to enter is no longer valid"
@@ -1860,7 +1889,7 @@ Serf::handle_serf_walking_state() {
           //}else{
           //  Log::Debug["serf.cc"] << "inside handle_serf_walking_state A, serf of type " << NameSerf[type] << " being set to Lost, dest when it exited Inventory was flag #" << recent_dest << " which is a nullptr";
           //}
-
+          Log::Debug["serf"] << "inside Serf::handle_serf_walking_state A, serf #" << this->get_index() << " of type " << NameSerf[type] << " being set to Lost";
           set_state(StateLost);
           s.lost.field_B = 1;
           counter = 0;
@@ -1935,7 +1964,7 @@ Serf::handle_serf_walking_state() {
         //}else{
         //  Log::Debug["serf"] << "inside serf_walking_state B, serf of type " << NameSerf[type] << " being set to Lost, dest when it exited Inventory was flag #" << recent_dest << " which is a nullptr";
         //}
-
+        Log::Debug["serf"] << "inside Serf::handle_serf_walking_state B, serf #" << this->get_index() << " of type " << NameSerf[type] << " being set to Lost";
         set_state(StateLost);
         s.lost.field_B = 1;
         counter = 0;
@@ -2078,7 +2107,7 @@ Serf::handle_serf_transporting_state() {
           Log::Debug["serf"] << "inside handle_serf_transporting_state, serf of type " << NameSerf[type] << " being set to Lost, dest when it exited Inventory was flag #" << recent_dest << " which is a nullptr";
         }
         */
-
+        Log::Debug["serf"] << "inside Serf::handle_serf_transporting_state(), serf #" << this->get_index() << " of type " << NameSerf[type] << " being set to Lost";
         set_state(StateLost);
         counter = 0;
         return;
@@ -2233,7 +2262,7 @@ Serf::enter_inventory() {
   }
 
   if (building->get_inventory() == nullptr){
-    Log::Warn["serf.cc"] << "inside Serf::enter_inventory, serf with index " << get_index() << " at pos " << get_pos() << " is trying to enter an INVENTORY, but Building's INVENTORY object is unexpectedly a nullptr! setting serf to Lost";
+    Log::Warn["serf.cc"] << "inside Serf::enter_inventory, serf with index #" << get_index() << " at pos " << get_pos() << " is trying to enter an INVENTORY, but Building's INVENTORY object is unexpectedly a nullptr! setting serf to Lost";
     //throw ExceptionFreeserf("inside Serf::enter_building, building is unexpectedly a nullptr!");
     set_lost_state();
     return;
@@ -2259,6 +2288,7 @@ Serf::handle_serf_entering_building_state() {
     if (game->get_map()->get_obj_index(pos) == 0 ||
         game->get_building_at_pos(pos)->is_burning()) {
       /* Burning */
+      Log::Debug["serf"] << "inside Serf::handle_serf_entering_building_state B, building is burning, serf #" << this->get_index() << " of type " << NameSerf[type] << " being set to Lost";
       set_state(StateLost);
       s.lost.field_B = 0;
       counter = 0;
@@ -2721,6 +2751,7 @@ Serf::handle_serf_entering_building_state() {
           //Log::Debug["serf.cc"] << "inside Serf::handle_serf_entering_building_state(), knight entering a military building as a defender";
           Building *building = game->get_building_at_pos(pos);
           if (building->is_burning()) {
+            Log::Debug["serf"] << "inside Serf::handle_serf_entering_building_state(), knight, building is burning, serf #" << this->get_index() << " of type " << NameSerf[type] << " being set to Lost";
             set_state(StateLost);
             counter = 0;
           } else {
@@ -3385,6 +3416,7 @@ Serf::find_inventory() {
   //  Log::Debug["serf"] << "inside find_inventory, serf of type " << NameSerf[type] << " being set to Lost, dest when it exited Inventory was flag #" << recent_dest << " which is a nullptr";
   //}
 
+  Log::Debug["serf"] << "inside Serf::find_inventory(), serf #" << this->get_index() << " of type " << NameSerf[type] << " being set to Lost";
   set_state(StateLost);
   s.lost.field_B = 0;
   counter = 0;
@@ -3639,6 +3671,7 @@ Serf::handle_serf_free_walking_state_dest_reached() {
           counter = 0;
         } else {
           Log::Warn["serf"] << "inside handle_free_walking_state_dest_reached(), a Geologist at pos " << get_pos() << " is being set to StateLost! because the flag he was sent to and is working around was deleted?";
+          Log::Debug["serf"] << "inside Serf::handle_free_walking_state_dest_reached(), geologist serf #" << this->get_index() << " of type " << NameSerf[type] << " being set to Lost";
           set_state(StateLost);
           s.lost.field_B = 0;
           counter = 0;
@@ -3865,6 +3898,7 @@ Serf::handle_free_walking_follow_edge() {
         //  Log::Debug["serf"] << "inside handle_free_walking_state_follow_edge, serf of type " << NameSerf[type] << " being set to Lost, dest when it exited Inventory was flag #" << recent_dest << " which is a nullptr";
         //}
 
+        Log::Debug["serf"] << "inside Serf::handle_free_walking_state_follow_edge(), serf #" << this->get_index() << " of type " << NameSerf[type] << " being set to Lost";
         set_state(StateLost);
         s.lost.field_B = 0;
         counter = 0;
@@ -4071,7 +4105,7 @@ Serf::handle_free_walking_common() {
   bool found_water_obstacle = false;
   if (!water && map->is_in_water(new_pos)){
     //trigger new logic here
-    //Log::Debug["serf.cc"] << "inside Serf::handle_free_walking_common, a free-walking serf has encountered water!  ADD LOGIC TO HELP HIM REACH HIS DESTINATION!";
+    Log::Debug["serf.cc"] << "inside Serf::handle_free_walking_common, a free-walking serf with index #" << this->get_index() << " and pos " << this->get_pos() << " has encountered water!  ADD LOGIC TO HELP HIM REACH HIS DESTINATION!";
     found_water_obstacle = true;
   }
   if (((water && map->get_obj(new_pos) == 0) ||
@@ -4099,6 +4133,7 @@ Serf::handle_free_walking_common() {
         s.free_walking.flags = 0;
       } else {
         Log::Warn["serf"] << "inside handle_free_walking_common(), a serf at pos " << get_pos() << " is being set to StateLost! he cannot pass map_pos " << new_pos << " and various other checks failed?";
+        Log::Debug["serf"] << "inside Serf::handle_free_walking_common(), serf #" << this->get_index() << " of type " << NameSerf[type] << " being set to Lost";
         set_state(StateLost);
         s.lost.field_B = 0;
         counter = 0;
@@ -4146,9 +4181,11 @@ Serf::handle_free_walking_common() {
                 Log::Debug["serf"] << "TODO remove " << other_serf->get_index()
                                    << " from path";
               }
+              Log::Debug["serf.cc"] << "inside Serf::handle_freewalking_common, a serf with index #" << this->get_index() << " and pos " << this->get_pos() << " is causing OTHER SERF #" << other_serf->get_index() << " with pos " << other_serf->get_pos() << " to become lost because... wait counter?";
               other_serf->set_lost_state();
             }
           } else {
+            Log::Debug["serf.cc"] << "inside Serf::handle_freewalking_common, a serf with index #" << this->get_index() << " and pos " << this->get_pos() << " is causing OTHER SERF #" << other_serf->get_index() << " with pos " << other_serf->get_pos() << " to become lost because... wait counter2?";
             other_serf->set_lost_state();
           }
         }
@@ -4275,7 +4312,7 @@ Serf::handle_free_walking_common() {
       }else{
         // saw this once, changing to Warn for now
         //throw ExceptionFreeserf("inside Serf::handle_free_walking_common, could not find a path around water/lake obstacle for freewalking serf!");
-        Log::Warn["serf.cc"] << "inside Serf::handle_free_walking_common, could not find a path around water/lake obstacle for freewalking serf!";
+        Log::Warn["serf.cc"] << "inside Serf::handle_free_walking_common, a free-walking serf with index #" << this->get_index() << " and pos " << this->get_pos() << ", could not find a path around water/lake obstacle for freewalking serf of type " << NameSerf[this->get_type()] << "!";
       }
     }
   } // end of defect fix
@@ -4340,17 +4377,19 @@ Serf::handle_serf_planning_logging_state() {
     MapPos pos_ = game->get_map()->pos_add_spirally(pos, dist);
     int obj = game->get_map()->get_obj(pos_);
     if (obj >= Map::ObjectTree0 && obj <= Map::ObjectPine7) {
+      // sanity check to ensure the dest pos is reachable within reasonable distance of this hut
+      if (!can_reach_pos(pos_, 20)){
+        Log::Debug["serf.cc"] << "inside Serf::handle_serf_planning_logging_state, serf cannot reach the chosen dest pos " << pos_ << " in less than 20 tiles, skipping this pos";
+        counter += 400;
+        continue;
+      }
       set_state(StateReadyToLeave);
       s.leaving_building.field_B = Map::get_spiral_pattern()[2 * dist] - 1;
       s.leaving_building.dest = Map::get_spiral_pattern()[2 * dist + 1] - 1;
       s.leaving_building.dest2 = -Map::get_spiral_pattern()[2 * dist] + 1;
       s.leaving_building.dir = -Map::get_spiral_pattern()[2 * dist + 1] + 1;
       s.leaving_building.next_state = StateFreeWalking;
-      // sanity check to ensure the dest pos is reachable within reasonable distance of this hut
-      if (!can_reach_pos(pos_, 20)){
-        Log::Debug["serf.cc"] << "inside Serf::handle_serf_planning_logging_state, serf cannot reach the chosen dest pos " << pos_ << " in less than 20 tiles, skipping this pos";
-        continue;
-      }
+      
       Log::Verbose["serf"] << "planning logging: tree found, dist "
                            << s.leaving_building.field_B << ", "
                            << s.leaving_building.dest << ".";
@@ -4380,6 +4419,7 @@ Serf::handle_serf_planning_planting_state() {
       // sanity check to ensure the dest pos is reachable within reasonable distance of this hut
       if (!can_reach_pos(pos_, 20)){
         Log::Debug["serf.cc"] << "inside Serf::handle_serf_planning_planting_state, serf at pos " << get_pos() << " cannot reach the chosen dest pos " << pos_ << " in less than 20 tiles, skipping this pos";
+        counter += 700;
         continue;
       }
       set_state(StateReadyToLeave);
@@ -4466,6 +4506,12 @@ Serf::handle_serf_planning_stonecutting() {
     int obj = map->get_obj(map->move_up_left(pos_));
     if (obj >= Map::ObjectStone0 && obj <= Map::ObjectStone7 &&
         can_pass_map_pos(pos_)) {
+      // sanity check to ensure the dest pos is reachable within reasonable distance of this hut
+      if (!can_reach_pos(pos_, 20)){
+        Log::Debug["serf.cc"] << "inside Serf::handle_serf_planning_stonecutting, serf cannot reach the chosen dest pos " << pos_ << " in less than 20 tiles, skipping this pos";
+        counter += 100;
+        continue;
+      }
       set_state(StateReadyToLeave);
       s.leaving_building.field_B = Map::get_spiral_pattern()[2 * dist] - 1;
       s.leaving_building.dest = Map::get_spiral_pattern()[2 * dist + 1] - 1;
@@ -4613,6 +4659,23 @@ Serf::handle_serf_sawing_state() {
 
 void
 Serf::handle_serf_lost_state() {
+  if (this->get_building_held() != 0){
+    Log::Warn["serf.cc"] << "inside Serf::handle_serf_lost_state, serf #" << this->get_index() << " of type " << NameSerf[this->get_type()] << " at pos " << this->get_pos() << " is Lost but also is holder to building #" << this->get_building_held() << "!";
+    Log::Warn["serf.cc"] << "inside Serf::handle_serf_lost_state, marking serf #" << this->get_index() << " in lavender";
+    game->set_debug_mark_pos(this->get_pos(), "lavender");
+    Building *held_building = game->get_building(this->get_building_held());
+    if (held_building == nullptr){
+      Log::Warn["serf.cc"] << "inside Serf::handle_serf_lost_state, serf #" << this->get_index() << " of type " << NameSerf[this->get_type()] << " at pos " << this->get_pos() << " is Lost but also is holder to building #" << this->get_building_held() << " and held building is nullptr!";
+    }else{
+      Log::Warn["serf.cc"] << "inside Serf::handle_serf_lost_state, serf #" << this->get_index() << " of type " << NameSerf[this->get_type()] << " at pos " << this->get_pos() << " is Lost but also is holder to building #" << this->get_building_held() << " which has building pos " << held_building->get_position();
+      Log::Warn["serf.cc"] << "inside Serf::handle_serf_lost_state, marking held building in seafoam";
+      game->set_debug_mark_pos(held_building->get_position(), "seafoam");
+    }
+
+    game->speed_reset();
+    game->speed_decrease();
+    game->pause();
+  }
   //
   // general note about Lost state, it seems that serfs are only Lost very briefly and then transition to another state such as
   //  FreeWalking as soon as they reach any adjacent tile while Lost.  They can become lost again, but Lost is a very short lived state
@@ -4777,6 +4840,7 @@ Serf::handle_free_sailing() {
   while (counter < 0) {
     if (!game->get_map()->is_in_water(pos)) {
       Log::Warn["serf"] << "inside handle_free_sailing(), a serf at pos " << get_pos() << " is being set to StateLost! because he is no longer in water at pos " << pos;
+      Log::Debug["serf"] << "inside Serf::handle_free_sailing(), serf #" << this->get_index() << " of type " << NameSerf[type] << " being set to Lost";
       set_state(StateLost);
       s.lost.field_B = 0;
       return;
@@ -4795,7 +4859,7 @@ Serf::handle_serf_escape_building_state() {
     animation = 82;
     counter = 0;
     tick = game->get_tick();
-
+    Log::Debug["serf"] << "inside Serf::handle_serf_escape_building_state(), serf #" << this->get_index() << " of type " << NameSerf[type] << " being set to Lost";
     set_state(StateLost);
     s.lost.field_B = 0;
   //}else{
@@ -5055,6 +5119,7 @@ Serf::handle_serf_planning_fishing_state() {
       // sanity check to ensure the dest pos is reachable within reasonable distance of this hut
       if (!can_reach_pos(dest, 20)){
         Log::Debug["serf.cc"] << "inside Serf::handle_serf_planning_fishing_state, serf cannot reach the chosen dest pos " << dest << " in less than 20 tiles, skipping this pos";
+        counter += 100;
         continue;
       }
       set_state(StateReadyToLeave);
@@ -6062,6 +6127,7 @@ Serf::handle_knight_occupy_enemy_building() {
 
   // the building is a nullptr, likely it was demolished while knight attempting to enter
   Log::Info["serf"] << "inside handle_knight_occupy_enemy_building(), a knight at pos " << pos << " is being set to StateLost because the enemy building he is attempting to occupy is a nullptr.  The building was probably demolished";
+  Log::Debug["serf"] << "inside Serf::handle_knight_occupy_enemy_building(), serf #" << this->get_index() << " of type " << NameSerf[type] << " being set to Lost";
   set_state(StateLost);
   s.lost.field_B = 0;
   counter = 0;
@@ -6315,6 +6381,7 @@ Serf::handle_knight_attacking_free_wait() {
       set_state(StateKnightFreeWalking);
     } else {
       Log::Warn["serf"] << "inside handle_knight_attacking_free_wait(), a knight at pos " << get_pos() << " is being set to StateLost! because counter < 0 and free_walking = 0?";
+      Log::Debug["serf"] << "inside Serf::handle_knight_attacking_free_wait(), serf #" << this->get_index() << " of type " << NameSerf[type] << " being set to Lost";
       set_state(StateLost);
     }
 
@@ -6448,7 +6515,7 @@ Serf::handle_serf_idle_on_path_state() {
     //}else{
     //  Log::Debug["serf"] << "inside handle_serf_idle_on_path_state, serf of type " << NameSerf[type] << " being set to Lost, dest when it exited Inventory was flag #" << recent_dest << " which is a nullptr";
     //}
-
+    Log::Debug["serf"] << "inside Serf::handle_serf_idle_on_path_state(), serf #" << this->get_index() << " of type " << NameSerf[type] << " being set to Lost";
     set_state(StateLost);
     return;
   }
@@ -6624,7 +6691,7 @@ Serf::handle_serf_wake_at_flag_state() {
       //}else{
       //  Log::Debug["serf"] << "inside handle_serf_take_at_flag_state, serf of type " << NameSerf[type] << " being set to Lost, dest when it exited Inventory was flag #" << recent_dest << " which is a nullptr";
       //}
-
+      Log::Debug["serf"] << "inside Serf::handle_serf_wake_at_flag_state(), serf #" << this->get_index() << " of type " << NameSerf[type] << " being set to Lost";
       set_state(StateLost);
       s.lost.field_B = 0;
     }
