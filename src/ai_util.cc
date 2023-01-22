@@ -3767,7 +3767,7 @@ AI::score_enemy_targets(MapPosSet *scored_targets) {
         AILogDebug["util_score_enemy_targets"] << "target_building is nullptr!  at pos " << pos;
         continue;
       }
-      if (!target_building->is_military() || !target_building->is_active() || building->get_threat_level() != 3){
+      if (!target_building->is_military() || !target_building->is_active() || target_building->get_threat_level() != 3){
         continue;
       }
       MapPos target_pos = pos;
@@ -3928,13 +3928,15 @@ AI::attack_best_target(MapPosSet *scored_targets, int loss_tolerance) {
       //  and accounting for the "send strong/weak to battle" setting
       // if our morale is > 100, our expected losses are less than one knight per defender
       // if our morale is < 100, our expected losses are more than one knight per defender
+      // NOTE that this typically underestimates losses because by the time morale is high enough
+      //  to consider attacking, most knights are high ranking.  Though I guess that applies to attackers too, nevermind
       unsigned int expected_losses = double(enemy_morale / morale) * estimated_defenders;
       if (expected_losses < 1){expected_losses = 1;} // avoid divide by zero error
       AILogDebug["util_attack_best_target"] << "enemy_morale " << enemy_morale << ", our morale " << morale << ", expected_losses to attack this building are " << expected_losses;
 
       // if this is the enemy castle, which appears to have 255 defenders (because we can't tell), simply fake expected_losses being low
-      if (target_building->get_type() == Building::TypeCastle){
-        AILogDebug["util_attack_best_target"] << "this target is the enemy castle, faking expected_losses as 3";
+      if (morale > 100 && target_building->get_type() == Building::TypeCastle){
+        AILogDebug["util_attack_best_target"] << "this target is the enemy castle and our morale is >100, faking expected_losses as 3";
         expected_losses = 3;
       }
 

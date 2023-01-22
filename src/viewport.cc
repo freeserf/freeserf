@@ -1622,7 +1622,7 @@ Viewport::draw_map_objects_row(MapPos pos, int y_base, int cols, int x_base) {
           // only allow bird chirps from Tree and Pine (not palm or submerged, cactus, etc.)
           if (map->get_obj(pos) >= Map::ObjectTree0 && map->get_obj(pos) <= Map::ObjectPine7) {
             interface->trees_in_view += 1;
-            Log::Info["viewport.cc"] << "trees in view: " << interface->trees_in_view;
+            //Log::Debug["viewport.cc"] << "trees in view: " << interface->trees_in_view;
           }
           // use junk objects that only appear in deserts to trigger desert wind sounds
           //  cannot use desert terrain in view because landscape is not constantly redrawn
@@ -1630,7 +1630,7 @@ Viewport::draw_map_objects_row(MapPos pos, int y_base, int cols, int x_base) {
           ||  map->get_obj(pos) == Map::ObjectCadaver0  || map->get_obj(pos) == Map::ObjectCadaver1
           || (map->get_obj(pos) >= Map::ObjectPalm0 && map->get_obj(pos) <= Map::ObjectPalm3)) {
             interface->desert_in_view += 1;
-            Log::Info["viewport.cc"] << "desert junk objects in view: " << interface->desert_in_view;
+            //Log::Debug["viewport.cc"] << "desert junk objects in view: " << interface->desert_in_view;
           }
           // there's a bug with water tile map generation, seems only one water tree is rendered
           //  and always top row, top left??  include all anyway in case I eventually fix that
@@ -1638,7 +1638,7 @@ Viewport::draw_map_objects_row(MapPos pos, int y_base, int cols, int x_base) {
           if ((map->get_obj(pos) >= Map::ObjectWaterTree0 && map->get_obj(pos) <= Map::ObjectWaterTree3)
             || map->get_obj(pos) >= Map::ObjectWaterStone0 || map->get_obj(pos) >= Map::ObjectWaterStone1) {
             interface->water_in_view += 1;
-            Log::Info["viewport.cc"] << "water junk objects in view: " << interface->water_in_view;
+            //Log::Debug["viewport.cc"] << "water junk objects in view: " << interface->water_in_view;
           }
         }
 

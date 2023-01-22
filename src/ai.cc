@@ -3015,38 +3015,42 @@ AI::do_place_mines(std::string type, Building::Type building_type, Map::Object l
         AILogDebug["do_place_mines"] << inventory_pos << " could not place any mine of type " << NameBuilding[building_type] << " in this inventory area, checking to see if any already exist";
         if (stock_building_counts.at(inventory_pos).count[building_type] == 0){
           AILogDebug["do_place_mines"] << inventory_pos << " could not place any mine of type " << NameBuilding[building_type] << " in this inventory area and none already exist, marking this inventory cannot_place_mine for res type";
-          if (building_type == Building::TypeCoalMine){
-            if (get_stock_inv()->get_count_of(Resource::TypeCoal) + stock_res_sitting_at_flags.at(inventory_pos)[Resource::TypeCoal] > coal_min){
-              AILogDebug["do_place_mines"] << inventory_pos << " this inventory already has more than coal_min " << coal_min << " coal stored or at flags, not considering coal to be unavailable in this Inv area yet";
-            }else{
-              AILogDebug["do_place_mines"] << inventory_pos << " this inventory has little to no coal stored or at flags, and no coal mines, and no coal in borders to mine, and cannot expand borders.  Must attack for coal!";
-              stock_building_counts.at(inventory_pos).inv_has_no_coal = true;
-            }
-          }else if (building_type == Building::TypeIronMine){
-            int iron_count = get_stock_inv()->get_count_of(Resource::TypeIronOre) + stock_res_sitting_at_flags.at(inventory_pos)[Resource::TypeIronOre];
-            //if (get_stock_inv()->get_count_of(Resource::TypeIronOre) + stock_res_sitting_at_flags.at(inventory_pos)[Resource::TypeIronOre] > iron_ore_min){
-            if (iron_count > iron_ore_min){
-              AILogDebug["do_place_mines"] << inventory_pos << " this inventory already has iron_count " << iron_count << ", more than iron_ore_min " << iron_ore_min << " iron ore stored or at flags, not considering iron to be unavailable in this Inv area yet";
-            }else{
-              AILogDebug["do_place_mines"] << inventory_pos << " this inventory has little to no iron ore stored or at flags, and no iron mines, and no iron in borders to mine, and cannot expand borders.  Must attack for iron!";
-              stock_building_counts.at(inventory_pos).inv_has_no_ironore = true;
-            }
-          }else if (building_type == Building::TypeGoldMine){
-            if (get_stock_inv()->get_count_of(Resource::TypeGoldOre) + stock_res_sitting_at_flags.at(inventory_pos)[Resource::TypeGoldOre] > gold_ore_min){
-              AILogDebug["do_place_mines"] << inventory_pos << " this inventory already has more than gold_ore_min " << gold_ore_min << " gold ore stored or at flags, not considering gold to be unavailable in this Inv area yet";
-            }else{
-              AILogDebug["do_place_mines"] << inventory_pos << " this inventory has little to no gold ore stored or at flags, and no gold mines, and no gold in borders to mine, and cannot expand borders.  Must attack for gold!";
-              stock_building_counts.at(inventory_pos).inv_has_no_goldore = true;
-            }
-          }else if (building_type == Building::TypeStoneMine){
-            if (get_stock_inv()->get_count_of(Resource::TypeStone) + stock_res_sitting_at_flags.at(inventory_pos)[Resource::TypeStone] > stones_max){  // using stones max here
-              AILogDebug["do_place_mines"] << inventory_pos << " this inventory already has more than stones_max " << stones_max << " stones stored or at flags, not considering gold to be unavailable in this Inv area yet";
-            }else{
-              AILogDebug["do_place_mines"] << inventory_pos << " this inventory has little to no stone stored or at flags, and no stone mines, and no stone in borders to mine, and cannot expand borders.  Must attack for stone!";
-              stock_building_counts.at(inventory_pos).inv_has_no_stone = true;  // no stone at all!  we wouldn't even be trying to build a stone mine unless stone_piles also depleted
-            }
+          if (get_stock_inv() == nullptr){
+            AILogDebug["do_place_mines"] << inventory_pos << " this inventory is a nullptr!";
           }else{
-            throw ExceptionFreeserf("unexpected mine type");
+            if (building_type == Building::TypeCoalMine){
+              if (get_stock_inv()->get_count_of(Resource::TypeCoal) + stock_res_sitting_at_flags.at(inventory_pos)[Resource::TypeCoal] > coal_min){
+                AILogDebug["do_place_mines"] << inventory_pos << " this inventory already has more than coal_min " << coal_min << " coal stored or at flags, not considering coal to be unavailable in this Inv area yet";
+              }else{
+                AILogDebug["do_place_mines"] << inventory_pos << " this inventory has little to no coal stored or at flags, and no coal mines, and no coal in borders to mine";
+                stock_building_counts.at(inventory_pos).inv_has_no_coal = true;
+              }
+            }else if (building_type == Building::TypeIronMine){
+              int iron_count = get_stock_inv()->get_count_of(Resource::TypeIronOre) + stock_res_sitting_at_flags.at(inventory_pos)[Resource::TypeIronOre];
+              //if (get_stock_inv()->get_count_of(Resource::TypeIronOre) + stock_res_sitting_at_flags.at(inventory_pos)[Resource::TypeIronOre] > iron_ore_min){
+              if (iron_count > iron_ore_min){
+                AILogDebug["do_place_mines"] << inventory_pos << " this inventory already has iron_count " << iron_count << ", more than iron_ore_min " << iron_ore_min << " iron ore stored or at flags, not considering iron to be unavailable in this Inv area yet";
+              }else{
+                AILogDebug["do_place_mines"] << inventory_pos << " this inventory has little to no iron ore stored or at flags, and no iron mines, and no iron in borders to mine";
+                stock_building_counts.at(inventory_pos).inv_has_no_ironore = true;
+              }
+            }else if (building_type == Building::TypeGoldMine){
+              if (get_stock_inv()->get_count_of(Resource::TypeGoldOre) + stock_res_sitting_at_flags.at(inventory_pos)[Resource::TypeGoldOre] > gold_ore_min){
+                AILogDebug["do_place_mines"] << inventory_pos << " this inventory already has more than gold_ore_min " << gold_ore_min << " gold ore stored or at flags, not considering gold to be unavailable in this Inv area yet";
+              }else{
+                AILogDebug["do_place_mines"] << inventory_pos << " this inventory has little to no gold ore stored or at flags, and no gold mines, and no gold in borders to mine";
+                stock_building_counts.at(inventory_pos).inv_has_no_goldore = true;
+              }
+            }else if (building_type == Building::TypeStoneMine){
+              if (get_stock_inv()->get_count_of(Resource::TypeStone) + stock_res_sitting_at_flags.at(inventory_pos)[Resource::TypeStone] > stones_max){  // using stones max here
+                AILogDebug["do_place_mines"] << inventory_pos << " this inventory already has more than stones_max " << stones_max << " stones stored or at flags, not considering gold to be unavailable in this Inv area yet";
+              }else{
+                AILogDebug["do_place_mines"] << inventory_pos << " this inventory has little to no stone stored or at flags, and no stone mines, and no stone in borders to mine";
+                stock_building_counts.at(inventory_pos).inv_has_no_stone = true;  // no stone at all!  we wouldn't even be trying to build a stone mine unless stone_piles also depleted
+              }
+            }else{
+              throw ExceptionFreeserf("unexpected mine type");
+            }
           }
         }
       }
