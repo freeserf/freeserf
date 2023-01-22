@@ -3932,6 +3932,12 @@ AI::attack_best_target(MapPosSet *scored_targets, int loss_tolerance) {
       if (expected_losses < 1){expected_losses = 1;} // avoid divide by zero error
       AILogDebug["util_attack_best_target"] << "enemy_morale " << enemy_morale << ", our morale " << morale << ", expected_losses to attack this building are " << expected_losses;
 
+      // if this is the enemy castle, which appears to have 255 defenders (because we can't tell), simply fake expected_losses being low
+      if (target_building->get_type() == Building::TypeCastle){
+        AILogDebug["util_attack_best_target"] << "this target is the enemy castle, faking expected_losses as 3";
+        expected_losses = 3;
+      }
+
       if (loss_tolerance == 3){
         if (target_score > 100 && attacking_knights > 1 * expected_losses){
           AILogDebug["util_attack_best_target"] << "loss_tolerance is high, this target has an exceptionally high score of " << target_score << " and victory is possible, will attack";
