@@ -1871,18 +1871,11 @@ Game::map_types_within(MapPos pos, Map::Terrain low, Map::Terrain high) const {
 //  blocking objects nor position ownership
 bool
 Game::can_build_small(MapPos pos) const {
-  Log::Debug["game.cc"] << "inside Game::can_build_small for pos " << pos;
+  //Log::Debug["game.cc"] << "inside Game::can_build_small for pos " << pos;
   // Freeserf was missing the original game check preventing buildings from being placed
   //  with its flag pos touching edge of water
   if (!map_types_within(map->move_down_right(pos), Map::TerrainGrass0, Map::TerrainSnow1)){
     return false;
-  }
-
-  // DEBUG
-  if (map_types_within(pos, Map::TerrainGrass0, Map::TerrainGrass3)){
-    Log::Debug["game.cc"] << "inside Game::can_build_small for pos " << pos << ", map_types_within Grass true";
-  }else{
-    Log::Debug["game.cc"] << "inside Game::can_build_small for pos " << pos << ", map_types_within Grass FALSE";
   }
 
   return map_types_within(pos, Map::TerrainGrass0, Map::TerrainGrass3);
@@ -2053,15 +2046,15 @@ Game::can_build_field(MapPos pos) const {
 bool
 Game::can_build_building(MapPos pos, Building::Type type,
                          const Player *player) const {
-  Log::Debug["game.cc"] << "inside Game::can_build_building, pos " << pos << ", type " << NameBuilding[type];
+  //Log::Debug["game.cc"] << "inside Game::can_build_building, pos " << pos << ", type " << NameBuilding[type];
   if (!can_player_build(pos, player)){
-    Log::Debug["game.cc"] << "inside Game::can_build_building, pos " << pos << ", type " << NameBuilding[type] << " rejected because !can_player_build";
+    //Log::Debug["game.cc"] << "inside Game::can_build_building, pos " << pos << ", type " << NameBuilding[type] << " rejected because !can_player_build";
     return false;
   }
 
   /* Check that space is clear */
   if (Map::map_space_from_obj[map->get_obj(pos)] != Map::SpaceOpen) {
-    Log::Debug["game.cc"] << "inside Game::can_build_building, pos " << pos << ", type " << NameBuilding[type] << " rejected because of blocking object";
+    //Log::Debug["game.cc"] << "inside Game::can_build_building, pos " << pos << ", type " << NameBuilding[type] << " rejected because of blocking object";
     return false;
   }
 
@@ -2069,7 +2062,7 @@ Game::can_build_building(MapPos pos, Building::Type type,
      doesn't already exist. */
   MapPos flag_pos = map->move_down_right(pos);
   if (!map->has_flag(flag_pos) && !can_build_flag(flag_pos, player)) {
-    Log::Debug["game.cc"] << "inside Game::can_build_building, pos " << pos << ", type " << NameBuilding[type] << " rejected because cannot build flag down-right";
+    //Log::Debug["game.cc"] << "inside Game::can_build_building, pos " << pos << ", type " << NameBuilding[type] << " rejected because cannot build flag down-right";
     return false;
   }
 
@@ -2083,7 +2076,7 @@ Game::can_build_building(MapPos pos, Building::Type type,
     case Building::TypeHut:
     case Building::TypeMill:
       if (!can_build_small(pos)) {
-        Log::Debug["game.cc"] << "inside Game::can_build_building, pos " << pos << ", type " << NameBuilding[type] << " rejected because !can_build_small";
+        //Log::Debug["game.cc"] << "inside Game::can_build_building, pos " << pos << ", type " << NameBuilding[type] << " rejected because !can_build_small";
         return false;
       }
       break;
@@ -2126,9 +2119,9 @@ Game::can_build_building(MapPos pos, Building::Type type,
 /* Build building at position. */
 bool
 Game::build_building(MapPos pos, Building::Type type, Player *player) {
-  Log::Debug["game.cc"] << "inside Game::build_building, pos " << pos << ", type " << NameBuilding[type];
+  //Log::Debug["game.cc"] << "inside Game::build_building, pos " << pos << ", type " << NameBuilding[type];
   if (!can_build_building(pos, type, player)) {
-    Log::Debug["game.cc"] << "inside Game::build_building, pos " << pos << ", type " << NameBuilding[type] << " rejected because can_build_building false";
+    //Log::Debug["game.cc"] << "inside Game::build_building, pos " << pos << ", type " << NameBuilding[type] << " rejected because can_build_building false";
     return false;
   }
 
@@ -2138,7 +2131,7 @@ Game::build_building(MapPos pos, Building::Type type, Player *player) {
 
   Building *bld = buildings.allocate();
   if (bld == NULL) {
-    Log::Debug["game.cc"] << "inside Game::build_building, pos " << pos << ", type " << NameBuilding[type] << " rejected because buildings.allocate resulted in nullptr";
+    //Log::Debug["game.cc"] << "inside Game::build_building, pos " << pos << ", type " << NameBuilding[type] << " rejected because buildings.allocate resulted in nullptr";
     return false;
   }
 

@@ -1569,7 +1569,7 @@ Viewport::draw_map_objects_row(MapPos pos, int y_base, int cols, int x_base) {
   for (int i = 0; i < cols;
        i++, x_base += MAP_TILE_WIDTH, pos = map->move_right(pos)) {
 
-    //if (map->get_obj(pos) == Map::ObjectNone){continue;}  // comment this out if trying to draw red dot overlay to show focus area
+    if (map->get_obj(pos) == Map::ObjectNone){continue;}  // comment this out if trying to draw red dot overlay to show focus area
 
     int ly = y_base - 4 * map->get_height(pos);
 
@@ -1587,6 +1587,7 @@ Viewport::draw_map_objects_row(MapPos pos, int y_base, int cols, int x_base) {
 
     in_ambient_focus = false;
     if (row_in_ambient_focus && i >= leftmost_focus_col && i <= rightmost_focus_col){
+      //Log::Debug["viewport.cc"] << "inside draw_map_objects, pos " << pos << ", in_ambient_focus for sounds is true";
       in_ambient_focus = true;
     }
 
@@ -1598,7 +1599,7 @@ Viewport::draw_map_objects_row(MapPos pos, int y_base, int cols, int x_base) {
     //  frame->fill_rect(x_base - 9, ly + 1, 12, 12, colors.at("red"));
     //}
 
-    if (map->get_obj(pos) == Map::ObjectNone) continue;  // uncomment this if trying to draw red dot overlay to show focus area
+    //if (map->get_obj(pos) == Map::ObjectNone) continue;  // uncomment this if trying to draw red dot overlay to show focus area
 
     if (map->get_obj(pos) < Map::ObjectTree0) {
       //Log::Debug["viewport.cc"] << "inside draw_map_objects, pos " << pos << " has flag/building/castle sprite type" << map->get_obj(pos);
@@ -1621,7 +1622,7 @@ Viewport::draw_map_objects_row(MapPos pos, int y_base, int cols, int x_base) {
           // only allow bird chirps from Tree and Pine (not palm or submerged, cactus, etc.)
           if (map->get_obj(pos) >= Map::ObjectTree0 && map->get_obj(pos) <= Map::ObjectPine7) {
             interface->trees_in_view += 1;
-            //Log::Info["viewport.cc"] << "trees in view: " << interface->trees_in_view;
+            Log::Info["viewport.cc"] << "trees in view: " << interface->trees_in_view;
           }
           // use junk objects that only appear in deserts to trigger desert wind sounds
           //  cannot use desert terrain in view because landscape is not constantly redrawn
@@ -1629,7 +1630,7 @@ Viewport::draw_map_objects_row(MapPos pos, int y_base, int cols, int x_base) {
           ||  map->get_obj(pos) == Map::ObjectCadaver0  || map->get_obj(pos) == Map::ObjectCadaver1
           || (map->get_obj(pos) >= Map::ObjectPalm0 && map->get_obj(pos) <= Map::ObjectPalm3)) {
             interface->desert_in_view += 1;
-            //Log::Info["viewport.cc"] << "desert junk objects in view: " << interface->desert_in_view;
+            Log::Info["viewport.cc"] << "desert junk objects in view: " << interface->desert_in_view;
           }
           // there's a bug with water tile map generation, seems only one water tree is rendered
           //  and always top row, top left??  include all anyway in case I eventually fix that
@@ -1637,7 +1638,7 @@ Viewport::draw_map_objects_row(MapPos pos, int y_base, int cols, int x_base) {
           if ((map->get_obj(pos) >= Map::ObjectWaterTree0 && map->get_obj(pos) <= Map::ObjectWaterTree3)
             || map->get_obj(pos) >= Map::ObjectWaterStone0 || map->get_obj(pos) >= Map::ObjectWaterStone1) {
             interface->water_in_view += 1;
-            //Log::Info["viewport.cc"] << "water junk objects in view: " << interface->water_in_view;
+            Log::Info["viewport.cc"] << "water junk objects in view: " << interface->water_in_view;
           }
         }
 
@@ -3410,6 +3411,12 @@ Viewport::draw_game_objects(int layers_) {
   //
   // ambient sounds - birds near trees, waves near water (palms)
   //  wind near deserts 
+  // SINCE MOVING in_ambient_focus out a level the col_in_ambient_focus is 
+  //  NO LONGE KNOWN!  as a hack, just use the row for evironmental sounds
+  // OH  I GUESS WE DON'T HAVE ROW EITHER, OH WELL 
+  //if (row_in_ambient_focus){
+    in_ambient_focus = true; // good enough for birds, wind, and waves
+  //}
   // the timing of these isn't well planned, just fiddled around with the numbers until it
   //  gave acceptable results.  could be improved
   // ALSO... would the wind sounds be better for mountains rather than deserts??
@@ -3499,7 +3506,7 @@ Viewport::draw_game_objects(int layers_) {
     uint16_t tick_rand = (random.random() + interface->get_game()->get_const_tick()) & 0x7f;
     uint16_t limit_tick = interface->get_game()->get_const_tick() & 0x7f;
     //Log::Info["viewport.cc"] << "wavesfx debug: water_in_view " << interface->water_in_view << ", limit_tick " << limit_tick << ", const tick " << interface->get_game()->get_const_tick() << ", tick_rand " << tick_rand;
-    int wavesound_chance = interface->water_in_view * 100;
+    int wavesound_chance = interface->water_in_view * 10;
     if (wavesound_chance > 30){
       wavesound_chance = 30;
     }
@@ -3507,7 +3514,7 @@ Viewport::draw_game_objects(int layers_) {
       uint16_t foo_rand = (random.random() * tick_rand) & 0x7f;
       if (foo_rand < 25) {
         if (in_ambient_focus){play_sound(Audio::TypeSfxUnknown28);}
-        //if (in_ambient_focus){play_sound(Audio::TypeSfxUnknown28, DataSourceType::DOS);}  // DOS is a little better
+        //if (in_ambient_focus){play_sound(Audio::TypeSfxUnknown28, DataSourceType::DOS);}
       }
       interface->is_playing_watersfx = true;
     }else{
@@ -4453,7 +4460,7 @@ Viewport::handle_special_click(int lx, int ly) {
 
 bool
 Viewport::handle_drag(int lx, int ly) {
-  Log::Debug["event_loop.cc"] << "inside Viewport::handle_drag lx,ly = " << lx << "," << ly;
+  //Log::Debug["event_loop.cc"] << "inside Viewport::handle_drag lx,ly = " << lx << "," << ly;
   if (lx != 0 || ly != 0) {
     move_by_pixels(lx, ly);
   }
@@ -4659,7 +4666,7 @@ Viewport::move_to_map_pos(MapPos pos) {
 
 void
 Viewport::move_by_pixels(int lx, int ly) {
-  Log::Debug["event_loop.cc"] << "inside Viewport::move_by_pixels lx,ly = " << lx << "," << ly;
+  //Log::Debug["event_loop.cc"] << "inside Viewport::move_by_pixels lx,ly = " << lx << "," << ly;
   int lwidth = map->get_cols() * MAP_TILE_WIDTH;
   int lheight = map->get_rows() * MAP_TILE_HEIGHT;
 

@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.14 FATAL_ERROR)
+cmake_minimum_required(VERSION 2.8 FATAL_ERROR)
 
 option(ENABLE_SDL2_MIXER "Enable audio support using SDL2_mixer" ON)
 option(ENABLE_SDL2_IMAGE "Enable image loading using SDL2_image" ON)
