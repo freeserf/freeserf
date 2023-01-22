@@ -1788,11 +1788,17 @@ Viewport::draw_map_objects_row(MapPos pos, int y_base, int cols, int x_base) {
           //Log::Debug["viewport.cc"] << "inside Viewport::draw_map_objects_row(), found cattail0, setting frame to " << frame;
           frame = slow_tree_anim & 3;  // cattails/reeds have 2 types with 4 frames of animation
           sprite = 1160 + frame;
+          if (option_FourSeasons && season == 1){
+            sprite += 20; // summer reeds with actual "cattail" flowers in summer only
+          }
           use_custom_set = true;
         }else if (sprite == 142){   // adding Cattails/Reeds
           //Log::Debug["viewport.cc"] << "inside Viewport::draw_map_objects_row(), found cattail1, setting frame to " << frame;
           frame = slow_tree_anim & 3;  // cattails/reeds have 2 types with 4 frames of animation
           sprite = 1170 + frame;
+          if (option_FourSeasons && season == 1){
+            sprite += 20; // summer reeds with actual "cattail" flowers in summer only
+          }
           use_custom_set = true;
         } // if sprite 8, 16...
 
