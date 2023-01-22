@@ -888,7 +888,7 @@ AI::plot_road(PMap map, unsigned int player_index, MapPos start_pos, MapPos end_
 // count how many tiles apart two MapPos are
 int
 AI::get_straightline_tile_dist(PMap map, MapPos start_pos, MapPos end_pos) {
-  AILogDebug["get_straightline_tile_dist"] << "inside Pathfinder::tile_dist with start_pos " << start_pos << ", end_pos " << end_pos;
+  //AILogDebug["get_straightline_tile_dist"] << "inside Pathfinder::tile_dist with start_pos " << start_pos << ", end_pos " << end_pos;
   // function copied from heuristic_cost but ignores height diff and walking_cost
   int dist_col = map->dist_x(start_pos, end_pos);
   int dist_row = map->dist_y(start_pos, end_pos);
@@ -899,7 +899,7 @@ AI::get_straightline_tile_dist(PMap map, MapPos start_pos, MapPos end_pos) {
   else {
     tile_dist = abs(dist_col) + abs(dist_row);
   }
-  AILogDebug["get_straightline_tile_dist"] << "returning tile_dist: " << tile_dist;
+  //AILogDebug["get_straightline_tile_dist"] << "returning tile_dist: " << tile_dist;
   return tile_dist;
 }
 
@@ -1081,19 +1081,19 @@ AI::score_flag(PMap map, unsigned int player_index, RoadBuilder *rb, RoadOptions
 //     which means fake flags will work
 RoadEnds
 AI::get_roadends(PMap map, Road road) {
-  AILogDebug["get_roadends"] << "inside get_roadends";
+  //AILogDebug["get_roadends"] << "inside get_roadends";
   std::list<Direction> dirs = road.get_dirs();
   std::list<Direction>::iterator i;
-  for (i = dirs.begin(); i != dirs.end(); i++) {
-    Direction dir = *i;
-    AILogVerbose["get_roadends"] << "get_roadends - Direction " << dir << " / " << NameDirection[dir];
-  }
+  //for (i = dirs.begin(); i != dirs.end(); i++) {
+  //  Direction dir = *i;
+  //  AILogVerbose["get_roadends"] << "get_roadends - Direction " << dir << " / " << NameDirection[dir];
+  //}
   MapPos start_pos = road.get_source();
   MapPos end_pos = road.get_end(map.get());  // this function just traces the road along the existing path anyway
   Direction start_dir = road.get_dirs().front();
   // the Direction of the path leading back to the start is the reverse of the last dir in the road (the dir that leads to the end flag)
   Direction end_dir = reverse_direction(road.get_dirs().back());
-  AILogDebug["get_roadends"] << "inside get_roadends, start_pos " << start_pos << ", start_dir: " << start_dir << ", end_pos " << end_pos << ", end_dir: " << end_dir;
+  //AILogDebug["get_roadends"] << "inside get_roadends, start_pos " << start_pos << ", start_dir: " << start_dir << ", end_pos " << end_pos << ", end_dir: " << end_dir;
   //AILogDebug["get_roadends"] << "inside get_roadends, start_pos " << start_pos << ", start_dir: " << NameDirection[start_dir] << ", end_pos " << end_pos << ", end_dir: " << NameDirection[end_dir];
   RoadEnds ends = std::make_tuple(start_pos, start_dir, end_pos, end_dir);
   return ends;
@@ -1881,7 +1881,7 @@ bool
 AI::find_flag_path_and_tile_dist_between_flags(PMap map, MapPos start_pos, MapPos target_pos, 
               MapPosVector *solution_flags, unsigned int *tile_dist, ColorDotMap *ai_mark_pos){
 
-  AILogDebug["find_flag_path_and_tile_dist_between_flags"] << "start_pos " << start_pos << ", target_pos " << target_pos;
+  //AILogDebug["find_flag_path_and_tile_dist_between_flags"] << "start_pos " << start_pos << ", target_pos " << target_pos;
 
   // sanity check - this excludes fake flag solution starts (could change that later though)
   if (!map->has_flag(start_pos)){
@@ -1986,19 +1986,19 @@ AI::find_flag_path_and_tile_dist_between_flags(PMap map, MapPos start_pos, MapPo
         AILogDebug["find_flag_path_and_tile_dist_between_flags"] << "found solution, reached " << target_pos;
         PFlagSearchNode solution_node = new_fnode;
         while(solution_node->parent){
-          AILogDebug["find_flag_path_and_tile_dist_between_flags"] << "solution contains " << solution_node->pos;
+          //AILogDebug["find_flag_path_and_tile_dist_between_flags"] << "solution contains " << solution_node->pos;
           solution_flags->push_back(solution_node->pos);
 
           // also trace the road to determine length in tiles of the solution
           Road tmp_road = trace_existing_road(map, solution_node->parent->pos, solution_node->dir);
           *(tile_dist) += tmp_road.get_length();
-          AILogDebug["find_flag_path_and_tile_dist_between_flags"] << "solution tile_dist so far is " << *(tile_dist);
+          //AILogDebug["find_flag_path_and_tile_dist_between_flags"] << "solution tile_dist so far is " << *(tile_dist);
 
           solution_node = solution_node->parent;
           
         }
         // push the last node too, and return
-        AILogDebug["find_flag_path_and_tile_dist_between_flags"] << "solution last node " << solution_node->pos;
+        //AILogDebug["find_flag_path_and_tile_dist_between_flags"] << "solution last node " << solution_node->pos;
         solution_flags->push_back(solution_node->pos);
         return true;
       }

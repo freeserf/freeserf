@@ -306,6 +306,10 @@ AI::next_loop(){
     do_spiderweb_roads(); sleep_speed_adjusted(1000);
 
     AILogDebug["next_loop"] << "Done with economy loop for Inventory at pos " << inventory_pos;
+
+    // ATTACK ENEMIES
+    int morale = (100*player->get_knight_morale())/0x1000;  // this should be % morale, not the integer that defaults to 4096
+    if (morale > 75){do_attack();}
   }
 
   // create parallel infrastructure!
@@ -355,6 +359,10 @@ AI::do_place_castle() {
       x++;
       if (x > maxtries) {
         AILogDebug["do_place_castle"] << "unable to place castle after " << x << " tries, maxtries reached!";
+        AILogError["do_place_castle"] << "unable to place castle after " << x << " tries!  maxtries reached!  game will crash now";
+        #ifdef WIN32
+        int msgboxID = SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "ForkSerf", "unable find acceptable place for castle for at least one AI player, try adjusting MapGen settings", NULL);
+        #endif
         throw ExceptionFreeserf("unable to place castle for an AI player after exhausting all tries!");
       }
       if (x > lower_standards_tries * (desperation + 1)){
@@ -2346,7 +2354,7 @@ AI::do_demolish_excess_foresters() {
         }
         possible_positions++;
         if (map->get_obj(pos) == Map::ObjectNone
-         || map->map_space_from_obj[pos] == Map::SpaceOpen){
+         || map->map_space_from_obj[map->get_obj(pos)] == Map::SpaceOpen){
            AILogDebug["do_demolish_excess_foresters"] << inventory_pos << " forester hut at pos " << forester_pos << " map->get_obj(" << pos << ") passed";
            open_positions++;
         }

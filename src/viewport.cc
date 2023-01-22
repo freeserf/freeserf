@@ -1074,7 +1074,7 @@ void
 Viewport::draw_map_sprite_special(int lx, int ly, int index, const Color &color, int mutate) {
   // this is only used by draw_map_objects_row, added passing of pos and object type to support sprite replacement
   //  THIS FUNCTION MAY NOT BE NEEDED ANYMORE, could integration into normal draw sprite functions?
-  Log::Debug["viewport"] << "inside Viewport::draw_map_sprite_special for sprite index " << index;
+  //Log::Debug["viewport"] << "inside Viewport::draw_map_sprite_special for sprite index " << index;
 
   // draw the tree's shadow
   if ((index >= 1220 && index <= 1223)    // SPRING Tree2 (the white flowered tree)

@@ -1373,9 +1373,9 @@ AI::build_best_road(MapPos start_pos, RoadOptions road_options, Road *built_road
       
       // debug - print all scores for this solution
       //for (std::pair<MapPos, unsigned int> adjusted_score : scored_proads){
-      for (std::pair<int, unsigned int> adjusted_score : scored_proads){
-        AILogDebug["util_build_best_road"] << "" << calling_function << " scoring_proads, debug printing ALL scores, found index " << adjusted_score.first << " has score " << adjusted_score.second;
-      }
+      //for (std::pair<int, unsigned int> adjusted_score : scored_proads){
+      //  AILogDebug["util_build_best_road"] << "" << calling_function << " scoring_proads, debug printing ALL scores, found index " << adjusted_score.first << " has score " << adjusted_score.second;
+      //}
 
       AILogDebug["util_build_best_road"] << "" << calling_function << " scoring_proads, rb.get_proads() contains a potential new road to nearby_flag_pos " << nearby_flag_pos;
       // why is this scoring route to castle_flag pos?  shouldn't it be to target_pos for affinity building??
@@ -1605,9 +1605,9 @@ AI::build_best_road(MapPos start_pos, RoadOptions road_options, Road *built_road
 
     // debug - print all scores for this solution
     //for (std::pair<MapPos, unsigned int> adjusted_score : scored_proads){
-    for (std::pair<int, unsigned int> adjusted_score : scored_proads){
-      AILogDebug["util_build_best_road"] << "" << calling_function << " sorted_scored_proads, debug printing ALL scores, found index " << adjusted_score.first << " has score " << adjusted_score.second;
-    }
+    //for (std::pair<int, unsigned int> adjusted_score : scored_proads){
+    //  AILogDebug["util_build_best_road"] << "" << calling_function << " sorted_scored_proads, debug printing ALL scores, found index " << adjusted_score.first << " has score " << adjusted_score.second;
+    //}
 
     //sofarduration = (std::clock() - start) / static_cast<double>(CLOCKS_PER_SEC);
     //AILogDebug["util_build_best_road"] << "I. " << calling_function << " SO FAR call took " << sofarduration;
@@ -2268,7 +2268,7 @@ AI::find_nearest_building(MapPos pos, CompletionLevel level, Building::Type buil
     if ((level <= Unfinished) ||
         (level == Connected && game->get_flag_at_pos(building_flag_pos) != nullptr) ||
         (level >= Completed && building->is_done())){
-      AILogDebug["util_find_nearest_building"] << "SO FAR, the closest " << NameCompletionLevel[level] << " building of type " << NameBuilding[building_type] << " within max_dist " << max_dist << " to center pos " << pos << " found at " << building_flag_pos;
+      //AILogDebug["util_find_nearest_building"] << "SO FAR, the closest " << NameCompletionLevel[level] << " building of type " << NameBuilding[building_type] << " within max_dist " << max_dist << " to center pos " << pos << " found at " << building_flag_pos;
 
       // ensure the building_flag_pos is closest-by-flag-dist to the currently selected Inventory (castle/warehouse)
       //  or else it will try to connect to buildings that aren't part of the same "economy" and fail to 
@@ -3506,6 +3506,8 @@ AI::score_enemy_area(MapPos center_pos, unsigned int distance) {
   //ai_mark_pos.erase(center_pos);
   //ai_mark_pos.insert(ColorDot(center_pos, "white"));
   //sleep_speed_adjusted(100);
+  bool attack_for_resources = false;
+
   for (unsigned int i = 0; i < distance; i++) {
     MapPos pos = map->pos_add_extended_spirally(center_pos, i);
     Map::Object obj = map->get_obj(pos);
@@ -3516,12 +3518,17 @@ AI::score_enemy_area(MapPos center_pos, unsigned int distance) {
     //AILogDebug["util_score_enemy_area"] << "at pos " << pos << " with object type " << NameObject[obj];
     size_t pos_value = 0;  // easier to make this size_t than static_cast all the .size values
 
+    if (cannot_expand_borders &&
+       (no_stone_within_borders || no_coal_within_borders || no_ironore_within_borders || no_goldore_within_borders)){
+      AILogDebug["util_score_enemy_area"] << "cannot_expand_borders is true and at least one resource needed, setting attack_for_resources scoring bool on";
+      attack_for_resources = true;
+    }
     //
     // prioritize any enemy building that is close to OUR castle
     //
-    if (cannot_expand_borders){
+    if (attack_for_resources){
       // do NOT count enemy buildings for scoring, only resources
-      AILogDebug["util_score_enemy_area"] << "cannot_expand_borders is true, not counting enemy buildings towards total";
+      AILogDebug["util_score_enemy_area"] << "attack_for_resources is true, not counting enemy buildings towards total";
     }else{
       // normal behavior
       if (obj == Map::ObjectCastle && map->get_owner(pos) == player_index){
@@ -3537,9 +3544,9 @@ AI::score_enemy_area(MapPos center_pos, unsigned int distance) {
     //
     // stone piles above ground
     //
-    if (cannot_expand_borders && !no_stone_within_borders){
+    if (attack_for_resources && !no_stone_within_borders){
       // disregard this resource, some other resource is desperately needed
-      AILogDebug["util_score_enemy_area"] << "cannot_expand_borders is true but stone is already within our borders. not counting stone towards total";
+      AILogDebug["util_score_enemy_area"] << "attack_for_resources is true but stone is already within our borders. not counting stone towards total";
     }else{
       // normal behavior
       if (map->get_obj(pos) >= Map::ObjectStone0 && map->get_obj(pos) <= Map::ObjectStone7) {
@@ -3556,9 +3563,9 @@ AI::score_enemy_area(MapPos center_pos, unsigned int distance) {
     // mined resources
     //
     // Gold
-    if (cannot_expand_borders && !no_goldore_within_borders){
+    if (attack_for_resources && !no_goldore_within_borders){
       // disregard this resource, some other resource is desperately needed
-      AILogDebug["util_score_enemy_area"] << "cannot_expand_borders is true but gold is already within our borders. not counting gold towards total";
+      AILogDebug["util_score_enemy_area"] << "attack_for_resources is true but gold is already within our borders. not counting gold towards total";
     }else{
       // normal behavior
       unsigned int gold_signs = 0;
@@ -3570,9 +3577,9 @@ AI::score_enemy_area(MapPos center_pos, unsigned int distance) {
       }
     }
     // Iron
-    if (cannot_expand_borders && !no_ironore_within_borders){
+    if (attack_for_resources && !no_ironore_within_borders){
       // disregard this resource, some other resource is desperately needed
-      AILogDebug["util_score_enemy_area"] << "cannot_expand_borders is true but iron is already within our borders. not counting iron towards total";
+      AILogDebug["util_score_enemy_area"] << "attack_for_resources is true but iron is already within our borders. not counting iron towards total";
     }else{
       // normal behavior
       unsigned int iron_signs = 0;
@@ -3584,9 +3591,9 @@ AI::score_enemy_area(MapPos center_pos, unsigned int distance) {
       }
     }
     // Coal
-    if (cannot_expand_borders && !no_coal_within_borders){
+    if (attack_for_resources && !no_coal_within_borders){
       // disregard this resource, some other resource is desperately needed
-      AILogDebug["util_score_enemy_area"] << "cannot_expand_borders is true but coal is already within our borders. not counting coal towards total";
+      AILogDebug["util_score_enemy_area"] << "attack_for_resources is true but coal is already within our borders. not counting coal towards total";
     }else{
       // normal behavior
       unsigned int coal_signs = 0;
@@ -3598,9 +3605,9 @@ AI::score_enemy_area(MapPos center_pos, unsigned int distance) {
       }
     }
     // Stone in mountains
-    if (cannot_expand_borders && !no_stone_within_borders){
+    if (attack_for_resources && !no_stone_within_borders){
       // disregard this resource, some other resource is desperately needed
-      AILogDebug["util_score_enemy_area"] << "cannot_expand_borders is true but stone is already within our borders. not counting mined-stone-in-mountains towards total";
+      AILogDebug["util_score_enemy_area"] << "attack_for_resources is true but stone is already within our borders. not counting mined-stone-in-mountains towards total";
     }else{
       // normal behavior
       unsigned int stone_signs = 0;
@@ -3619,9 +3626,9 @@ AI::score_enemy_area(MapPos center_pos, unsigned int distance) {
     //
     // enemy buildings
     //
-    if (cannot_expand_borders){
+    if (attack_for_resources){
       // do NOT count enemy buildings for scoring, only resources
-      AILogDebug["util_score_enemy_area"] << "cannot_expand_borders is true, not counting enemy buildings towards total";
+      AILogDebug["util_score_enemy_area"] << "attack_for_resources is true, not counting enemy buildings towards total";
     }else{
       // normal behavior
       if (map->get_owner(pos) != player_index && map->has_owner(pos) && map->has_building(pos)){
@@ -3664,7 +3671,7 @@ AI::score_enemy_area(MapPos center_pos, unsigned int distance) {
     //AILogDebug["util_score_enemy_area"] << "score total so far: " << total_value;
 
   }
-  AILogDebug["util_score_enemy_area"] << "found total score_enemy_area value " << total_value << " of terrain & objects in area " << center_pos;
+  AILogDebug["util_score_enemy_area"] << "attack_for_resources bool is " << attack_for_resources << ", found total score_enemy_area value " << total_value << " of terrain & objects in area " << center_pos;
   duration = (std::clock() - start) / static_cast<double>(CLOCKS_PER_SEC);
   AILogDebug["util_score_enemy_area"] << "done util_score_enemy_area call took " << duration;
   return total_value;

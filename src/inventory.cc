@@ -249,14 +249,14 @@ Inventory::call_internal(Serf *serf) {
 
   serfs[serf->get_type()] = 0;
 
-  Log::Debug["inventory.cc"] << "inside Inventory::call_internal for specific serf with index " << serf->get_index() << " type is correct type " << serf->get_type() << ", returning false";
+  //Log::Debug["inventory.cc"] << "inside Inventory::call_internal for specific serf with index " << serf->get_index() << " type is correct type " << serf->get_type() << ", returning false";
 
   return true;
 }
 
 Serf*
 Inventory::call_internal(Serf::Type type) {
-  Log::Debug["inventory.cc"] << "inside Inventory::call_internal for serf type " << type;
+  //Log::Debug["inventory.cc"] << "inside Inventory::call_internal for serf type " << type;
   if (serfs[type] == 0) {
     return NULL;
   }
