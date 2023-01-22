@@ -1074,7 +1074,7 @@ void
 Viewport::draw_map_sprite_special(int lx, int ly, int index, const Color &color, int mutate) {
   // this is only used by draw_map_objects_row, added passing of pos and object type to support sprite replacement
   //  THIS FUNCTION MAY NOT BE NEEDED ANYMORE, could integration into normal draw sprite functions?
-  //Log::Debug["viewport"] << "inside Viewport::draw_map_sprite_special for sprite index " << index;
+  Log::Debug["viewport"] << "inside Viewport::draw_map_sprite_special for sprite index " << index;
 
   // draw the tree's shadow
   if ((index >= 1220 && index <= 1223)    // SPRING Tree2 (the white flowered tree)
@@ -1083,7 +1083,7 @@ Viewport::draw_map_sprite_special(int lx, int ly, int index, const Color &color,
     frame->draw_sprite(lx, ly, Data::AssetMapShadow, index % 10, true, Color::transparent, 1.f);
   }else if ((index >= 1120 && index <= 1148)     // bright flowers
          || (index >= 2120 && index <= 2148)    // dark flowers
-         //|| (index >= 1160 && index <= 1179)){   // cattails   NOW HAVE SHADOW
+         //|| (index >= 1160 && index <= 1179)){   // cattails   NOW HAVE REAL SHADOW sprites so nothing to do here
               ){
     // flowers have no shadow, do not draw one
     //Log::Debug["viewport"] << "inside Viewport::draw_map_sprite_special for sprite index " << index << ", not drawing shadow";

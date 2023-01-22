@@ -1114,6 +1114,7 @@ Interface::update() {
     if (season > 3){season = 0;} // ... but wrap back around as there is no fifth season
     int season_tick_offset = year_offset % 62500;
     subseason = season_tick_offset / 3906;
+    if (subseason > 15){subseason = 15;}
     int subseason_tick_offset = season_tick_offset % 3906;
     //Log::Debug["interface.cc"] << "FourSeasons calendar:  tick " << game->get_tick() << ", year " << year << ", year_offset " << year_offset << ", season " << season << ", season_tick_offset " << season_tick_offset << ", subseason " << subseason << ", subseason_tick_offset " << subseason_tick_offset;
 

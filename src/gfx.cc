@@ -264,7 +264,7 @@ Graphics::get_instance() {
 //
 void
 Frame::draw_sprite(int x, int y, Data::Resource res, unsigned int index, bool use_off, const Color &color, float progress, int mutate) {
-  //Log::Debug["gfx.cc"] << "start of Frame::draw_sprite with res " << res << " and index " << index << ", mutate int is " << mutate;
+  Log::Debug["gfx.cc"] << "start of Frame::draw_sprite with res " << res << " and index " << index << ", mutate int is " << mutate;
   Data::Sprite::Color pc = {color.get_blue(),
                             color.get_green(),
                             color.get_red(),
@@ -285,7 +285,7 @@ Frame::draw_sprite(int x, int y, Data::Resource res, unsigned int index, bool us
     if (res == Data::AssetMapObject){
       // this is pretty arbitrary
       id = Data::Sprite::create_id(res, index + 3000, 0, 0, pc);
-      //Log::Debug["gfx.cc"] << "inside Frame::draw_sprite with res " << res << " and index " << index << ", mutate int is " << mutate << ", caching with fake high id " << index + 3000;
+      Log::Debug["gfx.cc"] << "inside Frame::draw_sprite with res " << res << " and index " << index << ", mutate int is " << mutate << ", caching with fake high id " << index + 3000;
     } else{
       throw ExceptionFreeserf("inside Frame::draw_sprite, unexpected Data::Asset type to mutate!");      
     }
@@ -298,7 +298,7 @@ Frame::draw_sprite(int x, int y, Data::Resource res, unsigned int index, bool us
   
   // if image not found already cached, fetch it and cache it
   if (image == nullptr) {
-    //Log::Debug["gfx.cc"] << "inside Frame::draw_sprite, res " << res << ", sprite index " << index << ", this image is not yet cached, fetching it";
+    Log::Debug["gfx.cc"] << "inside Frame::draw_sprite, res " << res << ", sprite index " << index << ", this image is not yet cached, fetching it";
     Data::PSprite s;
 
     // handle special sprites, either mutated-originals or totally new Custom sprites
@@ -343,7 +343,7 @@ Frame::draw_sprite(int x, int y, Data::Resource res, unsigned int index, bool us
        || res == Data::AssetPanelButton){  // for spinning amiga style star animated sprite
         // these types, if having beyond-original indexes, are new graphics
         //  loaded from actual PN  files using the data_source_Custom
-        //Log::Debug["gfx.cc"] << "inside Frame::draw_sprite, sprite index " << index << " trying to load custom data source";
+        Log::Debug["gfx.cc"] << "inside Frame::draw_sprite, sprite index " << index << " trying to load custom data source";
         Data &data = Data::get_instance();
         // allow falling back to an original sprite if custom sprite couldn't be loaded
         if (res == Data::AssetFrameBottom){
@@ -391,13 +391,13 @@ Frame::draw_sprite(int x, int y, Data::Resource res, unsigned int index, bool us
           Log::Warn["gfx.cc"] << "inside Frame::draw_sprite, custom datasource not available at all, cannot even attempt to load sprite index " << index << ", trying to fall back to default datasource for this sprite, using " << orig_index;
           s = data_source->get_sprite(res, orig_index, pc);
         }else{
-          //Log::Debug["gfx.cc"] << "inside Frame::draw_sprite, sprite index " << index << " about to call data_source_Custom->get_sprite";
+          Log::Debug["gfx.cc"] << "inside Frame::draw_sprite, sprite index " << index << " about to call data_source_Custom->get_sprite";
           s = data.get_data_source_Custom()->get_sprite(res, index, pc);
           if (s == nullptr){
             Log::Warn["gfx.cc"] << "inside Frame::draw_sprite, custom datasource not found for res type " << res << ", sprite index " << index <<", trying to fall back to default datasource for this sprite, using " << orig_index;
             s = data_source->get_sprite(res, orig_index, pc);
-          //}else{
-            //Log::Debug["gfx.cc"] << "inside Frame::draw_sprite, custom datasource successfully loaded for res type " << res << ", sprite index " << index;
+          }else{
+            Log::Debug["gfx.cc"] << "inside Frame::draw_sprite, custom datasource successfully loaded for res type " << res << ", sprite index " << index;
           }
         }
       }else if (res == Data::AssetMapGround){
