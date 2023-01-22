@@ -2815,6 +2815,12 @@ AI::do_manage_knight_occupation_levels() {
     AILogDebug["do_manage_knight_occupation_levels"] << "is currently cycling_knights!  waiting until this is complete";
     return;
   }
+  
+  // I've always thought sending the strongest to fight made the most sense
+  AILogDebug["do_manage_knight_occupation_levels"] << "setting player->set_send_strongest()";
+  player->set_send_strongest();
+
+
   // adjust military building occupation levels
   //   to avoid bouncing knights back and forth, only adjust occupation levels
   //     if doing so will not push it back across the same threshold
