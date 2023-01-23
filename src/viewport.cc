@@ -4470,6 +4470,8 @@ Viewport::handle_drag(int lx, int ly) {
   if (lx != 0 || ly != 0) {
     move_by_pixels(lx, ly);
   }
+  // if the minimap is open, update it to reflect the current viewport pos
+  interface->reload_any_minimaps();  
 
   return true;
 }

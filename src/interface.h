@@ -81,7 +81,6 @@ class Interface : public GuiObject, public GameManager::Handler {
   PanelBar *panel;
   PopupBox *popup;
   GameInitBox *init_box;
-  bool redraw_minimap;  // added for FogOfWar and other new options, so that minimap regen can be triggered by closing a gameoption popup";
   NotificationBox *notification_box;
 
   MapPos map_cursor_pos;
@@ -155,7 +154,6 @@ class Interface : public GuiObject, public GameManager::Handler {
   void open_game_init();
   void close_game_init();
   bool is_game_init_open() { return init_box != nullptr; }  // added for FogOfWar and other new options, so that minimap regen can be triggered by closing a gameoption popup";
-  //void set_minimap_redraw() { redraw_minimap = true; }  // added for FogOfWar and other new options, so that minimap regen can be triggered by closing a gameoption popup";
   GameInitBox *get_game_init() { return init_box; }  // added for FogOfWar and other new options, so that minimap regen can be triggered by closing a gameoption popup";
 
   void reload_any_minimaps();

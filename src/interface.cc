@@ -93,8 +93,6 @@ Interface::Interface()
   last_autosave_tick = 0;
   last_subseason_tick = 0;  // messing with weather/seasons/palette
 
-  redraw_minimap = false;  // added for FogOfWar and other new options, so that minimap regen can be triggered by closing a gameoption popup";
-
   viewport = nullptr;
   panel = nullptr;
   popup = nullptr;
