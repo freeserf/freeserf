@@ -37,7 +37,7 @@ void
 GuiObject::layout() {
   // this function only exists to allow overloading by Viewport and Interface, I think, but it is important for those
   //  this function cannot be removed, and the upstream call to it cannot be removed either!
-  //Log::Debug["gui.cc"] << "the useless function GuiObject::layout() has been called";
+  Log::Debug["gui.cc"] << "the useless function GuiObject::layout() has been called";
 }
 
 //void
@@ -65,6 +65,8 @@ GuiObject::GuiObject() {
   parent = nullptr;
   frame = nullptr;
   focused = false;
+  objclass = GuiObjClass::ClassNone;
+  objtype = 0;
 }
 
 GuiObject::~GuiObject() {
@@ -88,19 +90,25 @@ GuiObject::draw(Frame *_frame) {
     return;
   }
 
+  //Log::Debug["event_loop.cc"] << "inside GuiObject::draw, this->objclass " << this->get_objclass();
+
   if (frame == nullptr) {
+    //Log::Debug["event_loop.cc"] << "inside GuiObject::draw, this->objclass " << this->get_objclass() << " frame is nullptr, creating new frame";
     frame = Graphics::get_instance().create_frame(width, height);
   }
 
   if (redraw) {
+    //Log::Debug["event_loop.cc"] << "inside GuiObject::draw, this->objclass " << this->get_objclass() << " redraw is true, calling internal_draw";
     internal_draw();
 
     for (GuiObject *float_window : floats) {
+      //Log::Debug["event_loop.cc"] << "inside GuiObject::draw, about to call float->draw for float with class " << float_window->get_objclass() << " and type " << float_window->get_objtype();
       float_window->draw(frame);
     }
 
     redraw = false;
   }
+  //Log::Debug["event_loop.cc"] << "inside GuiObject::draw, this->objclass " << this->get_objclass() << " calling draw_frame";
   _frame->draw_frame(x, y, 0, 0, frame, width, height);
 }
 
@@ -147,6 +155,13 @@ GuiObject::handle_event(const Event *event) {
   /* Find the corresponding float element if any */
   FloatList::reverse_iterator fl = floats.rbegin();
   for ( ; fl != floats.rend() ; ++fl) {
+    // failed attempt to only zoom the viewport, not the UI elements
+    //Log::Debug["event_loop.cc"] << "inside GuiObject::handle_event for fl with objclass " << int((*fl)->get_objclass()) << " and objtype " << int((*fl)->get_objtype());
+    //if (internal_event.type == Event::TypeZoom
+    // && (*fl)->get_objclass() != GuiObjClass::ClassViewport){
+    //  Log::Debug["event_loop.cc"] << "inside GuiObject::handle_event, not zooming non-Viewport float";
+    //  continue;
+    //}
     bool result = (*fl)->handle_event(&internal_event);
     if (result != 0) {
       //Log::Debug["event_loop.cc"] << "inside GuiObject::handle_event returning float element result";
@@ -219,7 +234,7 @@ GuiObject::set_focused() {
 
 void
 GuiObject::move_to(int px, int py) {
-  //Log::Debug["gui.cc"] << "inside GuiObject::move_to()";
+  Log::Debug["gui.cc"] << "inside GuiObject::move_to()";
   x = px;
   y = py;
   set_redraw();
@@ -237,7 +252,7 @@ GuiObject::get_position(int *px, int *py) {
 
 void
 GuiObject::set_size(int new_width, int new_height) {
-  //Log::Debug["gui.cc"] << "start of GuiObject::set_size";
+  Log::Debug["gui.cc"] << "start of GuiObject::set_size";
   delete_frame();
   width = new_width;
   height = new_height;
@@ -283,7 +298,7 @@ GuiObject::point_inside(int point_x, int point_y) {
 
 void
 GuiObject::add_float(GuiObject *obj, int fx, int fy) {
-  //Log::Debug["gui.cc"] << "inside GuiObject::add_float()";
+  Log::Debug["gui.cc"] << "inside GuiObject::add_float() with type " << NameGuiObjClass[obj->get_objclass()] << " and type " << obj->get_objtype();
   obj->set_parent(this);
   floats.push_back(obj);
   obj->move_to(fx, fy);

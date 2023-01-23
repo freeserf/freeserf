@@ -155,6 +155,8 @@ Interface::open_popup(int box) {
   if (popup == nullptr) {
     //Log::Debug["interface.cc"] << "inside Interface::open_popup(), for popup type " << box << ", popup is nullptr, creating new";
     popup = new PopupBox(this);
+    popup->set_objclass(GuiObjClass::ClassPopupBox);
+    popup->set_objtype(box);
     add_float(popup, 0, 0);
   }
   layout();
@@ -268,6 +270,7 @@ void
 Interface::open_game_init() {
   if (init_box == nullptr) {
     init_box = new GameInitBox(this);
+    init_box->set_objclass(GuiObjClass::ClassGameInitBox);
     add_float(init_box, 0, 0);
   }
   init_box->set_displayed(true);
@@ -401,6 +404,7 @@ Interface::open_message() {
 
   if (notification_box == nullptr) {
     notification_box = new NotificationBox(this);
+    notification_box->set_objclass(GuiObjClass::ClassNotificationBox);
     add_float(notification_box, 0, 0);
   }
   notification_box->show(message);
@@ -676,6 +680,7 @@ Interface::set_game(PGame new_game) {
   if (game) {
     viewport = new Viewport(this, game->get_map());
     viewport->set_displayed(true);
+    viewport->set_objclass(GuiObjClass::ClassViewport);
     add_float(viewport, 0, 0);
   }
 
@@ -710,6 +715,7 @@ Interface::set_player(unsigned int player_index) {
   if (player != NULL) {
     panel = new PanelBar(this);
     panel->set_displayed(true);
+    panel->set_objclass(GuiObjClass::ClassPanelBar);
     add_float(panel, 0, 0);
     layout();
 
@@ -1000,10 +1006,12 @@ Interface::internal_draw() {
 
 void
 Interface::layout() {
+  //Log::Debug["interface.cc"] << "inside Interface::layout";
   int panel_x = 0;
   int panel_y = height;
 
   if (panel != nullptr) {
+    //Log::Debug["interface.cc"] << "inside Interface::layout, panel is defined";
     int panel_width = 352;
     int panel_height = 40;
     panel_x = (width - panel_width) / 2;
@@ -1013,7 +1021,7 @@ Interface::layout() {
   }
 
   if (popup != nullptr) {
-    //Log::Debug["interface.cc"] << "inside Interface::internal_draw(), popup is NOT a nullptr";
+    //Log::Debug["interface.cc"] << "inside Interface::layout, popup is defined";
     int popup_width = 144;
     int popup_height = 160;
     int popup_x = (width - popup_width) / 2;
@@ -1025,6 +1033,7 @@ Interface::layout() {
   }
 
   if (init_box != nullptr) {
+    //Log::Debug["interface.cc"] << "inside Interface::layout, init_box is defined";
     int init_box_width = 360;
     int init_box_height = 256;
     int init_box_x = (width - init_box_width) / 2;
@@ -1034,6 +1043,7 @@ Interface::layout() {
   }
 
   if (notification_box != nullptr) {
+    //Log::Debug["interface.cc"] << "inside Interface::layout, notification_box is defined";
     int notification_box_width = 200;
     int notification_box_height = 88;
     int notification_box_x = panel_x + 40;
@@ -1043,6 +1053,7 @@ Interface::layout() {
   }
 
   if (viewport != nullptr) {
+    //Log::Debug["interface.cc"] << "inside Interface::layout, viewport is defined";
     viewport->set_size(width, height);
   }
 
@@ -1544,13 +1555,37 @@ Interface::handle_key_pressed(char key, int modifier) {
 
 bool
 Interface::handle_event(const Event *event) {
+  //Log::Debug["event_loop.cc"] << "inside Interface::handle_event, type " << event->type;
   switch (event->type) {
     case Event::TypeResize:
       set_size(event->dx, event->dy);
       viewport->store_prev_window_size();
       break;
     case Event::TypeZoom:
+      Log::Debug["event_loop.cc"] << "inside Interface::handle_event, TypeZoom";
       set_size(event->dx, event->dy);
+      /* failed attempt to zoom ONLY the view port
+      it seems that other floats are scaled because they are on top of the viewport and the entire viewport is scaled?
+      and they must be drawn separately??
+      
+      if (this->get_objclass() == GuiObjClass::ClassViewport){
+        set_size(event->dx, event->dy);
+      }else{
+        //x += event->dx;
+        //y += event->dy;
+        //if (event->dy < height || event->dx < width){
+        //  y -= 30;
+        //  x -= 20;
+        //}else{
+        //  y += 30;
+        //  x += 20;
+        //}
+
+        delete_frame();
+        layout();  // this appears to do nothing for generic GuiObject, but I think it exists because it is overridden by some GuiObject superclasses such as Viewport, Interface, and their layout() is important
+        set_redraw();
+      }
+      */
       break;
     case Event::TypeUpdate:
       update();

@@ -28,6 +28,35 @@
 #include "src/event_loop.h"
 
 class GuiObject : public EventLoop::Handler {
+ public:
+  typedef enum GuiObjectClass {
+    ClassNone = 0,
+    ClassGameInitBox,
+    ClassViewport,
+    ClassPopupBox,
+    ClassPanelBar,
+    ClassMinimap,
+    ClassNotificationBox,
+    ClassSaveGameFileList,
+    ClassLoadGameFileList,
+    ClassSaveGameNameInput,
+    ClassRandomSeedInput
+  } GuiObjClass;
+
+  const std::string NameGuiObjClass[11]{
+    "GuiObjClass::ClassNone",
+    "GuiObjClass::ClassGameInitBox",
+    "GuiObjClass::ClassViewport",
+    "GuiObjClass::ClassPopupBox",
+    "GuiObjClass::ClassPanelBar",
+    "GuiObjClass::ClassMinimap",
+    "GuiObjClass::ClassNotificationBox",
+    "GuiObjClass::ClassSaveGameFileList",
+    "GuiObjClass::ClassLoadGameFileList",
+    "GuiObjClass::ClassSaveGameNameInput",
+    "GuiObjClass::ClassRandomSeedInput",
+  };
+
  private:
   typedef std::list<GuiObject*> FloatList;
   FloatList floats;
@@ -42,6 +71,8 @@ class GuiObject : public EventLoop::Handler {
   Frame *frame;
   static GuiObject *focused_object;
   bool focused;
+  GuiObjClass objclass;  // PanelBar, PopupBox, GameInit, etc.
+  int objtype;   // type within above class
 
   virtual void internal_draw() = 0;
   virtual void layout();
@@ -80,6 +111,10 @@ class GuiObject : public EventLoop::Handler {
 
   void add_float(GuiObject *obj, int x, int y);
   void del_float(GuiObject *obj);
+  GuiObjClass get_objclass() { return objclass; }
+  void set_objclass(GuiObjClass objclass_) { objclass = objclass_; }
+  int get_objtype() { return objtype; }
+  void set_objtype(int objtype_) { objtype = objtype_; }
 
   void set_focused();
 

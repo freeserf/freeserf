@@ -3202,6 +3202,10 @@ Serf::handle_serf_wait_for_resource_out_state() {
   unsigned int obj_index = game->get_map()->get_obj_index(pos);
   Building *building = game->get_building(obj_index);
   Inventory *inventory = building->get_inventory();
+  if (inventory == nullptr){
+    Log::Warn["serf.cc"] << "this serf's Building's Inventory is nullptr!";
+    return;
+  }
   if (inventory->get_serf_queue_length() > 0 ||
       !inventory->has_resource_in_queue()) {
     return;
