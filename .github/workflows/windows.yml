@@ -34,15 +34,15 @@ jobs:
           vcpkgTriplet: ${{ matrix.architecture }}-windows
           vcpkgArguments: 'sdl2 sdl2-mixer[core,libmodplug,nativemidi] sdl2-image'
 
-      - name: Configure FreeSerf
+      - name: Configure Forkserf
         run: |
           cmake -B build -G "NMake Makefiles" -DCMAKE_BUILD_TYPE=${{ matrix.buildtype }}
-      - name: Build FreeSerf
+      - name: Build Forkserf
         shell: bash
         run: |
           cd build
           nmake
-      - name: Pack FreeSerf
+      - name: Pack Forkserf
         shell: bash
         run: |
           cd build
@@ -50,5 +50,5 @@ jobs:
       - name: Upload artifact
         uses: actions/upload-artifact@v3
         with:
-          name: FreeSerf-${{ matrix.architecture }}-${{ matrix.buildtype }}
-          path: ./build/Forkserf-${{ matrix.architecture }}-${{ matrix.buildtype }}.exe
+          name: BROKEN-${{ matrix.architecture }}-${{ matrix.buildtype }}
+          path: ./build/BROKEN-${{ matrix.architecture }}-${{ matrix.buildtype }}.exe

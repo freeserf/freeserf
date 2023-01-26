@@ -3315,12 +3315,17 @@ AI::do_build_stonecutter() {
     }
     // build a second stonecutter if the first is occupied and have lots of free pickaxes, or an idle stonecutter already in Inventory
     if (stonecutter_count == 1){
-      if (stock_building_counts.at(inventory_pos).occupied_count[Building::TypeStonecutter] >= 1
-       && (get_stock_inv()->get_count_of(Resource::TypePick) >= 4 || get_stock_inv()->have_serf(Serf::TypeStonecutter))) {
-        AILogDebug["do_build_stonecutter"] << inventory_pos << " this Inventory has an Occupied stonecutter already, but has at least four pickaxes stored OR an idle_stonecutter_in_stock, will try to build a second stonecutter in this area";
-      }else{
-        AILogDebug["do_build_stonecutter"] << inventory_pos << " this Inventory has at least one stonecutter hut, but either it is not yet Occupied or there are not 4 free pickaxes or one idle stonecutter serf, not building another in this area";
-        return;
+      if (stock_building_counts.at(inventory_pos).occupied_count[Building::TypeStonecutter] >= 1){
+        if (get_stock_inv() == nullptr){
+          AILogWarn["do_build_stonecutter"] << inventory_pos << " this Inventory building is nullptr! cannot check pick/stonecutter-serf counts, returning early";
+          return;
+        }
+        if (get_stock_inv()->get_count_of(Resource::TypePick) >= 4 || get_stock_inv()->have_serf(Serf::TypeStonecutter)) {
+          AILogDebug["do_build_stonecutter"] << inventory_pos << " this Inventory has an Occupied stonecutter already, but has at least four pickaxes stored OR an idle_stonecutter_in_stock, will try to build a second stonecutter in this area";
+        }else{
+          AILogDebug["do_build_stonecutter"] << inventory_pos << " this Inventory has at least one stonecutter hut, but either it is not yet Occupied or there are not 4 free pickaxes or one idle stonecutter serf, not building another in this area";
+          return;
+        }
       }
     }else{
       AILogDebug["do_build_stonecutter"] << inventory_pos << " this Inventory has no stonecutter huts, will try to build one";

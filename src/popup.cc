@@ -2875,7 +2875,13 @@ PopupBox::draw_sett_8_box() {
   Player *player = interface->get_player();
 
   draw_slide_bar(4, 12, player->get_serf_to_knight_rate());
-  draw_green_string(8, 63, "%");
+  if (100*player->get_knight_morale()/0x1000 > 99){
+    // 3 digit morale, move % over one
+    draw_green_string(9, 63, "%");
+  }else{
+    // 2 digit morale
+    draw_green_string(8, 63, "%");
+  }
   draw_green_number(6, 63, (100*player->get_knight_morale())/0x1000);
 
   draw_green_large_number(6, 73, player->get_gold_deposited());

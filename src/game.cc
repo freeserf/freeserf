@@ -275,6 +275,10 @@ typedef struct UpdateInventoriesData {
 
 bool
 Game::update_inventories_cb(Flag *flag, void *d) {
+  if (flag == nullptr){
+    Log::Info["game"] << "debug: inside update_inventories_cb, Flag flag is nullptr!";
+    return false;
+  }
   UpdateInventoriesData *data = reinterpret_cast<UpdateInventoriesData*>(d);
   int inv = flag->get_search_dir();
   //  NOTE - the search_dir doesn't actually refer to a Direction at all
@@ -335,7 +339,7 @@ Game::update_inventories_cb(Flag *flag, void *d) {
       //  continue;
       //}
       //Log::Info["game"] << "debug: inside Game::update_inventories_cb, 4";
-      if (data->prev_flag->has_path_IMPROVED(d) && flag != nullptr 
+      if (data->prev_flag->has_path_IMPROVED(d) && flag != nullptr && data->prev_flag->get_other_end_flag(d) != nullptr 
        && data->prev_flag->get_other_end_flag(d)->get_index() == flag->get_index()) {
         // could also use flag->get_other_end_flag(d)? but this reads better
         // to try to approximate the original road length, bit-shift >>4, or divide by 16
@@ -1093,6 +1097,7 @@ Game::update() {
   }
   */
 
+  /*
   // corruption debugging, saw an issue where Building has holder serf, but the holder serf's own state
   //  and pos indicate he is actually in the castle in IdleInStock
   ticks_since_last_corruption_detection += game_ticks_per_update;
@@ -1119,6 +1124,7 @@ Game::update() {
       }
     }
   }
+  */
 
 /*
   Log::Info["game"] << "option_EnableAutoSave is " << option_EnableAutoSave;

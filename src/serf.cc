@@ -1757,7 +1757,8 @@ Serf::handle_serf_walking_state_dest_reached() {
     Direction dir = (Direction)s.walking.dir1;
     Flag *other_flag = flag->get_other_end_flag(dir);
     if (other_flag == nullptr) {
-      throw ExceptionFreeserf("Path has no other end flag in selected dir.");
+      Log::Warn["serf.cc"] << "inside handle_serf_walking_state_dest_reached, Path has no other end flag in selected dir.  Making this serf Lost";
+      set_lost_state();
     }
     Direction other_dir = flag->get_other_end_dir(dir);
 
@@ -3202,12 +3203,14 @@ Serf::handle_serf_wait_for_resource_out_state() {
   unsigned int obj_index = game->get_map()->get_obj_index(pos);
   Building *building = game->get_building(obj_index);
   if (building == nullptr){
-    Log::Warn["serf.cc"] << "this serf's Building is nullptr!";
+    // this happens CONSTANTLY once last Inventory destroyed, don't log it
+    //Log::Warn["serf.cc"] << "this serf's Building is nullptr!";
     return;
   }
   Inventory *inventory = building->get_inventory();
   if (inventory == nullptr){
-    Log::Warn["serf.cc"] << "this serf's Building's Inventory is nullptr!";
+    // this happens CONSTANTLY once last Inventory destroyed, don't log it
+    //Log::Warn["serf.cc"] << "this serf's Building's Inventory is nullptr!";
     return;
   }
   if (inventory->get_serf_queue_length() > 0 ||
@@ -4320,7 +4323,7 @@ Serf::handle_free_walking_common() {
       }else{
         // saw this once, changing to Warn for now
         //throw ExceptionFreeserf("inside Serf::handle_free_walking_common, could not find a path around water/lake obstacle for freewalking serf!");
-        Log::Warn["serf.cc"] << "inside Serf::handle_free_walking_common, a free-walking serf with index #" << this->get_index() << " and pos " << this->get_pos() << ", could not find a path around water/lake obstacle for freewalking serf of type " << NameSerf[this->get_type()] << "!";
+        Log::Debug["serf.cc"] << "inside Serf::handle_free_walking_common, a free-walking serf with index #" << this->get_index() << " and pos " << this->get_pos() << ", could not find a path around water/lake obstacle for freewalking serf of type " << NameSerf[this->get_type()] << "!";
       }
     }
   } // end of defect fix
@@ -6607,8 +6610,8 @@ Serf::handle_serf_wait_idle_on_path_state() {
   // to help debug serfs stuck in WaitIdleOnPath issues
   if (get_type() != Serf::TypeTransporter){
     Log::Warn["serf.cc"] << "inside Serf::handle_serf_wait_idle_on_path_state, WARNING a non-transporter Serf of type " << get_type() << " at pos " << get_pos() << " is in WaitIdleOnPath state but this state should only happen to Transporters!";
-    game->set_debug_mark_pos(get_pos(), "blue");
-    game->pause();
+    //game->set_debug_mark_pos(get_pos(), "blue");
+    //game->pause();
   }
 
   

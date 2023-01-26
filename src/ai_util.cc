@@ -3634,11 +3634,11 @@ AI::score_enemy_area(MapPos center_pos, unsigned int distance) {
       if (map->get_owner(pos) != player_index && map->has_owner(pos) && map->has_building(pos)){
         //AILogDebug["util_score_enemy_area"] << "potential attack area contains a building of type " << NameBuilding[game->get_building_at_pos(pos)->get_type()];
         if (obj == Map::ObjectCastle){
-          pos_value += 25;  // this needs to be high enough to ensure that a nearly-isolated castle is still worth isolating even if no resources nearby
+          pos_value += 35;  // this needs to be high enough to ensure that a nearly-isolated castle is still worth isolating even if no resources nearby
           //AILogDebug["util_score_enemy_area"] << "adding attack value 20 for enemy castle at pos " << pos;
         }
         if (obj == Map::ObjectLargeBuilding && game->get_building_at_pos(pos)->get_type() == Building::TypeStock){
-          pos_value += 25;
+          pos_value += 30;
           //AILogDebug["util_score_enemy_area"] << "adding additional attack value 12 for enemy stock/warehouse at pos " << pos;
         }
         if (obj == Map::ObjectLargeBuilding && !game->get_building_at_pos(pos)->is_military()) {
@@ -3938,46 +3938,58 @@ AI::attack_best_target(MapPosSet *scored_targets, int loss_tolerance) {
       // NOTE that this typically underestimates losses because by the time morale is high enough
       //  to consider attacking, most knights are high ranking.  Though I guess that applies to attackers too, nevermind
       unsigned int expected_losses = double(enemy_morale / morale) * estimated_defenders;
-      if (expected_losses < 1){expected_losses = 1;} // avoid divide by zero error
       AILogDebug["util_attack_best_target"] << "enemy_morale " << enemy_morale << ", our morale " << morale << ", expected_losses to attack this building are " << expected_losses;
 
       // if this is the enemy castle, which appears to have 255 defenders (because we can't tell), simply fake expected_losses being low
       if (morale > 100 && target_building->get_type() == Building::TypeCastle){
-        AILogDebug["util_attack_best_target"] << "this target is the enemy castle and our morale is >100, faking expected_losses as 3";
-        expected_losses = 3;
+        AILogDebug["util_attack_best_target"] << "this target is the enemy castle and our morale is >100, faking expected_losses as 1";
+        expected_losses = 1;
       }
 
-      if (loss_tolerance == 3){
-        if (target_score > 100 && attacking_knights > 1 * expected_losses){
-          AILogDebug["util_attack_best_target"] << "loss_tolerance is high, this target has an exceptionally high score of " << target_score << " and victory is possible, will attack";
-        }else if (target_score / expected_losses > 15 && attacking_knights > 1.25 * expected_losses){
-          AILogDebug["util_attack_best_target"] << "loss_tolerance is high, this target_score / expected_losses ratio " << target_score / expected_losses << ":1 is over 15, an acceptable risk, and victory is likely, will attack";
+      if (expected_losses > 1){
+        //factor losses in attack decision
+        if (loss_tolerance == 3){
+          if (target_score > 100 && attacking_knights > 1 * expected_losses){
+            AILogDebug["util_attack_best_target"] << "loss_tolerance is high, this target has an exceptionally high score of " << target_score << " and victory is possible, will attack";
+          }else if (target_score / expected_losses > 15 && attacking_knights > 1.25 * expected_losses){
+            AILogDebug["util_attack_best_target"] << "loss_tolerance is high, this target_score / expected_losses ratio " << target_score / expected_losses << ":1 is over 15, an acceptable risk, and victory is likely, will attack";
+          }else{
+            AILogDebug["util_attack_best_target"] << "loss_tolerance is high, this target_score / expected_losses ratio " << target_score / expected_losses << ":1 is too low, OR we are not likely to capture it, skipping target";
+            continue;
+          }
+        }else if (loss_tolerance == 2){
+          if (target_score > 100 && attacking_knights > 1.5 * expected_losses){
+            AILogDebug["util_attack_best_target"] << "loss_tolerance is moderate, this target has an exceptionally high score of " << target_score << " and victory is possible, will attack";
+          }else if (target_score / expected_losses > 25 && attacking_knights > 1.5 * expected_losses){
+            AILogDebug["util_attack_best_target"] << "loss_tolerance is moderate, this target_score / expected_losses ratio " << target_score / expected_losses << ":1 is over 25, a worthy risk, and victory is likely, will attack";
+          }else{
+            AILogDebug["util_attack_best_target"] << "loss_tolerance is moderate, this target_score / expected_losses ratio " << target_score / expected_losses << ":1 is too low, OR we are not likely to capture it, skipping target";
+            continue;
+          }
+        }else if (loss_tolerance == 1){
+          if (target_score > 100 && attacking_knights > 2 * expected_losses){
+            AILogDebug["util_attack_best_target"] << "loss_tolerance is low, this target has an exceptionally high score of " << target_score << " and victory is likely, will attack";
+          }else if (target_score / expected_losses > 40 && attacking_knights > 2 * expected_losses){
+            AILogDebug["util_attack_best_target"] << "loss_tolerance is low, this target_score / expected_losses ratio " << target_score / expected_losses << ":1 is over 40, a worthy risk, and victory is likely, will attack";
+          }else{
+            AILogDebug["util_attack_best_target"] << "loss_tolerance is low, this target_score / expected_losses ratio " << target_score / expected_losses << ":1 is too low, OR we are not likely to capture it, skipping target";
+            continue;
+          }
         }else{
-          AILogDebug["util_attack_best_target"] << "loss_tolerance is high, this target_score / expected_losses ratio " << target_score / expected_losses << ":1 is too low, OR we are not likely to capture it, skipping target";
-          continue;
-        }
-      }else if (loss_tolerance == 2){
-        if (target_score > 100 && attacking_knights > 1.5 * expected_losses){
-          AILogDebug["util_attack_best_target"] << "loss_tolerance is moderate, this target has an exceptionally high score of " << target_score << " and victory is possible, will attack";
-        }else if (target_score / expected_losses > 25 && attacking_knights > 1.5 * expected_losses){
-          AILogDebug["util_attack_best_target"] << "loss_tolerance is moderate, this target_score / expected_losses ratio " << target_score / expected_losses << ":1 is over 25, a worthy risk, and victory is likely, will attack";
-        }else{
-          AILogDebug["util_attack_best_target"] << "loss_tolerance is moderate, this target_score / expected_losses ratio " << target_score / expected_losses << ":1 is too low, OR we are not likely to capture it, skipping target";
-          continue;
-        }
-      }else if (loss_tolerance == 1){
-        if (target_score > 100 && attacking_knights > 2 * expected_losses){
-          AILogDebug["util_attack_best_target"] << "loss_tolerance is low, this target has an exceptionally high score of " << target_score << " and victory is likely, will attack";
-        }else if (target_score / expected_losses > 40 && attacking_knights > 2 * expected_losses){
-          AILogDebug["util_attack_best_target"] << "loss_tolerance is low, this target_score / expected_losses ratio " << target_score / expected_losses << ":1 is over 40, a worthy risk, and victory is likely, will attack";
-        }else{
-          AILogDebug["util_attack_best_target"] << "loss_tolerance is low, this target_score / expected_losses ratio " << target_score / expected_losses << ":1 is too low, OR we are not likely to capture it, skipping target";
-          continue;
+          throw ExceptionFreeserf("AI::attack_best_target was called with loss_tolerance of <1 or >3, this should not happen");
         }
       }else{
-        throw ExceptionFreeserf("AI::attack_best_target was called with loss_tolerance of <1 or >3, this should not happen");
+        // attack regardless of score, knights
+        AILogDebug["util_attack_best_target"] << "expected_losses is <= 1, attacking regardless of score";
       }
     }
+
+    // avoid attacking again while attack already in progress... most of the time
+    if (target_building->is_under_attack() && game->random_int() & 7 == 0){
+      AILogDebug["util_attack_best_target"] << "this building is already under attack (by somebody, might not be us), and rand roll failed, skipping it for now";
+      continue;
+    }
+
     AILogDebug["util_attack_best_target"] << "PROCEEDING WITH THE ATTACK on target_pos " << target_pos;
     player->building_attacked = target_building->get_index();
     player->attacking_building_count = attacking_knights;

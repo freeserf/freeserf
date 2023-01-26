@@ -795,7 +795,8 @@ Player::spawn_serf(Serf **serf, Inventory **inventory, bool want_knight) {
 
   Game::ListInventories inventories = game->get_player_inventories(this);
   if (inventories.size() < 1) {
-    Log::Warn["game.cc"] << "inside Player::spawn_serf, inventories.size is <1, it is currently " << inventories.size() << ", does this mean max inventories reached?  Game just returns false";
+    // this happens when all Inventories destroyed
+    //Log::Warn["game.cc"] << "inside Player::spawn_serf, inventories.size is <1, it is currently " << inventories.size() << ", does this mean max inventories reached?  Game just returns false";
     return false;
   }
 
