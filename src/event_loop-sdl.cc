@@ -125,10 +125,10 @@ EventLoopSDL::run() {
   gfx.get_screen_factor(&screen_factor_x, &screen_factor_y);
   
   // for FPS counter
-  int frames = 0;
-  int timenow = time(0);
-  int last_time = timenow;
-  int target_fps = 49;  // default game speed 2 is 49-50fps.  Adjusted later for game_speed
+  //int frames = 0;
+  //int timenow = time(0);
+  //int last_time = timenow;
+  //int target_fps = 49;  // default game speed 2 is 49-50fps.  Adjusted later for game_speed
 
   // trying to debug zoom issues with quickly changing zoom
   bool zoom_changed = false;
@@ -194,20 +194,23 @@ EventLoopSDL::run() {
       }
     }
     unsigned int current_ticks = SDL_GetTicks();
-    SDL_Keymod mod = SDL_GetModState();
+    //SDL_Keymod mod = SDL_GetModState();
 
-    timenow = time(0); // for FPS counter
+    //timenow = time(0); // for FPS counter
     //zoom_changed = false; // trying to solve erratic zoom issue
     //MouseState * m = (MouseState*) userdata;  // trying to solve issue with mouse pointer not being reported exactly correctly
 
 
     switch (event.type) {
       case SDL_MOUSEBUTTONUP:
+        //Log::Debug["event_loop-sdl.cc"] << "inside EventLoopSDL::run(), type SDL_MOUSEBUTTONUP";
         if (drag_button == event.button.button) {
           drag_button = 0;
+          //Log::Debug["event_loop-sdl.cc"] << "inside EventLoopSDL::run(), type SDL_MOUSEBUTTONUP, drag_button = 0";
         }
 
         if (event.button.button <= 3) {
+          //Log::Debug["event_loop-sdl.cc"] << "inside EventLoopSDL::run(), type SDL_MOUSEBUTTONUP, event.button.button " << event.button.button << " is <= 3";
           int x = static_cast<int>(static_cast<float>(event.button.x) *
                                    zoom_factor * screen_factor_x);
           int y = static_cast<int>(static_cast<float>(event.button.y) *
@@ -221,10 +224,12 @@ EventLoopSDL::run() {
               notify_special_click(x, y);
             }
           }else if (event.button.button == 1){
+            SDL_Keymod mod = SDL_GetModState();
             notify_left_click(x, y, mod, (Event::Button)event.button.button);
           }else if (event.button.button == 3){
             notify_right_click(x, y);
           }
+          //Log::Debug["event_loop-sdl.cc"] << "inside EventLoopSDL::run(), type SDL_MOUSEBUTTONUP, foo";
 
           if (option_SpecialClickDouble){
             if (current_ticks - last_click[event.button.button] <
@@ -235,41 +240,60 @@ EventLoopSDL::run() {
                 event.button.y <= (last_click_y + MOUSE_MOVE_SENSITIVITY)) {
               notify_dbl_click(x, y, (Event::Button)event.button.button);
             }
+            //Log::Debug["event_loop-sdl.cc"] << "inside EventLoopSDL::run(), type SDL_MOUSEBUTTONUP, foo2";
           }
-
+          //Log::Debug["event_loop-sdl.cc"] << "inside EventLoopSDL::run(), type SDL_MOUSEBUTTONUP, foo3";
           last_click[event.button.button] = current_ticks;
           last_click_x = event.button.x;
           last_click_y = event.button.y;
         }
 
+        //Log::Debug["event_loop-sdl.cc"] << "inside EventLoopSDL::run(), type SDL_MOUSEBUTTONUP, foo4";
         button_left_down = false;
         button_middle_down = false;
         button_right_down = false;
         break;
       case SDL_MOUSEBUTTONDOWN:
+        //Log::Debug["event_loop-sdl.cc"] << "inside EventLoopSDL::run(), type SDL_MOUSEBUTTONDOWN";
         if (event.button.button <= 3) {
           // track which buttons down for detect special-click (both left and right buttons)
           if (event.button.button == 1) {
+            //Log::Debug["event_loop-sdl.cc"] << "inside EventLoopSDL::run(), type SDL_MOUSEBUTTONDOWN left";
             button_left_down = true;
           }
           // NOTE - SDL shows middle/wheel mouse button as button2, not button3 as you might expect
           if (event.button.button == 2) {
+            //Log::Debug["event_loop-sdl.cc"] << "inside EventLoopSDL::run(), type SDL_MOUSEBUTTONDOWN middle";
             button_middle_down = true;
           }
           // NOTE - SDL shows right mouse button as button3, not button2 as you might expect
           if (event.button.button == 3) {
+            //Log::Debug["event_loop-sdl.cc"] << "inside EventLoopSDL::run(), type SDL_MOUSEBUTTONDOWN right";
             button_right_down = true;
           }
         }
         break;
       case SDL_MOUSEMOTION:
+        //Log::Debug["event_loop-sdl.cc"] << "inside EventLoopSDL::run(), type SDL_MOUSEMOTION";
         for (int button = 1; button <= 3; button++) {
           if (event.motion.state & SDL_BUTTON(button)) {
             if (drag_button == 0) {
+              //Log::Debug["event_loop-sdl.cc"] << "inside EventLoopSDL::run(), type SDL_MOUSEMOTION, drag_button was 0, seting drag_button and drag_x/y";
               drag_button = button;
               drag_x = event.motion.x;
               drag_y = event.motion.y;
+              /* this doesn't work
+              int wtf_x = 0;
+              int wtf_y = 0;
+              SDL_GetRelativeMouseState(&wtf_x, &wtf_y);
+              drag_x = wtf_x;
+              drag_y = wtf_y;
+              */
             }
+
+            //Log::Debug["event_loop-sdl.cc"] << "inside EventLoopSDL::run(), type SDL_MOUSEMOTION, drag_button " << drag_button << ", drag_x " << drag_x << ", drag_y " << drag_y;
+            //Log::Debug["event_loop-sdl.cc"] << "inside EventLoopSDL::run(), type SDL_MOUSEMOTION, zoom_factor " << zoom_factor << ", screen_factor_x " << screen_factor_x << ", screen_factor_y " << screen_factor_y;
+            //Log::Debug["event_loop-sdl.cc"] << "inside EventLoopSDL::run(), type SDL_MOUSEMOTION, event.motion.x " << event.motion.x << ", event.motion.y " << event.motion.y;
 
             int x = static_cast<int>(static_cast<float>(drag_x) *
                                      zoom_factor * screen_factor_x);
@@ -277,11 +301,14 @@ EventLoopSDL::run() {
                                      zoom_factor * screen_factor_y);
 
             if (option_InvertMouse){
+              //Log::Debug["event_loop-sdl.cc"] << "inside EventLoopSDL::run(), type SDL_MOUSEMOTION, calling notify_drag inverted with x,y values " << x << ", " << y << ", xmove " << event.motion.x - drag_x << ", ymove " << (event.motion.y - drag_y) * -1;
               notify_drag(x, y, event.motion.x - drag_x, (event.motion.y - drag_y) * -1, (Event::Button)drag_button);
             }else{
+              //Log::Debug["event_loop-sdl.cc"] << "inside EventLoopSDL::run(), type SDL_MOUSEMOTION, calling notify_drag normal with x,y values " << x << ", " << y << ", xmove " << event.motion.x - drag_x << ", ymove " << event.motion.y - drag_y;
               notify_drag(x, y, event.motion.x - drag_x, event.motion.y - drag_y, (Event::Button)drag_button);
             }
 
+            //Log::Debug["event_loop-sdl.cc"] << "inside EventLoopSDL::run(), type SDL_MOUSEMOTION, calling SDL_WarpMouseInWindow with drag_x/y values " << drag_x << ", " << drag_y;
             SDL_WarpMouseInWindow(nullptr, drag_x, drag_y);
 
             break;
@@ -461,16 +488,16 @@ EventLoopSDL::run() {
         if (event.type == eventUserTypeStep) {
 
           // show frames/updates per second
-          frames++;
-          int time_delta = timenow - last_time;
-          if (time_delta >= 1){
-            target_fps = 1000 / tick_length; // same as TICKS_PER_SEC
-            int fps_lag = target_fps - (frames / time_delta);
-            if (fps_lag < 0){fps_lag = 0;}
-            Log::Info["event_loop-sdl.cc"] << "in past " << time_delta << "sec, processed " << frames << " frames, target_fps " << target_fps << ", FPS loss:" << fps_lag;
-            frames = 0;
-            last_time = timenow;
-          }
+          //frames++;
+          //int time_delta = timenow - last_time;
+          //if (time_delta >= 1){
+          //  target_fps = 1000 / tick_length; // same as TICKS_PER_SEC
+          //  int fps_lag = target_fps - (frames / time_delta);
+          //  if (fps_lag < 0){fps_lag = 0;}
+          //  Log::Info["event_loop-sdl.cc"] << "in past " << time_delta << "sec, processed " << frames << " frames, target_fps " << target_fps << ", FPS loss:" << fps_lag;
+          //  frames = 0;
+          //  last_time = timenow;
+          //}
 
           // Update and draw interface
           notify_update();
@@ -501,10 +528,7 @@ void
 //EventLoopSDL::zoom(float delta) {
 EventLoopSDL::zoom(float delta, int type) {
   Graphics &gfx = Graphics::get_instance();
-  //unsigned int oldwidth = 0;
-  //unsigned int oldheight = 0;
-  //gfx.get_resolution(&oldwidth, &oldheight);
-  //Log::Debug["event_loop-sdl.cc"] << "inside EventLoopSDL::zoom, zoom_factor was " << gfx.get_zoom_factor() << ", resolution was " << oldwidth << " w / " << oldheight << " h ";
+  Log::Debug["event_loop-sdl.cc"] << "inside EventLoopSDL::zoom, zoom_factor was " << gfx.get_zoom_factor();
   float factor = gfx.get_zoom_factor();
   if (gfx.set_zoom_factor(factor + delta)) {
     zoom_factor = gfx.get_zoom_factor();
@@ -513,7 +537,7 @@ EventLoopSDL::zoom(float delta, int type) {
     unsigned int width = 0;
     unsigned int height = 0;
     gfx.get_resolution(&width, &height);
-    //Log::Debug["event_loop-sdl.cc"] << "inside EventLoopSDL::zoom, zoom_factor is now " << gfx.get_zoom_factor() << ", resolution is now " << width << " w / " << height << " h ";
+    Log::Debug["event_loop-sdl.cc"] << "inside EventLoopSDL::zoom, zoom_factor is now " << gfx.get_zoom_factor() << ", resolution is now " << width << " w / " << height << " h ";
     //notify_resize(width, height);
     notify_zoom_resize(width, height);
 

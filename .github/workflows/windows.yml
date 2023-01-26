@@ -27,47 +27,28 @@ jobs:
         with:
           arch: ${{ matrix.architecture }}
 
-      - name: Install PreReq and CMAKE Configure
-        run: |
-          vcpkg.exe --triplet x64-windows install sdl2 sdl2-mixer[core,libmodplug,nativemidi] sdl2-image
-          vcpkg.exe integrate install
-          set SDL2_LIBRARY=C:\vcpkg\installed\x64-windows
-          cmake -DCMAKE_TOOLCHAIN_FILE=C:/vcpkg/scripts/buildsystems/vcpkg.cmake -B build -G "NMake Makefiles" -DCMAKE_BUILD_TYPE=${{ matrix.buildtype }}
+      - name: Install dependencies
+        uses: lukka/run-vcpkg@v7.3
+        with:
+          vcpkgGitCommitId: '12c2a93b4007612b5ffa980c9d2235eb0bcac10f'
+          vcpkgTriplet: ${{ matrix.architecture }}-windows
+          vcpkgArguments: 'sdl2 sdl2-mixer[core,libmodplug,nativemidi] sdl2-image'
 
+      - name: Configure Forkserf
+        run: |
+          cmake -B build -G "NMake Makefiles" -DCMAKE_BUILD_TYPE=${{ matrix.buildtype }}
       - name: Build Forkserf
         shell: bash
         run: |
           cd build
           nmake
-          dir
-          dir */*
-
-#      - name: Run Tests
-#        shell: bash
-#        run: |
-#          cd build
-#          nmake test
-#
-      #- name: Pack Forkserf
-      #  shell: bash
-      #  run: |
-      #    cd build
-      #    nmake package
-      
-      - name: Package Forkserf
+      - name: Pack Forkserf
         shell: bash
         run: |
-          mkdir -p package
-          cp -rp build/src/* package/
-          cd package/
-          rm -f profiler* cmake* *manifest* version*
-          pwd
-          ls -l
-          
+          cd build
+          nmake package
       - name: Upload artifact
         uses: actions/upload-artifact@v3
         with:
-          name: Forkserf-0.5.2-Win64.zip
-          path: D:\a\forkserf\forkserf\package\*
-
-
+          name: BROKEN-${{ matrix.architecture }}-${{ matrix.buildtype }}
+          path: ./build/BROKEN-${{ matrix.architecture }}-${{ matrix.buildtype }}.exe

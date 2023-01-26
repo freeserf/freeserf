@@ -305,7 +305,7 @@ Frame::draw_sprite(int x, int y, Data::Resource res, unsigned int index, bool us
     //  new custom sprites will work for Amiga, but mutated ones will not as the
     //  mutation happens within the DOS data loading functions
     if (index > last_original_data_index[res]){
-      Log::Debug["gfx.cc"] << "inside Frame::draw_sprite, sprite index " << index << " is higher than the last_original_data_index " << last_original_data_index[res] << " for this Data::Resource type " << res << ", assuming it is a special sprite";
+      //Log::Debug["gfx.cc"] << "inside Frame::draw_sprite, sprite index " << index << " is higher than the last_original_data_index " << last_original_data_index[res] << " for this Data::Resource type " << res << ", assuming it is a special sprite";
 
       unsigned int orig_index = -1;
 
@@ -343,7 +343,7 @@ Frame::draw_sprite(int x, int y, Data::Resource res, unsigned int index, bool us
        || res == Data::AssetPanelButton){  // for spinning amiga style star animated sprite
         // these types, if having beyond-original indexes, are new graphics
         //  loaded from actual PN  files using the data_source_Custom
-        //Log::Debug["gfx.cc"] << "inside Frame::draw_sprite, sprite index " << index << " trying to load custom data source";
+        Log::Debug["gfx.cc"] << "inside Frame::draw_sprite, sprite index " << index << " trying to load custom data source";
         Data &data = Data::get_instance();
         // allow falling back to an original sprite if custom sprite couldn't be loaded
         if (res == Data::AssetFrameBottom){
@@ -396,7 +396,7 @@ Frame::draw_sprite(int x, int y, Data::Resource res, unsigned int index, bool us
           if (s == nullptr){
             Log::Warn["gfx.cc"] << "inside Frame::draw_sprite, custom datasource not found for res type " << res << ", sprite index " << index <<", trying to fall back to default datasource for this sprite, using " << orig_index;
             s = data_source->get_sprite(res, orig_index, pc);
-          //}else{
+          }else{
             //Log::Debug["gfx.cc"] << "inside Frame::draw_sprite, custom datasource successfully loaded for res type " << res << ", sprite index " << index;
           }
         }

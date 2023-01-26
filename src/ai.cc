@@ -306,6 +306,10 @@ AI::next_loop(){
     do_spiderweb_roads(); sleep_speed_adjusted(1000);
 
     AILogDebug["next_loop"] << "Done with economy loop for Inventory at pos " << inventory_pos;
+
+    // ATTACK ENEMIES
+    int morale = (100*player->get_knight_morale())/0x1000;  // this should be % morale, not the integer that defaults to 4096
+    if (morale > 75){do_attack();}
   }
 
   // create parallel infrastructure!
@@ -355,6 +359,10 @@ AI::do_place_castle() {
       x++;
       if (x > maxtries) {
         AILogDebug["do_place_castle"] << "unable to place castle after " << x << " tries, maxtries reached!";
+        AILogError["do_place_castle"] << "unable to place castle after " << x << " tries!  maxtries reached!  game will crash now";
+        #ifdef WIN32
+        int msgboxID = SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "ForkSerf", "unable find acceptable place for castle for at least one AI player, try adjusting MapGen settings", NULL);
+        #endif
         throw ExceptionFreeserf("unable to place castle for an AI player after exhausting all tries!");
       }
       if (x > lower_standards_tries * (desperation + 1)){
@@ -2346,7 +2354,7 @@ AI::do_demolish_excess_foresters() {
         }
         possible_positions++;
         if (map->get_obj(pos) == Map::ObjectNone
-         || map->map_space_from_obj[pos] == Map::SpaceOpen){
+         || map->map_space_from_obj[map->get_obj(pos)] == Map::SpaceOpen){
            AILogDebug["do_demolish_excess_foresters"] << inventory_pos << " forester hut at pos " << forester_pos << " map->get_obj(" << pos << ") passed";
            open_positions++;
         }
@@ -2588,8 +2596,8 @@ AI::do_manage_tool_priorities() {
     //  AILogDebug["do_manage_tool_priorities"] << "need more available serfs of job type " << NameSerf[i];
     //  need_tools = true;
     //}
-    
-    if (i == Serf::TypeBuilder || i == Serf::TypeGeologist || i == Serf::TypeWeaponSmith){
+  
+    if (i == Serf::TypeBuilder || i == Serf::TypeGeologist || i == Serf::TypeWeaponSmith || i == Serf::TypeBoatBuilder || i == Serf::TypeToolmaker){
       if (forbid_hammers){
         AILogDebug["do_manage_tool_priorities"] << "forbid_hammers is true, not considering needs_tools for hammer-requiring profession " << NameSerf[i];
         continue;
@@ -2603,6 +2611,7 @@ AI::do_manage_tool_priorities() {
       if (i == Serf::TypeSailor)
         continue;
       need_tools = true;
+      AILogDebug["do_manage_tool_priorities"] << "setting needs_tools to true";
     }
   }
   
@@ -2814,6 +2823,12 @@ AI::do_manage_knight_occupation_levels() {
     AILogDebug["do_manage_knight_occupation_levels"] << "is currently cycling_knights!  waiting until this is complete";
     return;
   }
+  
+  // I've always thought sending the strongest to fight made the most sense
+  AILogDebug["do_manage_knight_occupation_levels"] << "setting player->set_send_strongest()";
+  player->set_send_strongest();
+
+
   // adjust military building occupation levels
   //   to avoid bouncing knights back and forth, only adjust occupation levels
   //     if doing so will not push it back across the same threshold
@@ -3008,38 +3023,42 @@ AI::do_place_mines(std::string type, Building::Type building_type, Map::Object l
         AILogDebug["do_place_mines"] << inventory_pos << " could not place any mine of type " << NameBuilding[building_type] << " in this inventory area, checking to see if any already exist";
         if (stock_building_counts.at(inventory_pos).count[building_type] == 0){
           AILogDebug["do_place_mines"] << inventory_pos << " could not place any mine of type " << NameBuilding[building_type] << " in this inventory area and none already exist, marking this inventory cannot_place_mine for res type";
-          if (building_type == Building::TypeCoalMine){
-            if (get_stock_inv()->get_count_of(Resource::TypeCoal) + stock_res_sitting_at_flags.at(inventory_pos)[Resource::TypeCoal] > coal_min){
-              AILogDebug["do_place_mines"] << inventory_pos << " this inventory already has more than coal_min " << coal_min << " coal stored or at flags, not considering coal to be unavailable in this Inv area yet";
-            }else{
-              AILogDebug["do_place_mines"] << inventory_pos << " this inventory has little to no coal stored or at flags, and no coal mines, and no coal in borders to mine, and cannot expand borders.  Must attack for coal!";
-              stock_building_counts.at(inventory_pos).inv_has_no_coal = true;
-            }
-          }else if (building_type == Building::TypeIronMine){
-            int iron_count = get_stock_inv()->get_count_of(Resource::TypeIronOre) + stock_res_sitting_at_flags.at(inventory_pos)[Resource::TypeIronOre];
-            //if (get_stock_inv()->get_count_of(Resource::TypeIronOre) + stock_res_sitting_at_flags.at(inventory_pos)[Resource::TypeIronOre] > iron_ore_min){
-            if (iron_count > iron_ore_min){
-              AILogDebug["do_place_mines"] << inventory_pos << " this inventory already has iron_count " << iron_count << ", more than iron_ore_min " << iron_ore_min << " iron ore stored or at flags, not considering iron to be unavailable in this Inv area yet";
-            }else{
-              AILogDebug["do_place_mines"] << inventory_pos << " this inventory has little to no iron ore stored or at flags, and no iron mines, and no iron in borders to mine, and cannot expand borders.  Must attack for iron!";
-              stock_building_counts.at(inventory_pos).inv_has_no_ironore = true;
-            }
-          }else if (building_type == Building::TypeGoldMine){
-            if (get_stock_inv()->get_count_of(Resource::TypeGoldOre) + stock_res_sitting_at_flags.at(inventory_pos)[Resource::TypeGoldOre] > gold_ore_min){
-              AILogDebug["do_place_mines"] << inventory_pos << " this inventory already has more than gold_ore_min " << gold_ore_min << " gold ore stored or at flags, not considering gold to be unavailable in this Inv area yet";
-            }else{
-              AILogDebug["do_place_mines"] << inventory_pos << " this inventory has little to no gold ore stored or at flags, and no gold mines, and no gold in borders to mine, and cannot expand borders.  Must attack for gold!";
-              stock_building_counts.at(inventory_pos).inv_has_no_goldore = true;
-            }
-          }else if (building_type == Building::TypeStoneMine){
-            if (get_stock_inv()->get_count_of(Resource::TypeStone) + stock_res_sitting_at_flags.at(inventory_pos)[Resource::TypeStone] > stones_max){  // using stones max here
-              AILogDebug["do_place_mines"] << inventory_pos << " this inventory already has more than stones_max " << stones_max << " stones stored or at flags, not considering gold to be unavailable in this Inv area yet";
-            }else{
-              AILogDebug["do_place_mines"] << inventory_pos << " this inventory has little to no stone stored or at flags, and no stone mines, and no stone in borders to mine, and cannot expand borders.  Must attack for stone!";
-              stock_building_counts.at(inventory_pos).inv_has_no_stone = true;  // no stone at all!  we wouldn't even be trying to build a stone mine unless stone_piles also depleted
-            }
+          if (get_stock_inv() == nullptr){
+            AILogDebug["do_place_mines"] << inventory_pos << " this inventory is a nullptr!";
           }else{
-            throw ExceptionFreeserf("unexpected mine type");
+            if (building_type == Building::TypeCoalMine){
+              if (get_stock_inv()->get_count_of(Resource::TypeCoal) + stock_res_sitting_at_flags.at(inventory_pos)[Resource::TypeCoal] > coal_min){
+                AILogDebug["do_place_mines"] << inventory_pos << " this inventory already has more than coal_min " << coal_min << " coal stored or at flags, not considering coal to be unavailable in this Inv area yet";
+              }else{
+                AILogDebug["do_place_mines"] << inventory_pos << " this inventory has little to no coal stored or at flags, and no coal mines, and no coal in borders to mine";
+                stock_building_counts.at(inventory_pos).inv_has_no_coal = true;
+              }
+            }else if (building_type == Building::TypeIronMine){
+              int iron_count = get_stock_inv()->get_count_of(Resource::TypeIronOre) + stock_res_sitting_at_flags.at(inventory_pos)[Resource::TypeIronOre];
+              //if (get_stock_inv()->get_count_of(Resource::TypeIronOre) + stock_res_sitting_at_flags.at(inventory_pos)[Resource::TypeIronOre] > iron_ore_min){
+              if (iron_count > iron_ore_min){
+                AILogDebug["do_place_mines"] << inventory_pos << " this inventory already has iron_count " << iron_count << ", more than iron_ore_min " << iron_ore_min << " iron ore stored or at flags, not considering iron to be unavailable in this Inv area yet";
+              }else{
+                AILogDebug["do_place_mines"] << inventory_pos << " this inventory has little to no iron ore stored or at flags, and no iron mines, and no iron in borders to mine";
+                stock_building_counts.at(inventory_pos).inv_has_no_ironore = true;
+              }
+            }else if (building_type == Building::TypeGoldMine){
+              if (get_stock_inv()->get_count_of(Resource::TypeGoldOre) + stock_res_sitting_at_flags.at(inventory_pos)[Resource::TypeGoldOre] > gold_ore_min){
+                AILogDebug["do_place_mines"] << inventory_pos << " this inventory already has more than gold_ore_min " << gold_ore_min << " gold ore stored or at flags, not considering gold to be unavailable in this Inv area yet";
+              }else{
+                AILogDebug["do_place_mines"] << inventory_pos << " this inventory has little to no gold ore stored or at flags, and no gold mines, and no gold in borders to mine";
+                stock_building_counts.at(inventory_pos).inv_has_no_goldore = true;
+              }
+            }else if (building_type == Building::TypeStoneMine){
+              if (get_stock_inv()->get_count_of(Resource::TypeStone) + stock_res_sitting_at_flags.at(inventory_pos)[Resource::TypeStone] > stones_max){  // using stones max here
+                AILogDebug["do_place_mines"] << inventory_pos << " this inventory already has more than stones_max " << stones_max << " stones stored or at flags, not considering gold to be unavailable in this Inv area yet";
+              }else{
+                AILogDebug["do_place_mines"] << inventory_pos << " this inventory has little to no stone stored or at flags, and no stone mines, and no stone in borders to mine";
+                stock_building_counts.at(inventory_pos).inv_has_no_stone = true;  // no stone at all!  we wouldn't even be trying to build a stone mine unless stone_piles also depleted
+              }
+            }else{
+              throw ExceptionFreeserf("unexpected mine type");
+            }
           }
         }
       }
@@ -3296,12 +3315,17 @@ AI::do_build_stonecutter() {
     }
     // build a second stonecutter if the first is occupied and have lots of free pickaxes, or an idle stonecutter already in Inventory
     if (stonecutter_count == 1){
-      if (stock_building_counts.at(inventory_pos).occupied_count[Building::TypeStonecutter] >= 1
-       && (get_stock_inv()->get_count_of(Resource::TypePick) >= 4 || get_stock_inv()->have_serf(Serf::TypeStonecutter))) {
-        AILogDebug["do_build_stonecutter"] << inventory_pos << " this Inventory has an Occupied stonecutter already, but has at least four pickaxes stored OR an idle_stonecutter_in_stock, will try to build a second stonecutter in this area";
-      }else{
-        AILogDebug["do_build_stonecutter"] << inventory_pos << " this Inventory has at least one stonecutter hut, but either it is not yet Occupied or there are not 4 free pickaxes or one idle stonecutter serf, not building another in this area";
-        return;
+      if (stock_building_counts.at(inventory_pos).occupied_count[Building::TypeStonecutter] >= 1){
+        if (get_stock_inv() == nullptr){
+          AILogWarn["do_build_stonecutter"] << inventory_pos << " this Inventory building is nullptr! cannot check pick/stonecutter-serf counts, returning early";
+          return;
+        }
+        if (get_stock_inv()->get_count_of(Resource::TypePick) >= 4 || get_stock_inv()->have_serf(Serf::TypeStonecutter)) {
+          AILogDebug["do_build_stonecutter"] << inventory_pos << " this Inventory has an Occupied stonecutter already, but has at least four pickaxes stored OR an idle_stonecutter_in_stock, will try to build a second stonecutter in this area";
+        }else{
+          AILogDebug["do_build_stonecutter"] << inventory_pos << " this Inventory has at least one stonecutter hut, but either it is not yet Occupied or there are not 4 free pickaxes or one idle stonecutter serf, not building another in this area";
+          return;
+        }
       }
     }else{
       AILogDebug["do_build_stonecutter"] << inventory_pos << " this Inventory has no stonecutter huts, will try to build one";

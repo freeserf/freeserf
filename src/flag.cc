@@ -721,7 +721,10 @@ flag_search_building_for_lost_generic_serf_search_cb(Flag *flag, void *data) {
   int *dest_index = static_cast<int*>(data);
   if (flag->has_building()) {
     Building *building = flag->get_building();
-    if (building->is_done() && !building->is_burning() &&
+    // jan 2023, adding has_serf check as saw a couple times where a transporter became Holder to a building
+    //  likely because he was lost and tried to enter it but it made him the holder because it was new and expecting a holder!
+    //  this means lost transporters can only enter occupied buildings, which is fine
+    if (building->is_done() && !building->is_burning() && building->has_serf() &&
       // try allowing mines now since adding code to ignore active serf at building when Lost transporter arrives
       //  Update - NO!!  I tried very hard and couldn't make it work.  Turning this check back on so Mines are disallowed
       // disallow mines because they can deadlock when miner runs out of food and holds the pos

@@ -29,6 +29,8 @@ GameOptions::GameOptions(){
     folder_path = ".";
     // copied from savegame.cc
     #ifdef _WIN32
+    // try using local directory as this isn't working
+    /*
     PWSTR saved_games_path;
     HRESULT res = SHGetKnownFolderPath(FOLDERID_SavedGames,
                                         KF_FLAG_CREATE | KF_FLAG_INIT,
@@ -39,6 +41,7 @@ GameOptions::GameOptions(){
                             (LPSTR)folder_path.data(), len, nullptr, nullptr);
     ::CoTaskMemFree(saved_games_path);
     folder_path += '\\';
+    */
     #elif defined(__APPLE__)
     folder_path = std::string(std::getenv("HOME"));
     folder_path += "/Library/Application Support";

@@ -208,6 +208,7 @@ class Building : public GameObject {
   /* Building has succesfully requested a serf. */
   void serf_request_granted() { serf_requested = true; }
   void requested_serf_lost();
+  void clear_holder();
   void requested_serf_reached(Serf *serf);
   /* Building has requested a serf but none was available. */
   void clear_serf_request_failure() { serf_request_failed = false; }

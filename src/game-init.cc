@@ -111,12 +111,14 @@ GameInitBox::GameInitBox(Interface *interface)
 
   minimap->set_displayed(true);
   minimap->set_size(150, 160);
+  minimap->set_objclass(GuiObjClass::ClassMinimap);
   add_float(minimap.get(), 190, 55);
 
   generate_map_preview();
 
   random_input->set_random(custom_mission->get_random_base());
   random_input->set_displayed(true);
+  random_input->set_objclass(GuiObjClass::ClassRandomSeedInput);
   add_float(random_input.get(), 19 + 31*8, 15);
 
   //file_list->set_size(160, 160);
@@ -131,6 +133,8 @@ GameInitBox::GameInitBox(Interface *interface)
     }
     */
   });
+  objclass = GuiObjClass::ClassGameInitBox;
+  file_list->set_objclass(GuiObjClass::ClassLoadGameFileList);
   add_float(file_list.get(), 20, 55);
 }
 

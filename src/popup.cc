@@ -350,6 +350,8 @@ PopupBox::PopupBox(Interface *_interface)
   , box(TypeNone) {
   interface = _interface;
 
+  this->set_objtype(box);
+
   current_sett_5_item = 8;
   current_sett_6_item = 15;
   current_stat_8_mode = 0;
@@ -358,6 +360,7 @@ PopupBox::PopupBox(Interface *_interface)
   minimap->set_displayed(false);
   minimap->set_parent(this);
   minimap->set_size(128, 128);
+  minimap->set_objclass(GuiObjClass::ClassMinimap);
   add_float(minimap.get(), 8, 9);
 
   //file_list->set_size(120, 100);  // this is the save game file list, NOT the load game file list (which is in game-init.cc)
@@ -370,12 +373,14 @@ PopupBox::PopupBox(Interface *_interface)
     this->file_field->set_text(file_name);
     //this->file_field->set_filter(savegame_text_input_filter);  // not here, lower
   });
+  file_list->set_objclass(GuiObjClass::ClassSaveGameFileList);
   add_float(file_list.get(), 12, 22);
 
   //file_field->set_size(120, 10);
   file_field->set_size(260, 10);
   file_field->set_displayed(false);
   file_field->set_filter(savegame_text_input_filter);
+  file_field->set_objclass(GuiObjClass::ClassSaveGameNameInput);
   add_float(file_field.get(), 12, 124);
 }
 
@@ -2870,7 +2875,13 @@ PopupBox::draw_sett_8_box() {
   Player *player = interface->get_player();
 
   draw_slide_bar(4, 12, player->get_serf_to_knight_rate());
-  draw_green_string(8, 63, "%");
+  if (100*player->get_knight_morale()/0x1000 > 99){
+    // 3 digit morale, move % over one
+    draw_green_string(9, 63, "%");
+  }else{
+    // 2 digit morale
+    draw_green_string(8, 63, "%");
+  }
   draw_green_number(6, 63, (100*player->get_knight_morale())/0x1000);
 
   draw_green_large_number(6, 73, player->get_gold_deposited());

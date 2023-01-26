@@ -522,7 +522,13 @@ MinimapGame::handle_left_click(int cx, int cy, int modifier) {
   interface->get_viewport()->move_to_map_pos(pos);
 
   interface->update_map_cursor_pos(pos);
-  interface->close_popup();
+  // no longer automatically closing this upon click, leaving it open
+  //  even though in original game it is closed when clicked, I don't
+  //  like the behavior as it is easy to close it right right-click, Escape, otherwise
+  // forkserf/issues/295
+  //interface->close_popup();
+  move_to_map_pos(pos);
+  set_redraw();
 
   return true;
 }
