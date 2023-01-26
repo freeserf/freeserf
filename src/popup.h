@@ -107,6 +107,7 @@ class PopupBox : public GuiObject {
     TypeGameOptions4,
     TypeEditMapGenerator,
     TypeEditMapGenerator2,
+    TypeDebug,
     TypePleaseWaitSaving,  // added for option_EnableAutoSave
     TypePleaseWaitFogOfWar // added for option_FogOfWar
   } Type;
@@ -156,6 +157,9 @@ class PopupBox : public GuiObject {
   std::unique_ptr<MinimapGame> minimap;
   std::unique_ptr<ListSavedFiles> file_list;
   std::unique_ptr<TextInput> file_field;
+  // tlongstretch debug popup
+  std::unique_ptr<TextInput> debug_pos_text_input_field;
+
 
   Type box;
 
@@ -171,6 +175,17 @@ class PopupBox : public GuiObject {
     if (!((key >= 'a' && key <= 'z') ||
           (key >= '0' && key <= '9') ||
           (key == '-' || key == '.'))) {
+      return false;
+    }
+    if (text_input->get_text().length() > 30) {
+      return false;
+    }
+    return true;
+  }
+
+  static bool numeric_text_input_filter(const char key, TextInput *text_input) {
+    // allow only 0-9
+    if (!(key >= '0' && key <= '9')) {
       return false;
     }
     if (text_input->get_text().length() > 30) {
@@ -252,6 +267,7 @@ class PopupBox : public GuiObject {
   void draw_game_options4_box();
   void draw_edit_map_generator_box();
   void draw_edit_map_generator2_box();
+  void draw_debug_box();
   void draw_castle_res_box();
   void draw_mine_output_box();
   void draw_ordered_building_box();
@@ -282,6 +298,7 @@ class PopupBox : public GuiObject {
   int handle_clickmap(int x, int y, const int clkmap[]);
 
   void handle_box_close_clk(int x, int y);
+  void handle_debug_clk(int x, int y);
   void handle_box_options_clk(int x, int y);
   void handle_box_game_options_clk(int x, int y);
   void handle_box_game_options2_clk(int x, int y);

@@ -82,7 +82,9 @@ typedef enum Action {
   ACTION_SHOW_STAT_4,
   ACTION_SHOW_STAT_3,
   ACTION_SHOW_STAT_SELECT,
+  ACTION_SHOW_DEBUG,
   ACTION_STAT_BLD_FLIP,
+  ACTION_DEBUG_GOTO_POS,
   ACTION_CLOSE_BOX,
   ACTION_SETT_8_SET_ASPECT_ALL,
   ACTION_SETT_8_SET_ASPECT_LAND,
@@ -347,6 +349,7 @@ PopupBox::PopupBox(Interface *_interface)
   : minimap(new MinimapGame(_interface, _interface->get_game()))
   , file_list(new ListSavedFiles())
   , file_field(new TextInput())
+  , debug_pos_text_input_field(new TextInput())   // tlongstretch debug popup
   , box(TypeNone) {
   interface = _interface;
 
@@ -382,6 +385,12 @@ PopupBox::PopupBox(Interface *_interface)
   file_field->set_filter(savegame_text_input_filter);
   file_field->set_objclass(GuiObjClass::ClassSaveGameNameInput);
   add_float(file_field.get(), 12, 124);
+
+  debug_pos_text_input_field->set_size(100, 10);
+  debug_pos_text_input_field->set_displayed(false);
+  debug_pos_text_input_field->set_filter(numeric_text_input_filter);
+  debug_pos_text_input_field->set_objclass(GuiObjClass::ClassDebugPosTextInput);
+  add_float(debug_pos_text_input_field.get(), 12, 36);
 }
 
 PopupBox::~PopupBox() {
@@ -2358,6 +2367,20 @@ PopupBox::draw_edit_map_generator2_box() {
 }
 
 
+void
+PopupBox::draw_debug_box() {
+  draw_box_background(PatternDiagonalGreen);
+  draw_green_string(5, 0, "Debug");
+
+  draw_green_string(1, 16, "Go To Pos");
+  debug_pos_text_input_field->set_displayed(true);
+  draw_popup_icon(14, 24, 0x3d); // flipbox icon
+  
+  draw_popup_icon(14, 128, 0x3c); /* exit */
+}
+
+
+
 
 void
 PopupBox::draw_castle_res_box() {
@@ -3272,6 +3295,9 @@ PopupBox::internal_draw() {
   case TypeEditMapGenerator2:
     draw_edit_map_generator2_box();
     break;
+  case TypeDebug:
+    draw_debug_box();
+    break;
   case TypeCastleRes:
     draw_castle_res_box();
     break;
@@ -3585,6 +3611,26 @@ PopupBox::handle_action(int action, int x_, int /*y_*/) {
   case ACTION_CLOSE_GROUND_ANALYSIS:
     interface->close_popup();
     break;
+  case ACTION_DEBUG_GOTO_POS: {
+    if (debug_pos_text_input_field->get_text() == ""){
+      Log::Warn["popup.cc"] << "specified debug_pos is empty!";
+      play_sound(Audio::TypeSfxNotAccepted);
+      break;
+    }
+    MapPos debug_pos = std::stoi(debug_pos_text_input_field->get_text());
+    Log::Debug["popup.cc"] << "clicked on ACTION_DEBUG_GOTO_POS " << debug_pos;
+    if (debug_pos == 0 || debug_pos > interface->get_game()->get_map()->get_landscape_tiles_size()){
+      Log::Warn["popup.cc"] << "specified debug_pos " << debug_pos << " is out of range!";
+      play_sound(Audio::TypeSfxNotAccepted);
+      break;
+    }
+    Log::Debug["popup.cc"] << "moving cursor and viewport to map pos " << debug_pos;
+    interface->update_map_cursor_pos(debug_pos);
+    interface->get_viewport()->move_to_map_pos(debug_pos);
+    play_sound(Audio::TypeSfxAccepted);
+    // need to check for out of range!
+    break;
+  }
   case ACTION_SETT_8_SET_ASPECT_ALL:
     interface->set_current_stat_8_mode((0 << 2) |
                                     (interface->get_current_stat_8_mode() & 3));
@@ -4582,6 +4628,17 @@ PopupBox::handle_box_close_clk(int cx, int cy) {
 }
 
 void
+PopupBox::handle_debug_clk(int cx, int cy) {
+  const int clkmap[] = {
+    ACTION_DEBUG_GOTO_POS, 112, 28, 16, 16,
+    ACTION_CLOSE_BOX, 112, 128, 16, 16,
+    -1
+  };
+  handle_clickmap(cx, cy, clkmap);
+}
+
+
+void
 PopupBox::handle_box_options_clk(int cx, int cy) {
   const int clkmap[] = {
     // left column
@@ -5386,6 +5443,9 @@ PopupBox::handle_left_click(int cx, int cy, int modifier) {
     break;
   case TypeNoSaveQuitConfirm:
     handle_no_save_quit_confirm_click(cx, cy);
+    break;
+  case TypeDebug:
+    handle_debug_clk(cx, cy);
     break;
   case TypeOptions:
     handle_box_options_clk(cx, cy);

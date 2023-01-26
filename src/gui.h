@@ -40,10 +40,11 @@ class GuiObject : public EventLoop::Handler {
     ClassSaveGameFileList,
     ClassLoadGameFileList,
     ClassSaveGameNameInput,
-    ClassRandomSeedInput
+    ClassRandomSeedInput,
+    ClassDebugPosTextInput
   } GuiObjClass;
 
-  const std::string NameGuiObjClass[11]{
+  const std::string NameGuiObjClass[12]{
     "GuiObjClass::ClassNone",
     "GuiObjClass::ClassGameInitBox",
     "GuiObjClass::ClassViewport",
@@ -55,6 +56,7 @@ class GuiObject : public EventLoop::Handler {
     "GuiObjClass::ClassLoadGameFileList",
     "GuiObjClass::ClassSaveGameNameInput",
     "GuiObjClass::ClassRandomSeedInput",
+    "GuiObjClass::ClassDebugPosTextInput"
   };
 
  private:

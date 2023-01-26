@@ -422,7 +422,7 @@ PanelBar::button_special_click(int button) {
 
 bool
 PanelBar::handle_left_click(int cx, int cy, int modifier) {
-  //Log::Debug["panel.cc"] << "inside PanelBar::handle_left_click(), cx " << cx << ", cy " << cy;
+  Log::Debug["panel.cc"] << "inside PanelBar::handle_left_click(), cx " << cx << ", cy " << cy;
   set_redraw();
 
   if (cx >= 41 && cx < 53) {
@@ -436,6 +436,7 @@ PanelBar::handle_left_click(int cx, int cy, int modifier) {
     }
   } else if (cx >= 301 && cx < 313) {
     /* Timer bar click */
+    Log::Debug["panel.cc"] << "inside PanelBar::handle_left_click, a timer was clicked";
     /* Call to map position */
     unsigned int timer_length = 0;
 
@@ -455,6 +456,17 @@ PanelBar::handle_left_click(int cx, int cy, int modifier) {
     interface->get_player()->add_timer(timer_length * 1000/tick_length, interface->get_map_cursor_pos());
 
     play_sound(Audio::TypeSfxAccepted);
+  } else if (cx >= 316) {
+    // invisible debug "button"
+    //  bring up popup by clicking on the right shield icon 
+    PopupBox *popup = interface->get_popup_box();
+    if ((popup != nullptr) && popup->is_displayed()) {
+      Log::Debug["panel.cc"] << "inside PanelBar::handle_left_click, closing debug popup";
+      interface->close_popup();
+    } else {
+      Log::Debug["panel.cc"] << "inside PanelBar::handle_left_click, opening debug popup";
+      interface->open_popup(PopupBox::TypeDebug);
+    }
   } else if (cy >= 4 && cy < 36 && cx >= 64) {
     cx -= 64;
 
@@ -474,7 +486,6 @@ PanelBar::handle_left_click(int cx, int cy, int modifier) {
     }
     button_click(button);
   }
-
   return true;
 }
 
