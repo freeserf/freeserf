@@ -386,14 +386,14 @@ EventLoopSDL::run() {
             if (!is_list_in_focus){
               notify_drag(0, 0, 0, -32, Event::ButtonLeft);  // hack for map scrolling
             }
-            notify_arrow_key_pressed(0);  // for load game scrolling  //0=up,1=down,2=left,3=right
+            notify_arrow_key_pressed(0, event.key.keysym.mod);  // for load game scrolling  //0=up,1=down,2=left,3=right
             break;
           }
           case SDLK_DOWN: {
             if (!is_list_in_focus){
               notify_drag(0, 0, 0, 32, Event::ButtonLeft); // hack for map scrolling
             }
-            notify_arrow_key_pressed(1);  // for load game scrolling //0=up,1=down,2=left,3=right
+            notify_arrow_key_pressed(1, event.key.keysym.mod);  // for load game scrolling //0=up,1=down,2=left,3=right
             break;
           }
           case SDLK_LEFT: {
@@ -417,6 +417,31 @@ EventLoopSDL::run() {
           case SDLK_MINUS:
           case SDLK_KP_MINUS:
             notify_key_pressed('-', 0);
+            break;
+
+          // for MapPos map cursor debug moving  SDLK_KP_1 https://wiki.libsdl.org/SDL2/SDL_Keycode
+          //DirectionRight      KP_6
+          //DirectionDownRight  KP_3
+          //DirectionDown       KP_2
+          //DirectionLeft,      KP_4
+          //DirectionUpLeft,    KP_6
+          //DirectionUp,        KP_8
+          // # keys correspond to Directions in a "slanted-hexagon" shape
+          // keys 1/5/9 not used
+          //   ##9               78X
+          //   #5#    -- or --   4X6   where X is unused keys
+          //   1##               X23  
+          //
+          //
+          case SDLK_KP_6:
+          case SDLK_KP_3:
+          case SDLK_KP_2:
+          case SDLK_KP_4:
+          case SDLK_KP_7:
+          case SDLK_KP_8:
+            Log::Info["event_loop-sdl.cc"] << "inside EventLoopSDL::run(), event.key.keysym.sym is " << int(event.key.keysym.sym) << ", calling notify_numpad_key_pressed()";
+            //notify_key_pressed(event.key.keysym.sym, 0);
+            notify_numpad_key_pressed(event.key.keysym.sym);
             break;
 
           // Video

@@ -1250,6 +1250,8 @@ Interface::update() {
 bool
 Interface::handle_key_pressed(char key, int modifier) {
 
+  Log::Info["interface"] << "inside Interface::handle_key_pressed, key '" << key << "' key with number '" << int(key) << "' pressed";
+
   switch (key) {
     /* Interface control */
 

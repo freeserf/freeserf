@@ -4199,6 +4199,23 @@ Viewport::internal_draw() {
   }
 }
 
+// use the numpad keys to move the map cursor around
+bool
+Viewport::handle_numpad_key_pressed(char key) {
+  Log::Debug["viewport"] << "inside Viewport::handle_numpad_key_pressed with key " << int(key);
+  switch (key){
+    case 6: interface->update_map_cursor_pos(map->move_right(interface->get_map_cursor_pos())); break;
+    case 3: interface->update_map_cursor_pos(map->move_down_right(interface->get_map_cursor_pos())); break;
+    case 2: interface->update_map_cursor_pos(map->move_down(interface->get_map_cursor_pos())); break;
+    case 4: interface->update_map_cursor_pos(map->move_left(interface->get_map_cursor_pos())); break;
+    case 7: interface->update_map_cursor_pos(map->move_up_left(interface->get_map_cursor_pos())); break;
+    case 8: interface->update_map_cursor_pos(map->move_up(interface->get_map_cursor_pos())); break;
+    default: throw ExceptionFreeserf("invalid numpad key");
+  }
+  //move_to_map_pos(interface->get_map_cursor_pos());
+  return true;
+}
+
 bool
 Viewport::handle_left_click(int lx, int ly, int modifier) {
   set_redraw();

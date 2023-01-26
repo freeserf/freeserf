@@ -194,6 +194,10 @@ GuiObject::handle_event(const Event *event) {
     case Event::TypeKeyPressed:
       result = handle_key_pressed(event->dx, event->dy);
       break;
+    case Event::TypeNumPadKeyPressed:
+      Log::Debug["event_loop.cc"] << "inside GuiObject::handle_event type TypeNumPadKeyPressed, event->dx is " << event->dx; 
+      result = handle_numpad_key_pressed(event->dx);
+      break;
     case Event::TypeArrowKeyPressed:
       result = handle_arrow_key_pressed(event->dx);
       break;

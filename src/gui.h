@@ -88,6 +88,7 @@ class GuiObject : public EventLoop::Handler {
   virtual bool handle_special_click(int x, int y) { return false; }  // noop, overloaded
   virtual bool handle_drag(int dx, int dy) { return true; }
   virtual bool handle_key_pressed(char key, int modifier) { return false; }
+  virtual bool handle_numpad_key_pressed(char key) { return false; } // noop, overloaded
   virtual bool handle_arrow_key_pressed(uint8_t key) { return false; } // noop, overloaded
   virtual bool handle_list_scroll(int y) { return false; } // noop, overloaded
   virtual bool handle_focus_loose() { return false; }

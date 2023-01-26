@@ -434,6 +434,7 @@ class Viewport : public GuiObject, public Map::Handler {
   virtual void layout();
   //virtual void store_prev_res();
   //void store_prev_res();
+  virtual bool handle_numpad_key_pressed(char numpad_key);
   virtual bool handle_left_click(int x, int y, int modifier);
   //virtual bool handle_right_click(int x, int y);
   virtual bool handle_dbl_click(int x, int y, Event::Button button);
