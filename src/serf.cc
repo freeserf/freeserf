@@ -1808,33 +1808,43 @@ Serf::handle_serf_walking_state_waiting() {
   if ((!map->has_flag(pos) || s.walking.wait_counter >= 10) &&
       (map->has_flag(pos) || s.walking.wait_counter >= 50)) {
     MapPos pos_ = pos;
+    Log::Warn["serf.cc"] << "inside Serf::handle_serf_walking_state_waiting, wait counter loop detection triggered, this serf's s.walking.wait_counter is " << s.walking.wait_counter;
     /* Follow the chain of serfs waiting for each other and
        see if there is a loop. */
     for (int i = 0; i < 100; i++) {
       pos_ = map->move(pos_, dir);
+      Log::Warn["serf.cc"] << "inside Serf::handle_serf_walking_state_waiting, wait counter loop detection running, checking for a serf at pos " << pos_;
 
       if (!map->has_serf(pos_)) {
+        //Log::Warn["serf.cc"] << "inside Serf::handle_serf_walking_state_waiting, wait counter loop detection running, pos " << pos_ << " has no serf, breaking";
         break;
       } else if (map->get_serf_index(pos_) == index) {
         /* We have found a loop, try a different direction. */
+        Log::Warn["serf.cc"] << "inside Serf::handle_serf_walking_state_waiting, wait counter loop detection running, calling change_direction for a serf at pos " << pos_;
         change_direction(reverse_direction(dir), 0);
         return;
       }
 
       /* Get next serf and follow the chain */
-      Serf *other_serf = game->get_serf_at_pos(pos);
+      //Serf *other_serf = game->get_serf_at_pos(pos);  shouldn't this be pos_ not pos???
+      Serf *other_serf = game->get_serf_at_pos(pos_);
+      //Log::Warn["serf.cc"] << "inside Serf::handle_serf_walking_state_waiting, wait counter loop detection running, pos " << pos_ << " has a serf";
       if (other_serf->state != StateWalking &&
           other_serf->state != StateTransporting) {
+        //Log::Warn["serf.cc"] << "inside Serf::handle_serf_walking_state_waiting, wait counter loop detection running, pos " << pos_ << " has a serf but he is not walking/transport and not eligible for loop checking, breaking";
         break;
       }
 
+      //Log::Warn["serf.cc"] << "inside Serf::handle_serf_walking_state_waiting, wait counter loop detection running, pos " << pos_ << " has a serf walking in dir " << other_serf->s.walking.dir;
       if (other_serf->s.walking.dir >= 0 ||
           (other_serf->s.walking.dir + 6) == reverse_direction(dir)) {
+        //Log::Warn["serf.cc"] << "inside Serf::handle_serf_walking_state_waiting, wait counter loop detection running, pos " << pos_ << " has a serf walking but dir check failed. breaking";
         break;
       }
-
+      //Log::Warn["serf.cc"] << "inside Serf::handle_serf_walking_state_waiting, wait counter loop detection running, pos " << pos_ << " has a serf walking, reached end, setting dir to other serf's dir (reversed?)";
       dir = (Direction)(other_serf->s.walking.dir + 6);
     }
+    Log::Warn["serf.cc"] << "inside Serf::handle_serf_walking_state_waiting, wait counter loop detection done";
     // bugfix from nicymike:
     /* Wait counter should only be reset inside the if. If not it will never be increased above one. */
     // it was originally outside the if block, right alongside change_direction below

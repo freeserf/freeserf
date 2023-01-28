@@ -3896,6 +3896,8 @@ operator << (SaveWriterText &writer, Game &game) {
   }
 
   for (Inventory *inventory : game.inventories) {
+    if (inventory == nullptr) continue; // not sure why these become nullpointer instead of 0 indexed
+    //if (inventory->get_index() == 0) continue;
     SaveWriterText &inventory_writer = writer.add_section("inventory",
                                                         inventory->get_index());
     inventory_writer << *inventory;

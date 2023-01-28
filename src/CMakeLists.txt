@@ -40,15 +40,15 @@ target_check_style(tools)
 set(GAME_SOURCES ai.cc
                  ai_roadbuilder.cc
                  ai_util.cc
-                 popupbuilding.cc
-                 popupflag.cc
-                 popupgame.cc
-                 popupinventory.cc
-                 popupmap.cc
-                 popupmap-generator.cc
-                 popupmission.cc
-                 popupplayer.cc
-                 popuprandom.cc
+                 building.cc
+                 flag.cc
+                 game.cc
+                 inventory.cc
+                 map.cc
+                 map-generator.cc
+                 mission.cc
+                 player.cc
+                 random.cc
                  savegame.cc
                  serf.cc
                  game-manager.cc
