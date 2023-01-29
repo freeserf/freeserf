@@ -2894,17 +2894,21 @@ PopupBox::draw_inv_queues_box() {
   for (Serf *serf : interface->get_game()->get_serfs_in_inventory_out_queue(inventory)){
     //Log::Debug["popup.cc"] << "inside PopupBox::draw_inv_queues_box, serf #" << serf->get_index() << " with type " << serf->get_type() << " has state " << serf->get_state();
     int icon = serf->get_type() + 9;
+    if (serf->get_type() >= Serf::TypeTransporterInventory){
+      icon--;  // there is a TypeTransporterInventory which I think doesn't actually exist nor have a sprite which messes up the ordering of most serf types
+    }
     if (serf->get_type() >= Serf::TypeGeneric){
-      icon++;  // there is a TypeGeneric which I think doesn't actually exist nor have a sprite which messes up the ordering of Knight types
+      icon--;  // there is also a TypeGeneric which I think doesn't actually exist nor have a sprite which messes up the ordering of Knight types
     }
     if (col > 8){
-      col = 0;
       row++;
       if (row > 5){
         // wow that's a lot, just quit drawing them
         break;
       }
+      col = 0;
     }
+    Log::Debug["popup.cc"] << "inside PopupBox::draw_inv_queues_box, serf #" << serf->get_index() << " with type " << serf->get_type() << ", using icon #" << icon;
     draw_popup_icon(col++*2, 28 + row*16, icon);
   }
 
@@ -2912,7 +2916,7 @@ PopupBox::draw_inv_queues_box() {
   draw_green_string(1, 116, "Resources");
   for (int x=0; x<2; x++){
     if (inventory->get_out_queue_res_type(x) != Resource::TypeNone){
-      //Log::Debug["popup.cc"] << "inside PopupBox::draw_inv_queues_box, res #" << x << " is type " << inventory->get_out_queue_res_type(x);
+      Log::Debug["popup.cc"] << "inside PopupBox::draw_inv_queues_box, res #" << x << " is type " << inventory->get_out_queue_res_type(x);
       //hexadecimal 0x22 is fish(res0) which is decimal 34
       int icon = 34 + inventory->get_out_queue_res_type(x);
       draw_popup_icon(3+x*2, 125, icon);
