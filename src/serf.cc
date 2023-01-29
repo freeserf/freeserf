@@ -6981,6 +6981,14 @@ Serf::handle_serf_cleaning_rubble_state() {
 void
 Serf::update() {
   //Log::Debug["serf.cc"] << "inside Serf::update, serf with index " << get_index() << " has type " << NameSerf[get_type()] << " and state name " << get_state_name(get_state());
+  
+  // corruption detection
+  if (counter > 10000){
+    Log::Error["serf.cc"] << "inside Serf::update, serf with excessively high counter detected!  with index " << get_index() << " at pos " << get_pos() << " with type " << NameSerf[get_type()] << " and state name " << get_state_name(get_state()) << " has counter " << counter << " and animation " << animation;
+    Log::Error["serf.cc"] << "inside Serf::update, serf with excessively high counter detected!  setting this serf counter to 0";
+    counter = 0;
+  }
+
   switch (state) {
   case StateNull: /* 0 */
     break;
