@@ -85,6 +85,7 @@ class PopupBox : public GuiObject {
     TypeTransportInfo,
     TypeCastleSerf,
     TypeResDir,
+    TypeInventoryQueues,
     TypeSett8,
     TypeSett6,
     TypeBld1,
@@ -275,6 +276,7 @@ class PopupBox : public GuiObject {
   void draw_transport_info_box();
   void draw_castle_serf_box();
   void draw_resdir_box();
+  void draw_inv_queues_box();  // new
   void draw_sett_8_box();  // civ<>knight slider, create-knights button, gold-morale %, switch knights, button.  "Knight stomping" icon
   void draw_sett_6_box();  // "INVENTORY-priority" order for resources, only used in Evacuation mode for Castle/Stocks (very rarely used)
   void draw_bld_1_box();
@@ -330,6 +332,7 @@ class PopupBox : public GuiObject {
   void handle_transport_info_clk(int x, int y);
   void handle_castle_serf_clk(int x, int y);
   void handle_resdir_clk(int x, int y);
+  void handle_inv_queues_clk(int x, int y);
   void handle_sett_8_click(int x, int y);
   void handle_message_clk(int x, int y);
   void handle_player_faces_click(int x, int y);

@@ -290,6 +290,7 @@ class Game {
   ListSerfs get_player_serfs(Player *player);
   ListBuildings get_player_buildings(Player *player);
   ListSerfs get_serfs_in_inventory(Inventory *inventory);
+  ListSerfs get_serfs_in_inventory_out_queue(Inventory *inventory);
   ListSerfs get_serfs_related_to(unsigned int dest, Direction dir);
   ListInventories get_player_inventories(Player *player);
 

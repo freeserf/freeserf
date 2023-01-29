@@ -232,6 +232,7 @@ typedef enum Action {
   ACTION_SHOW_CASTLE_SERF,
   ACTION_SHOW_RESDIR,
   ACTION_SHOW_CASTLE_RES,
+  ACTION_SHOW_INVENTORY_QUEUES,
   ACTION_SEND_GEOLOGIST,
   ACTION_RES_MODE_IN,
   ACTION_RES_MODE_STOP,
@@ -2781,6 +2782,9 @@ PopupBox::draw_castle_serf_box() {
   draw_serfs_box(serfs, -1);
 }
 
+// this is the third popup for Inventories (castle/stock) that shows
+//  the ResourceIn/Out and SerfIn/Out (i.e. normal, no-more-in, or evacuation mode)
+//  and for Castle shows knight defender status
 void
 PopupBox::draw_resdir_box() {
   const int layout[] = {
@@ -2868,6 +2872,72 @@ PopupBox::draw_resdir_box() {
   } else { /* out */
     draw_popup_icon(9, 112, 0x120);
   }
+}
+
+// this is the new fourth page of Inventory building
+//  that shows the out-queue state for serfs and resources for Castle/Stock buildings
+void
+PopupBox::draw_inv_queues_box() {
+  draw_box_background(PatternPlaidAlongGreen);
+  draw_green_string(3, 0, "Out Queues");
+
+  Building *building = interface->get_game()->get_building(interface->get_player()->temp_index);
+  Inventory *inventory = building->get_inventory();
+
+  draw_green_string(0, 20, "Serfs");
+  draw_green_string(6, 20, std::to_string(inventory->get_serf_queue_length()));
+
+  //interface->get_game()->get_serfs_related_to
+  //for (Serf out_serf : game->get_serfs_related_to
+  int i = 0;  // icon place
+  //for (Serf *serf : interface->get_game()->get_serfs_in_inventory(inventory)) {
+  for (Serf *serf : interface->get_game()->get_serfs_in_inventory_out_queue(inventory)){
+    //if (serf->s.ready_to_leave_inventory.dest
+    0x9, 1, 0, 
+    0xa, 1, 16,
+    0xb, 1, 32,
+    0xc, 1, 48,
+    0x21, 1, 64,
+    0x20, 1, 80,
+    0x1f, 1, 96,
+    0x1e, 1, 112,
+    0x1d, 1, 128,
+    0xd, 6, 0,
+    0xe, 6, 16,
+    0x12, 6, 32,
+    0xf, 6, 48,
+    0x10, 6, 64,
+    0x11, 6, 80,
+    0x19, 6, 96,
+    0x1a, 6, 112,
+    0x1b, 6, 128,
+    0x13, 11, 0,
+    0x14, 11, 16,
+    0x15, 11, 32,
+    0x16, 11, 48,
+    0x17, 11, 64,
+    0x18, 11, 80,
+    0x1c, 11, 96,
+    0x82, 11, 112,
+    Log::Debug["popup.cc"] << "inside PopupBox::draw_inv_queues_box, serf #" << serf->get_index() << " with type " << serf->get_type() << " has state " << serf->get_state();
+    //int serf_type_icon[] = { 0x9, 0xa, 0xb, 0xc, 0xd, 0xe, 0xf, 0x10, 0x11, 0x12}; 
+    //if (serf->get_state() == Serf::StateReadyToLeaveInventory || serf->get_state() == Serf::StateReadyToLeave){
+      int icon = serf->get_type() + 9;
+      if (serf->get_type() >= Serf::TypeGeneric){
+        icon++;  // there is a TypeGeneric which I tihnk doesn't actually exist nor have a sprite which messes up the ordering of Knight types
+      }
+      draw_popup_icon(i++*2, 28, icon);
+      if (i > 8){
+        draw_green_string(10, 28, "-");
+        break;
+      }
+    //}
+  }
+
+
+
+  draw_popup_icon(12, 128, 0x3d); /* flipbox */
+  draw_popup_icon(14, 128, 0x3c); /* exit */
 }
 
 // civ<>knight slider, create-knights button, gold-morale %, switch knights, button.  "Knight stomping" icon
@@ -3318,6 +3388,9 @@ PopupBox::internal_draw() {
     break;
   case TypeResDir:
     draw_resdir_box();
+    break;
+  case TypeInventoryQueues:
+    draw_inv_queues_box();
     break;
   case TypeSett8:
     draw_sett_8_box();
@@ -4390,6 +4463,9 @@ PopupBox::handle_action(int action, int x_, int /*y_*/) {
   case ACTION_SHOW_RESDIR:
     set_box(TypeResDir);
     break;
+  case ACTION_SHOW_INVENTORY_QUEUES:
+    set_box(TypeInventoryQueues);
+    break;
   case ACTION_SHOW_CASTLE_RES:
     set_box(TypeCastleRes);
     break;
@@ -5206,9 +5282,21 @@ PopupBox::handle_resdir_clk(int cx, int cy) {
     ACTION_SERF_MODE_STOP, 72, 96, 16, 16,
     ACTION_SERF_MODE_OUT, 72, 112, 16, 16,
 
-    ACTION_SHOW_CASTLE_RES, 96, 128, 16, 16,
+    //ACTION_SHOW_CASTLE_RES, 96, 128, 16, 16,
+    ACTION_SHOW_INVENTORY_QUEUES, 96, 128, 16, 16,
     ACTION_CLOSE_BOX, 112, 128, 16, 16,
 
+    -1
+  };
+
+  handle_clickmap(cx, cy, mode_clkmap);
+}
+
+void
+PopupBox::handle_inv_queues_clk(int cx, int cy) {
+  const int mode_clkmap[] = {
+    ACTION_SHOW_CASTLE_RES, 96, 128, 16, 16,
+    ACTION_CLOSE_BOX, 112, 128, 16, 16,
     -1
   };
 
@@ -5488,6 +5576,9 @@ PopupBox::handle_left_click(int cx, int cy, int modifier) {
     break;
   case TypeResDir:
     handle_resdir_clk(cx, cy);
+    break;
+  case TypeInventoryQueues:
+    handle_inv_queues_clk(cx, cy);
     break;
   case TypeSett8:
     handle_sett_8_click(cx, cy);

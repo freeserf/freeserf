@@ -3180,7 +3180,6 @@ Game::get_serfs_at_pos(MapPos pos) {
 Game::ListSerfs
 Game::get_serfs_in_inventory(Inventory *inventory) {
   ListSerfs result;
-
   mutex_lock("Game::get_serfs_in_inventory");
   for (Serf *serf : serfs) {
     if (serf->get_state() == Serf::StateIdleInStock &&
@@ -3189,6 +3188,20 @@ Game::get_serfs_in_inventory(Inventory *inventory) {
     }
   }
   mutex_unlock();
+  return result;
+}
+
+Game::ListSerfs
+Game::get_serfs_in_inventory_out_queue(Inventory *inventory) {
+  ListSerfs result;
+  //mutex_lock("Game::get_serfs_in_inventory_out_queue");
+  for (Serf *serf : serfs) {
+    if (serf->get_state() == Serf::StateReadyToLeaveInventory &&
+        inventory->get_index() == serf->get_ready_to_leave_inv_index()) {
+      result.push_back(serf);
+    }
+  }
+  //mutex_unlock();
   return result;
 }
 

@@ -2997,18 +2997,17 @@ Viewport::draw_active_serf(Serf *serf, MapPos pos, int x_base, int y_base) {
     int index = serf->get_attacking_def_index();
     if (index != 0) {
       Serf *def_serf = interface->get_game()->get_serf(index);
-
-      Data::Animation animation =
-                           data_source->get_animation(def_serf->get_animation(),
-                                                      def_serf->get_counter());
-
-      int lx = x_base + animation.x;
-      int ly = y_base + animation.y - 4 * map->get_height(pos);
-      int body = serf_get_body(def_serf);
-     
-      if (body > -1) {
-        Color color = interface->get_player_color(def_serf->get_owner());
-        draw_row_serf(lx, ly, true, color, body);
+      if (def_serf == nullptr){
+        Log::Warn["viewport.cc"] << "inside Viewport::draw_active_serf, draw other serf defending serf is nullptr!";
+      }else{
+        Data::Animation animation = data_source->get_animation(def_serf->get_animation(), def_serf->get_counter());
+        int lx = x_base + animation.x;
+        int ly = y_base + animation.y - 4 * map->get_height(pos);
+        int body = serf_get_body(def_serf);
+        if (body > -1) {
+          Color color = interface->get_player_color(def_serf->get_owner());
+          draw_row_serf(lx, ly, true, color, body);
+        }
       }
     }
   }
@@ -3020,20 +3019,23 @@ Viewport::draw_active_serf(Serf *serf, MapPos pos, int x_base, int y_base) {
     int index = serf->get_attacking_def_index();
     if (index != 0) {
       Serf *def_serf = interface->get_game()->get_serf(index);
+      if (def_serf == nullptr){
+        Log::Warn["viewport.cc"] << "inside Viewport::draw_active_serf, draw objects defending serf is nullptr!";
+      }else{
+        if (serf->get_animation() >= 146 && serf->get_animation() < 156) {
+          if ((serf->get_attacking_field_D() == 0 ||
+              serf->get_attacking_field_D() == 4) &&
+              serf->get_counter() < 32) {
+            int anim = -1;
+            if (serf->get_attacking_field_D() == 0) {
+              anim = serf->get_animation() - 147;
+            } else {
+              anim = def_serf->get_animation() - 147;
+            }
 
-      if (serf->get_animation() >= 146 && serf->get_animation() < 156) {
-        if ((serf->get_attacking_field_D() == 0 ||
-             serf->get_attacking_field_D() == 4) &&
-            serf->get_counter() < 32) {
-          int anim = -1;
-          if (serf->get_attacking_field_D() == 0) {
-            anim = serf->get_animation() - 147;
-          } else {
-            anim = def_serf->get_animation() - 147;
+            int sprite = 198 + ((serf->get_counter() >> 3) ^ 3);
+            draw_game_sprite(lx + arr_4[2*anim], ly - arr_4[2*anim+1], sprite);
           }
-
-          int sprite = 198 + ((serf->get_counter() >> 3) ^ 3);
-          draw_game_sprite(lx + arr_4[2*anim], ly - arr_4[2*anim+1], sprite);
         }
       }
     }
