@@ -2879,62 +2879,45 @@ PopupBox::draw_resdir_box() {
 void
 PopupBox::draw_inv_queues_box() {
   draw_box_background(PatternPlaidAlongGreen);
-  draw_green_string(3, 0, "Out Queues");
+  draw_green_string(3, 0, "Out-Queues");
 
   Building *building = interface->get_game()->get_building(interface->get_player()->temp_index);
   Inventory *inventory = building->get_inventory();
 
-  draw_green_string(0, 20, "Serfs");
-  draw_green_string(6, 20, std::to_string(inventory->get_serf_queue_length()));
+  draw_green_string(1, 19, "Serfs");
+  //draw_green_string(6, 20, std::to_string(inventory->get_serf_queue_length()));
 
-  //interface->get_game()->get_serfs_related_to
-  //for (Serf out_serf : game->get_serfs_related_to
-  int i = 0;  // icon place
-  //for (Serf *serf : interface->get_game()->get_serfs_in_inventory(inventory)) {
+  // the serf out queue seems to be unlimited!  and they come out not in the requested order
+  //  but instead ordered by their serf index!!!
+  int col = 0;  // icon placement for Serf icons
+  int row = 0;  // icon placement for Serf icons (8 per row)
   for (Serf *serf : interface->get_game()->get_serfs_in_inventory_out_queue(inventory)){
-    //if (serf->s.ready_to_leave_inventory.dest
-    0x9, 1, 0, 
-    0xa, 1, 16,
-    0xb, 1, 32,
-    0xc, 1, 48,
-    0x21, 1, 64,
-    0x20, 1, 80,
-    0x1f, 1, 96,
-    0x1e, 1, 112,
-    0x1d, 1, 128,
-    0xd, 6, 0,
-    0xe, 6, 16,
-    0x12, 6, 32,
-    0xf, 6, 48,
-    0x10, 6, 64,
-    0x11, 6, 80,
-    0x19, 6, 96,
-    0x1a, 6, 112,
-    0x1b, 6, 128,
-    0x13, 11, 0,
-    0x14, 11, 16,
-    0x15, 11, 32,
-    0x16, 11, 48,
-    0x17, 11, 64,
-    0x18, 11, 80,
-    0x1c, 11, 96,
-    0x82, 11, 112,
-    Log::Debug["popup.cc"] << "inside PopupBox::draw_inv_queues_box, serf #" << serf->get_index() << " with type " << serf->get_type() << " has state " << serf->get_state();
-    //int serf_type_icon[] = { 0x9, 0xa, 0xb, 0xc, 0xd, 0xe, 0xf, 0x10, 0x11, 0x12}; 
-    //if (serf->get_state() == Serf::StateReadyToLeaveInventory || serf->get_state() == Serf::StateReadyToLeave){
-      int icon = serf->get_type() + 9;
-      if (serf->get_type() >= Serf::TypeGeneric){
-        icon++;  // there is a TypeGeneric which I tihnk doesn't actually exist nor have a sprite which messes up the ordering of Knight types
-      }
-      draw_popup_icon(i++*2, 28, icon);
-      if (i > 8){
-        draw_green_string(10, 28, "-");
+    //Log::Debug["popup.cc"] << "inside PopupBox::draw_inv_queues_box, serf #" << serf->get_index() << " with type " << serf->get_type() << " has state " << serf->get_state();
+    int icon = serf->get_type() + 9;
+    if (serf->get_type() >= Serf::TypeGeneric){
+      icon++;  // there is a TypeGeneric which I think doesn't actually exist nor have a sprite which messes up the ordering of Knight types
+    }
+    if (col > 8){
+      col = 0;
+      row++;
+      if (row > 5){
+        // wow that's a lot, just quit drawing them
         break;
       }
-    //}
+    }
+    draw_popup_icon(col++*2, 28 + row*16, icon);
   }
 
-
+  // the resource out queue has only two slots, while the serf out queue seems to be infinite
+  draw_green_string(1, 116, "Resources");
+  for (int x=0; x<2; x++){
+    if (inventory->get_out_queue_res_type(x) != Resource::TypeNone){
+      //Log::Debug["popup.cc"] << "inside PopupBox::draw_inv_queues_box, res #" << x << " is type " << inventory->get_out_queue_res_type(x);
+      //hexadecimal 0x22 is fish(res0) which is decimal 34
+      int icon = 34 + inventory->get_out_queue_res_type(x);
+      draw_popup_icon(3+x*2, 125, icon);
+    }
+  }
 
   draw_popup_icon(12, 128, 0x3d); /* flipbox */
   draw_popup_icon(14, 128, 0x3c); /* exit */

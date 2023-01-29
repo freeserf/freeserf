@@ -3306,6 +3306,11 @@ Serf::handle_serf_delivering_state() {
   }
 }
 
+
+// NOTE - it appears that the order that serfs leave the castle/stock is ENTIRELY
+//  depending on the serf's index and NOT the order that they were requested
+//  SO, if the queue is constantly full it explains why it sometimes takes a long
+//  time for an expected serf to leave
 void
 Serf::handle_serf_ready_to_leave_inventory_state() {
   tick = game->get_tick();
