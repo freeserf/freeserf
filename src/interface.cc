@@ -1561,6 +1561,7 @@ Interface::handle_event(const Event *event) {
     case Event::TypeResize:
       set_size(event->dx, event->dy);
       viewport->store_prev_window_size();
+      viewport->set_resize_tainted();
       break;
     case Event::TypeZoom:
       Log::Debug["event_loop.cc"] << "inside Interface::handle_event, TypeZoom";

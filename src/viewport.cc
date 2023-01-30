@@ -480,6 +480,16 @@ Viewport::store_prev_window_size() {
   Log::Debug["viewport.cc"] << "inside Viewport::store_prev_window_size(), updating last_window_height/height to " << last_window_height << "," << last_window_width;
 }
 
+// I ran into some odd issue with popup moving where the popup movement
+//  behavior starts out broken (though it can be worked-around) but then
+//  reverts to the expected behavior any time after any resize has been done
+// to work-around this, try detecting if window has ever been resized
+void
+Viewport::set_resize_tainted() {
+  Log::Debug["viewport.cc"] << "inside Viewport::set_resize_tainted(), resize_tainted is now true and will remain until the game is restarted";
+  resize_tainted = true;
+}
+
 // flush a single tile, which is 16x16 block of MapPos triangle-pairs
 //  from the tile cache so it will be redrawn by get_tile_frame on next update
 void

@@ -5620,17 +5620,42 @@ PopupBox::handle_left_click(int cx, int cy, int modifier) {
 // TO FIX - need to make he mouse pointer follow the drag
 bool
 PopupBox::handle_drag(int lx, int ly) {
-  Log::Debug["popup.cc"] << "inside PopupBox::handle_drag lx,ly = " << lx << "," << ly;
+  Log::Debug["popup.cc"] << "inside PopupBox::handle_drag lx,ly = " << lx << "," << ly << " width " << width << ", height " << height;
   if (lx != 0 || ly != 0) {
     //move_by_pixels(lx, ly);
     x += lx;
     y += ly;
+    Log::Debug["popup.cc"] << "inside PopupBox::handle_drag, new x,y is " << x << "," << y;
+
+    // don't let it popup go off-screen
+    Graphics &gfx = Graphics::get_instance();
+    unsigned int res_width; 
+    unsigned int res_height;
+    gfx.get_resolution(&res_width, &res_height);
+    // there seems to be a very strange issue here, if the popup is limited to resolution-width minus popup width it can't
+    //   actually reach the right side of the screen, though top/left/bottom all fine.  Changing the check to width / 2 - 1 fixes it
+    // BUT if the window is resized at all, or even maximized/fullscreen then back to default without manual resizing it retains the
+    //  "correct" behavior of resolution-width minus popup width
+    // this is very strange, as a hack-workaround, I am going to try noting if the screen was EVER resized, and if so change the
+    //  behavior here :-/
+    // this works fine for me but I worry it fail on other platforms
+    int hacked_width = 0;
+    if (interface->get_viewport()->get_resize_tainted() == true){
+      Log::Debug["popup.cc"] << "inside PopupBox::handle_drag, Viewport resize_tainted is true, using normal popup moving x rule";
+      hacked_width = width;
+    }else{
+      Log::Debug["popup.cc"] << "inside PopupBox::handle_drag, Viewport resize_tainted is false, using half-width popup moving x rule";
+      hacked_width = width / 2;
+    }
+    int rightside = x + hacked_width;
+    int bottom = y + height;
+    if (rightside > res_width - 1){ x = res_width - hacked_width; }
+    if (bottom > res_height){ y = res_height - height; }
+    if (x < 0){ x = 0; }
+    if (y < 0){ y = 0; }
+
+
     set_redraw();
-    //interface->get_viewport()->handle_drag(lx, ly);
-    //int cur_mouse_pointer_x = 0;
-    //int cur_mouse_pointer_y = 0;
-    //SDL_GetMouseState(&cur_mouse_pointer_x, &cur_mouse_pointer_y);
-    //SDL_WarpMouseInWindow(nullptr, cur_mouse_pointer_x + lx, cur_mouse_pointer_y + ly);
   }
   
   return true;
