@@ -158,7 +158,8 @@ GuiObject::handle_event(const Event *event) {
   //  popup.  NOTE that it should be easier to simply move the moues pointer ALONG WITH the popup
   //  but I couldn't figure out how
   bool skip_event = !in_scope;
-  if (objclass != GuiObjectClass::ClassInterface && event->type == Event::TypeDrag){
+  //if (objclass != GuiObjectClass::ClassInterface && event->type == Event::TypeDrag){
+  if (event->type == Event::TypeDrag){
     if (!in_scope && being_dragged){
       Log::Debug["event_loop.cc"] << "inside GuiObject::handle_event, GuiObjectClass " << NameGuiObjClass[objclass] << ", event is out of bounds BUT being_dragged bool is true so continuing as if it were in focus";
       skip_event = false;
@@ -193,10 +194,18 @@ GuiObject::handle_event(const Event *event) {
   internal_event.button = event->button;
 
   /* Find the corresponding float element if any */
+  // this triggers the event for ALL FLOATS one by one
+  //  until one returns true.  Floats that ignore the action
+  //  will return false to indicate such, and floats that do not even have a
+  //  ::handle_<event_type> action will default to the virtual GuiObject function
+  //  which simply returns false
+  // Once any float returns true, the no other floats are checked!
+  //  if we want to change this to allow multiple floats to process same
+  //  event, simply don't "return" early
   FloatList::reverse_iterator fl = floats.rbegin();
   for ( ; fl != floats.rend() ; ++fl) {
+    Log::Debug["event_loop.cc"] << "inside GuiObject::handle_event for fl with objclass " << int((*fl)->get_objclass()) << " and objtype " << int((*fl)->get_objtype());
     // failed attempt to only zoom the viewport, not the UI elements
-    //Log::Debug["event_loop.cc"] << "inside GuiObject::handle_event for fl with objclass " << int((*fl)->get_objclass()) << " and objtype " << int((*fl)->get_objtype());
     //if (internal_event.type == Event::TypeZoom
     // && (*fl)->get_objclass() != GuiObjClass::ClassViewport){
     //  Log::Debug["event_loop.cc"] << "inside GuiObject::handle_event, not zooming non-Viewport float";
@@ -204,8 +213,12 @@ GuiObject::handle_event(const Event *event) {
     //}
     bool result = (*fl)->handle_event(&internal_event);
     if (result != 0) {
-      //Log::Debug["event_loop.cc"] << "inside GuiObject::handle_event returning float element result";
-      return result;
+      // stop checking other floats as one seems to have handled this
+      Log::Debug["event_loop.cc"] << "inside GuiObject::handle_event for fl with objclass " << int((*fl)->get_objclass()) << " and objtype " << int((*fl)->get_objtype()) << " returning float element result";
+      return result; 
+    }else{
+      // check next float
+      Log::Debug["event_loop.cc"] << "inside GuiObject::handle_event for fl with objclass " << int((*fl)->get_objclass()) << " and objtype " << int((*fl)->get_objtype()) << " returned false, continuing";
     }
   }
 
@@ -220,9 +233,9 @@ GuiObject::handle_event(const Event *event) {
       Log::Debug["event_loop.cc"] << "inside GuiObject::handle_event with event tpye " << NameGuiObjEvent[event->type] << " and objclass " << NameGuiObjClass[objclass] << " called 'result = handle_mouse_button_down', result was " << result;
       break;
     case Event::TypeDrag:
-      //Log::Debug["event_loop.cc"] << "inside GuiObject::handle_event type TypeDrag calling 'result = handle_drag' with event->dx " << event->dx << " and event->dy " << event->dy;
+      Log::Debug["event_loop.cc"] << "inside GuiObject::handle_event with event tpye " << NameGuiObjEvent[event->type] << " and objclass " << NameGuiObjClass[objclass] << " calling 'result = handle_drag' with event->dx " << event->dx << " and event->dy " << event->dy;
       result = handle_drag(event->dx, event->dy);
-      //Log::Debug["event_loop.cc"] << "inside GuiObject::handle_event type TypeDrag called 'result = handle_drag', result was " << result;
+      Log::Debug["event_loop.cc"] << "inside GuiObject::handle_event with event tpye " << NameGuiObjEvent[event->type] << " and objclass " << NameGuiObjClass[objclass] << " called 'result = handle_drag', result was " << result;
       break;
     case Event::TypeRightClick:
       result = handle_click_right(event_x, event_y);

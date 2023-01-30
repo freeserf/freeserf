@@ -5640,12 +5640,41 @@ PopupBox::handle_drag(int lx, int ly) {
     //  behavior here :-/
     // this works fine for me but I worry it fail on other platforms
     int hacked_width = 0;
-    if (interface->get_viewport()->get_resize_tainted() == true){
-      Log::Debug["popup.cc"] << "inside PopupBox::handle_drag, Viewport resize_tainted is true, using normal popup moving x rule";
-      hacked_width = width;
+    // maybe this is fixed now?
+    //if (interface->get_viewport()->get_resize_tainted() == true){
+    //if (true){  // nope
+    // hmm it also seems that dragging the Viewport around also "sets the taint"
+    //
+    //  AH I think the issue is related to double-wide popups!  it seems that the optios panelbutton popup, which
+    //   is only normal size /but LEADS TO double-size panels/ is affected by this but the graphs panelbar icon popup
+    //   has normal behavior from the start
+    // UPDATE - this is related to they "tying" of PopupBox::TypeSettSelect to PopupBox::TypeLoadSave
+    //  I don't quite remember HOW they are tried, there is more information in Interface::open_popup
+    //  
+    //  try to account for this with another layer of hacks...
+    //
+    //  UGH ITS EVEN WORSE, when you use the flip arrow to go between types of open popup, it doesn't update the class it re-uses the same popup
+    //
+    //if (box == PopupBox::TypeSettSelect && interface->get_viewport()->get_resize_tainted() == false) {
+    //if (true){ //now simply forcing a call to notify_resize at start of game
+    //  Log::Debug["popup.cc"] << "inside PopupBox::handle_drag, USING SettSelect/resize_tainted HACK!";
+    //  hacked_width = width / 2;
+    //}else{
+    //  Log::Debug["popup.cc"] << "inside PopupBox::handle_drag, using normal popup resize width rules (no SettSelect/resize_tainted exception)";
+    //  hacked_width = width;
+    //}
+    Log::Debug["popup.cc"] << "inside PopupBox::handle_drag, width/height is " << width << " / " << height;
+    //if (this->get_parent() != nullptr){
+    //  int parent_width = 0;
+    //  int parent_height = 0;
+    //  get_parent()->get_size(&parent_width, &parent_height);
+    //  Log::Debug["popup.cc"] << "inside PopupBox::handle_drag, this popup has a parent which has width/height is " << parent_width << " / " << parent_height;
+    //}
+    // AH HAH I think this is all it takes, resize_tainted isn't needed anymore
+    if (box == PopupBox::TypeSettSelect){
+      hacked_width = 144;
     }else{
-      Log::Debug["popup.cc"] << "inside PopupBox::handle_drag, Viewport resize_tainted is false, using half-width popup moving x rule";
-      hacked_width = width / 2;
+      hacked_width = width;
     }
     int rightside = x + hacked_width;
     int bottom = y + height;
@@ -5680,7 +5709,10 @@ void PopupBox::hide() {
 
 void
 PopupBox::set_box(Type box_) {
+  Log::Debug["popup.cc"] << "inside PopupBox::set_type, setting popup with prev box/objtype " << box << " to new objtype " << box_;
   box = box_;
+  //objtype = box_;
+  set_objtype(box_);
   if (box == TypeMap) {
     minimap->set_displayed(true);
   } else {

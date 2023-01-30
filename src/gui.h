@@ -108,7 +108,8 @@ class GuiObject : public EventLoop::Handler {
   virtual bool handle_dbl_click(int x, int y, Event::Button button) { return false; }
   virtual bool handle_special_click(int x, int y) { return false; }  // noop, overloaded
   virtual bool handle_mouse_button_down(int dx, int dy, Event::Button button) { return false; }  // noop, overloaded
-  virtual bool handle_drag(int dx, int dy) { return true; }
+  //virtual bool handle_drag(int dx, int dy) { return true; }
+  virtual bool handle_drag(int dx, int dy) { return false; }  // not sure why this defaulted to return true, maybe my fault.  False looks correct
   virtual bool handle_key_pressed(char key, int modifier) { return false; }
   virtual bool handle_numpad_key_pressed(char key) { return false; } // noop, overloaded
   virtual bool handle_arrow_key_pressed(uint8_t key) { return false; } // noop, overloaded
@@ -128,6 +129,7 @@ class GuiObject : public EventLoop::Handler {
   void get_size(int *width, int *height);
   void set_displayed(bool displayed);
   void set_enabled(bool enabled);
+  void set_being_dragged() {being_dragged = true;}
   void set_redraw();
   bool is_displayed() { return displayed; }
   GuiObject *get_parent() { return parent; }  // it seems this parent concept is used only multi-part single popup windows with text files/file lists to allow both to be refreshed, it has nothing to do with one popup opening another popup!

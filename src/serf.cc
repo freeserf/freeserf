@@ -1983,14 +1983,21 @@ Serf::handle_serf_walking_state() {
       }
 
       Flag *flag = game->get_flag(s.walking.dest);
-      Building *building = flag->get_building();
-      building->requested_serf_lost();
+      if (flag == nullptr){
+        Log::Warn["serf"] << "inside Serf::handle_serf_walking_state B, s.walking.dest flag is nullptr!";
+      }else{
+        Building *building = flag->get_building();
+        building->requested_serf_lost();
+      }
     } else if (s.walking.dir1 != 6) {
       Flag *flag = game->get_flag(s.walking.dest);
       Direction d = (Direction)s.walking.dir1;
-      flag->cancel_serf_request(d);
-      flag->get_other_end_flag(d)->cancel_serf_request(
-                                     flag->get_other_end_dir(d));
+      if (flag == nullptr){
+        Log::Warn["serf"] << "inside Serf::handle_serf_walking_state x, s.walking.dest flag is nullptr!";
+      }else{
+        flag->cancel_serf_request(d);
+        flag->get_other_end_flag(d)->cancel_serf_request(flag->get_other_end_dir(d));
+      }
     }
 
     s.walking.dir1 = -2;

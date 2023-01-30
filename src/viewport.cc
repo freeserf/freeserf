@@ -484,11 +484,11 @@ Viewport::store_prev_window_size() {
 //  behavior starts out broken (though it can be worked-around) but then
 //  reverts to the expected behavior any time after any resize has been done
 // to work-around this, try detecting if window has ever been resized
-void
-Viewport::set_resize_tainted() {
-  Log::Debug["viewport.cc"] << "inside Viewport::set_resize_tainted(), resize_tainted is now true and will remain until the game is restarted";
-  resize_tainted = true;
-}
+//void
+//Viewport::set_resize_tainted() {
+//  Log::Debug["viewport.cc"] << "inside Viewport::set_resize_tainted(), resize_tainted is now true and will remain until the game is restarted";
+//  resize_tainted = true;
+//}
 
 // flush a single tile, which is 16x16 block of MapPos triangle-pairs
 //  from the tile cache so it will be redrawn by get_tile_frame on next update
@@ -4500,12 +4500,15 @@ bool
 Viewport::handle_mouse_button_down(int lx, int ly, Event::Button button) {
   Log::Debug["viewport.cc"] << "inside Viewport::handle_mouse_button_down lx,ly = " << lx << "," << ly << ", button " << button << ", setting being_dragged bool to true";
   being_dragged = true;
+  // because Interface and Viewport are tied together, mark both as true
+  interface->set_being_dragged();
   return true;
 }
 
 bool
 Viewport::handle_drag(int lx, int ly) {
-  //Log::Debug["event_loop.cc"] << "inside Viewport::handle_drag lx,ly = " << lx << "," << ly;
+  //set_resize_tainted(); // it seems dragging it also does same thing as resizing window
+  Log::Debug["viewport.cc"] << "inside Viewport::handle_drag lx,ly = " << lx << "," << ly;
   if (lx != 0 || ly != 0) {
     move_by_pixels(lx, ly);
   }
