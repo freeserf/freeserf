@@ -31,6 +31,7 @@ class GuiObject : public EventLoop::Handler {
  public:
   typedef enum GuiObjectClass {
     ClassNone = 0,
+    ClassInterface,
     ClassGameInitBox,
     ClassViewport,
     ClassPopupBox,
@@ -44,8 +45,9 @@ class GuiObject : public EventLoop::Handler {
     ClassDebugPosTextInput
   } GuiObjClass;
 
-  const std::string NameGuiObjClass[12]{
+  const std::string NameGuiObjClass[13]{
     "GuiObjClass::ClassNone",
+    "GuiObjClass::ClassInterface",
     "GuiObjClass::ClassGameInitBox",
     "GuiObjClass::ClassViewport",
     "GuiObjClass::ClassPopupBox",
@@ -59,6 +61,24 @@ class GuiObject : public EventLoop::Handler {
     "GuiObjClass::ClassDebugPosTextInput"
   };
 
+  const std::string NameGuiObjEvent[15]{
+    "Event::Type::TypeLeftClick",
+    "Event::Type::TypeRightClick",
+    "Event::Type::TypeDoubleClick",
+    "Event::Type::TypeMiddleClick",
+    "Event::Type::TypeSpecialClick",
+    "Event::Type::TypeMouseButtonDown",
+    "Event::Type::TypeDrag",
+    "Event::Type::TypeKeyPressed",
+    "Event::Type::TypeNumPadKeyPressed",
+    "Event::Type::TypeArrowKeyPressed",
+    "Event::Type::TypeListScroll",
+    "Event::Type::TypeResize",
+    "Event::Type::TypeUpdate",
+    "Event::Type::TypeDraw",
+    "Event::Type::TypeZoom",
+  };
+
  private:
   typedef std::list<GuiObject*> FloatList;
   FloatList floats;
@@ -69,12 +89,13 @@ class GuiObject : public EventLoop::Handler {
   bool displayed;
   bool enabled;
   bool redraw;
-  GuiObject *parent;
+  GuiObject *parent;  // this is used for associating two parts of the same "popup window" for multi-part popups... which right now are only game lists and text input boxes.  So both can be refreshed if either is
   Frame *frame;
   static GuiObject *focused_object;
   bool focused;
   GuiObjClass objclass;  // PanelBar, PopupBox, GameInit, etc.
   int objtype;   // type within above class
+  bool being_dragged; // testing moveable popups   tlongstretch
 
   virtual void internal_draw() = 0;
   virtual void layout();
@@ -86,6 +107,7 @@ class GuiObject : public EventLoop::Handler {
   virtual bool handle_click_right(int x, int y) { return false; }
   virtual bool handle_dbl_click(int x, int y, Event::Button button) { return false; }
   virtual bool handle_special_click(int x, int y) { return false; }  // noop, overloaded
+  virtual bool handle_mouse_button_down(int dx, int dy, Event::Button button) { return false; }  // noop, overloaded
   virtual bool handle_drag(int dx, int dy) { return true; }
   virtual bool handle_key_pressed(char key, int modifier) { return false; }
   virtual bool handle_numpad_key_pressed(char key) { return false; } // noop, overloaded
@@ -108,8 +130,9 @@ class GuiObject : public EventLoop::Handler {
   void set_enabled(bool enabled);
   void set_redraw();
   bool is_displayed() { return displayed; }
-  GuiObject *get_parent() { return parent; }
+  GuiObject *get_parent() { return parent; }  // it seems this parent concept is used only multi-part single popup windows with text files/file lists to allow both to be refreshed, it has nothing to do with one popup opening another popup!
   void set_parent(GuiObject *parent) { this->parent = parent; }
+  //bool has_parent() { return this->parent != nullptr; }  // for debugging - tongstretch
   bool point_inside(int point_x, int point_y);
 
   void add_float(GuiObject *obj, int x, int y);

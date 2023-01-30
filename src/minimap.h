@@ -80,6 +80,7 @@ class Minimap : public GuiObject {
 
   virtual void internal_draw();
   virtual bool handle_drag(int dx, int dy);
+  virtual bool handle_mouse_button_down(int x, int y, Event::Button button);
 };
 
 class MinimapGame : public Minimap {

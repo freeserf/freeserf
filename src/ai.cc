@@ -5139,6 +5139,11 @@ AI::do_connect_disconnected_road_networks(){
     for (Direction dir : cycle_directions_cw()){
       Flag *other_end_flag = flag->get_other_end_flag(dir);
       bool rejected = false;
+      if (other_end_flag == nullptr){
+        AILogWarn["do_connect_disconnected_road_networks"] << "other_end_flag is nullptr!  skipping this dir";
+        rejected = true;
+        continue;
+      }
       // I am seeing other_end_flag giving a valid flag, but one that isn't actaully connected to this flag!! why???
       //  adding a backup check, and throwing a warning if they do not both agree
       if (!map->has_path_IMPROVED(flag->get_position(), dir)){

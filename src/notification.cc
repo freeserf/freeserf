@@ -225,6 +225,7 @@ NotificationBox::internal_draw() {
 
 bool
 NotificationBox::handle_left_click(int x, int y, int modifier) {
+  being_dragged = false;
   set_displayed(0);
   return true;
 }

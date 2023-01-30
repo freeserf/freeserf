@@ -64,6 +64,7 @@ Interface::Interface()
   is_playing_watersfx = false;  // for ambient wave sounds near water
   is_playing_desertsfx = false; // for ambient wind sounds near desert
   displayed = true;
+  objclass = GuiObjClass::ClassInterface;
 
   game = nullptr;
 

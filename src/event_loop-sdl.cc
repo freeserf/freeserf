@@ -271,6 +271,12 @@ EventLoopSDL::run() {
             //Log::Debug["event_loop-sdl.cc"] << "inside EventLoopSDL::run(), type SDL_MOUSEBUTTONDOWN right";
             button_right_down = true;
           }
+          // notify each handler at the start of the click so the handler
+          //  can determine current viewport/popup focus for dragged popups to avoid losing focus as soon
+          //  as the mouse pointer is out of the original popup area
+          int x = event.motion.x;
+          int y = event.motion.y;
+          notify_mouse_button_down(x, y, (Event::Button)event.button.button);
         }
         break;
       case SDL_MOUSEMOTION:
@@ -304,12 +310,16 @@ EventLoopSDL::run() {
               //Log::Debug["event_loop-sdl.cc"] << "inside EventLoopSDL::run(), type SDL_MOUSEMOTION, calling notify_drag inverted with x,y values " << x << ", " << y << ", xmove " << event.motion.x - drag_x << ", ymove " << (event.motion.y - drag_y) * -1;
               notify_drag(x, y, event.motion.x - drag_x, (event.motion.y - drag_y) * -1, (Event::Button)drag_button);
             }else{
-              //Log::Debug["event_loop-sdl.cc"] << "inside EventLoopSDL::run(), type SDL_MOUSEMOTION, calling notify_drag normal with x,y values " << x << ", " << y << ", xmove " << event.motion.x - drag_x << ", ymove " << event.motion.y - drag_y;
+              Log::Debug["event_loop-sdl.cc"] << "inside EventLoopSDL::run(), type SDL_MOUSEMOTION, calling notify_drag normal with x,y values " << x << ", " << y << ", xmove " << event.motion.x - drag_x << ", ymove " << event.motion.y - drag_y;
               notify_drag(x, y, event.motion.x - drag_x, event.motion.y - drag_y, (Event::Button)drag_button);
             }
 
-            //Log::Debug["event_loop-sdl.cc"] << "inside EventLoopSDL::run(), type SDL_MOUSEMOTION, calling SDL_WarpMouseInWindow with drag_x/y values " << drag_x << ", " << drag_y;
-            SDL_WarpMouseInWindow(nullptr, drag_x, drag_y);
+            Log::Debug["event_loop-sdl.cc"] << "inside EventLoopSDL::run(), type SDL_MOUSEMOTION, calling SDL_WarpMouseInWindow with drag_x/y values " << drag_x << ", " << drag_y;
+            // this seems to be to keep the mouse cursor from moving while dragging, as the screen is moved instead
+            // if this is commented out, both the viewport AND the mouse pointer move together which way accelerates the viewport move
+            //  and is unwieldy
+            
+            SDL_WarpMouseInWindow(nullptr, drag_x, drag_y); 
 
             break;
           }

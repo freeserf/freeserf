@@ -439,6 +439,7 @@ class Viewport : public GuiObject, public Map::Handler {
   //virtual bool handle_right_click(int x, int y);
   virtual bool handle_dbl_click(int x, int y, Event::Button button);
   virtual bool handle_special_click(int x, int y);//, Event::Button button);
+  virtual bool handle_mouse_button_down(int x, int y, Event::Button button); // testing moveable popups
   virtual bool handle_drag(int x, int y);
 
   Frame *get_tile_frame(unsigned int tid, int tc, int tr);

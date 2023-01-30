@@ -66,6 +66,7 @@ TextInput::internal_draw() {
 
 bool
 TextInput::handle_left_click(int x, int y, int modifier) {
+  being_dragged = false;
   Log::Debug["text-input.cc"] << "inside TextInput::handle_left_click(), x/y pos " << x << "," << y;
   set_focused();
   return true;

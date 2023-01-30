@@ -39,6 +39,7 @@
 #include "src/text-input.h"
 #include "src/game-options.h"
 #include "src/game-init.h" // to allow game options update to trigger game-init box to redraw minimap if option changed (ex. FogOfWar)
+#include <SDL.h> // for mouse movement for movable popups
 
 
 /* Action types that can be fired from
@@ -362,14 +363,14 @@ PopupBox::PopupBox(Interface *_interface)
 
   /* Initialize minimap */
   minimap->set_displayed(false);
-  minimap->set_parent(this);
+  minimap->set_parent(this);  // this allows minimap to be refreshed when the popup box is 
   minimap->set_size(128, 128);
   minimap->set_objclass(GuiObjClass::ClassMinimap);
   add_float(minimap.get(), 8, 9);
 
   //file_list->set_size(120, 100);  // this is the save game file list, NOT the load game file list (which is in game-init.cc)
   file_list->set_size(260, 100);
-  file_list->set_displayed(false);
+  file_list->set_displayed(false);   // this allows file list to be refreshed when the popup box is 
 
   file_list->set_selection_handler([this](const std::string &item) {
     size_t p = item.find_last_of("/\\");
@@ -2701,7 +2702,7 @@ PopupBox::draw_transport_info_box() {
   flag_view.switch_layer(Viewport::LayerCursor);
   flag_view.set_displayed(true);
 
-  flag_view.set_parent(this);
+  flag_view.set_parent(this);   // this allows flag_view to be refreshed when the popup box is 
   flag_view.set_size(128, 64);
   flag_view.move_to_map_pos(flag->get_position());
   flag_view.move_by_pixels(0, -10);
@@ -4666,6 +4667,7 @@ PopupBox::handle_action(int action, int x_, int /*y_*/) {
 /* Generic handler for clicks in popup boxes. */
 int
 PopupBox::handle_clickmap(int x_, int y_, const int clkmap[]) {
+  being_dragged = false;
   while (clkmap[0] >= 0) {
     if (clkmap[1] <= x_ && x_ < clkmap[1] + clkmap[3] &&
         clkmap[2] <= y_ && y_ < clkmap[2] + clkmap[4]) {
@@ -5439,6 +5441,7 @@ PopupBox::handle_save_clk(int cx, int cy) {
 bool
 //PopupBox::handle_left_click(int cx, int cy) {
 PopupBox::handle_left_click(int cx, int cy, int modifier) {
+  being_dragged = false;
   cx -= 8;
   cy -= 8;
 
@@ -5605,6 +5608,38 @@ PopupBox::handle_left_click(int cx, int cy, int modifier) {
     break;
   }
 
+  return true;
+}
+
+// tlongstretch testing movable popups
+//   it works! kinda
+
+// right now the problem is that the mouse pointer/cursor does not follow the dragged pos and so once the
+//  pointer falls outside the popup it ceases moving the popup and instead drags the Viewport 
+//   because the pointer is now on the viewpot and not he popup
+// TO FIX - need to make he mouse pointer follow the drag
+bool
+PopupBox::handle_drag(int lx, int ly) {
+  Log::Debug["popup.cc"] << "inside PopupBox::handle_drag lx,ly = " << lx << "," << ly;
+  if (lx != 0 || ly != 0) {
+    //move_by_pixels(lx, ly);
+    x += lx;
+    y += ly;
+    set_redraw();
+    //interface->get_viewport()->handle_drag(lx, ly);
+    //int cur_mouse_pointer_x = 0;
+    //int cur_mouse_pointer_y = 0;
+    //SDL_GetMouseState(&cur_mouse_pointer_x, &cur_mouse_pointer_y);
+    //SDL_WarpMouseInWindow(nullptr, cur_mouse_pointer_x + lx, cur_mouse_pointer_y + ly);
+  }
+  
+  return true;
+}
+
+bool
+PopupBox::handle_mouse_button_down(int lx, int ly, Event::Button button) {
+  Log::Debug["popup.cc"] << "inside PopupBox::handle_mouse_button_down lx,ly = " << lx << "," << ly << ", button " << button << ", setting being_dragged bool to true";
+  being_dragged = true;
   return true;
 }
 

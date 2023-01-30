@@ -298,6 +298,8 @@ class PopupBox : public GuiObject {
 
   void handle_action(int action, int x, int y);
   int handle_clickmap(int x, int y, const int clkmap[]);
+  bool handle_drag(int x, int y); // testing movable popup
+  bool handle_mouse_button_down(int x, int y, Event::Button button); // testing movable popup
 
   void handle_box_close_clk(int x, int y);
   void handle_debug_clk(int x, int y);

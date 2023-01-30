@@ -325,6 +325,14 @@ Minimap::handle_scroll(int up) {
 }
 
 bool
+Minimap::handle_mouse_button_down(int lx, int ly, Event::Button button) {
+  Log::Debug["minimap.cc"] << "inside Minimap::handle_mouse_button_down lx,ly = " << lx << "," << ly << ", button " << button << ", setting being_dragged bool to true";
+  being_dragged = true;
+  return true;
+}
+
+
+bool
 Minimap::handle_drag(int dx, int dy) {
   if (dx != 0 || dy != 0) {
     move_by_pixels(dx, dy);
@@ -518,6 +526,7 @@ MinimapGame::internal_draw() {
 
 bool
 MinimapGame::handle_left_click(int cx, int cy, int modifier) {
+  being_dragged = false;
   MapPos pos = map_pos_from_screen_pix(cx, cy);
   interface->get_viewport()->move_to_map_pos(pos);
 

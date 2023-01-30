@@ -72,6 +72,7 @@ class RandomInput : public TextInput {
   }
 
   virtual bool handle_left_click(int cx, int cy, int modifier) {
+    being_dragged = false;
     TextInput::handle_left_click(cx, cy, modifier);
     saved_text = text;
     text.clear();
@@ -474,6 +475,7 @@ GameInitBox::handle_action(int action) {
 
 bool
   GameInitBox::handle_left_click(int cx, int cy, int modifier) {
+  being_dragged = false;
   const int clickmap_mission[] = {
     ActionStartGame,        20,  16, 32, 32,
     ActionToggleGameType,   60,  16, 32, 32,
@@ -555,6 +557,7 @@ bool
 //  player face/character
 bool
 GameInitBox::handle_click_right(int cx, int cy) {
+  being_dragged = false;
   //Log::Debug["game-init.cc"] << "inside GameInitBox::handle_click_right()";
 
   if (game_type != GameCustom){

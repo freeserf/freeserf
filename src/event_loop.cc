@@ -111,6 +111,20 @@ EventLoop::notify_special_click(int x, int y){ //,Event::Button button) {
   return notify_handlers(&event);
 }
 
+// this event is used to identify what is being dragged
+//  (either the Viewport-terrain, Minimap-terrain, or a Popup window)
+//  so that it can remain focused even when dragged outside of its original
+//  area (which normally caused it to lose focus)
+bool
+EventLoop::notify_mouse_button_down(int x, int y, Event::Button button) {
+  Event event;
+  event.type = Event::TypeMouseButtonDown;
+  event.x = x;
+  event.y = y;
+  event.button = button;
+  return notify_handlers(&event);
+}
+
 bool
 EventLoop::notify_drag(int x, int y, int dx, int dy, Event::Button button) {
   Event event;

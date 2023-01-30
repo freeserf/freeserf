@@ -67,6 +67,7 @@ GuiObject::GuiObject() {
   focused = false;
   objclass = GuiObjClass::ClassNone;
   objtype = 0;
+  being_dragged = false;
 }
 
 GuiObject::~GuiObject() {
@@ -114,35 +115,74 @@ GuiObject::draw(Frame *_frame) {
 
 bool
 GuiObject::handle_event(const Event *event) {
-  //Log::Debug["event_loop.cc"] << "inside GuiObject::handle_event ";
+  //Log::Debug["event_loop.cc"] << "inside GuiObject::handle_event with event type " << event->type << " / " << NameGuiObjEvent[event->type] << " and objclass " << objclass << " / " << NameGuiObjClass[objclass];
   if (!enabled || !displayed) {
     //Log::Debug["event_loop.cc"] << "inside GuiObject::handle_event, rejected because !enabled or !displayed";
     return false;
   }
 
+  Log::Debug["event_loop.cc"] << "inside GuiObject::handle_event with event type " << event->type << " / " << NameGuiObjEvent[event->type] << " and objclass " << get_objclass() << " / " << NameGuiObjClass[get_objclass()];
+
+  //
+  // check to see if the mouse is within a Popup window so we can determine
+  //  which object should handle/ignore it.  
+  // If the position is outside the popup we return false (except with certain Drag rules)
+  //  otherwise we continue which lets the click be handled by popup
+  //
   int event_x = event->x;
   int event_y = event->y;
-  //Log::Debug["event_loop.cc"] << "inside GuiObject::handle_event before type check event_x = " << event_x << ", event_y = " << event_y;
-  //Log::Debug["event_loop.cc"] << "inside GuiObject::handle_event before type check event->dx = " << event->dx << ", event->dy = " << event->dy;
+  bool in_scope = true;  // set to true if the mouse pointer is not within the GuiObject's area (i.e. if within the popup window, or panelbar)
   if (event->type == Event::TypeLeftClick ||
       event->type == Event::TypeRightClick ||
       event->type == Event::TypeDoubleClick ||
       event->type == Event::TypeMiddleClick ||
       event->type == Event::TypeSpecialClick ||
+      event->type == Event::TypeMouseButtonDown ||
       event->type == Event::TypeDrag) {
     // I think this is adjusting by the offset of the GUI object's starting pos 0,0 (top-left) for popup, panelbar, etc.
-    //Log::Debug["event_loop.cc"] << "inside GuiObject::handle_event";
-    //if (event->type == Event::TypeDrag) {
-    //  Log::Debug["event_loop.cc"] << "inside GuiObject::handle_event is TypeDrag";
-    //}
     event_x = event->x - x;  
     event_y = event->y - y;
     if (event_x < 0 || event_y < 0 || event_x > width || event_y > height) {
-      //Log::Debug["event_loop.cc"] << "inside GuiObject::handle_event returning false because out of bounds";
-      return false;
+      // mouse pos is outside this gui object area
+      in_scope = false;
     }
-    //Log::Debug["event_loop.cc"] << "inside GuiObject::handle_event event_x = " << event_x << ", event_y = " << event_y;
+     //Log::Debug["event_loop.cc"] << "inside GuiObject::handle_event event_x = " << event_x << ", event_y = " << event_y;
   }
+
+  // special handling for dragging
+  //  when any mouse button is pressed DOWN, the current position of the mouse pointer on button-down
+  //  sets the 'being_dragged' bool to true for whichever GuiObject/popup the pointer is within
+  // The if a Drag event is found, the original mouse pos determines scope and NOT the current mouse
+  //  pointer pos because as the GuiObject is dragged the mouse pointer moves and would otherwise
+  //  start dragging the object now under the pointer when the mouse is no longer over the area of the
+  //  popup.  NOTE that it should be easier to simply move the moues pointer ALONG WITH the popup
+  //  but I couldn't figure out how
+  bool skip_event = !in_scope;
+  if (objclass != GuiObjectClass::ClassInterface && event->type == Event::TypeDrag){
+    if (!in_scope && being_dragged){
+      Log::Debug["event_loop.cc"] << "inside GuiObject::handle_event, GuiObjectClass " << NameGuiObjClass[objclass] << ", event is out of bounds BUT being_dragged bool is true so continuing as if it were in focus";
+      skip_event = false;
+    }else if (!in_scope && !being_dragged){
+      Log::Debug["event_loop.cc"] << "inside GuiObject::handle_event, GuiObjectClass " << NameGuiObjClass[objclass] << ", event is out of bounds and not being_dragged, ignoring this event for this game object";
+      skip_event = false;
+    }else if (in_scope && being_dragged){
+      Log::Debug["event_loop.cc"] << "inside GuiObject::handle_event, GuiObjectClass " << NameGuiObjClass[objclass] << ", event is in bounds and being_dragged, handling normally";
+      skip_event = false;
+    }else if (in_scope && !being_dragged){
+      Log::Debug["event_loop.cc"] << "inside GuiObject::handle_event, GuiObjectClass " << NameGuiObjClass[objclass] << ", event is in bounds BUT not being_dragged, ignoring this event for this object becaus some other object is being dragged";
+      skip_event = true;
+    }
+  }
+
+  if (skip_event){
+    Log::Debug["event_loop.cc"] << "inside GuiObject::handle_event, GuiObjectClass " << NameGuiObjClass[objclass] << ", skip_event is true, returning false";
+    return false;
+  }
+
+
+  //
+  // if this point reached, the event is in scope for this game object
+  //
 
   Event internal_event;
   internal_event.type = event->type;
@@ -173,6 +213,11 @@ GuiObject::handle_event(const Event *event) {
   switch (event->type) {
     case Event::TypeLeftClick:
       result = handle_left_click(event_x, event_y, event->dy);
+      break;
+    case Event::TypeMouseButtonDown:
+      Log::Debug["event_loop.cc"] << "inside GuiObject::handle_event with event tpye " << NameGuiObjEvent[event->type] << " and objclass " << NameGuiObjClass[objclass] << " calling 'result = handle_mouse_button_down' with event->dx " << event->dx << " and event->dy " << event->dy;
+      result = handle_mouse_button_down(event->dx, event->dy, event->button);
+      Log::Debug["event_loop.cc"] << "inside GuiObject::handle_event with event tpye " << NameGuiObjEvent[event->type] << " and objclass " << NameGuiObjClass[objclass] << " called 'result = handle_mouse_button_down', result was " << result;
       break;
     case Event::TypeDrag:
       //Log::Debug["event_loop.cc"] << "inside GuiObject::handle_event type TypeDrag calling 'result = handle_drag' with event->dx " << event->dx << " and event->dy " << event->dy;
@@ -304,6 +349,9 @@ void
 GuiObject::add_float(GuiObject *obj, int fx, int fy) {
   Log::Debug["gui.cc"] << "inside GuiObject::add_float() with type " << NameGuiObjClass[obj->get_objclass()] << " and type " << obj->get_objtype();
   obj->set_parent(this);
+  // it seems this parent concept is used only multi-part single popup windows with text files/file lists to allow both to be refreshed
+  //  such as save/load game boxes and random seed number box
+  // it has nothing to do with one popup opening another popup!  such as opening Options or Save window from the "computer" panel icon popup
   floats.push_back(obj);
   obj->move_to(fx, fy);
   set_redraw();
