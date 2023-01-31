@@ -774,4 +774,40 @@ const std::string NameSeason[] = {
   "SeasonWinter",
 };
 
+// these were originally placed in gui.cc but it seems when a new game is initialized it corrupted the values
+const std::string NameGuiObjClass[13]{
+  "GuiObjClass::ClassNone",
+  "GuiObjClass::ClassInterface",
+  "GuiObjClass::ClassGameInitBox",
+  "GuiObjClass::ClassViewport",
+  "GuiObjClass::ClassPopupBox",
+  "GuiObjClass::ClassPanelBar",
+  "GuiObjClass::ClassMinimap",
+  "GuiObjClass::ClassNotificationBox",
+  "GuiObjClass::ClassSaveGameFileList",
+  "GuiObjClass::ClassLoadGameFileList",
+  "GuiObjClass::ClassSaveGameNameInput",
+  "GuiObjClass::ClassRandomSeedInput",
+  "GuiObjClass::ClassDebugPosTextInput"
+};
+
+const std::string NameGuiObjEvent[15]{
+  "Event::Type::TypeLeftClick",
+  "Event::Type::TypeRightClick",
+  "Event::Type::TypeDoubleClick",
+  "Event::Type::TypeMiddleClick",
+  "Event::Type::TypeSpecialClick",
+  "Event::Type::TypeMouseButtonDown",
+  "Event::Type::TypeDrag",
+  "Event::Type::TypeKeyPressed",
+  "Event::Type::TypeNumPadKeyPressed",
+  "Event::Type::TypeArrowKeyPressed",
+  "Event::Type::TypeListScroll",
+  "Event::Type::TypeResize",
+  "Event::Type::TypeUpdate",
+  "Event::Type::TypeDraw",
+  "Event::Type::TypeZoom",
+};
+
+
 #endif  // SRC_LOOKUP_H_

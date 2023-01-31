@@ -422,7 +422,10 @@ PanelBar::button_special_click(int button) {
 
 bool
 PanelBar::handle_left_click(int cx, int cy, int modifier) {
-  being_dragged = false;
+  if (being_dragged){
+    being_dragged = false;
+    return false;
+  }
   Log::Debug["panel.cc"] << "inside PanelBar::handle_left_click(), cx " << cx << ", cy " << cy;
   set_redraw();
 
@@ -492,7 +495,10 @@ PanelBar::handle_left_click(int cx, int cy, int modifier) {
 
 bool
 PanelBar::handle_dbl_click(int lx, int ly, Event::Button button) {
-  being_dragged = false;
+  if (being_dragged){
+    being_dragged = false;
+    return false;
+  }
   //Log::Debug["panel.cc"] << "inside PanelBar::handle_dbl_click, button " << button;
   // for now, this does nothing except call special-click function
   if (button != Event::ButtonLeft){
@@ -503,7 +509,10 @@ PanelBar::handle_dbl_click(int lx, int ly, Event::Button button) {
 
 bool
 PanelBar::handle_special_click(int cx, int cy) {
-  being_dragged = false;
+  if (being_dragged){
+    being_dragged = false;
+    return false;
+  }
   //Log::Debug["panel.cc"] << "inside PanelBar::handle_special_click(), cx " << cx << ", cy " << cy;
   set_redraw();
 

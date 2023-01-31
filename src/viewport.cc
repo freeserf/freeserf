@@ -4230,7 +4230,10 @@ Viewport::handle_numpad_key_pressed(char key) {
 
 bool
 Viewport::handle_left_click(int lx, int ly, int modifier) {
-  being_dragged = false;
+  if (being_dragged){
+    being_dragged = false;
+    return false;
+  }
   set_redraw();
   MapPos clk_pos = map_pos_from_screen_pix(lx, ly);
 
@@ -4344,7 +4347,10 @@ Viewport::handle_left_click(int lx, int ly, int modifier) {
 
 bool
 Viewport::handle_dbl_click(int lx, int ly, Event::Button button) {
-  being_dragged = false;
+  if (being_dragged){
+    being_dragged = false;
+    return false;
+  }
   //Log::Debug["viewport.cc"] << "inside Viewport::handle_dbl_click, button " << button;
   // for now, this does nothing except call special-click function
   if (button != Event::ButtonLeft){
@@ -4355,7 +4361,10 @@ Viewport::handle_dbl_click(int lx, int ly, Event::Button button) {
 
 bool
 Viewport::handle_special_click(int lx, int ly) {
-  being_dragged = false;
+  if (being_dragged){
+    being_dragged = false;
+    return false;
+  }
   //Log::Debug["viewport.cc"] << "inside Viewport::handle_special_click()";
   set_redraw();
 
@@ -4498,10 +4507,11 @@ Viewport::handle_special_click(int lx, int ly) {
 
 bool
 Viewport::handle_mouse_button_down(int lx, int ly, Event::Button button) {
-  Log::Debug["viewport.cc"] << "inside Viewport::handle_mouse_button_down lx,ly = " << lx << "," << ly << ", button " << button << ", setting being_dragged bool to true";
-  being_dragged = true;
-  // because Interface and Viewport are tied together, mark both as true
-  interface->set_being_dragged();
+  Log::Debug["viewport.cc"] << "inside Viewport::handle_mouse_button_down lx,ly = " << lx << "," << ly << ", button " << button << ", setting focused bool to true";
+  //being_dragged = true;
+  /// because Interface and Viewport are tied together, mark both as true
+  //interface->set_being_dragged();
+  set_focused();
   return true;
 }
 

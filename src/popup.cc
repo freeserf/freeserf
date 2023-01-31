@@ -4667,7 +4667,10 @@ PopupBox::handle_action(int action, int x_, int /*y_*/) {
 /* Generic handler for clicks in popup boxes. */
 int
 PopupBox::handle_clickmap(int x_, int y_, const int clkmap[]) {
-  being_dragged = false;
+  if (being_dragged){
+    being_dragged = false;
+    return false;
+  }
   while (clkmap[0] >= 0) {
     if (clkmap[1] <= x_ && x_ < clkmap[1] + clkmap[3] &&
         clkmap[2] <= y_ && y_ < clkmap[2] + clkmap[4]) {
@@ -5441,7 +5444,10 @@ PopupBox::handle_save_clk(int cx, int cy) {
 bool
 //PopupBox::handle_left_click(int cx, int cy) {
 PopupBox::handle_left_click(int cx, int cy, int modifier) {
-  being_dragged = false;
+  if (being_dragged){
+    being_dragged = false;
+    return false;
+  }
   cx -= 8;
   cy -= 8;
 
@@ -5671,9 +5677,10 @@ PopupBox::handle_drag(int lx, int ly) {
     //  Log::Debug["popup.cc"] << "inside PopupBox::handle_drag, this popup has a parent which has width/height is " << parent_width << " / " << parent_height;
     //}
     // AH HAH I think this is all it takes, resize_tainted isn't needed anymore
-    if (box == PopupBox::TypeSettSelect){
+    if (box == PopupBox::TypeSettSelect || box == PopupBox::TypeStatSelect){  // need to check StatSelect also because it can change into SettSelect
       hacked_width = 144;
     }else{
+      // this allows double-wide popups to work as expected
       hacked_width = width;
     }
     int rightside = x + hacked_width;
@@ -5692,8 +5699,9 @@ PopupBox::handle_drag(int lx, int ly) {
 
 bool
 PopupBox::handle_mouse_button_down(int lx, int ly, Event::Button button) {
-  Log::Debug["popup.cc"] << "inside PopupBox::handle_mouse_button_down lx,ly = " << lx << "," << ly << ", button " << button << ", setting being_dragged bool to true";
-  being_dragged = true;
+  Log::Debug["popup.cc"] << "inside PopupBox::handle_mouse_button_down lx,ly = " << lx << "," << ly << ", button " << button << ", setting focused bool to true";
+  //being_dragged = true;
+  set_focused();
   return true;
 }
 
