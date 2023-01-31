@@ -128,6 +128,9 @@ int last_season = 1;  // four seasons
 int subseason = 0;  // 1/16th of a season
 int last_subseason = 0;
 bool is_list_in_focus = false;
+bool is_dragging_popup = false;
+int mouse_x_after_drag = 0;
+int mouse_y_after_drag = 0;
 typedef enum Season {
   SeasonSpring = 0,
   SeasonSummer = 1,

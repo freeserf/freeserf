@@ -4667,10 +4667,6 @@ PopupBox::handle_action(int action, int x_, int /*y_*/) {
 /* Generic handler for clicks in popup boxes. */
 int
 PopupBox::handle_clickmap(int x_, int y_, const int clkmap[]) {
-  if (being_dragged){
-    being_dragged = false;
-    return false;
-  }
   while (clkmap[0] >= 0) {
     if (clkmap[1] <= x_ && x_ < clkmap[1] + clkmap[3] &&
         clkmap[2] <= y_ && y_ < clkmap[2] + clkmap[4]) {
@@ -5628,6 +5624,16 @@ bool
 PopupBox::handle_drag(int lx, int ly) {
   Log::Debug["popup.cc"] << "inside PopupBox::handle_drag lx,ly = " << lx << "," << ly << " width " << width << ", height " << height;
   if (lx != 0 || ly != 0) {
+
+    // to avoid issue where slight movement while clicking a popup button is intepreted as a drag,
+    //  force the initial drag to be a strong motion to "release" the popup into drag mode
+    //  THIS IS HANDLED INSIDE GuiObject::handle_event NOT HERE
+
+    // save the offset from the original position so that the mouse pointer can be sent
+    //  there because it does not follow for reasons I don't quite understand
+    mouse_x_after_drag += lx;
+    mouse_y_after_drag += ly;
+
     //move_by_pixels(lx, ly);
     x += lx;
     y += ly;
@@ -5690,7 +5696,6 @@ PopupBox::handle_drag(int lx, int ly) {
     if (x < 0){ x = 0; }
     if (y < 0){ y = 0; }
 
-
     set_redraw();
   }
   
@@ -5700,7 +5705,10 @@ PopupBox::handle_drag(int lx, int ly) {
 bool
 PopupBox::handle_mouse_button_down(int lx, int ly, Event::Button button) {
   Log::Debug["popup.cc"] << "inside PopupBox::handle_mouse_button_down lx,ly = " << lx << "," << ly << ", button " << button << ", setting focused bool to true";
-  //being_dragged = true;
+  being_dragged = false;  // need to UNSET this to prevent it from carrying over from prev drag, it will be set by the GuiObject::handle_event handler for TypeDrag
+  Graphics &gfx = Graphics::get_instance();
+  gfx.get_mouse_cursor_coord(&mouse_x_after_drag, &mouse_y_after_drag);  // store the CURRENT mouse x/y BEFORE dragging so its adjusted position can track the drag
+  Log::Debug["popup.cc"] << "inside PopupBox::handle_mouse_button_down, mouse_x_y_before_drag is " << mouse_x_after_drag << "," << mouse_y_after_drag;
   set_focused();
   return true;
 }
