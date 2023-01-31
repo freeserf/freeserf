@@ -183,11 +183,12 @@ GuiObject::handle_event(const Event *event) {
       //  force the initial drag to be a strong motion to "release" the popup into drag mode
       if (being_dragged == false){
         if (objclass == GuiObjectClass::ClassPopupBox) {
-          if (event->dx < -4 || event->dx > 4 || event->dy < -4 || event->dy > 4){
+          if (event->dx < -5 || event->dx > 5 || event->dy < -5 || event->dy > 5){
             Log::Debug["gui.cc"] << "inside GuiObject::handle_event, GuiObjectClass " << NameGuiObjClass[objclass] << " and objtype " << get_objtype() << ", event is in bounds and focused, and drag pressure is enough to release the popup to drag mode, setting being_dragged bool true";
             being_dragged = true;
             Log::Debug["gui.cc"] << "inside GuiObject::handle_event, GuiObjectClass " << NameGuiObjClass[objclass] << " and objtype " << get_objtype() << ", event is in bounds and focused, and drag pressure is enough to release the popup to drag mode, setting global is_dragging_popup bool true";
             is_dragging_popup = true; // global bool, for telling SDL event loop if the mouse pointer should try to stay put (for viewport/minimap) or move with drag motion (for popups)
+                                      // AND ALSO to prevent triggering a click event at the end of the drag for Viewport, because Viewport is always "in_scope" even behind a popup
             //Graphics &gfx = Graphics::get_instance();
             //gfx.get_mouse_cursor_coord(&mouse_x_after_drag, &mouse_y_after_drag);  // store the CURRENT mouse x/y BEFORE dragging so its adjusted position can track the drag
             Log::Debug["gui.cc"] << "inside GuiObject::handle_event, GuiObjectClass " << NameGuiObjClass[objclass] << " and objtype " << get_objtype() << ", event is in bounds and focused, and drag pressure is enough to release the popup to drag mode, hiding the mouse pointer until dragging complete";

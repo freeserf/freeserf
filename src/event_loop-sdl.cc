@@ -209,56 +209,60 @@ EventLoopSDL::run() {
           //Log::Debug["event_loop-sdl.cc"] << "inside EventLoopSDL::run(), type SDL_MOUSEBUTTONUP, drag_button = 0";
         }
 
-        if (event.button.button <= 3) {
-          //Log::Debug["event_loop-sdl.cc"] << "inside EventLoopSDL::run(), type SDL_MOUSEBUTTONUP, event.button.button " << event.button.button << " is <= 3";
-          int x = static_cast<int>(static_cast<float>(event.button.x) *
-                                   zoom_factor * screen_factor_x);
-          int y = static_cast<int>(static_cast<float>(event.button.y) *
-                                   zoom_factor * screen_factor_y);
-          if (button_middle_down || event.button.button == 2){
-            if (option_SpecialClickMiddle){
-              notify_middle_click(x, y);  // this simply executes special click function
-            }
-          }else if (button_left_down && button_right_down){
-            if (option_SpecialClickBoth){
-              notify_special_click(x, y);
-            }
-          }else if (event.button.button == 1){
-            SDL_Keymod mod = SDL_GetModState();
-            notify_left_click(x, y, mod, (Event::Button)event.button.button);
-          }else if (event.button.button == 3){
-            notify_right_click(x, y);
-          }
-          //Log::Debug["event_loop-sdl.cc"] << "inside EventLoopSDL::run(), type SDL_MOUSEBUTTONUP, foo";
-
-          if (option_SpecialClickDouble){
-            if (current_ticks - last_click[event.button.button] <
-                  MOUSE_TIME_SENSITIVITY &&
-                event.button.x >= (last_click_x - MOUSE_MOVE_SENSITIVITY) &&
-                event.button.x <= (last_click_x + MOUSE_MOVE_SENSITIVITY) &&
-                event.button.y >= (last_click_y - MOUSE_MOVE_SENSITIVITY) &&
-                event.button.y <= (last_click_y + MOUSE_MOVE_SENSITIVITY)) {
-              notify_dbl_click(x, y, (Event::Button)event.button.button);
-            }
-            //Log::Debug["event_loop-sdl.cc"] << "inside EventLoopSDL::run(), type SDL_MOUSEBUTTONUP, foo2";
-          }
-          //Log::Debug["event_loop-sdl.cc"] << "inside EventLoopSDL::run(), type SDL_MOUSEBUTTONUP, foo3";
-          last_click[event.button.button] = current_ticks;
-          last_click_x = event.button.x;
-          last_click_y = event.button.y;
-        }
-
-        //Log::Debug["event_loop-sdl.cc"] << "inside EventLoopSDL::run(), type SDL_MOUSEBUTTONUP, foo4";
-        button_left_down = false;
-        button_middle_down = false;
-        button_right_down = false;
         Log::Debug["event_loop-sdl.cc"] << "inside EventLoopSDL::run(), type SDL_MOUSEBUTTONUP, is_dragging_popup bool is " << is_dragging_popup;
         if (is_dragging_popup){
           Log::Debug["event_loop-sdl.cc"] << "inside EventLoopSDL::run(), type SDL_MOUSEBUTTONUP, is_dragging_popup bool is true, calling warp to " << mouse_x_after_drag << "," << mouse_y_after_drag;
           SDL_ShowCursor(SDL_ENABLE); // this is disabled at start of a Popup drag
           SDL_WarpMouseInWindow(nullptr, mouse_x_after_drag, mouse_y_after_drag);
           is_dragging_popup = false;
+        }else{
+
+          if (event.button.button <= 3) {
+            //Log::Debug["event_loop-sdl.cc"] << "inside EventLoopSDL::run(), type SDL_MOUSEBUTTONUP, event.button.button " << event.button.button << " is <= 3";
+            int x = static_cast<int>(static_cast<float>(event.button.x) *
+                                    zoom_factor * screen_factor_x);
+            int y = static_cast<int>(static_cast<float>(event.button.y) *
+                                    zoom_factor * screen_factor_y);
+            if (button_middle_down || event.button.button == 2){
+              if (option_SpecialClickMiddle){
+                notify_middle_click(x, y);  // this simply executes special click function
+              }
+            }else if (button_left_down && button_right_down){
+              if (option_SpecialClickBoth){
+                notify_special_click(x, y);
+              }
+            }else if (event.button.button == 1){
+              SDL_Keymod mod = SDL_GetModState();
+              notify_left_click(x, y, mod, (Event::Button)event.button.button);
+            }else if (event.button.button == 3){
+              notify_right_click(x, y);
+            }
+            //Log::Debug["event_loop-sdl.cc"] << "inside EventLoopSDL::run(), type SDL_MOUSEBUTTONUP, foo";
+
+            if (option_SpecialClickDouble){
+              if (current_ticks - last_click[event.button.button] <
+                    MOUSE_TIME_SENSITIVITY &&
+                  event.button.x >= (last_click_x - MOUSE_MOVE_SENSITIVITY) &&
+                  event.button.x <= (last_click_x + MOUSE_MOVE_SENSITIVITY) &&
+                  event.button.y >= (last_click_y - MOUSE_MOVE_SENSITIVITY) &&
+                  event.button.y <= (last_click_y + MOUSE_MOVE_SENSITIVITY)) {
+                notify_dbl_click(x, y, (Event::Button)event.button.button);
+              }
+              //Log::Debug["event_loop-sdl.cc"] << "inside EventLoopSDL::run(), type SDL_MOUSEBUTTONUP, foo2";
+            }
+            //Log::Debug["event_loop-sdl.cc"] << "inside EventLoopSDL::run(), type SDL_MOUSEBUTTONUP, foo3";
+            last_click[event.button.button] = current_ticks;
+            last_click_x = event.button.x;
+            last_click_y = event.button.y;
+          }
+
         }
+
+        //Log::Debug["event_loop-sdl.cc"] << "inside EventLoopSDL::run(), type SDL_MOUSEBUTTONUP, foo4";
+        button_left_down = false;
+        button_middle_down = false;
+        button_right_down = false;
+
         break;
       case SDL_MOUSEBUTTONDOWN:
         //Log::Debug["event_loop-sdl.cc"] << "inside EventLoopSDL::run(), type SDL_MOUSEBUTTONDOWN";
