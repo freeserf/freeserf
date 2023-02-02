@@ -225,7 +225,7 @@ class PopupBox : public GuiObject {
   void draw_custom_bld_box(const int sprites[]);
   void draw_custom_icon_box(const int sprites[]);
   const std::string prepare_res_amount_text(int amount) const;
-  void draw_map_box();
+  void draw_map_box(); // minimap popup
   void draw_mine_building_box();
   void draw_basic_building_box(int flip);
   void draw_adv_1_building_box();

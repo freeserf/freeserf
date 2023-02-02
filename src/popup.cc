@@ -583,6 +583,7 @@ PopupBox::prepare_res_amount_text(int amount) const {
   return "Perfect";
 }
 
+// minimap popup, contains a MiniMap float object inside
 void
 PopupBox::draw_map_box() {
   /* Icons */
@@ -594,7 +595,11 @@ PopupBox::draw_map_box() {
     draw_popup_icon(8, 128, minimap->get_draw_buildings() ? 5 : 6);
   }
   draw_popup_icon(12, 128, minimap->get_draw_grid() ? 7 : 8);  // Grid
-  draw_popup_icon(14, 128, (minimap->get_scale() == 1) ? 91 : 92);  // Scale
+  // with movable/pinned popups, need a close button, stealing the scale/zoom button area for this because it is same bottom-right corner
+  //  so there is currently no scale/zoom button in minimap now, can re-add some other way eventually
+  //draw_popup_icon(14, 128, (minimap->get_scale() == 1) ? 91 : 92);  // Scale
+  draw_popup_icon(14, 128, 60); /* exit */
+
 }
 
 /* Draw building mine popup box. */
@@ -616,6 +621,8 @@ PopupBox::draw_mine_building_box() {
   }
 
   draw_custom_bld_box(layout);
+
+  draw_popup_icon(14, 128, 60); /* exit */
 }
 
 /* Draw .. popup box... */
@@ -648,6 +655,8 @@ PopupBox::draw_basic_building_box(int flip) {
   }
 
   if (flip) draw_popup_icon(0, 128, 0x3d);
+
+  draw_popup_icon(14, 128, 60); /* exit */
 }
 
 void
@@ -665,6 +674,8 @@ PopupBox::draw_adv_1_building_box() {
   draw_box_background(PatternConstruction);
   draw_custom_bld_box(layout);
   draw_popup_icon(0, 128, 0x3d);
+
+  draw_popup_icon(14, 128, 60); /* exit */
 }
 
 void
@@ -688,6 +699,8 @@ PopupBox::draw_adv_2_building_box() {
   draw_box_background(PatternConstruction);
   draw_custom_bld_box(l);
   draw_popup_icon(0, 128, 0x3d);
+
+  draw_popup_icon(14, 128, 60); /* exit */
 }
 
 /* Draw generic popup box of resources. */
@@ -4881,6 +4894,8 @@ PopupBox::handle_mine_building_clk(int cx, int cy) {
     ACTION_BUILD_IRONMINE, 32, 77, 33, 65,
     ACTION_BUILD_GOLDMINE, 80, 77, 33, 65,
     ACTION_BUILD_FLAG, 10, 114, 17, 21,
+
+    ACTION_CLOSE_BOX, 112, 128, 16, 16,
     -1
   };
   handle_clickmap(cx, cy, clkmap);
@@ -4898,6 +4913,8 @@ PopupBox::handle_basic_building_clk(int cx, int cy, int flip) {
     ACTION_BUILD_MILL, 16, 92, 33, 46,
     ACTION_BUILD_FLAG, 58, 108, 17, 21,
     ACTION_BUILD_BOATBUILDER, 80, 87, 33, 53,
+
+    ACTION_CLOSE_BOX, 112, 128, 16, 16,
     -1
   };
 
@@ -4917,6 +4934,8 @@ PopupBox::handle_adv_1_building_clk(int cx, int cy) {
     ACTION_BUILD_SAWMILL, 64, 50, 49, 41,
     ACTION_BUILD_BAKER, 16, 100, 49, 33,
     ACTION_BUILD_GOLDSMELTER, 80, 96, 49, 40,
+
+    ACTION_CLOSE_BOX, 112, 128, 16, 16,
     -1
   };
   handle_clickmap(cx, cy, clkmap);
@@ -4932,6 +4951,8 @@ PopupBox::handle_adv_2_building_clk(int cx, int cy) {
     ACTION_BUILD_FARM, 64, 1, 64, 42,
     ACTION_BUILD_PIGFARM, 64, 45, 64, 41,
     ACTION_BUILD_STOCK, 0, 50, 48, 48,
+
+    ACTION_CLOSE_BOX, 112, 128, 16, 16,
     -1
   };
   handle_clickmap(cx, cy, clkmap);
@@ -5360,7 +5381,8 @@ PopupBox::handle_minimap_clk(int cx, int cy) {
     ACTION_MINIMAP_ROADS, 32, 128, 32, 16,
     ACTION_MINIMAP_BUILDINGS, 64, 128, 32, 16,
     ACTION_MINIMAP_GRID, 96, 128, 16, 16,
-    ACTION_MINIMAP_SCALE, 112, 128, 16, 16,
+    //ACTION_MINIMAP_SCALE, 112, 128, 16, 16,
+    ACTION_CLOSE_BOX, 112, 128, 16, 16,
     -1
   };
 
