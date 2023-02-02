@@ -161,6 +161,9 @@ class PopupBox : public GuiObject {
   // tlongstretch debug popup
   std::unique_ptr<TextInput> debug_pos_text_input_field;
 
+  bool lifted = false; // if this popup was ever dragged anywhere, it becomes lifted and eligible for pinning
+  //bool pinned = false; // if pinned the popup will not move
+
 
   Type box;
 

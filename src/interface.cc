@@ -97,6 +97,7 @@ Interface::Interface()
   viewport = nullptr;
   panel = nullptr;
   popup = nullptr;
+  pinned_popups = {};
   init_box = nullptr;
   notification_box = nullptr;
 
@@ -142,12 +143,25 @@ Interface::get_panel_bar() {
   return panel;
 }
 
+// in the original Freeserf code (and original game) there can only be ONE popup
+//  at a time
+// adding support for multiple/pinned/movable popups.  Now there are two types,
+//  the one and only "normal" transient popup box and any number of pinned
+//  popup boxes
 PopupBox *
 Interface::get_popup_box() {
-  return popup;
+  return popup;   // get the one and only normal transient popup
+}
+
+std::vector<PopupBox *>
+Interface::get_pinned_popup_boxes() {
+  return pinned_popups;
 }
 
 /* Open popup box */
+// NOTE until adding moveable popup feature there is only ONE popup ever allowed.  If one popup leads to another
+//  the same PopupBox object is used with a new type and redrawn but keeps other attributes.  
+//
 void
 Interface::open_popup(int box) {
   //Log::Debug["interface.cc"] << "inside Interface::open_popup(), for popup type " << box;
@@ -167,6 +181,10 @@ Interface::open_popup(int box) {
   //  its double-wide size which messes up its dragging to right side of the screen... UNTIL the window is resized
   //  then it gets fixed :-/
   // NEED TO PROPERLY SEPARATE SettSelect and Options popups!!!
+  //
+  // I think the issue is simply that there is only one popup, and it is re-used with a new type until closed
+  //  so either handle the resizing better, or simply close and re-open it when changing types
+  //
   if (box == PopupBox::TypeOptions || box == PopupBox::TypeGameOptions || box == PopupBox::TypeGameOptions2
    || box == PopupBox::TypeGameOptions3 || box == PopupBox::TypeGameOptions4
    || box == PopupBox::TypeEditMapGenerator || box == PopupBox::TypeEditMapGenerator2 || box == PopupBox::TypeSettSelect){
@@ -211,14 +229,49 @@ Interface::open_popup(int box) {
 }
 
 /* Close the current popup. */
+// if there is no current normal popup, search for a 
+//  pinned_popup that has the clicked position
 void
-Interface::close_popup() {
+//Interface::close_popup() {
+//Interface::close_popup(int click_x, int click_y) {
+Interface::close_popup(PopupBox *popup_to_close) {
+  //Log::Debug["popup.cc"] << "inside Interface::close_popup, with click coords " << x << "," << y;
+  Log::Debug["popup.cc"] << "inside Interface::close_popup";
+  if (popup != popup_to_close){
+    Log::Debug["popup.cc"] << "inside Interface::close_popup, closing a pinned popup";
+    if (popup_to_close == nullptr) {
+      return;
+    }
+    popup_to_close->hide();
+    del_float(popup_to_close);
+    delete popup_to_close;
+    popup_to_close = nullptr;
+  }else{
+    Log::Debug["popup.cc"] << "inside Interface::close_popup, closing 'the one' transient popup";
+    if (popup == nullptr) {
+      return;
+    }
+    popup->hide();
+    del_float(popup);
+    delete popup;
+    popup = nullptr;
+  }
+  update_map_cursor_pos(map_cursor_pos);
+  if (panel != nullptr) {
+    panel->update();
+  }
+}
+
+void
+Interface::pin_popup() {
+  Log::Debug["popup.cc"] << "inside Interface::pin_popup";
   if (popup == nullptr) {
     return;
   }
-  popup->hide();
-  del_float(popup);
-  delete popup;
+  pinned_popups.push_back(popup);
+  //popup->hide();
+  //del_float(popup);
+  //delete popup;
   popup = nullptr;
   update_map_cursor_pos(map_cursor_pos);
   if (panel != nullptr) {
@@ -435,7 +488,7 @@ Interface::return_from_message() {
     viewport->move_to_map_pos(return_pos);
 
     if ((popup != nullptr) && (popup->get_box() == PopupBox::TypeMessage)) {
-      close_popup();
+      close_popup(popup);
     }
     play_sound(Audio::TypeSfxClick);
   }
@@ -966,7 +1019,7 @@ Interface::build_building(Building::Type type) {
   Log::Debug["interface.cc"] << "inside Interface::build_building, can build type " << NameBuilding[type];
 
   play_sound(Audio::TypeSfxAccepted);
-  close_popup();
+  close_popup(popup);
 
   /* Move cursor to flag. */
   MapPos flag_pos = game->get_map()->move_down_right(map_cursor_pos);
@@ -1279,7 +1332,7 @@ Interface::handle_key_pressed(char key, int modifier) {
       if ((notification_box != nullptr) && notification_box->is_displayed()) {
         close_message();
       } else if ((popup != nullptr) && popup->is_displayed()) {
-        close_popup();
+        close_popup(popup);
       } else if (building_road.is_valid()) {
         build_road_end();
       }
@@ -1610,7 +1663,7 @@ Interface::handle_event(const Event *event) {
         if ((notification_box != nullptr) && notification_box->is_displayed()) {
           close_message();
         } else if ((popup != nullptr) && popup->is_displayed()) {
-          close_popup();
+          close_popup(popup);
         } else if (building_road.is_valid()) {
           build_road_end();
         }

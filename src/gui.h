@@ -107,6 +107,7 @@ class GuiObject : public EventLoop::Handler {
 
   void add_float(GuiObject *obj, int x, int y);
   void del_float(GuiObject *obj);
+  FloatList get_floats() {return floats; }  // for getting the Interface's float list for pinned popup handling
   GuiObjClass get_objclass() { return objclass; }
   void set_objclass(GuiObjClass objclass_) { objclass = objclass_; }
   int get_objtype() { return objtype; }

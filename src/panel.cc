@@ -209,7 +209,7 @@ PanelBar::button_click(int button) {
       play_sound(Audio::TypeSfxClick);
       if ((popup != nullptr) && popup->is_displayed()) {
         //Log::Debug["panel.cc"] << "inside PanelBar::button_click, opening minimap Z, closing popup";
-        interface->close_popup();
+        interface->close_popup(popup);
       } else {
         panel_btns[0] = ButtonBuildInactive;
         panel_btns[1] = ButtonDestroyInactive;
@@ -266,7 +266,7 @@ PanelBar::button_click(int button) {
     case ButtonSettStarred:
       play_sound(Audio::TypeSfxClick);
       if ((popup != nullptr) && popup->is_displayed()) {
-        interface->close_popup();
+        interface->close_popup(popup);
       } else {
         panel_btns[0] = ButtonBuildInactive;
         panel_btns[1] = ButtonDestroyInactive;
@@ -280,7 +280,7 @@ PanelBar::button_click(int button) {
     case ButtonStatsStarred:
       play_sound(Audio::TypeSfxClick);
       if ((popup != nullptr) && popup->is_displayed()) {
-        interface->close_popup();
+        interface->close_popup(popup);
       } else {
         panel_btns[0] = ButtonBuildInactive;
         panel_btns[1] = ButtonDestroyInactive;
@@ -307,7 +307,7 @@ PanelBar::button_click(int button) {
     case ButtonBuildSmallStarred:
       play_sound(Audio::TypeSfxClick);
       if ((popup != nullptr) && popup->is_displayed()) {
-        interface->close_popup();
+        interface->close_popup(popup);
       } else {
         panel_btns[0] = ButtonBuildSmallStarred;
         panel_btns[1] = ButtonDestroyInactive;
@@ -321,7 +321,7 @@ PanelBar::button_click(int button) {
     case ButtonBuildLargeStarred:
       play_sound(Audio::TypeSfxClick);
       if ((popup != nullptr) && popup->is_displayed()) {
-        interface->close_popup();
+        interface->close_popup(popup);
       } else {
         panel_btns[0] = ButtonBuildLargeStarred;
         panel_btns[1] = ButtonDestroyInactive;
@@ -335,7 +335,7 @@ PanelBar::button_click(int button) {
     case ButtonBuildMineStarred:
       play_sound(Audio::TypeSfxClick);
       if ((popup != nullptr) && popup->is_displayed()) {
-        interface->close_popup();
+        interface->close_popup(popup);
       } else {
         panel_btns[0] = ButtonBuildMineStarred;
         panel_btns[1] = ButtonDestroyInactive;
@@ -391,7 +391,7 @@ PanelBar::button_click(int button) {
     case ButtonGroundAnalysisStarred:
       play_sound(Audio::TypeSfxClick);
       if ((popup != nullptr) && popup->is_displayed()) {
-        interface->close_popup();
+        interface->close_popup(popup);
       } else {
         panel_btns[0] = ButtonBuildInactive;
         panel_btns[1] = ButtonGroundAnalysisStarred;
@@ -466,7 +466,7 @@ PanelBar::handle_left_click(int cx, int cy, int modifier) {
     PopupBox *popup = interface->get_popup_box();
     if ((popup != nullptr) && popup->is_displayed()) {
       Log::Debug["panel.cc"] << "inside PanelBar::handle_left_click, closing debug popup";
-      interface->close_popup();
+      interface->close_popup(popup);
     } else {
       Log::Debug["panel.cc"] << "inside PanelBar::handle_left_click, opening debug popup";
       interface->open_popup(PopupBox::TypeDebug);

@@ -80,6 +80,7 @@ class Interface : public GuiObject, public GameManager::Handler {
   Viewport *viewport;
   PanelBar *panel;
   PopupBox *popup;
+  std::vector<PopupBox *> pinned_popups;  // tlongstretch adding support for multiple/pinned/moveable popups
   GameInitBox *init_box;
   NotificationBox *notification_box;
 
@@ -124,6 +125,7 @@ class Interface : public GuiObject, public GameManager::Handler {
   Viewport *get_viewport();
   PanelBar *get_panel_bar();
   PopupBox *get_popup_box();
+  std::vector<PopupBox *> get_pinned_popup_boxes();
   NotificationBox *get_notification_box() { return notification_box; }
 
   bool get_config(int i) const { return (BIT_TEST(config, i) != 0); }
@@ -148,7 +150,10 @@ class Interface : public GuiObject, public GameManager::Handler {
   BuildPossibility get_build_possibility() const { return build_possibility; }
 
   void open_popup(int box);
-  void close_popup();
+  //void close_popup();
+  //void close_popup(int x, int y);  // added coordinates to determine which pinned popup (if any) is being closed
+  void close_popup(PopupBox *popup_to_close);  // close specific popup box
+  void pin_popup();  // for moveable popups
   void draw_transient_popup(); // for PleaseWait notification popups that require no user action and disappear once complete, for slow functions
 
   void open_game_init();
