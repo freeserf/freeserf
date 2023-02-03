@@ -1503,14 +1503,16 @@ Game::flag_reset_transport(Flag *flag) {
   }
 }
 
+/* this function should no longer be needed now that popup class objects store their target_obj_index
 void
 Game::building_remove_player_refs(Building *building) {
   for (Player *player : players) {
-    if (player->temp_index == building->get_index()) {
-      player->temp_index = 0;
+    if (player->popup_target_obj_index == building->get_index()) {
+      player->popup_target_obj_index = 0;
     }
   }
 }
+*/
 
 bool
 Game::path_serf_idle_to_wait_state(MapPos pos) {
@@ -2268,14 +2270,16 @@ Game::build_castle(MapPos pos, Player *player) {
   return true;
 }
 
+/* this function should no longer be needed now that popup class objects store their target_obj_index
 void
 Game::flag_remove_player_refs(Flag *flag) {
   for (Player *player : players) {
-    if (player->temp_index == flag->get_index()) {
-      player->temp_index = 0;
+    if (player->popup_target_obj_index == flag->get_index()) {
+      player->popup_target_obj_index = 0;
     }
   }
 }
+*/
 
 /* Check whether road can be demolished. */
 bool
@@ -2325,7 +2329,7 @@ Game::demolish_flag_(MapPos pos) {
     throw ExceptionFreeserf("Failed to demolish flag with building.");
   }
 
-  flag_remove_player_refs(flag);
+  //flag_remove_player_refs(flag); this function should no longer be needed now that popup class objects store their target_obj_index
 
   /* Handle connected flag. */
   flag->merge_paths(pos);
@@ -2357,7 +2361,7 @@ bool
 Game::demolish_building_(MapPos pos) {
   Building *building = buildings[map->get_obj_index(pos)];
   if (building->burnup()) {
-    building_remove_player_refs(building);
+    //building_remove_player_refs(building);  // this function should no longer be needed now that popup class objects store their target_obj_index
 
     /* Remove path to building. */
     map->del_path(pos, Direction::DirectionDownRight);

@@ -4232,7 +4232,7 @@ bool
 Viewport::handle_left_click(int lx, int ly, int modifier) {
   if (being_dragged){
     being_dragged = false;
-    return false;
+    //return false; // allow click after drag otherwise it makes the UI feel unresponsive
   }
   set_redraw();
   MapPos clk_pos = map_pos_from_screen_pix(lx, ly);
@@ -4349,7 +4349,7 @@ bool
 Viewport::handle_dbl_click(int lx, int ly, Event::Button button) {
   if (being_dragged){
     being_dragged = false;
-    return false;
+    //return false; // allow click after drag otherwise it makes the UI feel unresponsive
   }
   //Log::Debug["viewport.cc"] << "inside Viewport::handle_dbl_click, button " << button;
   // for now, this does nothing except call special-click function
@@ -4363,7 +4363,7 @@ bool
 Viewport::handle_special_click(int lx, int ly) {
   if (being_dragged){
     being_dragged = false;
-    return false;
+    //return false; // allow click after drag otherwise it makes the UI feel unresponsive
   }
   //Log::Debug["viewport.cc"] << "inside Viewport::handle_special_click()";
   set_redraw();
@@ -4414,9 +4414,10 @@ Viewport::handle_special_click(int lx, int ly) {
     if (map->get_obj(clk_pos) == Map::ObjectFlag) {
       if (map->get_owner(clk_pos) == player->get_index()) {
         interface->open_popup(PopupBox::TypeTransportInfo);
+        interface->get_popup_box()->set_target_obj_index(map->get_obj_index(clk_pos));
       }
 
-      player->temp_index = map->get_obj_index(clk_pos);
+      //player->popup_target_obj_index = map->get_obj_index(clk_pos);
     } else { /* Building */
       Building *building = interface->get_game()->get_building_at_pos(clk_pos);
       if ((building == nullptr) || building->is_burning()) {
@@ -4443,7 +4444,10 @@ Viewport::handle_special_click(int lx, int ly) {
           interface->open_popup(PopupBox::TypeBldStock);
         }
 
-        player->temp_index = map->get_obj_index(clk_pos);
+        //player->popup_target_obj_index = map->get_obj_index(clk_pos);
+        if(interface->get_popup_box() != nullptr){
+          interface->get_popup_box()->set_target_obj_index(map->get_obj_index(clk_pos));
+        }
       } else { /* Foreign building */
         /* TODO handle coop mode*/
 
@@ -4855,4 +4859,13 @@ Viewport::update() {
   if (tick_xor >= 1 << 3) {
     set_redraw();
   }
+
+  // refresh/update floating/moveable/pinned/multiple popups
+  if (interface->get_game()->get_const_tick() % 40 == 0){
+    //Log::Debug["viewport.cc"] << "inside Viewport::update(), refreshing any pinned popups";
+    for (PopupBox *pinned_popup : interface->get_pinned_popup_boxes()){
+      pinned_popup->set_redraw();
+    }
+  }
+
 }

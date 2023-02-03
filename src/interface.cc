@@ -242,7 +242,7 @@ Interface::close_popup(PopupBox *popup_to_close) {
     if (popup_to_close == nullptr) {
       return;
     }
-    popup_to_close->hide();
+    //popup_to_close->hide();
     del_float(popup_to_close);
     delete popup_to_close;
     popup_to_close = nullptr;
@@ -721,6 +721,7 @@ Interface::update_interface() {
   if (panel != nullptr) {
     panel->update();
   }
+
 }
 
 void
@@ -1507,7 +1508,26 @@ Interface::handle_key_pressed(char key, int modifier) {
         }
       }
       else {
+        // close all popups, now that there is no longer one single popup whose index is tied to player, it becomes
+        //  possible to have popups open for multiple players, which is confusing I think
+        for (PopupBox *pinned_popup : get_pinned_popup_boxes()){
+          close_popup(pinned_popup);
+        }
+        /*    wait this style isn't needed because we don't need to prune specific popups
+        //     just delete all their objects and then empty the vector
+        //std::vector<PopupBox *>::iterator it = pinned_popups.begin();
+        //while (it != pinned_popups.end()){
+        //  del_float((*it));
+        //  delete (*it);
+        //  //it = pinned_popups.erase(it);
+        //}
+        */
+        pinned_popups = {};
+
+        close_popup(popup);  // non-pinned "the one" popup
+
         set_player(next_index);
+        play_sound(Audio::TypeSfxAccepted);
         Log::Info["interface.cc"] << "Switched to player #" << next_index;
       }
       reload_any_minimaps();

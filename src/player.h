@@ -171,7 +171,8 @@ class Player : public GameObject {
   int attacked_building_flag_pos; // tlongstretch - adding attacked building pos to sanity check pathfinding to it
   int attacking_knights[4];
   int total_attacking_knights;
-  unsigned int temp_index;
+  //unsigned int popup_target_obj_index;  // this seems to store the index of the building/flag that the player recently clicked on, for popup purposes
+              // this should no longer be needed now that popup class objects store their target_obj_index
 
  public:
   Player(Game *game, unsigned int index);

@@ -2408,13 +2408,12 @@ PopupBox::draw_castle_res_box() {
   draw_box_background(PatternPlaidAlongGreen);
   draw_custom_icon_box(layout);
 
-  if (interface->get_player()->temp_index == 0) {
+  Building *building = interface->get_game()->get_building(target_obj_index);
+  if (building == nullptr){
+    play_sound(Audio::TypeSfxAhhh);
     interface->close_popup(this);
     return;
   }
-
-  Building *building =
-       interface->get_game()->get_building(interface->get_player()->temp_index);
   if (building->is_burning()) {
     interface->close_popup(this);
     return;
@@ -2435,13 +2434,12 @@ void
 PopupBox::draw_mine_output_box() {
   draw_box_background(PatternPlaidAlongGreen);
 
-  if (interface->get_player()->temp_index == 0) {
+  Building *building = interface->get_game()->get_building(target_obj_index);
+  if (building == nullptr){
+    play_sound(Audio::TypeSfxAhhh);
     interface->close_popup(this);
     return;
   }
-
-  Building *building =
-       interface->get_game()->get_building(interface->get_player()->temp_index);
   if (building->is_burning()) {
     interface->close_popup(this);
     return;
@@ -2566,14 +2564,9 @@ void
 PopupBox::draw_ordered_building_box() {
   draw_box_background(PatternPlaidAlongGreen);
 
-  if (interface->get_player()->temp_index == 0) {
-    interface->close_popup(this);
-    return;
-  }
-
-  Building *building =
-       interface->get_game()->get_building(interface->get_player()->temp_index);
-  if (building->is_burning()) {
+  Building *building = interface->get_game()->get_building(target_obj_index);
+  if (building == nullptr){
+    play_sound(Audio::TypeSfxAhhh);
     interface->close_popup(this);
     return;
   }
@@ -2605,18 +2598,14 @@ void
 PopupBox::draw_defenders_box() {
   draw_box_background(PatternPlaidAlongGreen);
 
+  Building *building = interface->get_game()->get_building(target_obj_index);
+  if (building == nullptr){
+    play_sound(Audio::TypeSfxAhhh);
+    interface->close_popup(this);
+    return;
+  }
+
   Player *player = interface->get_player();
-  if (player->temp_index == 0) {
-    interface->close_popup(this);
-    return;
-  }
-
-  Building *building = interface->get_game()->get_building(player->temp_index);
-  if (building->is_burning()) {
-    interface->close_popup(this);
-    return;
-  }
-
   if (building->get_owner() != player->get_index()) {
     interface->close_popup(this);
     return;
@@ -2699,13 +2688,12 @@ PopupBox::draw_transport_info_box() {
   /* TODO show path merge button. */
   /* if (r == 0) draw_popup_icon(7, 51, 0x135); */
 
-  if (interface->get_player()->temp_index == 0) {
+  Flag *flag = interface->get_game()->get_flag(target_obj_index);
+  if (flag == nullptr){
+    //play_sound(Audio::TypeSfxAhhh);  // don't play sound for lost flag
     interface->close_popup(this);
     return;
   }
-
-  Flag *flag =
-           interface->get_game()->get_flag(interface->get_player()->temp_index);
 
 #if 1
   /* Draw viewport of flag */
@@ -2770,14 +2758,9 @@ PopupBox::draw_castle_serf_box() {
   draw_box_background(PatternPlaidAlongGreen);
   draw_custom_icon_box(layout);
 
-  if (interface->get_player()->temp_index == 0) {
-    interface->close_popup(this);
-    return;
-  }
-
-  Building *building =
-       interface->get_game()->get_building(interface->get_player()->temp_index);
-  if (building->is_burning()) {
+  Building *building = interface->get_game()->get_building(target_obj_index);
+  if (building == nullptr){
+    play_sound(Audio::TypeSfxAhhh);
     interface->close_popup(this);
     return;
   }
@@ -2827,14 +2810,9 @@ PopupBox::draw_resdir_box() {
   draw_box_background(PatternPlaidAlongGreen);
   draw_custom_icon_box(layout);
 
-  if (interface->get_player()->temp_index == 0) {
-    interface->close_popup(this);
-    return;
-  }
-
-  Building *building =
-       interface->get_game()->get_building(interface->get_player()->temp_index);
-  if (building->is_burning()) {
+  Building *building = interface->get_game()->get_building(target_obj_index);
+  if (building == nullptr){
+    play_sound(Audio::TypeSfxAhhh);
     interface->close_popup(this);
     return;
   }
@@ -2895,7 +2873,12 @@ PopupBox::draw_inv_queues_box() {
   draw_box_background(PatternPlaidAlongGreen);
   draw_green_string(3, 0, "Out-Queues");
 
-  Building *building = interface->get_game()->get_building(interface->get_player()->temp_index);
+  Building *building = interface->get_game()->get_building(target_obj_index);
+  if (building == nullptr){
+    play_sound(Audio::TypeSfxAhhh);
+    interface->close_popup(this);
+    return;
+  }
   Inventory *inventory = building->get_inventory();
 
   draw_green_string(1, 19, "Serfs");
@@ -3105,14 +3088,9 @@ void
 PopupBox::draw_building_stock_box() {
   draw_box_background(PatternPlaidAlongGreen);
 
-  if (interface->get_player()->temp_index == 0) {
-    interface->close_popup(this);
-    return;
-  }
-
-  Building *building = interface->get_game()->get_building(
-                                           interface->get_player()->temp_index);
-  if (building->is_burning()) {
+  Building *building = interface->get_game()->get_building(target_obj_index);
+  if (building == nullptr){
+    play_sound(Audio::TypeSfxAhhh);
     interface->close_popup(this);
     return;
   }
@@ -3527,16 +3505,24 @@ PopupBox::sett_8_train(int number) {
 
 void
 PopupBox::set_inventory_resource_mode(int mode) {
-  Building *building = interface->get_game()->get_building(
-                                           interface->get_player()->temp_index);
+  Building *building = interface->get_game()->get_building(target_obj_index);
+  if (building == nullptr){
+    play_sound(Audio::TypeSfxAhhh);
+    interface->close_popup(this);
+    return;
+  }
   Inventory *inventory = building->get_inventory();
   interface->get_game()->set_inventory_resource_mode(inventory, mode);
 }
 
 void
 PopupBox::set_inventory_serf_mode(int mode) {
-  Building *building = interface->get_game()->get_building(
-                                           interface->get_player()->temp_index);
+  Building *building = interface->get_game()->get_building(target_obj_index);
+  if (building == nullptr){
+    play_sound(Audio::TypeSfxAhhh);
+    interface->close_popup(this);
+    return;
+  }
   Inventory *inventory = building->get_inventory();
   interface->get_game()->set_inventory_serf_mode(inventory, mode);
 }

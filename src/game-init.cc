@@ -688,10 +688,10 @@ GameInitBox::handle_player_click(unsigned int player_index, int cx, int cy) {
         {0x00, 0x00, 0x00}
       };
       player->set_color(def_color[player_index]);
-    } else {
-      if (player_index > 0) {
-        mission->remove_player(player_index);
-      }
+    //} else {
+      //if (player_index > 0) {
+      //  mission->remove_player(player_index);  // this function should no longer be needed now that popup class objects store their target_obj_index
+      //}
     }
   } else {
     if (player_index >= mission->get_player_count()) {

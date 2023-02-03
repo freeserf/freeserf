@@ -163,6 +163,7 @@ class PopupBox : public GuiObject {
 
   bool lifted = false; // if this popup was ever dragged anywhere, it becomes lifted and eligible for pinning
   //bool pinned = false; // if pinned the popup will not move
+  int target_obj_index;  // usually a Building, but sometimes a Flag, index of target object of many popups
 
 
   Type box;
@@ -207,6 +208,9 @@ class PopupBox : public GuiObject {
 
   void show(Type box);
   void hide();
+
+  //int get_target_obj_index() { return target_obj_index; }
+  void set_target_obj_index(int index) { target_obj_index = index; }
 
  protected:
   void draw_popup_box_frame();

@@ -93,7 +93,7 @@ GuiObject::draw(Frame *_frame) {
     return;
   }
 
-  //Log::Debug["event_loop.cc"] << "inside GuiObject::draw, this->objclass " << this->get_objclass();
+  //Log::Debug["gui.cc"] << "inside GuiObject::draw, this->objclass " << this->get_objclass();
 
   if (frame == nullptr) {
     //Log::Debug["event_loop.cc"] << "inside GuiObject::draw, this->objclass " << this->get_objclass() << " frame is nullptr, creating new frame";
@@ -101,11 +101,15 @@ GuiObject::draw(Frame *_frame) {
   }
 
   if (redraw) {
-    //Log::Debug["event_loop.cc"] << "inside GuiObject::draw, this->objclass " << this->get_objclass() << " redraw is true, calling internal_draw";
+    //Log::Debug["gui.cc"] << "inside GuiObject::draw, this->objclass " << this->get_objclass() << " redraw is true, calling internal_draw";
     internal_draw();
 
     for (GuiObject *float_window : floats) {
-      //Log::Debug["event_loop.cc"] << "inside GuiObject::draw, about to call float->draw for float with class " << float_window->get_objclass() << " and type " << float_window->get_objtype();
+      //Log::Debug["gui.cc"] << "inside GuiObject::draw, about to call float->draw for float with class " << float_window->get_objclass() << " and type " << float_window->get_objtype();
+      if (float_window == nullptr){
+        Log::Debug["gui.cc"] << "inside GuiObject::draw, about to call float->draw for float but float is nullptr!";
+        continue;
+      }
       float_window->draw(frame);
     }
 
@@ -125,6 +129,16 @@ GuiObject::handle_event(const Event *event) {
   }
 
   Log::Debug["event_loop.cc"] << "inside GuiObject::handle_event with event type " << event->type << " / " << NameGuiObjEvent[event->type] << " and objclass " << get_objclass() << " / " << NameGuiObjClass[get_objclass()] << " this object is enabled and displayed";
+
+
+  // another failed attempt to only zoom the viewport, not the UI elements
+  //if ((event->type == Event::TypeZoom || event->type == Event::TypeResize)
+  // && objclass != GuiObjClass::ClassViewport){
+  //  Log::Debug["event_loop.cc"] << "inside GuiObject::handle_event, not zooming non-Viewport float";
+  //  //skip_event = true;
+  //  //continue;
+  //  return false;
+  //}
 
   //
   // check to see if the mouse is within a Popup window so we can determine
@@ -255,10 +269,12 @@ GuiObject::handle_event(const Event *event) {
     //floats_i++;
     //Log::Debug["event_loop.cc"] << "inside GuiObject::handle_event for fl with objclass " << int((*fl)->get_objclass()) << " and objtype " << int((*fl)->get_objtype());
     // failed attempt to only zoom the viewport, not the UI elements
-    //if (internal_event.type == Event::TypeZoom
+    //if ((internal_event.type == Event::TypeZoom || internal_event.type == Event::TypeResize)
     // && (*fl)->get_objclass() != GuiObjClass::ClassViewport){
     //  Log::Debug["event_loop.cc"] << "inside GuiObject::handle_event, not zooming non-Viewport float";
+    //  skip_event = true;
     //  continue;
+      //return false;
     //}
     //if (skip_event && (*fl) == this){
     //  Log::Debug["event_loop.cc"] << "inside GuiObject::handle_event for fl with objclass " << int((*fl)->get_objclass()) << " and objtype " << int((*fl)->get_objtype()) << " this fl is the current object and is marked skip_event";
