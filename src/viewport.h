@@ -375,6 +375,8 @@ class Viewport : public GuiObject, public Map::Handler {
   virtual void store_prev_window_size();
   //void set_resize_tainted();
   //bool get_resize_tainted() { return resize_tainted; }
+  virtual void recenter();
+
 
  protected:
   Map::Terrain special_terrain_type(MapPos pos, Map::Terrain type);  // convenience function to allow changes to both draw_triangle_up & _down without code duplication

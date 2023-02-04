@@ -1088,12 +1088,12 @@ Interface::internal_draw() {
 
 void
 Interface::layout() {
-  //Log::Debug["interface.cc"] << "inside Interface::layout";
+  Log::Debug["interface.cc"] << "inside Interface::layout";
   int panel_x = 0;
   int panel_y = height;
 
   if (panel != nullptr) {
-    //Log::Debug["interface.cc"] << "inside Interface::layout, panel is defined";
+    Log::Debug["interface.cc"] << "inside Interface::layout, panel is defined";
     int panel_width = 352;
     int panel_height = 40;
     panel_x = (width - panel_width) / 2;
@@ -1103,7 +1103,7 @@ Interface::layout() {
   }
 
   if (popup != nullptr) {
-    //Log::Debug["interface.cc"] << "inside Interface::layout, popup is defined";
+    Log::Debug["interface.cc"] << "inside Interface::layout, popup is defined";
     int popup_width = 144;
     int popup_height = 160;
     int popup_x = (width - popup_width) / 2;
@@ -1115,7 +1115,7 @@ Interface::layout() {
   }
 
   if (init_box != nullptr) {
-    //Log::Debug["interface.cc"] << "inside Interface::layout, init_box is defined";
+    Log::Debug["interface.cc"] << "inside Interface::layout, init_box is defined";
     int init_box_width = 360;
     int init_box_height = 256;
     int init_box_x = (width - init_box_width) / 2;
@@ -1125,7 +1125,7 @@ Interface::layout() {
   }
 
   if (notification_box != nullptr) {
-    //Log::Debug["interface.cc"] << "inside Interface::layout, notification_box is defined";
+    Log::Debug["interface.cc"] << "inside Interface::layout, notification_box is defined";
     int notification_box_width = 200;
     int notification_box_height = 88;
     int notification_box_x = panel_x + 40;
@@ -1135,8 +1135,10 @@ Interface::layout() {
   }
 
   if (viewport != nullptr) {
-    //Log::Debug["interface.cc"] << "inside Interface::layout, viewport is defined";
+    Log::Debug["interface.cc"] << "inside Interface::layout, viewport is defined";
     viewport->set_size(width, height);
+    viewport->recenter();
+    
   }
 
   set_redraw();
@@ -1661,6 +1663,7 @@ Interface::handle_event(const Event *event) {
   //Log::Debug["event_loop.cc"] << "inside Interface::handle_event, type " << event->type;
   switch (event->type) {
     case Event::TypeResize:
+    Log::Debug["event_loop.cc"] << "inside Interface::handle_event, TypeResize";
       set_size(event->dx, event->dy);
       viewport->store_prev_window_size();
       //viewport->set_resize_tainted();

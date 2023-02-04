@@ -408,9 +408,11 @@ GuiObject::set_size(int new_width, int new_height) {
   delete_frame();
   width = new_width;
   height = new_height;
+  Log::Debug["gui.cc"] << "start of GuiObject::set_size, calling layout";
   layout();  // this appears to do nothing for generic GuiObject, but I think it exists because it is overridden by some GuiObject superclasses such as Viewport, Interface, and their layout() is important
   //store_prev_res();
   set_redraw();
+  Log::Debug["gui.cc"] << "done GuiObject::set_size";
 }
 
 void

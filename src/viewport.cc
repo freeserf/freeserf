@@ -465,6 +465,17 @@ Viewport::layout() {
   landscape_tiles.clear();
 }
 
+void
+Viewport::recenter() {
+  Log::Debug["viewport.cc"] << "inside Viewport::recenter()";
+  int width_change = width - last_window_width;
+  int height_change = height - last_window_height;
+  int x_move = -1 * (width_change * 0.25);
+  int y_move = -1 * (height_change * 0.25);
+  Log::Debug["viewport.cc"] << "inside Viewport::recenter(),  moving x " << x_move << " and y " << y_move;
+  move_by_pixels(x_move, y_move);
+}
+
 // work-around because GUIObject can't directly reference Viewport vars
 //void
 //Viewport::store_prev_res() {
@@ -477,7 +488,7 @@ void
 Viewport::store_prev_window_size() {
   last_window_height = height;
   last_window_width = width;
-  Log::Debug["viewport.cc"] << "inside Viewport::store_prev_window_size(), updating last_window_height/height to " << last_window_height << "," << last_window_width;
+  Log::Debug["viewport.cc"] << "inside Viewport::store_prev_window_size(), updating last_window_width/height to " << last_window_width << "," << last_window_height;
 }
 
 // I ran into some odd issue with popup moving where the popup movement
@@ -4839,10 +4850,11 @@ Viewport::update() {
         Log::Debug["viewport.cc"] << "inside Viewport::update, mouse y is " << mouse_y_offset_mult * 100 << "% of the screen height " << res_height;
         float mouse_x_offset_pix = 0.00;
         float mouse_y_offset_pix = 0.00;
-        // for zoom OUT, just use centered zoom as it looks funny if pointer-adjusted
         if (width_change < 0 || height_change < 0){
+          // for zoom OUT, just use centered zoom as it looks funny if pointer-adjusted
           move_by_pixels(width_change/2, height_change/2);
         }else{
+          // handle zoom in centered on pointer
           mouse_x_offset_pix = width_change * float(1 - mouse_x_offset_mult);
           mouse_y_offset_pix = height_change * mouse_y_offset_mult;
           move_by_pixels(mouse_x_offset_pix, mouse_y_offset_pix);
