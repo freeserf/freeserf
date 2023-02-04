@@ -240,26 +240,44 @@ Interface::close_popup(PopupBox *popup_to_close) {
   if (popup != popup_to_close){
     Log::Debug["popup.cc"] << "inside Interface::close_popup, closing a pinned popup";
     if (popup_to_close == nullptr) {
+      Log::Debug["popup.cc"] << "inside Interface::close_popup, closing a pinned popup but popup_to_close is nullptr!";
       return;
     }
-    //popup_to_close->hide();
+    popup_to_close->hide();
+    // delete object from parent object's float list
     del_float(popup_to_close);
+    // delete the PopupBox Class object from memory
     delete popup_to_close;
-    popup_to_close = nullptr;
+    // delete the popup's entry from the pinned_popups vector
+    std::vector<PopupBox *>::iterator it = std::find(pinned_popups.begin(), pinned_popups.end(), popup_to_close);
+    if (it != pinned_popups.end()){
+      pinned_popups.erase(it);
+    }
+    //popup_to_close = nullptr;
+    //set_redraw();  // attempt to fix frame corruption after closing pinned popup issue
   }else{
     Log::Debug["popup.cc"] << "inside Interface::close_popup, closing 'the one' transient popup";
     if (popup == nullptr) {
+      Log::Debug["popup.cc"] << "inside Interface::close_popup, closing 'the one' transient popup A";
       return;
     }
+    Log::Debug["popup.cc"] << "inside Interface::close_popup, closing 'the one' transient popup B";
     popup->hide();
+    Log::Debug["popup.cc"] << "inside Interface::close_popup, closing 'the one' transient popup C";
     del_float(popup);
+    Log::Debug["popup.cc"] << "inside Interface::close_popup, closing 'the one' transient popup D";
     delete popup;
+    Log::Debug["popup.cc"] << "inside Interface::close_popup, closing 'the one' transient popup E";
     popup = nullptr;
+    Log::Debug["popup.cc"] << "inside Interface::close_popup, closing 'the one' transient popup F";
   }
+  Log::Debug["popup.cc"] << "inside Interface::close_popup, closing 'the one' transient popup G";
   update_map_cursor_pos(map_cursor_pos);
   if (panel != nullptr) {
+    Log::Debug["popup.cc"] << "inside Interface::close_popup, closing 'the one' transient popup H";
     panel->update();
   }
+  Log::Debug["popup.cc"] << "inside Interface::close_popup, closing 'the one' transient popup I";
 }
 
 void
@@ -268,6 +286,13 @@ Interface::pin_popup() {
   if (popup == nullptr) {
     return;
   }
+
+  // I think I saw an issue with trying to set redraw on parent
+  //   of a pinned popup, I think there is no reason that pinned 
+  //   popups need a parent, trying to set it nullptr to see
+  // UPDATE - i'm not sure this is the fix, but I guess it can't hurt
+  //popup->set_parent(nullptr);
+
   pinned_popups.push_back(popup);
   //popup->hide();
   //del_float(popup);
@@ -1678,18 +1703,22 @@ Interface::handle_event(const Event *event) {
       if (init_box != nullptr && init_box->is_displayed()){
         GuiObject::handle_event(event);
       }else{
-        //Log::Info["interface.cc"] << "inside Interface::handle_event(), TypeRightClick, closing popups/notifications/canceling road";
+        Log::Debug["interface.cc"] << "inside Interface::handle_event(), TypeRightClick, closing popups/notifications/canceling road";
         // for all other cases, trigger "close-popup/cancel-action"
         if ((notification_box != nullptr) && notification_box->is_displayed()) {
+          Log::Debug["interface.cc"] << "inside Interface::handle_event(), TypeRightClick, closing notification message";
           close_message();
         } else if ((popup != nullptr) && popup->is_displayed()) {
+          Log::Debug["interface.cc"] << "inside Interface::handle_event(), TypeRightClick, closing 'the one' popup";
           close_popup(popup);
         } else if (building_road.is_valid()) {
+          Log::Debug["interface.cc"] << "inside Interface::handle_event(), TypeRightClick, closing 'build_road' effort";
           build_road_end();
         }
       }
       break;
     default:
+    Log::Debug["interface.cc"] << "inside Interface::handle_event(), default, no case matched, event type is " << event->type;
       return GuiObject::handle_event(event);
       break;
   }

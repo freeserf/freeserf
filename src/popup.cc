@@ -549,6 +549,7 @@ PopupBox::draw_player_face(int ix, int iy, int player) {
 /* Draw a layout of buildings in a popup box. */
 void
 PopupBox::draw_custom_bld_box(const int sprites[]) {
+  Log::Debug["popup.cc"] << "inside PopupBox::draw_custom_bld_box";
   while (sprites[0] > 0) {
     int sx = sprites[1];
     int sy = sprites[2];
@@ -562,6 +563,7 @@ PopupBox::draw_custom_bld_box(const int sprites[]) {
 /* Draw a layout of icons in a popup box. */
 void
 PopupBox::draw_custom_icon_box(const int sprites[]) {
+  Log::Debug["popup.cc"] << "inside PopupBox::draw_custom_icon_box";
   while (sprites[0] > 0) {
     draw_popup_icon(sprites[1], sprites[2], sprites[0]);
     sprites += 3;
@@ -605,6 +607,7 @@ PopupBox::draw_map_box() {
 /* Draw building mine popup box. */
 void
 PopupBox::draw_mine_building_box() {
+  Log::Debug["popup.cc"] << "inside PopupBox::draw_mine_building_box";
   const int layout[] = {
     0xa3, 2, 8,
     0xa4, 8, 8,
@@ -628,6 +631,7 @@ PopupBox::draw_mine_building_box() {
 /* Draw .. popup box... */
 void
 PopupBox::draw_basic_building_box(int flip) {
+  Log::Debug["popup.cc"] << "inside PopupBox::draw_basic_building_box";
   const int layout[] = {
     0xab, 10, 13, /* hut */
     0xa9, 2, 13,
@@ -661,6 +665,7 @@ PopupBox::draw_basic_building_box(int flip) {
 
 void
 PopupBox::draw_adv_1_building_box() {
+  Log::Debug["popup.cc"] << "inside PopupBox::draw_adv_1_building_box";
   const int layout[] = {
     0x9c, 0, 15,
     0x9d, 8, 15,
@@ -680,6 +685,7 @@ PopupBox::draw_adv_1_building_box() {
 
 void
 PopupBox::draw_adv_2_building_box() {
+  Log::Debug["popup.cc"] << "inside PopupBox::draw_adv_2_building_box";
   const int layout[] = {
     0x9e, 2, 99, /* tower */
     0x98, 8, 84, /* fortress */
@@ -706,6 +712,7 @@ PopupBox::draw_adv_2_building_box() {
 /* Draw generic popup box of resources. */
 void
 PopupBox::draw_resources_box(const ResourceMap &resources) {
+  Log::Debug["popup.cc"] << "inside PopupBox::draw_resources_box";
   const int layout[] = {
     0x28, 1, 0, /* resources */
     0x29, 1, 16,
@@ -781,6 +788,7 @@ PopupBox::draw_resources_box(const ResourceMap &resources) {
 /* Draw generic popup box of serfs. */
 void
 PopupBox::draw_serfs_box(const int *serfs, int total) {
+  Log::Debug["popup.cc"] << "inside PopupBox::draw_serfs_box";
   const int layout[] = {
     0x9, 1, 0, /* serfs */
     0xa, 1, 16,
@@ -2001,6 +2009,7 @@ PopupBox::draw_popup_resource_stairs(int order[]) {
 
 void
 PopupBox::draw_sett_5_box() {
+  Log::Debug["popup.cc"] << "inside PopupBox::draw_sett_5_box";
   const int layout[] = {
     237, 1, 120, /* up */
     238, 3, 120, /* smallup */
@@ -2040,6 +2049,7 @@ PopupBox::draw_no_save_quit_confirm_box() {
 
 void
 PopupBox::draw_options_box() {
+  Log::Debug["popup.cc"] << "inside PopupBox::draw_options_box";
   //draw_box_background(PatternDiagonalGreen);
   draw_large_box_background(PatternDiagonalGreen);
 
@@ -2228,6 +2238,7 @@ PopupBox::draw_game_options4_box() {
 
 void
 PopupBox::draw_edit_map_generator_box() {
+  Log::Debug["popup.cc"] << "inside PopupBox::draw_edit_map_generator_box";
   draw_large_box_background(PatternDiagonalGreen);
 
   CustomMapGeneratorOptions generator_options = interface->get_custom_map_generator_options();
@@ -2351,6 +2362,7 @@ PopupBox::draw_edit_map_generator_box() {
 
 void
 PopupBox::draw_edit_map_generator2_box() {
+  Log::Debug["popup.cc"] << "inside PopupBox::draw_edit_map_generator2_box";
   draw_large_box_background(PatternDiagonalGreen);
 
   CustomMapGeneratorOptions generator_options = interface->get_custom_map_generator_options();
@@ -2384,6 +2396,7 @@ PopupBox::draw_edit_map_generator2_box() {
 
 void
 PopupBox::draw_debug_box() {
+  Log::Debug["popup.cc"] << "inside PopupBox::draw_debug_box";
   draw_box_background(PatternDiagonalGreen);
   draw_green_string(5, 0, "Debug");
 
@@ -2399,6 +2412,7 @@ PopupBox::draw_debug_box() {
 
 void
 PopupBox::draw_castle_res_box() {
+  Log::Debug["popup.cc"] << "inside PopupBox::draw_castle_res_box";
   const int layout[] = {
     0x3d, 12, 128, /* flip */
     0x3c, 14, 128, /* exit */
@@ -2432,6 +2446,7 @@ PopupBox::draw_castle_res_box() {
 
 void
 PopupBox::draw_mine_output_box() {
+  Log::Debug["popup.cc"] << "inside PopupBox::draw_mine_output_box";
   draw_box_background(PatternPlaidAlongGreen);
 
   Building *building = interface->get_game()->get_building(target_obj_index);
@@ -2695,7 +2710,14 @@ PopupBox::draw_transport_info_box() {
     return;
   }
 
+// testing disabling this, wondering if this mini viewport is
+//  responsible for the crashing while drawing frame after closing
+//  a pinned popup that uses mini viewport
+// NO! something else is wrong.  Removing this causes the same error
+//  on other draw frame code.  Something with closing pinned_popups
+//  must be corrupting the current frame
 #if 1
+//#if 0
   /* Draw viewport of flag */
   Viewport flag_view(interface, interface->get_game()->get_map());
   flag_view.switch_layer(Viewport::LayerLandscape);
@@ -2712,7 +2734,8 @@ PopupBox::draw_transport_info_box() {
   flag_view.draw(frame);
 #else
   /* Static flag */
-  draw_popup_building(8, 40, 0x80 + 4*popup->interface->player->player_num);
+  //draw_popup_building(8, 40, 0x80 + 4*popup->interface->player->player_num);  // is this pseudo code?  
+  draw_popup_building(8, 40, 0x80 + 4*interface->get_player()->get_index());  // this is correct
 #endif
 
   for (Direction d : cycle_directions_cw()) {
@@ -5457,10 +5480,12 @@ PopupBox::handle_save_clk(int cx, int cy) {
 bool
 //PopupBox::handle_left_click(int cx, int cy) {
 PopupBox::handle_left_click(int cx, int cy, int modifier) {
+  Log::Debug["popup.cc"] << "inside PopupBox::handle_left_click";
   if (being_dragged){
     being_dragged = false;
     return false;
   }
+  Log::Debug["popup.cc"] << "inside PopupBox::handle_left_click A, box type  " << box;
   cx -= 8;
   cy -= 8;
 
@@ -5626,6 +5651,8 @@ PopupBox::handle_left_click(int cx, int cy, int modifier) {
     Log::Debug["popup"] << "unhandled box: " << box;
     break;
   }
+
+  Log::Debug["popup.cc"] << "inside PopupBox::handle_left_click Z";
 
   return true;
 }

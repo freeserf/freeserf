@@ -98,6 +98,7 @@ GameInitBox::GameInitBox(Interface *interface)
   , file_list(new ListSavedFiles()) {
   this->interface = interface;
 
+  objclass = GuiObjClass::ClassGameInitBox;
   game_type = GameCustom;
   game_mission = 0;
 
@@ -137,7 +138,6 @@ GameInitBox::GameInitBox(Interface *interface)
     }
     */
   });
-  objclass = GuiObjClass::ClassGameInitBox;
   file_list->set_objclass(GuiObjClass::ClassLoadGameFileList);
   add_float(file_list.get(), 20, 55);
 }
@@ -477,7 +477,8 @@ GameInitBox::handle_action(int action) {
 }
 
 bool
-  GameInitBox::handle_left_click(int cx, int cy, int modifier) {
+GameInitBox::handle_left_click(int cx, int cy, int modifier) {
+  //Log::Debug["game-init.cc"] << "inside GameInitBox::handle_left_click";
   if (being_dragged){
     being_dragged = false;
     return false;
@@ -656,6 +657,7 @@ GameInitBox::get_prev_character(unsigned int player_index) {
 
 bool
 GameInitBox::handle_player_click(unsigned int player_index, int cx, int cy) {
+  //Log::Debug["game-init.cc"] << "inside GameInitBox::handle_player_click";
   if (game_type != GameCustom) {
     return true;
   }
@@ -688,10 +690,10 @@ GameInitBox::handle_player_click(unsigned int player_index, int cx, int cy) {
         {0x00, 0x00, 0x00}
       };
       player->set_color(def_color[player_index]);
-    //} else {
-      //if (player_index > 0) {
-      //  mission->remove_player(player_index);  // this function should no longer be needed now that popup class objects store their target_obj_index
-      //}
+    } else {
+      if (player_index > 0) {
+        mission->remove_player(player_index);
+      }
     }
   } else {
     if (player_index >= mission->get_player_count()) {

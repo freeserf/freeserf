@@ -4864,6 +4864,11 @@ Viewport::update() {
   if (interface->get_game()->get_const_tick() % 40 == 0){
     //Log::Debug["viewport.cc"] << "inside Viewport::update(), refreshing any pinned popups";
     for (PopupBox *pinned_popup : interface->get_pinned_popup_boxes()){
+      // I think I saw an issue with trying to set redraw on parent
+      //   of a pinned popup, I think there is no reason that pinned 
+      //   popups need a parent, trying to set it nullptr to see
+      //popup->set_parent(nullptr);
+      pinned_popup->set_parent(nullptr);
       pinned_popup->set_redraw();
     }
   }

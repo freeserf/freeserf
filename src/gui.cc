@@ -93,10 +93,10 @@ GuiObject::draw(Frame *_frame) {
     return;
   }
 
-  //Log::Debug["gui.cc"] << "inside GuiObject::draw, this->objclass " << this->get_objclass();
+  Log::Debug["gui.cc"] << "inside GuiObject::draw, this->objclass " << this->get_objclass();
 
   if (frame == nullptr) {
-    //Log::Debug["event_loop.cc"] << "inside GuiObject::draw, this->objclass " << this->get_objclass() << " frame is nullptr, creating new frame";
+    Log::Debug["event_loop.cc"] << "inside GuiObject::draw, this->objclass " << this->get_objclass() << " frame is nullptr, creating new frame";
     frame = Graphics::get_instance().create_frame(width, height);
   }
 
@@ -105,7 +105,7 @@ GuiObject::draw(Frame *_frame) {
     internal_draw();
 
     for (GuiObject *float_window : floats) {
-      //Log::Debug["gui.cc"] << "inside GuiObject::draw, about to call float->draw for float with class " << float_window->get_objclass() << " and type " << float_window->get_objtype();
+      Log::Debug["gui.cc"] << "inside GuiObject::draw, about to call float->draw for float with class " << NameGuiObjClass[float_window->get_objclass()] << " and type " << float_window->get_objtype();
       if (float_window == nullptr){
         Log::Debug["gui.cc"] << "inside GuiObject::draw, about to call float->draw for float but float is nullptr!";
         continue;
@@ -311,7 +311,9 @@ GuiObject::handle_event(const Event *event) {
   bool result = false;
   switch (event->type) {
     case Event::TypeLeftClick:
+      Log::Debug["gui.cc"] << "inside GuiObject::handle_event with event type " << NameGuiObjEvent[event->type] << " and objclass " << NameGuiObjClass[objclass] << " and objtype " << get_objtype() << " calling 'result = handle_left_click' with event->dy " << event->dy;
       result = handle_left_click(event_x, event_y, event->dy);
+      //Log::Debug["gui.cc"] << "inside GuiObject::handle_event with event type " << NameGuiObjEvent[event->type] << " and objclass " << NameGuiObjClass[objclass] << " and objtype " << get_objtype() << " called 'result = handle_left_click', result was " << result;
       break;
     case Event::TypeMouseButtonDown:
       Log::Debug["gui.cc"] << "inside GuiObject::handle_event with event type " << NameGuiObjEvent[event->type] << " and objclass " << NameGuiObjClass[objclass] << " and objtype " << get_objtype() << " calling 'result = handle_mouse_button_down' with event->dx " << event->dx << " and event->dy " << event->dy;
@@ -353,9 +355,9 @@ GuiObject::handle_event(const Event *event) {
       break;
   }
 
-  Log::Debug["gui.cc"] << "inside GuiObject::handle_event with event type " << NameGuiObjEvent[event->type] << " and objclass " << NameGuiObjClass[objclass] << ", result was " << result << ", running refocus logic";
+  //Log::Debug["gui.cc"] << "inside GuiObject::handle_event with event type " << NameGuiObjEvent[event->type] << " and objclass " << NameGuiObjClass[objclass] << ", result was " << result << ", running refocus logic";
   if (result && (focused_object != this)) {
-    Log::Debug["gui.cc"] << "inside GuiObject::handle_event(), focus, triggering focus_loose, result was " << result;
+    //Log::Debug["gui.cc"] << "inside GuiObject::handle_event(), focus, triggering focus_loose, result was " << result;
     if (focused_object != nullptr) {
       focused_object->focused = false;
       focused_object->handle_focus_loose();
@@ -364,7 +366,7 @@ GuiObject::handle_event(const Event *event) {
     }
   }
 
-  Log::Debug["gui.cc"] << "inside GuiObject::handle_event with event type " << NameGuiObjEvent[event->type] << " and objclass " << NameGuiObjClass[objclass] << ", returning result " << result;
+  //Log::Debug["gui.cc"] << "inside GuiObject::handle_event with event type " << NameGuiObjEvent[event->type] << " and objclass " << NameGuiObjClass[objclass] << ", returning result " << result;
   return result;
 }
 
