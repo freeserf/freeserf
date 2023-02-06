@@ -1671,6 +1671,7 @@ Interface::handle_event(const Event *event) {
     case Event::TypeZoom:
       Log::Debug["event_loop.cc"] << "inside Interface::handle_event, TypeZoom";
       set_size(event->dx, event->dy);
+      viewport->set_focused(); // tlongstretch, to fix issue where zooming at start of game means viewport can't drag until clicked on
       /* failed attempt to zoom ONLY the view port
       it seems that other floats are scaled because they are on top of the viewport and the entire viewport is scaled?
       and they must be drawn separately??

@@ -1936,6 +1936,7 @@ PopupBox::draw_knight_level_box() {
   draw_custom_icon_box(layout);
 }
 
+// this is the toolmaker tool priority box
 void
 PopupBox::draw_sett_4_box() {
   const int layout[] = {
@@ -2920,7 +2921,7 @@ PopupBox::draw_inv_queues_box() {
     if (serf->get_type() >= Serf::TypeGeneric){
       icon--;  // there is also a TypeGeneric which I think doesn't actually exist nor have a sprite which messes up the ordering of Knight types
     }
-    if (col > 8){
+    if (col > 7){
       row++;
       if (row > 5){
         // wow that's a lot, just quit drawing them
@@ -3830,159 +3831,159 @@ PopupBox::handle_action(int action, int x_, int /*y_*/) {
     set_box(TypeSettSelect);
     break;
   case ACTION_SETT_1_ADJUST_STONEMINE:
-    interface->open_popup(TypeSett1);
+    //interface->open_popup(TypeSett1);
     player->set_food_stonemine(gui_get_slider_click_value(x_));
     break;
   case ACTION_SETT_1_ADJUST_COALMINE:
-    interface->open_popup(TypeSett1);
+    //interface->open_popup(TypeSett1);
     player->set_food_coalmine(gui_get_slider_click_value(x_));
     break;
   case ACTION_SETT_1_ADJUST_IRONMINE:
-    interface->open_popup(TypeSett1);
+    //interface->open_popup(TypeSett1);
     player->set_food_ironmine(gui_get_slider_click_value(x_));
     break;
   case ACTION_SETT_1_ADJUST_GOLDMINE:
-    interface->open_popup(TypeSett1);
+    //interface->open_popup(TypeSett1);
     player->set_food_goldmine(gui_get_slider_click_value(x_));
     break;
   case ACTION_SETT_2_ADJUST_CONSTRUCTION:
-    interface->open_popup(TypeSett2);
+    //interface->open_popup(TypeSett2);
     player->set_planks_construction(gui_get_slider_click_value(x_));
     break;
   case ACTION_SETT_2_ADJUST_BOATBUILDER:
-    interface->open_popup(TypeSett2);
+    //interface->open_popup(TypeSett2);
     player->set_planks_boatbuilder(gui_get_slider_click_value(x_));
     break;
   case ACTION_SETT_2_ADJUST_TOOLMAKER_PLANKS:
-    interface->open_popup(TypeSett2);
+    //interface->open_popup(TypeSett2);
     player->set_planks_toolmaker(gui_get_slider_click_value(x_));
     break;
   case ACTION_SETT_2_ADJUST_TOOLMAKER_STEEL:
-    interface->open_popup(TypeSett2);
+    //interface->open_popup(TypeSett2);
     player->set_steel_toolmaker(gui_get_slider_click_value(x_));
     break;
   case ACTION_SETT_2_ADJUST_WEAPONSMITH:
-    interface->open_popup(TypeSett2);
+    //interface->open_popup(TypeSett2);
     player->set_steel_weaponsmith(gui_get_slider_click_value(x_));
     break;
   case ACTION_SETT_3_ADJUST_STEELSMELTER:
-    interface->open_popup(TypeSett3);
+    //interface->open_popup(TypeSett3);
     player->set_coal_steelsmelter(gui_get_slider_click_value(x_));
     break;
   case ACTION_SETT_3_ADJUST_GOLDSMELTER:
-    interface->open_popup(TypeSett3);
+    //interface->open_popup(TypeSett3);
     player->set_coal_goldsmelter(gui_get_slider_click_value(x_));
     break;
   case ACTION_SETT_3_ADJUST_WEAPONSMITH:
-    interface->open_popup(TypeSett3);
+    //interface->open_popup(TypeSett3);
     player->set_coal_weaponsmith(gui_get_slider_click_value(x_));
     break;
   case ACTION_SETT_3_ADJUST_PIGFARM:
-    interface->open_popup(TypeSett3);
+    //interface->open_popup(TypeSett3);
     player->set_wheat_pigfarm(gui_get_slider_click_value(x_));
     break;
   case ACTION_SETT_3_ADJUST_MILL:
-    interface->open_popup(TypeSett3);
+    //interface->open_popup(TypeSett3);
     player->set_wheat_mill(gui_get_slider_click_value(x_));
     break;
   case ACTION_KNIGHT_LEVEL_CLOSEST_MIN_DEC:
     player->change_knight_occupation(3, 0, -1);
-    interface->open_popup(TypeKnightLevel);
+    //interface->open_popup(TypeKnightLevel);
     break;
   case ACTION_KNIGHT_LEVEL_CLOSEST_MIN_INC:
     player->change_knight_occupation(3, 0, 1);
-    interface->open_popup(TypeKnightLevel);
+    //interface->open_popup(TypeKnightLevel);
     break;
   case ACTION_KNIGHT_LEVEL_CLOSEST_MAX_DEC:
     player->change_knight_occupation(3, 1, -1);
-    interface->open_popup(TypeKnightLevel);
+    //interface->open_popup(TypeKnightLevel);
     break;
   case ACTION_KNIGHT_LEVEL_CLOSEST_MAX_INC:
     player->change_knight_occupation(3, 1, 1);
-    interface->open_popup(TypeKnightLevel);
+    //interface->open_popup(TypeKnightLevel);
     break;
   case ACTION_KNIGHT_LEVEL_CLOSE_MIN_DEC:
     player->change_knight_occupation(2, 0, -1);
-    interface->open_popup(TypeKnightLevel);
+    //interface->open_popup(TypeKnightLevel);
     break;
   case ACTION_KNIGHT_LEVEL_CLOSE_MIN_INC:
     player->change_knight_occupation(2, 0, 1);
-    interface->open_popup(TypeKnightLevel);
+    //interface->open_popup(TypeKnightLevel);
     break;
   case ACTION_KNIGHT_LEVEL_CLOSE_MAX_DEC:
     player->change_knight_occupation(2, 1, -1);
-    interface->open_popup(TypeKnightLevel);
+    //interface->open_popup(TypeKnightLevel);
     break;
   case ACTION_KNIGHT_LEVEL_CLOSE_MAX_INC:
     player->change_knight_occupation(2, 1, 1);
-    interface->open_popup(TypeKnightLevel);
+    //interface->open_popup(TypeKnightLevel);
     break;
   case ACTION_KNIGHT_LEVEL_FAR_MIN_DEC:
     player->change_knight_occupation(1, 0, -1);
-    interface->open_popup(TypeKnightLevel);
+    //interface->open_popup(TypeKnightLevel);
     break;
   case ACTION_KNIGHT_LEVEL_FAR_MIN_INC:
     player->change_knight_occupation(1, 0, 1);
-    interface->open_popup(TypeKnightLevel);
+    //interface->open_popup(TypeKnightLevel);
     break;
   case ACTION_KNIGHT_LEVEL_FAR_MAX_DEC:
     player->change_knight_occupation(1, 1, -1);
-    interface->open_popup(TypeKnightLevel);
+    //interface->open_popup(TypeKnightLevel);
     break;
   case ACTION_KNIGHT_LEVEL_FAR_MAX_INC:
     player->change_knight_occupation(1, 1, 1);
-    interface->open_popup(TypeKnightLevel);
+    //interface->open_popup(TypeKnightLevel);
     break;
   case ACTION_KNIGHT_LEVEL_FARTHEST_MIN_DEC:
     player->change_knight_occupation(0, 0, -1);
-    interface->open_popup(TypeKnightLevel);
+    //interface->open_popup(TypeKnightLevel);
     break;
   case ACTION_KNIGHT_LEVEL_FARTHEST_MIN_INC:
     player->change_knight_occupation(0, 0, 1);
-    interface->open_popup(TypeKnightLevel);
+    //interface->open_popup(TypeKnightLevel);
     break;
   case ACTION_KNIGHT_LEVEL_FARTHEST_MAX_DEC:
     player->change_knight_occupation(0, 1, -1);
-    interface->open_popup(TypeKnightLevel);
+    //interface->open_popup(TypeKnightLevel);
     break;
   case ACTION_KNIGHT_LEVEL_FARTHEST_MAX_INC:
     player->change_knight_occupation(0, 1, 1);
-    interface->open_popup(TypeKnightLevel);
+    //interface->open_popup(TypeKnightLevel);
     break;
   case ACTION_SETT_4_ADJUST_SHOVEL:
-    interface->open_popup(TypeSett4);
+    //interface->open_popup(TypeSett4);
     player->set_tool_prio(0, gui_get_slider_click_value(x_));
     break;
   case ACTION_SETT_4_ADJUST_HAMMER:
-    interface->open_popup(TypeSett4);
+    //interface->open_popup(TypeSett4);
     player->set_tool_prio(1, gui_get_slider_click_value(x_));
     break;
   case ACTION_SETT_4_ADJUST_AXE:
-    interface->open_popup(TypeSett4);
+    //interface->open_popup(TypeSett4);
     player->set_tool_prio(5, gui_get_slider_click_value(x_));
     break;
   case ACTION_SETT_4_ADJUST_SAW:
-    interface->open_popup(TypeSett4);
+    //interface->open_popup(TypeSett4);
     player->set_tool_prio(6, gui_get_slider_click_value(x_));
     break;
   case ACTION_SETT_4_ADJUST_SCYTHE:
-    interface->open_popup(TypeSett4);
+    //interface->open_popup(TypeSett4);
     player->set_tool_prio(4, gui_get_slider_click_value(x_));
     break;
   case ACTION_SETT_4_ADJUST_PICK:
-    interface->open_popup(TypeSett4);
+    //interface->open_popup(TypeSett4);
     player->set_tool_prio(7, gui_get_slider_click_value(x_));
     break;
   case ACTION_SETT_4_ADJUST_PINCER:
-    interface->open_popup(TypeSett4);
+    //interface->open_popup(TypeSett4);
     player->set_tool_prio(8, gui_get_slider_click_value(x_));
     break;
   case ACTION_SETT_4_ADJUST_CLEAVER:
-    interface->open_popup(TypeSett4);
+    //interface->open_popup(TypeSett4);
     player->set_tool_prio(3, gui_get_slider_click_value(x_));
     break;
   case ACTION_SETT_4_ADJUST_ROD:
-    interface->open_popup(TypeSett4);
+    //interface->open_popup(TypeSett4);
     player->set_tool_prio(2, gui_get_slider_click_value(x_));
     break;
   case ACTION_SETT_5_6_ITEM_1:
@@ -5185,6 +5186,7 @@ PopupBox::handle_knight_level_click(int cx, int cy) {
   handle_clickmap(cx, cy, clkmap);
 }
 
+// this is the toolmaker tool priority box
 void
 PopupBox::handle_sett_4_click(int cx, int cy) {
   const int clkmap[] = {
