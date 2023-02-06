@@ -299,6 +299,7 @@ typedef enum Action {
   ACTION_SAVE,
   ACTION_NEW_NAME,
   ACTION_OPTIONS_FLIP_TO_GAME_OPTIONS,
+  ACTION_RESET_GAME_OPTIONS_DEFAULTS,
   ACTION_GAME_OPTIONS_PAGE2,
   //ACTION_GAME_OPTIONS_PREV_PAGE,
   ACTION_GAME_OPTIONS_PAGE3,
@@ -2150,6 +2151,9 @@ PopupBox::draw_game_options_box() {
   draw_green_string(3, 105, "Baby Trees Mature Slowly");
   draw_popup_icon(1, 102, option_BabyTreesMatureSlowly ? 288 : 220);
 
+  draw_green_string(2, 131, "Reset");
+  draw_popup_icon(0, 128, 295); // reset-to-defaults icon
+
   draw_green_string(18, 131, "Page 2 of 5");
   draw_popup_icon(30, 128, 0x3d); // flipbox to next page
   draw_popup_icon(32, 128, 60); /* exit */
@@ -2176,6 +2180,9 @@ PopupBox::draw_game_options2_box() {
   draw_green_string(3, 105, "Sailors Move Faster");
   draw_popup_icon(1, 102, option_SailorsMoveFaster ? 288 : 220);
 
+  draw_green_string(2, 131, "Reset");
+  draw_popup_icon(0, 128, 295); // reset-to-defaults icon
+
   draw_green_string(18, 131, "Page 3 of 5");
   draw_popup_icon(30, 128, 0x3d); // flipbox to previous page
   draw_popup_icon(32, 128, 60); /* exit */
@@ -2201,6 +2208,9 @@ PopupBox::draw_game_options3_box() {
 
   draw_green_string(3, 105, "Amiga-Style Spinning Star");
   draw_popup_icon(1, 102, option_SpinningAmigaStar ? 288 : 220);
+
+  draw_green_string(2, 131, "Reset");
+  draw_popup_icon(0, 128, 295); // reset-to-defaults icon
 
   draw_green_string(18, 131, "Page 4 of 5");
   draw_popup_icon(30, 128, 0x3d); // flipbox to previous page
@@ -2229,6 +2239,9 @@ PopupBox::draw_game_options4_box() {
   draw_green_string(3, 105, "Amiga-Style Spinning Star");
   draw_popup_icon(1, 102, option_SpinningAmigaStar ? 288 : 220);
 */
+
+  draw_green_string(2, 131, "Reset");
+  draw_popup_icon(0, 128, 295); // reset-to-defaults icon
 
   draw_green_string(18, 131, "Page 5 of 5");
   draw_popup_icon(30, 128, 0x3d); // flipbox to previous page
@@ -2347,8 +2360,9 @@ PopupBox::draw_edit_map_generator_box() {
   draw_colored_slide_bar(25, junk_y+16, slider_double_to_uint16(junk_desert_mean), Color::yellow);
 
 
-  draw_green_string(1, 128, "Reset Defaults");
-  draw_popup_icon(16, 124, 0x3d); // flipbox icon
+  draw_green_string(2, 131, "Reset");
+  //draw_popup_icon(16, 124, 0x3d); // flipbox icon
+  draw_popup_icon(0, 128, 295); // reset-to-defaults icon
 
   // instead, auto-save on any change
   //draw_green_string(22, 128, "Save");
@@ -2379,9 +2393,9 @@ PopupBox::draw_edit_map_generator2_box() {
   draw_colored_slide_bar(1, 32, generator_options.opt[CustomMapGeneratorOption::JunkWaterSubmergedBoulders] * 4096, Color::blue);
   draw_green_string(10, 32, "Submerged Stones");
 
-
-  draw_green_string(1, 128, "Reset Defaults");
-  draw_popup_icon(16, 124, 0x3d); // flipbox icon  
+  draw_green_string(2, 131, "Reset");
+  //draw_popup_icon(16, 124, 0x3d); // flipbox icon
+  draw_popup_icon(0, 128, 295); // reset-to-defaults icon
 
   // instead, auto-save on any change
   //draw_green_string(22, 128, "Save");
@@ -4068,6 +4082,10 @@ PopupBox::handle_action(int action, int x_, int /*y_*/) {
   //case ACTION_GAME_OPTIONS_PREV_PAGE:
     interface->open_popup(TypeGameOptions);
     break;
+  case ACTION_RESET_GAME_OPTIONS_DEFAULTS:
+    interface->get_game()->reset_game_options_defaults();
+    GameOptions::get_instance().save_options_to_file();
+    break;
   case ACTION_GAME_OPTIONS_PAGE2:
     interface->open_popup(TypeGameOptions2);
     break;
@@ -4770,6 +4788,7 @@ PopupBox::handle_box_game_options_clk(int cx, int cy) {
     ACTION_GAME_OPTIONS_QUICK_DEMO_EMPTY_BUILD_SITES, 7, 64, 150, 16,
     ACTION_GAME_OPTIONS_TREES_REPRODUCE, 7, 83, 150, 16,
     ACTION_GAME_OPTIONS_BABY_TREES_MATURE_SLOWLY, 7, 102, 150, 16,
+    ACTION_RESET_GAME_OPTIONS_DEFAULTS, 0, 126, 62, 16,  // click map the whole 'reset' text not just the button
     ACTION_GAME_OPTIONS_PAGE2, 239, 126, 16, 16,  // flip button
     ACTION_CLOSE_OPTIONS, 255, 126, 16, 16, // exit button
     -1
@@ -4788,6 +4807,7 @@ PopupBox::handle_box_game_options2_clk(int cx, int cy) {
     ACTION_GAME_OPTIONS_FogOfWar, 7, 83, 150, 16,
     //ACTION_GAME_OPTIONS_AdvancedDemolition, 7, 83, 150, 16,  /* removing AdvancedDemolition for now, see https://github.com/forkserf/forkserf/issues/180/
     ACTION_GAME_OPTIONS_SailorsMoveFaster, 7, 102, 150, 16,
+    ACTION_RESET_GAME_OPTIONS_DEFAULTS, 0, 126, 62, 16,  // click map the whole 'reset' text not just the button
     ACTION_GAME_OPTIONS_PAGE3, 239, 126, 16, 16,  // flip button
     ACTION_CLOSE_OPTIONS, 255, 126, 16, 16, // exit button
     -1
@@ -4806,6 +4826,7 @@ PopupBox::handle_box_game_options3_clk(int cx, int cy) {
     ACTION_GAME_OPTIONS_CheckPathBeforeAttack, 7, 83, 150, 16,
     //ACTION_GAME_OPTIONS_AdvancedDemolition, 7, 83, 150, 16,  /* removing AdvancedDemolition for now, see https://github.com/forkserf/forkserf/issues/180/
     ACTION_GAME_OPTIONS_SpinningAmigaStar, 7, 102, 150, 16,
+    ACTION_RESET_GAME_OPTIONS_DEFAULTS, 0, 126, 62, 16,  // click map the whole 'reset' text not just the button
     ACTION_GAME_OPTIONS_PAGE4, 239, 126, 16, 16,  // flip button
     ACTION_CLOSE_OPTIONS, 255, 126, 16, 16, // exit button
     -1
@@ -4824,6 +4845,7 @@ PopupBox::handle_box_game_options4_clk(int cx, int cy) {
     //ACTION_GAME_OPTIONS_ForesterMonoculture, 7, 64, 150, 16,
     //ACTION_GAME_OPTIONS_CheckPathBeforeAttack, 7, 83, 150, 16,
     //ACTION_GAME_OPTIONS_SpinningAmigaStar, 7, 102, 150, 16,
+    ACTION_RESET_GAME_OPTIONS_DEFAULTS, 0, 126, 62, 16,  // click map the whole 'reset' text not just the button
     ActionShowOptions, 239, 126, 16, 16,  // flip button
     ACTION_CLOSE_OPTIONS, 255, 126, 16, 16, // exit button
     -1
@@ -4852,7 +4874,8 @@ PopupBox::handle_box_edit_map_generator_clk(int cx, int cy) {
     ACTION_MAPGEN_ADJUST_JUNK_OBJ_DESERT, 199, 111, 64, 6,
     
 
-    ACTION_RESET_MAPGEN_DEFAULTS, 128, 124, 16, 16,
+    //ACTION_RESET_MAPGEN_DEFAULTS, 128, 124, 16, 16,
+    ACTION_RESET_MAPGEN_DEFAULTS, 0, 126, 62, 16,  // click map the whole 'reset' text not just the button
     //generate_map_preview(); ??
     //set_redraw()  ??
     //ACTION_CLOSE_BOX, 255, 126, 16, 16,
@@ -4885,7 +4908,8 @@ PopupBox::handle_box_edit_map_generator2_clk(int cx, int cy) {
     //ACTION_MAPGEN_ADJUST_JUNK_OBJ_DESERT, 199, 111, 64, 6,
     
 
-    ACTION_RESET_MAPGEN_DEFAULTS, 128, 124, 16, 16,
+    //ACTION_RESET_MAPGEN_DEFAULTS, 128, 124, 16, 16,
+    ACTION_RESET_MAPGEN_DEFAULTS, 0, 126, 62, 16,  // click map the whole 'reset' text not just the button
     //generate_map_preview(); ??
     //set_redraw()  ??
     //ACTION_CLOSE_BOX, 255, 126, 16, 16,

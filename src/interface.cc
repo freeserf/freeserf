@@ -270,6 +270,7 @@ Interface::close_popup(PopupBox *popup_to_close) {
     Log::Debug["popup.cc"] << "inside Interface::close_popup, closing 'the one' transient popup E";
     popup = nullptr;
     Log::Debug["popup.cc"] << "inside Interface::close_popup, closing 'the one' transient popup F";
+    viewport->set_focused(); // tlongstretch, to fix issue where after closing options popup viewport can't drag until clicked on
   }
   Log::Debug["popup.cc"] << "inside Interface::close_popup, closing 'the one' transient popup G";
   update_map_cursor_pos(map_cursor_pos);

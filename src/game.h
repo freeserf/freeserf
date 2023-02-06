@@ -167,6 +167,7 @@ class Game {
      debug_mark_road = road;
   }
   //void clear_debug_mark_road() {  // is this needed?
+  void reset_game_options_defaults();
 
   unsigned int get_tick() const { return tick; }
   unsigned int get_const_tick() const { return const_tick; }

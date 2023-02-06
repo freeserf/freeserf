@@ -45,6 +45,9 @@
 
 #define GROUND_ANALYSIS_RADIUS  25
 
+//-------------------------------------------------------------------------------------------------------------------
+// IF MAKING ANY CHANGES HERE REMEMBER TO ALSO MAKE SAME CHANGE IN Game::reset_game_options_defaults() FUNCTION!!!!!
+//-------------------------------------------------------------------------------------------------------------------
 // deFINE the global game option bools that were deCLARED in game-options.h
 bool option_EnableAutoSave = false;
 //bool option_ImprovedPigFarms = false;  // removing this as it turns out the default behavior for pig farms is to require almost no grain
@@ -222,6 +225,40 @@ Game::~Game() {
   flags.clear();
   players.clear();
   desired_cursor_pos = bad_map_pos; // I think this was causing issues on new game?
+}
+
+void
+Game::reset_game_options_defaults() {
+//-------------------------------------------------------------------------------------------------------------------
+// IF MAKING ANY CHANGES HERE REMEMBER TO ALSO MAKE SAME CHANGE IN bool DECLARATIONS AT TOP OF game.cc !!!!!
+//-------------------------------------------------------------------------------------------------------------------
+  option_EnableAutoSave = false;
+  //option_ImprovedPigFarms = false;  // removing this as it turns out the default behavior for pig farms is to require almost no grain
+  option_CanTransportSerfsInBoats = false;  // leaving this off by default because it still has occasional bugs
+  option_QuickDemoEmptyBuildSites = true;
+  //option_AdvancedDemolition = true;  // this needs more playtesting  */
+  option_TreesReproduce = false;
+  option_BabyTreesMatureSlowly = false;  // the AI needs to be improved to handle this being on, it relies too much on Foresters/Rangers
+  option_ResourceRequestsTimeOut = true;  // this is forced true to indicate that the code to make them optional isn't added yet
+  option_PrioritizeUsableResources = true;    // this is forced true to indicate that the code to make them optional isn't added yet
+  option_LostTransportersClearFaster = true;
+  option_FourSeasons = false;
+  option_AdvancedFarming = false;
+  option_FishSpawnSlowly = true;
+  option_FogOfWar = false;
+  //option_EastSlopesShadeObjects = true;   // make this an option, maybe
+  option_InvertMouse = false;
+  option_InvertWheelZoom = false;
+  option_SpecialClickBoth = true;
+  option_SpecialClickMiddle = true;
+  option_SpecialClickDouble = true;
+  option_SailorsMoveFaster = true;
+  option_WaterDepthLuminosity = true;
+  option_RandomizeInstruments = false;  // only affects DOS music
+  option_ForesterMonoculture = false;  // this looks bad in Spring and Winter, not making default anymore
+  option_CheckPathBeforeAttack = true;  // this is forced on
+  option_SpinningAmigaStar = true;
+  option_HighMinerFoodConsumption = false;
 }
 
 /* Clear the serf request bit of all flags and buildings.

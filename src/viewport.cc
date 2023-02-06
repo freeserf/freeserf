@@ -1980,7 +1980,10 @@ Viewport::draw_map_objects_row(MapPos pos, int y_base, int cols, int x_base) {
 
       }
 
+      //Log::Debug["viewport.cc"] << "inside Viewport::draw_map_objects_row, FOO, sprite #" << sprite;
+
       // handle option_ForesterMonoculture
+      //   this is comparing by OBJECT TYPE so do not subtract 8 / Map::ObjectTree0
       if (map->get_obj(pos) >= Map::ObjectNewTree0 && map->get_obj(pos) <= Map::ObjectNewTree7){
         //Log::Debug["viewport.cc"] << "inside Viewport::draw_map_objects_row, found NewTree0+, setting index to +1000";
         sprite += 1000;
@@ -1988,6 +1991,7 @@ Viewport::draw_map_objects_row(MapPos pos, int y_base, int cols, int x_base) {
       }
 
       // handle partial sprite NewWaterStone0-7
+      //   this is comparing by OBJECT TYPE so do not subtract 8 / Map::ObjectTree0
       if (map->get_obj(pos) >= Map::ObjectNewWaterStone0 && map->get_obj(pos) <= Map::ObjectNewWaterStone7){
         //Log::Debug["viewport.cc"] << "inside Viewport::draw_map_objects_row, found NewWaterStone0+, setting index to +1000";
         sprite += 1000;
@@ -2017,6 +2021,7 @@ Viewport::draw_map_objects_row(MapPos pos, int y_base, int cols, int x_base) {
       // this cannot be done inside draw_waves_row because that is done before map_objects drawn
       // NOTE the normal sprite has already been drawn by above function, these splashes are drawn
       //  OVER TOP of the normal sprite
+      //   this is comparing by OBJECT TYPE so do not subtract 8 / Map::ObjectTree0
       if (map->get_obj(pos) == Map::ObjectWaterStone0 || map->get_obj(pos) == Map::ObjectWaterStone1){
       //||  (map->get_obj(pos) >= Map::ObjectWaterTree0 && map->get_obj(pos) <= Map::ObjectWaterTree3)){
         //Log::Debug["viewport.cc"] << "inside Viewport::draw_map_objects_row(), found water object, drawing splashes, setting frame to " << frame;
@@ -2025,6 +2030,7 @@ Viewport::draw_map_objects_row(MapPos pos, int y_base, int cols, int x_base) {
         int sprite = 20 + (fast_anim & 3);
         frame->draw_sprite(x_base, y_base, Data::AssetMapWaves, sprite, true);  // this is correct for original water objects
         //frame->draw_sprite(x_base, y_base - 16, Data::AssetMapWaves, sprite, true); // testing new partial stone sprites
+      //   this is comparing by OBJECT TYPE so do not subtract 8 / Map::ObjectTree0
       }else if (map->get_obj(pos) >= Map::ObjectNewWaterStone0 && map->get_obj(pos) <= Map::ObjectNewWaterStone7){
         // wider splashes for larger objects
         // splashes have 2 types with 4 frames of animation
