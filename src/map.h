@@ -734,6 +734,87 @@ class Map {
             type_down(move_left(pos)) <= TerrainWater3 &&
             type_up(move_up(pos)) <= TerrainWater3); }
 
+  bool crosses_water(MapPos pos, Direction dir) const {
+    Log::Debug["map.h"] << "inside Map::crosses_water with pos " << pos << " and dir " << dir;
+    switch (dir){
+      case DirectionNone:
+        Log::Debug["map.h"] << "inside Map::crosses_water with pos " << pos << " and DirectionNone, returning false";
+        return false;
+      case DirectionRight:
+        if (type_up(move_up(pos)) <= TerrainWater3 && type_down(pos) <= TerrainWater3) {
+          Log::Debug["map.h"] << "inside Map::crosses_water with pos " << pos << " and DirectionRight, returning true";
+          return true;
+        }
+        break;
+      case DirectionDownRight:
+        if (type_up(pos) <= TerrainWater3 && type_down(pos) <= TerrainWater3) {
+          Log::Debug["map.h"] << "inside Map::crosses_water with pos " << pos << " and DirectionDownRight, returning true";
+          return true;
+        }
+        break;
+      case DirectionDown:
+        if (type_down(move_left(pos)) <= TerrainWater3 && type_up(pos) <= TerrainWater3) {
+          Log::Debug["map.h"] << "inside Map::crosses_water with pos " << pos << " and DirectionDown, returning true";
+          return true;
+        }
+        break;
+      case DirectionLeft:
+        if (type_down(move_left(pos)) <= TerrainWater3 && type_up(move_up_left(pos)) <= TerrainWater3) {
+          Log::Debug["map.h"] << "inside Map::crosses_water with pos " << pos << " and DirectionLeft, returning true";
+          return true;
+        }
+        break;
+      case DirectionUpLeft:
+        if (type_up(move_up_left(pos)) <= TerrainWater3 && type_down(move_up_left(pos)) <= TerrainWater3) {
+          Log::Debug["map.h"] << "inside Map::crosses_water with pos " << pos << " and DirectionUpLeft, returning true";
+          return true;
+        }
+        break;
+      case DirectionUp:
+        if (type_down(move_up_left(pos)) <= TerrainWater3 && type_up(move_up(pos)) <= TerrainWater3) {
+          Log::Debug["map.h"] << "inside Map::crosses_water with pos " << pos << " and DirectionUp, returning true";
+          return true;
+        }
+        break;
+
+    }
+    return false;
+   //  type_up/type_down refer to ONLY THESE triangles in a given hexagonal map pos:
+   //  *         1    0
+   //  *    2   ________   11
+   //  *       /\      /\
+   //  *      /  \    /  \
+   //  *  3  /    \  /    \  10
+   //  *    /______\/______\
+   //  *    \      /\      /
+   //  *  4  \    /  \down/  9
+   //  *      \  / up \  /
+   //  *       \/______\/
+   //  *    5             8
+   //  *         6    7
+  /*
+   switch (dir){
+     case DirectionRight:
+        tri up from up-right,
+        tri down from current,
+     case DirectionDownRight:
+        tri up from current,
+        tri down from current,
+     case DirectionDown:
+        tri down from left,
+        tri up from current,
+     case DirectionLeft:
+        tri down from left,
+        tri up from up-left,
+     case DirectionUpLeft:
+        tri up from up-left,
+        tri down from up-left,
+     case DirectionUp:
+        tri down from up-left,
+        tri up from up (right)
+        */
+  }
+
 
   // NOTE - because terrain is only drawn once, this isn't helpful for ambient 
   //  sound triggering.  Disabling for now, might use it later for something else
