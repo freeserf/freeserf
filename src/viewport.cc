@@ -4880,14 +4880,26 @@ Viewport::update() {
 
   // refresh/update floating/moveable/pinned/multiple popups
   if (interface->get_game()->get_const_tick() % 40 == 0){
-    //Log::Debug["viewport.cc"] << "inside Viewport::update(), refreshing any pinned popups";
+    Log::Debug["viewport.cc"] << "inside Viewport::update(), refreshing any pinned_popups";
     for (PopupBox *pinned_popup : interface->get_pinned_popup_boxes()){
+       Log::Debug["viewport.cc"] << "inside Viewport::update(), refreshing any pinned_popups, found a pinned popup with class " << NameGuiObjClass[pinned_popup->get_objclass()] << " and type " << pinned_popup->get_objtype();
       // I think I saw an issue with trying to set redraw on parent
       //   of a pinned popup, I think there is no reason that pinned 
       //   popups need a parent, trying to set it nullptr to see
       //popup->set_parent(nullptr);
       pinned_popup->set_parent(nullptr);
       pinned_popup->set_redraw();
+
+      // redraw minimap if popup pinned
+      if (pinned_popup->get_objclass() == GuiObjClass::ClassPopupBox && pinned_popup->get_objtype() == PopupBox::TypeMap){
+        Log::Debug["viewport.cc"] << "inside Viewport::update(), refreshing any pinned_popups, found MiniMap popup";
+        Minimap *minimap = pinned_popup->get_minimap();
+        if (minimap != nullptr) {
+          Log::Debug["viewport.cc"] << "inside Viewport::update(), refreshing any pinned_popups, found MiniMap popup, not null, calling move_to_map_pos " << get_current_map_pos();
+          minimap->move_to_map_pos(get_current_map_pos());
+        }
+      }
+
     }
   }
 

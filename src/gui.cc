@@ -93,10 +93,10 @@ GuiObject::draw(Frame *_frame) {
     return;
   }
 
-  Log::Debug["gui.cc"] << "inside GuiObject::draw, this->objclass " << this->get_objclass();
+  //Log::Debug["gui.cc"] << "inside GuiObject::draw, this->objclass " << this->get_objclass();
 
   if (frame == nullptr) {
-    Log::Debug["event_loop.cc"] << "inside GuiObject::draw, this->objclass " << this->get_objclass() << " frame is nullptr, creating new frame";
+    //Log::Debug["event_loop.cc"] << "inside GuiObject::draw, this->objclass " << this->get_objclass() << " frame is nullptr, creating new frame";
     frame = Graphics::get_instance().create_frame(width, height);
   }
 
@@ -105,9 +105,9 @@ GuiObject::draw(Frame *_frame) {
     internal_draw();
 
     for (GuiObject *float_window : floats) {
-      Log::Debug["gui.cc"] << "inside GuiObject::draw, about to call float->draw for float with class " << NameGuiObjClass[float_window->get_objclass()] << " and type " << float_window->get_objtype();
+      //Log::Debug["gui.cc"] << "inside GuiObject::draw, about to call float->draw for float with class " << NameGuiObjClass[float_window->get_objclass()] << " and type " << float_window->get_objtype();
       if (float_window == nullptr){
-        Log::Debug["gui.cc"] << "inside GuiObject::draw, about to call float->draw for float but float is nullptr!";
+        //Log::Debug["gui.cc"] << "inside GuiObject::draw, about to call float->draw for float but float is nullptr!";
         continue;
       }
       float_window->draw(frame);
@@ -225,9 +225,18 @@ GuiObject::handle_event(const Event *event) {
       }
     //}else if (in_scope && !being_dragged){
     }else if (in_scope && !focused){
-      //Log::Debug["event_loop.cc"] << "inside GuiObject::handle_event, GuiObjectClass " << NameGuiObjClass[objclass] << ", event is in bounds BUT not being_dragged, ignoring this event for this object becaus some other object is being dragged";
-      Log::Debug["gui.cc"] << "inside GuiObject::handle_event, GuiObjectClass " << NameGuiObjClass[objclass] << " and objtype " << get_objtype() << ", event is in bounds BUT not focused, ignoring this event for this object becaus some other object is being dragged";
-      skip_event = true;
+      // wait, what behavior is actually desired when dragging minimap?? should Viewport move with it?
+      // it seems in the original game you can't even drag the minimap
+      //  nor in Serflings
+      // leaving it as it was before... dragging the minimap does not move the Viewport, though clicking it does
+      //if (event->type == Event::TypeDrag && is_dragging_viewport_or_minimap == true
+      // && (objclass == GuiObjClass::ClassInterface || objclass == GuiObjClass::ClassViewport)){
+      //  Log::Debug["gui.cc"] << "inside GuiObject::handle_event, GuiObjectClass " << NameGuiObjClass[objclass] << " and objtype " << get_objtype() << ", event is in bounds and not focused, but this is TypeDrag and is_dragging_viewport_or_minimap is true and this is Interface/Viewport, allowing it";
+      //}else{
+        //Log::Debug["event_loop.cc"] << "inside GuiObject::handle_event, GuiObjectClass " << NameGuiObjClass[objclass] << ", event is in bounds BUT not being_dragged, ignoring this event for this object becaus some other object is being dragged";
+        Log::Debug["gui.cc"] << "inside GuiObject::handle_event, GuiObjectClass " << NameGuiObjClass[objclass] << " and objtype " << get_objtype() << ", event is in bounds BUT not focused, ignoring this event for this object because some other object is being dragged";
+        skip_event = true;
+      //}
     }
   }
 
@@ -404,15 +413,15 @@ GuiObject::get_position(int *px, int *py) {
 
 void
 GuiObject::set_size(int new_width, int new_height) {
-  Log::Debug["gui.cc"] << "start of GuiObject::set_size";
+  Log::Debug["gui.cc"] << "start of GuiObject::set_size for obj with objclass " << NameGuiObjClass[objclass] << ", new size " << new_width << "x" << new_height;
   delete_frame();
   width = new_width;
   height = new_height;
-  Log::Debug["gui.cc"] << "start of GuiObject::set_size, calling layout";
+  Log::Debug["gui.cc"] << "start of GuiObject::set_size for obj with objclass " << NameGuiObjClass[objclass] << ", calling layout";
   layout();  // this appears to do nothing for generic GuiObject, but I think it exists because it is overridden by some GuiObject superclasses such as Viewport, Interface, and their layout() is important
   //store_prev_res();
   set_redraw();
-  Log::Debug["gui.cc"] << "done GuiObject::set_size";
+  Log::Debug["gui.cc"] << "done GuiObject::set_size for obj with objclass " << NameGuiObjClass[objclass];
 }
 
 void

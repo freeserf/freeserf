@@ -173,21 +173,9 @@ Interface::open_popup(int box) {
     add_float(popup, 0, 0);
   }
   layout();
-  // something odd, it seems that some popup objects may be re-used?  it seems that TypeSettSelect and
-  //  TypeLoadSave save a popup window size, and in order to make the LoadSave popup double-wide it must
-  //  be referred to as SettSelect here, which makes SettSelect off-center because it is not actually
-  //  double-wide but is offset as if it were.  Attempting to fix by simply reverting the offset for this
-  // UPDATE THIS IS ITSELF CAUSING ANOTHER BUG - now that popups are moveable the SettSelect popup initially retains
-  //  its double-wide size which messes up its dragging to right side of the screen... UNTIL the window is resized
-  //  then it gets fixed :-/
-  // NEED TO PROPERLY SEPARATE SettSelect and Options popups!!!
-  //
-  // I think the issue is simply that there is only one popup, and it is re-used with a new type until closed
-  //  so either handle the resizing better, or simply close and re-open it when changing types
-  //
   if (box == PopupBox::TypeOptions || box == PopupBox::TypeGameOptions || box == PopupBox::TypeGameOptions2
    || box == PopupBox::TypeGameOptions3 || box == PopupBox::TypeGameOptions4
-   || box == PopupBox::TypeEditMapGenerator || box == PopupBox::TypeEditMapGenerator2 || box == PopupBox::TypeSettSelect){
+   || box == PopupBox::TypeEditMapGenerator || box == PopupBox::TypeEditMapGenerator2){
      //Log::Debug["interface.cc"] << "inside Interface::open_popup(), for popup type " << box << ", drawing double-wide";
     // double wide, normal height
     popup->set_size(288, 160);
@@ -200,11 +188,6 @@ Interface::open_popup(int box) {
     int *ptoptions_pos_y = &options_pos_y;
     popup->get_position(ptoptions_pos_x, ptoptions_pos_y);
     options_pos_x = *ptoptions_pos_x;
-    // see notes above, this one is weird
-    if (box != PopupBox::TypeSettSelect){
-      // shift left half of one "normal width", keep same height
-      options_pos_x -= 72;
-    }
     popup->move_to(options_pos_x, options_pos_y);
   }
   /* this doesn't work here, not exactly clear why

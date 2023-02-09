@@ -3249,21 +3249,18 @@ PopupBox::internal_draw() {
    || box == Type::TypeGameOptions3 || box == Type::TypeGameOptions4
    || box == Type::TypeEditMapGenerator || box == PopupBox::TypeEditMapGenerator2 || box == Type::TypeLoadSave){
     draw_large_popup_box_frame();
-      // work-around for joining of SettSelect and LoadSave popups, but only LoadSave doubled
-      if (box == Type::TypeLoadSave){
-        int loadsave_pos_x = 0;
-        int loadsave_pos_y = 0;
-        int *ptloadsave_pos_x = &loadsave_pos_x;
-        int *ptloadsave_pos_y = &loadsave_pos_y;
-        //this->get_position(ptloadsave_pos_x, ptloadsave_pos_y);
-        // cannot offset based on current popup position because it results in
-        //  the popup being shifted every time it is redrawn!
-        // Instead, center position relative to viewport which is absolute
-        interface->get_viewport()->get_size(ptloadsave_pos_x, ptloadsave_pos_y);
-        loadsave_pos_x = *ptloadsave_pos_x / 2 - 144;
-        loadsave_pos_y = *ptloadsave_pos_y / 2 - 80;
-        this->move_to(loadsave_pos_x, loadsave_pos_y);
-      }
+    int loadsave_pos_x = 0;
+    int loadsave_pos_y = 0;
+    int *ptloadsave_pos_x = &loadsave_pos_x;
+    int *ptloadsave_pos_y = &loadsave_pos_y;
+    //this->get_position(ptloadsave_pos_x, ptloadsave_pos_y);
+    // cannot offset based on current popup position because it results in
+    //  the popup being shifted every time it is redrawn!
+    // Instead, center position relative to viewport which is absolute
+    interface->get_viewport()->get_size(ptloadsave_pos_x, ptloadsave_pos_y);
+    loadsave_pos_x = *ptloadsave_pos_x / 2 - 144;
+    loadsave_pos_y = *ptloadsave_pos_y / 2 - 80;
+    this->move_to(loadsave_pos_x, loadsave_pos_y);
   }else{
     draw_popup_box_frame();
   }
@@ -5699,12 +5696,18 @@ PopupBox::handle_drag(int lx, int ly) {
     //  force the initial drag to be a strong motion to "release" the popup into drag mode
     //  THIS IS HANDLED INSIDE GuiObject::handle_event NOT HERE
 
-    // add pin icon to popup to allow it to become sticky
-    if (!lifted){
-      lifted = true;
-      Log::Debug["popup.cc"] << "inside PopupBox::handle_drag, setting lifted bool to true";
-      play_sound(Audio::TypeSfxPlanting);  // this is the "pop" sound
-      interface->pin_popup();
+    if (box == Type::TypeOptions || box == Type::TypeGameOptions || box == Type::TypeGameOptions2
+      || box == Type::TypeGameOptions3 || box == Type::TypeGameOptions4
+      || box == Type::TypeEditMapGenerator || box == PopupBox::TypeEditMapGenerator2 || box == Type::TypeLoadSave){
+      Log::Debug["popup.cc"] << "inside PopupBox::handle_drag, not allowing this type of popup to be lifted/pinned";
+      return true;
+    }else{
+      if (!lifted){
+        lifted = true;
+        Log::Debug["popup.cc"] << "inside PopupBox::handle_drag, setting lifted bool to true";
+        play_sound(Audio::TypeSfxPlanting);  // this is the "pop" sound
+        interface->pin_popup();
+      }
     }
 
     // save the offset from the original position so that the mouse pointer can be sent
@@ -5726,57 +5729,13 @@ PopupBox::handle_drag(int lx, int ly) {
     unsigned int res_width; 
     unsigned int res_height;
     gfx.get_resolution(&res_width, &res_height);
-    // there seems to be a very strange issue here, if the popup is limited to resolution-width minus popup width it can't
-    //   actually reach the right side of the screen, though top/left/bottom all fine.  Changing the check to width / 2 - 1 fixes it
-    // BUT if the window is resized at all, or even maximized/fullscreen then back to default without manual resizing it retains the
-    //  "correct" behavior of resolution-width minus popup width
-    // this is very strange, as a hack-workaround, I am going to try noting if the screen was EVER resized, and if so change the
-    //  behavior here :-/
-    // this works fine for me but I worry it fail on other platforms
-    int hacked_width = 0;
-    // maybe this is fixed now?
-    //if (interface->get_viewport()->get_resize_tainted() == true){
-    //if (true){  // nope
-    // hmm it also seems that dragging the Viewport around also "sets the taint"
-    //
-    //  AH I think the issue is related to double-wide popups!  it seems that the optios panelbutton popup, which
-    //   is only normal size /but LEADS TO double-size panels/ is affected by this but the graphs panelbar icon popup
-    //   has normal behavior from the start
-    // UPDATE - this is related to they "tying" of PopupBox::TypeSettSelect to PopupBox::TypeLoadSave
-    //  I don't quite remember HOW they are tried, there is more information in Interface::open_popup
-    //  
-    //  try to account for this with another layer of hacks...
-    //
-    //  UGH ITS EVEN WORSE, when you use the flip arrow to go between types of open popup, it doesn't update the class it re-uses the same popup
-    //
-    //if (box == PopupBox::TypeSettSelect && interface->get_viewport()->get_resize_tainted() == false) {
-    //if (true){ //now simply forcing a call to notify_resize at start of game
-    //  Log::Debug["popup.cc"] << "inside PopupBox::handle_drag, USING SettSelect/resize_tainted HACK!";
-    //  hacked_width = width / 2;
-    //}else{
-    //  Log::Debug["popup.cc"] << "inside PopupBox::handle_drag, using normal popup resize width rules (no SettSelect/resize_tainted exception)";
-    //  hacked_width = width;
-    //}
     Log::Debug["popup.cc"] << "inside PopupBox::handle_drag, width/height is " << width << " / " << height;
-    //if (this->get_parent() != nullptr){
-    //  int parent_width = 0;
-    //  int parent_height = 0;
-    //  get_parent()->get_size(&parent_width, &parent_height);
-    //  Log::Debug["popup.cc"] << "inside PopupBox::handle_drag, this popup has a parent which has width/height is " << parent_width << " / " << parent_height;
-    //}
-    // AH HAH I think this is all it takes, resize_tainted isn't needed anymore
-    if (box == PopupBox::TypeSettSelect || box == PopupBox::TypeStatSelect){  // need to check StatSelect also because it can change into SettSelect
-      hacked_width = 144;
-    }else{
-      // this allows double-wide popups to work as expected
-      hacked_width = width;
-    }
     int this_left = x;
-    int this_right = x + hacked_width;
+    int this_right = x + width;
     int this_top = y;
     int this_bottom = y + height;
     // moving to after collision adjustment
-    //if (this_right > res_width - 1){ x = res_width - hacked_width; }
+    //if (this_right > res_width - 1){ x = res_width - width; }
     //if (this_bottom > res_height){ y = res_height - height; }
     //if (x < 0){ x = 0; }
     //if (y < 0){ y = 0; }
@@ -5896,7 +5855,7 @@ PopupBox::handle_drag(int lx, int ly) {
       //  y = orig_y + adjust_y;
       }
 
-      if (this_right > res_width - 1){ x = res_width - hacked_width; }
+      if (this_right > res_width - 1){ x = res_width - width; }
       if (this_bottom > res_height){ y = res_height - height; }
       if (x < 0){ x = 0; }
       if (y < 0){ y = 0; }
@@ -5944,5 +5903,19 @@ PopupBox::set_box(Type box_) {
   } else {
     minimap->set_displayed(false);
   }
+
+  if (box == PopupBox::TypeOptions || box == PopupBox::TypeGameOptions || box == PopupBox::TypeGameOptions2
+  || box == PopupBox::TypeGameOptions3 || box == PopupBox::TypeGameOptions4
+  || box == PopupBox::TypeEditMapGenerator || box == PopupBox::TypeEditMapGenerator2 || box == PopupBox::TypeLoadSave){
+    Log::Debug["interface.cc"] << "inside PopupBox::set_box(), for popup type " << box << ", drawing double-wide";
+    // double wide, normal height
+    set_size(288, 160);
+  }else{
+    Log::Debug["interface.cc"] << "inside PopupBox::set_box(), for popup type " << box << ", drawing single-wide";
+    // normal size (single-wide)
+    set_size(144, 160);
+  }
+
+
   set_redraw();
 }

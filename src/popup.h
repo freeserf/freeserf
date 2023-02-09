@@ -64,10 +64,10 @@ class PopupBox : public GuiObject {
     TypeStartAttackRedraw,
     TypeGroundAnalysis,
     TypeLoadArchive,  // I don't think this is used
-    TypeLoadSave,    // this is tied to the SettSelect popup
+    TypeLoadSave,    // this is tied to the SettSelect popup  (no, the issue is that popups are re-used!)
     Type25,
     TypeDiskMsg,
-    TypeSettSelect,  // this is tied to the save game popup LoadSave
+    TypeSettSelect,  // this is tied to the save game popup LoadSave  (no, the issue is that popups are re-used!)
     TypeSett1,
     TypeSett2,
     TypeSett3,

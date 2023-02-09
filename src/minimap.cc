@@ -328,6 +328,7 @@ bool
 Minimap::handle_mouse_button_down(int lx, int ly, Event::Button button) {
   Log::Debug["minimap.cc"] << "inside Minimap::handle_mouse_button_down lx,ly = " << lx << "," << ly << ", button " << button << ", setting focused bool to true";
   //being_dragged = true;
+  //is_dragging_viewport_or_minimap = true;
   set_focused();
   return true;
 }
@@ -335,7 +336,9 @@ Minimap::handle_mouse_button_down(int lx, int ly, Event::Button button) {
 
 bool
 Minimap::handle_drag(int dx, int dy) {
+  Log::Debug["minimap.cc"] << "inside Minimap::handle_drag";
   if (dx != 0 || dy != 0) {
+    Log::Debug["minimap.cc"] << "inside Minimap::handle_drag, calling move_by_pixels";
     move_by_pixels(dx, dy);
   }
 

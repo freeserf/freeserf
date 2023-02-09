@@ -263,6 +263,10 @@ EventLoopSDL::run() {
         button_middle_down = false;
         button_right_down = false;
 
+        //if (is_dragging_viewport_or_minimap){
+        //  is_dragging_viewport_or_minimap = false;
+        //}
+
         break;
       case SDL_MOUSEBUTTONDOWN:
         //Log::Debug["event_loop-sdl.cc"] << "inside EventLoopSDL::run(), type SDL_MOUSEBUTTONDOWN";
@@ -291,7 +295,7 @@ EventLoopSDL::run() {
         }
         break;
       case SDL_MOUSEMOTION:
-        Log::Debug["event_loop-sdl.cc"] << "inside EventLoopSDL::run(), type SDL_MOUSEMOTION";
+        //Log::Debug["event_loop-sdl.cc"] << "inside EventLoopSDL::run(), type SDL_MOUSEMOTION";
         for (int button = 1; button <= 3; button++) {
           if (event.motion.state & SDL_BUTTON(button)) {
             if (drag_button == 0) {

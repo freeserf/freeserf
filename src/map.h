@@ -735,44 +735,36 @@ class Map {
             type_up(move_up(pos)) <= TerrainWater3); }
 
   bool crosses_water(MapPos pos, Direction dir) const {
-    Log::Debug["map.h"] << "inside Map::crosses_water with pos " << pos << " and dir " << dir;
     switch (dir){
       case DirectionNone:
-        Log::Debug["map.h"] << "inside Map::crosses_water with pos " << pos << " and DirectionNone, returning false";
         return false;
       case DirectionRight:
         if (type_up(move_up(pos)) <= TerrainWater3 && type_down(pos) <= TerrainWater3) {
-          Log::Debug["map.h"] << "inside Map::crosses_water with pos " << pos << " and DirectionRight, returning true";
           return true;
         }
         break;
       case DirectionDownRight:
         if (type_up(pos) <= TerrainWater3 && type_down(pos) <= TerrainWater3) {
-          Log::Debug["map.h"] << "inside Map::crosses_water with pos " << pos << " and DirectionDownRight, returning true";
           return true;
         }
         break;
       case DirectionDown:
         if (type_down(move_left(pos)) <= TerrainWater3 && type_up(pos) <= TerrainWater3) {
-          Log::Debug["map.h"] << "inside Map::crosses_water with pos " << pos << " and DirectionDown, returning true";
           return true;
         }
         break;
       case DirectionLeft:
         if (type_down(move_left(pos)) <= TerrainWater3 && type_up(move_up_left(pos)) <= TerrainWater3) {
-          Log::Debug["map.h"] << "inside Map::crosses_water with pos " << pos << " and DirectionLeft, returning true";
           return true;
         }
         break;
       case DirectionUpLeft:
         if (type_up(move_up_left(pos)) <= TerrainWater3 && type_down(move_up_left(pos)) <= TerrainWater3) {
-          Log::Debug["map.h"] << "inside Map::crosses_water with pos " << pos << " and DirectionUpLeft, returning true";
           return true;
         }
         break;
       case DirectionUp:
         if (type_down(move_up_left(pos)) <= TerrainWater3 && type_up(move_up(pos)) <= TerrainWater3) {
-          Log::Debug["map.h"] << "inside Map::crosses_water with pos " << pos << " and DirectionUp, returning true";
           return true;
         }
         break;

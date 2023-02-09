@@ -15,6 +15,11 @@
 #include "src/ai.h"
 #include "src/game-options.h"
 
+
+#ifdef WIN32
+# include <SDL.h>  // for SDL popup to notify player when AI cannot place castle (and game will crash)
+#endif  // WIN32
+
 AI::AI(PGame current_game, unsigned int _player_index) {
 
   ai_status = "INITIALIZING";
@@ -5140,7 +5145,8 @@ AI::do_connect_disconnected_road_networks(){
       Flag *other_end_flag = flag->get_other_end_flag(dir);
       bool rejected = false;
       if (other_end_flag == nullptr){
-        AILogWarn["do_connect_disconnected_road_networks"] << "other_end_flag is nullptr!  skipping this dir";
+        // this seems to happen constantly and isn't really an issue?
+        //AILogWarn["do_connect_disconnected_road_networks"] << "other_end_flag is nullptr!  skipping this dir";
         rejected = true;
         continue;
       }
