@@ -5696,10 +5696,18 @@ PopupBox::handle_drag(int lx, int ly) {
     //  force the initial drag to be a strong motion to "release" the popup into drag mode
     //  THIS IS HANDLED INSIDE GuiObject::handle_event NOT HERE
 
+    // part of "no zoom w/ pinned popups work-around (also used later for other reason)
+    Graphics &gfx = Graphics::get_instance();
+
     if (box == Type::TypeOptions || box == Type::TypeGameOptions || box == Type::TypeGameOptions2
       || box == Type::TypeGameOptions3 || box == Type::TypeGameOptions4
       || box == Type::TypeEditMapGenerator || box == PopupBox::TypeEditMapGenerator2 || box == Type::TypeLoadSave){
       Log::Debug["popup.cc"] << "inside PopupBox::handle_drag, not allowing this type of popup to be lifted/pinned";
+      return true;
+    }else if (gfx.get_zoom_factor() != 1.f){
+      // temporary work-around to avoid bugs with zooming and pinned popups, for now simply disallow pinned popups while zoomed
+      //  and Viewport::update will close any that exist
+      Log::Warn["popup.cc"] << "inside PopupBox::handle_drag, not allowing popups to move when zoomed, it is buggy";
       return true;
     }else{
       if (!lifted){
@@ -5725,7 +5733,7 @@ PopupBox::handle_drag(int lx, int ly) {
     Log::Debug["popup.cc"] << "inside PopupBox::handle_drag, new x,y is " << x << "," << y;
 
     // don't let it popup go off-screen
-    Graphics &gfx = Graphics::get_instance();
+    //Graphics &gfx = Graphics::get_instance();   // moved to earlier because of zoom_factor work-around
     unsigned int res_width; 
     unsigned int res_height;
     gfx.get_resolution(&res_width, &res_height);
