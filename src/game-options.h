@@ -79,5 +79,9 @@ extern int season_sprite_offset[4];
 //  this is needed to determine mousewheel behavior, so it can either zoom the viewport
 //  or scroll the load games window
 extern bool is_list_in_focus;
+extern bool is_dragging_popup;
+//extern bool is_dragging_viewport_or_minimap;
+extern int mouse_x_after_drag;
+extern int mouse_y_after_drag;
 
 #endif  // SRC_GAME_OPTIONS_H_

@@ -64,6 +64,7 @@ Interface::Interface()
   is_playing_watersfx = false;  // for ambient wave sounds near water
   is_playing_desertsfx = false; // for ambient wind sounds near desert
   displayed = true;
+  objclass = GuiObjClass::ClassInterface;
 
   game = nullptr;
 
@@ -96,6 +97,7 @@ Interface::Interface()
   viewport = nullptr;
   panel = nullptr;
   popup = nullptr;
+  pinned_popups = {};
   init_box = nullptr;
   notification_box = nullptr;
 
@@ -141,12 +143,25 @@ Interface::get_panel_bar() {
   return panel;
 }
 
+// in the original Freeserf code (and original game) there can only be ONE popup
+//  at a time
+// adding support for multiple/pinned/movable popups.  Now there are two types,
+//  the one and only "normal" transient popup box and any number of pinned
+//  popup boxes
 PopupBox *
 Interface::get_popup_box() {
-  return popup;
+  return popup;   // get the one and only normal transient popup
+}
+
+std::vector<PopupBox *>
+Interface::get_pinned_popup_boxes() {
+  return pinned_popups;
 }
 
 /* Open popup box */
+// NOTE until adding moveable popup feature there is only ONE popup ever allowed.  If one popup leads to another
+//  the same PopupBox object is used with a new type and redrawn but keeps other attributes.  
+//
 void
 Interface::open_popup(int box) {
   //Log::Debug["interface.cc"] << "inside Interface::open_popup(), for popup type " << box;
@@ -158,13 +173,9 @@ Interface::open_popup(int box) {
     add_float(popup, 0, 0);
   }
   layout();
-  // something odd, it seems that some popup objects may be re-used?  it seems that TypeSettSelect and
-  //  TypeLoadSave save a popup window size, and in order to make the LoadSave popup double-wide it must
-  //  be referred to as SettSelect here, which makes SettSelect off-center because it is not actually
-  //  double-wide but is offset as if it were.  Attempting to fix by simply reverting the offset for this
   if (box == PopupBox::TypeOptions || box == PopupBox::TypeGameOptions || box == PopupBox::TypeGameOptions2
    || box == PopupBox::TypeGameOptions3 || box == PopupBox::TypeGameOptions4
-   || box == PopupBox::TypeEditMapGenerator || box == PopupBox::TypeEditMapGenerator2 || box == PopupBox::TypeSettSelect){
+   || box == PopupBox::TypeEditMapGenerator || box == PopupBox::TypeEditMapGenerator2){
      //Log::Debug["interface.cc"] << "inside Interface::open_popup(), for popup type " << box << ", drawing double-wide";
     // double wide, normal height
     popup->set_size(288, 160);
@@ -177,11 +188,6 @@ Interface::open_popup(int box) {
     int *ptoptions_pos_y = &options_pos_y;
     popup->get_position(ptoptions_pos_x, ptoptions_pos_y);
     options_pos_x = *ptoptions_pos_x;
-    // see notes above, this one is weird
-    if (box != PopupBox::TypeSettSelect){
-      // shift left half of one "normal width", keep same height
-      options_pos_x -= 72;
-    }
     popup->move_to(options_pos_x, options_pos_y);
   }
   /* this doesn't work here, not exactly clear why
@@ -206,14 +212,75 @@ Interface::open_popup(int box) {
 }
 
 /* Close the current popup. */
+// if there is no current normal popup, search for a 
+//  pinned_popup that has the clicked position
 void
-Interface::close_popup() {
+//Interface::close_popup() {
+//Interface::close_popup(int click_x, int click_y) {
+Interface::close_popup(PopupBox *popup_to_close) {
+  //Log::Debug["popup.cc"] << "inside Interface::close_popup, with click coords " << x << "," << y;
+  Log::Debug["popup.cc"] << "inside Interface::close_popup";
+  if (popup != popup_to_close){
+    Log::Debug["popup.cc"] << "inside Interface::close_popup, closing a pinned popup";
+    if (popup_to_close == nullptr) {
+      Log::Debug["popup.cc"] << "inside Interface::close_popup, closing a pinned popup but popup_to_close is nullptr!";
+      return;
+    }
+    popup_to_close->hide();
+    // delete object from parent object's float list
+    del_float(popup_to_close);
+    // delete the PopupBox Class object from memory
+    delete popup_to_close;
+    // delete the popup's entry from the pinned_popups vector
+    std::vector<PopupBox *>::iterator it = std::find(pinned_popups.begin(), pinned_popups.end(), popup_to_close);
+    if (it != pinned_popups.end()){
+      pinned_popups.erase(it);
+    }
+    //popup_to_close = nullptr;
+    //set_redraw();  // attempt to fix frame corruption after closing pinned popup issue
+  }else{
+    Log::Debug["popup.cc"] << "inside Interface::close_popup, closing 'the one' transient popup";
+    if (popup == nullptr) {
+      Log::Debug["popup.cc"] << "inside Interface::close_popup, closing 'the one' transient popup A";
+      return;
+    }
+    Log::Debug["popup.cc"] << "inside Interface::close_popup, closing 'the one' transient popup B";
+    popup->hide();
+    Log::Debug["popup.cc"] << "inside Interface::close_popup, closing 'the one' transient popup C";
+    del_float(popup);
+    Log::Debug["popup.cc"] << "inside Interface::close_popup, closing 'the one' transient popup D";
+    delete popup;
+    Log::Debug["popup.cc"] << "inside Interface::close_popup, closing 'the one' transient popup E";
+    popup = nullptr;
+    Log::Debug["popup.cc"] << "inside Interface::close_popup, closing 'the one' transient popup F";
+    viewport->set_focused(); // tlongstretch, to fix issue where after closing options popup viewport can't drag until clicked on
+  }
+  Log::Debug["popup.cc"] << "inside Interface::close_popup, closing 'the one' transient popup G";
+  update_map_cursor_pos(map_cursor_pos);
+  if (panel != nullptr) {
+    Log::Debug["popup.cc"] << "inside Interface::close_popup, closing 'the one' transient popup H";
+    panel->update();
+  }
+  Log::Debug["popup.cc"] << "inside Interface::close_popup, closing 'the one' transient popup I";
+}
+
+void
+Interface::pin_popup() {
+  Log::Debug["popup.cc"] << "inside Interface::pin_popup";
   if (popup == nullptr) {
     return;
   }
-  popup->hide();
-  del_float(popup);
-  delete popup;
+
+  // I think I saw an issue with trying to set redraw on parent
+  //   of a pinned popup, I think there is no reason that pinned 
+  //   popups need a parent, trying to set it nullptr to see
+  // UPDATE - i'm not sure this is the fix, but I guess it can't hurt
+  //popup->set_parent(nullptr);
+
+  pinned_popups.push_back(popup);
+  //popup->hide();
+  //del_float(popup);
+  //delete popup;
   popup = nullptr;
   update_map_cursor_pos(map_cursor_pos);
   if (panel != nullptr) {
@@ -430,7 +497,7 @@ Interface::return_from_message() {
     viewport->move_to_map_pos(return_pos);
 
     if ((popup != nullptr) && (popup->get_box() == PopupBox::TypeMessage)) {
-      close_popup();
+      close_popup(popup);
     }
     play_sound(Audio::TypeSfxClick);
   }
@@ -663,6 +730,7 @@ Interface::update_interface() {
   if (panel != nullptr) {
     panel->update();
   }
+
 }
 
 void
@@ -961,7 +1029,7 @@ Interface::build_building(Building::Type type) {
   Log::Debug["interface.cc"] << "inside Interface::build_building, can build type " << NameBuilding[type];
 
   play_sound(Audio::TypeSfxAccepted);
-  close_popup();
+  close_popup(popup);
 
   /* Move cursor to flag. */
   MapPos flag_pos = game->get_map()->move_down_right(map_cursor_pos);
@@ -1004,12 +1072,12 @@ Interface::internal_draw() {
 
 void
 Interface::layout() {
-  //Log::Debug["interface.cc"] << "inside Interface::layout";
+  Log::Debug["interface.cc"] << "inside Interface::layout";
   int panel_x = 0;
   int panel_y = height;
 
   if (panel != nullptr) {
-    //Log::Debug["interface.cc"] << "inside Interface::layout, panel is defined";
+    Log::Debug["interface.cc"] << "inside Interface::layout, panel is defined";
     int panel_width = 352;
     int panel_height = 40;
     panel_x = (width - panel_width) / 2;
@@ -1019,7 +1087,7 @@ Interface::layout() {
   }
 
   if (popup != nullptr) {
-    //Log::Debug["interface.cc"] << "inside Interface::layout, popup is defined";
+    Log::Debug["interface.cc"] << "inside Interface::layout, popup is defined";
     int popup_width = 144;
     int popup_height = 160;
     int popup_x = (width - popup_width) / 2;
@@ -1031,7 +1099,7 @@ Interface::layout() {
   }
 
   if (init_box != nullptr) {
-    //Log::Debug["interface.cc"] << "inside Interface::layout, init_box is defined";
+    Log::Debug["interface.cc"] << "inside Interface::layout, init_box is defined";
     int init_box_width = 360;
     int init_box_height = 256;
     int init_box_x = (width - init_box_width) / 2;
@@ -1041,7 +1109,7 @@ Interface::layout() {
   }
 
   if (notification_box != nullptr) {
-    //Log::Debug["interface.cc"] << "inside Interface::layout, notification_box is defined";
+    Log::Debug["interface.cc"] << "inside Interface::layout, notification_box is defined";
     int notification_box_width = 200;
     int notification_box_height = 88;
     int notification_box_x = panel_x + 40;
@@ -1051,8 +1119,10 @@ Interface::layout() {
   }
 
   if (viewport != nullptr) {
-    //Log::Debug["interface.cc"] << "inside Interface::layout, viewport is defined";
+    Log::Debug["interface.cc"] << "inside Interface::layout, viewport is defined";
     viewport->set_size(width, height);
+    viewport->recenter();
+    
   }
 
   set_redraw();
@@ -1250,6 +1320,8 @@ Interface::update() {
 bool
 Interface::handle_key_pressed(char key, int modifier) {
 
+  Log::Info["interface"] << "inside Interface::handle_key_pressed, key '" << key << "' key with number '" << int(key) << "' pressed";
+
   switch (key) {
     /* Interface control */
 
@@ -1272,7 +1344,7 @@ Interface::handle_key_pressed(char key, int modifier) {
       if ((notification_box != nullptr) && notification_box->is_displayed()) {
         close_message();
       } else if ((popup != nullptr) && popup->is_displayed()) {
-        close_popup();
+        close_popup(popup);
       } else if (building_road.is_valid()) {
         build_road_end();
       }
@@ -1447,7 +1519,26 @@ Interface::handle_key_pressed(char key, int modifier) {
         }
       }
       else {
+        // close all popups, now that there is no longer one single popup whose index is tied to player, it becomes
+        //  possible to have popups open for multiple players, which is confusing I think
+        for (PopupBox *pinned_popup : get_pinned_popup_boxes()){
+          close_popup(pinned_popup);
+        }
+        /*    wait this style isn't needed because we don't need to prune specific popups
+        //     just delete all their objects and then empty the vector
+        //std::vector<PopupBox *>::iterator it = pinned_popups.begin();
+        //while (it != pinned_popups.end()){
+        //  del_float((*it));
+        //  delete (*it);
+        //  //it = pinned_popups.erase(it);
+        //}
+        */
+        pinned_popups = {};
+
+        close_popup(popup);  // non-pinned "the one" popup
+
         set_player(next_index);
+        play_sound(Audio::TypeSfxAccepted);
         Log::Info["interface.cc"] << "Switched to player #" << next_index;
       }
       reload_any_minimaps();
@@ -1556,12 +1647,15 @@ Interface::handle_event(const Event *event) {
   //Log::Debug["event_loop.cc"] << "inside Interface::handle_event, type " << event->type;
   switch (event->type) {
     case Event::TypeResize:
+    Log::Debug["event_loop.cc"] << "inside Interface::handle_event, TypeResize";
       set_size(event->dx, event->dy);
       viewport->store_prev_window_size();
+      //viewport->set_resize_tainted();
       break;
     case Event::TypeZoom:
       Log::Debug["event_loop.cc"] << "inside Interface::handle_event, TypeZoom";
       set_size(event->dx, event->dy);
+      viewport->set_focused(); // tlongstretch, to fix issue where zooming at start of game means viewport can't drag until clicked on
       /* failed attempt to zoom ONLY the view port
       it seems that other floats are scaled because they are on top of the viewport and the entire viewport is scaled?
       and they must be drawn separately??
@@ -1597,18 +1691,22 @@ Interface::handle_event(const Event *event) {
       if (init_box != nullptr && init_box->is_displayed()){
         GuiObject::handle_event(event);
       }else{
-        //Log::Info["interface.cc"] << "inside Interface::handle_event(), TypeRightClick, closing popups/notifications/canceling road";
+        Log::Debug["interface.cc"] << "inside Interface::handle_event(), TypeRightClick, closing popups/notifications/canceling road";
         // for all other cases, trigger "close-popup/cancel-action"
         if ((notification_box != nullptr) && notification_box->is_displayed()) {
+          Log::Debug["interface.cc"] << "inside Interface::handle_event(), TypeRightClick, closing notification message";
           close_message();
         } else if ((popup != nullptr) && popup->is_displayed()) {
-          close_popup();
+          Log::Debug["interface.cc"] << "inside Interface::handle_event(), TypeRightClick, closing 'the one' popup";
+          close_popup(popup);
         } else if (building_road.is_valid()) {
+          Log::Debug["interface.cc"] << "inside Interface::handle_event(), TypeRightClick, closing 'build_road' effort";
           build_road_end();
         }
       }
       break;
     default:
+    Log::Debug["interface.cc"] << "inside Interface::handle_event(), default, no case matched, event type is " << event->type;
       return GuiObject::handle_event(event);
       break;
   }

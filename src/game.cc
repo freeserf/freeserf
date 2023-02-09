@@ -45,6 +45,9 @@
 
 #define GROUND_ANALYSIS_RADIUS  25
 
+//-------------------------------------------------------------------------------------------------------------------
+// IF MAKING ANY CHANGES HERE REMEMBER TO ALSO MAKE SAME CHANGE IN Game::reset_game_options_defaults() FUNCTION!!!!!
+//-------------------------------------------------------------------------------------------------------------------
 // deFINE the global game option bools that were deCLARED in game-options.h
 bool option_EnableAutoSave = false;
 //bool option_ImprovedPigFarms = false;  // removing this as it turns out the default behavior for pig farms is to require almost no grain
@@ -128,6 +131,10 @@ int last_season = 1;  // four seasons
 int subseason = 0;  // 1/16th of a season
 int last_subseason = 0;
 bool is_list_in_focus = false;
+bool is_dragging_popup = false;
+//bool is_dragging_viewport_or_minimap = false;
+int mouse_x_after_drag = 0;
+int mouse_y_after_drag = 0;
 typedef enum Season {
   SeasonSpring = 0,
   SeasonSummer = 1,
@@ -219,6 +226,40 @@ Game::~Game() {
   flags.clear();
   players.clear();
   desired_cursor_pos = bad_map_pos; // I think this was causing issues on new game?
+}
+
+void
+Game::reset_game_options_defaults() {
+//-------------------------------------------------------------------------------------------------------------------
+// IF MAKING ANY CHANGES HERE REMEMBER TO ALSO MAKE SAME CHANGE IN bool DECLARATIONS AT TOP OF game.cc !!!!!
+//-------------------------------------------------------------------------------------------------------------------
+  option_EnableAutoSave = false;
+  //option_ImprovedPigFarms = false;  // removing this as it turns out the default behavior for pig farms is to require almost no grain
+  option_CanTransportSerfsInBoats = false;  // leaving this off by default because it still has occasional bugs
+  option_QuickDemoEmptyBuildSites = true;
+  //option_AdvancedDemolition = true;  // this needs more playtesting  */
+  option_TreesReproduce = false;
+  option_BabyTreesMatureSlowly = false;  // the AI needs to be improved to handle this being on, it relies too much on Foresters/Rangers
+  option_ResourceRequestsTimeOut = true;  // this is forced true to indicate that the code to make them optional isn't added yet
+  option_PrioritizeUsableResources = true;    // this is forced true to indicate that the code to make them optional isn't added yet
+  option_LostTransportersClearFaster = true;
+  option_FourSeasons = false;
+  option_AdvancedFarming = false;
+  option_FishSpawnSlowly = true;
+  option_FogOfWar = false;
+  //option_EastSlopesShadeObjects = true;   // make this an option, maybe
+  option_InvertMouse = false;
+  option_InvertWheelZoom = false;
+  option_SpecialClickBoth = true;
+  option_SpecialClickMiddle = true;
+  option_SpecialClickDouble = true;
+  option_SailorsMoveFaster = true;
+  option_WaterDepthLuminosity = true;
+  option_RandomizeInstruments = false;  // only affects DOS music
+  option_ForesterMonoculture = false;  // this looks bad in Spring and Winter, not making default anymore
+  option_CheckPathBeforeAttack = true;  // this is forced on
+  option_SpinningAmigaStar = true;
+  option_HighMinerFoodConsumption = false;
 }
 
 /* Clear the serf request bit of all flags and buildings.
@@ -1500,14 +1541,16 @@ Game::flag_reset_transport(Flag *flag) {
   }
 }
 
+/* this function should no longer be needed now that popup class objects store their target_obj_index
 void
 Game::building_remove_player_refs(Building *building) {
   for (Player *player : players) {
-    if (player->temp_index == building->get_index()) {
-      player->temp_index = 0;
+    if (player->popup_target_obj_index == building->get_index()) {
+      player->popup_target_obj_index = 0;
     }
   }
 }
+*/
 
 bool
 Game::path_serf_idle_to_wait_state(MapPos pos) {
@@ -2265,14 +2308,16 @@ Game::build_castle(MapPos pos, Player *player) {
   return true;
 }
 
+/* this function should no longer be needed now that popup class objects store their target_obj_index
 void
 Game::flag_remove_player_refs(Flag *flag) {
   for (Player *player : players) {
-    if (player->temp_index == flag->get_index()) {
-      player->temp_index = 0;
+    if (player->popup_target_obj_index == flag->get_index()) {
+      player->popup_target_obj_index = 0;
     }
   }
 }
+*/
 
 /* Check whether road can be demolished. */
 bool
@@ -2322,7 +2367,7 @@ Game::demolish_flag_(MapPos pos) {
     throw ExceptionFreeserf("Failed to demolish flag with building.");
   }
 
-  flag_remove_player_refs(flag);
+  //flag_remove_player_refs(flag); this function should no longer be needed now that popup class objects store their target_obj_index
 
   /* Handle connected flag. */
   flag->merge_paths(pos);
@@ -2354,7 +2399,7 @@ bool
 Game::demolish_building_(MapPos pos) {
   Building *building = buildings[map->get_obj_index(pos)];
   if (building->burnup()) {
-    building_remove_player_refs(building);
+    //building_remove_player_refs(building);  // this function should no longer be needed now that popup class objects store their target_obj_index
 
     /* Remove path to building. */
     map->del_path(pos, Direction::DirectionDownRight);
@@ -3180,7 +3225,6 @@ Game::get_serfs_at_pos(MapPos pos) {
 Game::ListSerfs
 Game::get_serfs_in_inventory(Inventory *inventory) {
   ListSerfs result;
-
   mutex_lock("Game::get_serfs_in_inventory");
   for (Serf *serf : serfs) {
     if (serf->get_state() == Serf::StateIdleInStock &&
@@ -3189,6 +3233,20 @@ Game::get_serfs_in_inventory(Inventory *inventory) {
     }
   }
   mutex_unlock();
+  return result;
+}
+
+Game::ListSerfs
+Game::get_serfs_in_inventory_out_queue(Inventory *inventory) {
+  ListSerfs result;
+  //mutex_lock("Game::get_serfs_in_inventory_out_queue");
+  for (Serf *serf : serfs) {
+    if (serf->get_state() == Serf::StateReadyToLeaveInventory &&
+        inventory->get_index() == serf->get_ready_to_leave_inv_index()) {
+      result.push_back(serf);
+    }
+  }
+  //mutex_unlock();
   return result;
 }
 
@@ -3896,6 +3954,8 @@ operator << (SaveWriterText &writer, Game &game) {
   }
 
   for (Inventory *inventory : game.inventories) {
+    if (inventory == nullptr) continue; // not sure why these become nullpointer instead of 0 indexed
+    //if (inventory->get_index() == 0) continue;
     SaveWriterText &inventory_writer = writer.add_section("inventory",
                                                         inventory->get_index());
     inventory_writer << *inventory;

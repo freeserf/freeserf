@@ -39,6 +39,7 @@
 #include "src/text-input.h"
 #include "src/game-options.h"
 #include "src/game-init.h" // to allow game options update to trigger game-init box to redraw minimap if option changed (ex. FogOfWar)
+#include <SDL.h> // for mouse movement for movable popups
 
 
 /* Action types that can be fired from
@@ -82,7 +83,9 @@ typedef enum Action {
   ACTION_SHOW_STAT_4,
   ACTION_SHOW_STAT_3,
   ACTION_SHOW_STAT_SELECT,
+  ACTION_SHOW_DEBUG,
   ACTION_STAT_BLD_FLIP,
+  ACTION_DEBUG_GOTO_POS,
   ACTION_CLOSE_BOX,
   ACTION_SETT_8_SET_ASPECT_ALL,
   ACTION_SETT_8_SET_ASPECT_LAND,
@@ -230,6 +233,7 @@ typedef enum Action {
   ACTION_SHOW_CASTLE_SERF,
   ACTION_SHOW_RESDIR,
   ACTION_SHOW_CASTLE_RES,
+  ACTION_SHOW_INVENTORY_QUEUES,
   ACTION_SEND_GEOLOGIST,
   ACTION_RES_MODE_IN,
   ACTION_RES_MODE_STOP,
@@ -295,6 +299,7 @@ typedef enum Action {
   ACTION_SAVE,
   ACTION_NEW_NAME,
   ACTION_OPTIONS_FLIP_TO_GAME_OPTIONS,
+  ACTION_RESET_GAME_OPTIONS_DEFAULTS,
   ACTION_GAME_OPTIONS_PAGE2,
   //ACTION_GAME_OPTIONS_PREV_PAGE,
   ACTION_GAME_OPTIONS_PAGE3,
@@ -347,6 +352,7 @@ PopupBox::PopupBox(Interface *_interface)
   : minimap(new MinimapGame(_interface, _interface->get_game()))
   , file_list(new ListSavedFiles())
   , file_field(new TextInput())
+  , debug_pos_text_input_field(new TextInput())   // tlongstretch debug popup
   , box(TypeNone) {
   interface = _interface;
 
@@ -358,14 +364,14 @@ PopupBox::PopupBox(Interface *_interface)
 
   /* Initialize minimap */
   minimap->set_displayed(false);
-  minimap->set_parent(this);
+  minimap->set_parent(this);  // this allows minimap to be refreshed when the popup box is 
   minimap->set_size(128, 128);
   minimap->set_objclass(GuiObjClass::ClassMinimap);
   add_float(minimap.get(), 8, 9);
 
   //file_list->set_size(120, 100);  // this is the save game file list, NOT the load game file list (which is in game-init.cc)
   file_list->set_size(260, 100);
-  file_list->set_displayed(false);
+  file_list->set_displayed(false);   // this allows file list to be refreshed when the popup box is 
 
   file_list->set_selection_handler([this](const std::string &item) {
     size_t p = item.find_last_of("/\\");
@@ -382,6 +388,12 @@ PopupBox::PopupBox(Interface *_interface)
   file_field->set_filter(savegame_text_input_filter);
   file_field->set_objclass(GuiObjClass::ClassSaveGameNameInput);
   add_float(file_field.get(), 12, 124);
+
+  debug_pos_text_input_field->set_size(100, 10);
+  debug_pos_text_input_field->set_displayed(false);
+  debug_pos_text_input_field->set_filter(numeric_text_input_filter);
+  debug_pos_text_input_field->set_objclass(GuiObjClass::ClassDebugPosTextInput);
+  add_float(debug_pos_text_input_field.get(), 12, 36);
 }
 
 PopupBox::~PopupBox() {
@@ -538,6 +550,7 @@ PopupBox::draw_player_face(int ix, int iy, int player) {
 /* Draw a layout of buildings in a popup box. */
 void
 PopupBox::draw_custom_bld_box(const int sprites[]) {
+  Log::Debug["popup.cc"] << "inside PopupBox::draw_custom_bld_box";
   while (sprites[0] > 0) {
     int sx = sprites[1];
     int sy = sprites[2];
@@ -551,6 +564,7 @@ PopupBox::draw_custom_bld_box(const int sprites[]) {
 /* Draw a layout of icons in a popup box. */
 void
 PopupBox::draw_custom_icon_box(const int sprites[]) {
+  Log::Debug["popup.cc"] << "inside PopupBox::draw_custom_icon_box";
   while (sprites[0] > 0) {
     draw_popup_icon(sprites[1], sprites[2], sprites[0]);
     sprites += 3;
@@ -572,6 +586,7 @@ PopupBox::prepare_res_amount_text(int amount) const {
   return "Perfect";
 }
 
+// minimap popup, contains a MiniMap float object inside
 void
 PopupBox::draw_map_box() {
   /* Icons */
@@ -583,12 +598,17 @@ PopupBox::draw_map_box() {
     draw_popup_icon(8, 128, minimap->get_draw_buildings() ? 5 : 6);
   }
   draw_popup_icon(12, 128, minimap->get_draw_grid() ? 7 : 8);  // Grid
-  draw_popup_icon(14, 128, (minimap->get_scale() == 1) ? 91 : 92);  // Scale
+  // with movable/pinned popups, need a close button, stealing the scale/zoom button area for this because it is same bottom-right corner
+  //  so there is currently no scale/zoom button in minimap now, can re-add some other way eventually
+  //draw_popup_icon(14, 128, (minimap->get_scale() == 1) ? 91 : 92);  // Scale
+  draw_popup_icon(14, 128, 60); /* exit */
+
 }
 
 /* Draw building mine popup box. */
 void
 PopupBox::draw_mine_building_box() {
+  Log::Debug["popup.cc"] << "inside PopupBox::draw_mine_building_box";
   const int layout[] = {
     0xa3, 2, 8,
     0xa4, 8, 8,
@@ -605,11 +625,14 @@ PopupBox::draw_mine_building_box() {
   }
 
   draw_custom_bld_box(layout);
+
+  draw_popup_icon(14, 128, 60); /* exit */
 }
 
 /* Draw .. popup box... */
 void
 PopupBox::draw_basic_building_box(int flip) {
+  Log::Debug["popup.cc"] << "inside PopupBox::draw_basic_building_box";
   const int layout[] = {
     0xab, 10, 13, /* hut */
     0xa9, 2, 13,
@@ -637,10 +660,13 @@ PopupBox::draw_basic_building_box(int flip) {
   }
 
   if (flip) draw_popup_icon(0, 128, 0x3d);
+
+  draw_popup_icon(14, 128, 60); /* exit */
 }
 
 void
 PopupBox::draw_adv_1_building_box() {
+  Log::Debug["popup.cc"] << "inside PopupBox::draw_adv_1_building_box";
   const int layout[] = {
     0x9c, 0, 15,
     0x9d, 8, 15,
@@ -654,10 +680,13 @@ PopupBox::draw_adv_1_building_box() {
   draw_box_background(PatternConstruction);
   draw_custom_bld_box(layout);
   draw_popup_icon(0, 128, 0x3d);
+
+  draw_popup_icon(14, 128, 60); /* exit */
 }
 
 void
 PopupBox::draw_adv_2_building_box() {
+  Log::Debug["popup.cc"] << "inside PopupBox::draw_adv_2_building_box";
   const int layout[] = {
     0x9e, 2, 99, /* tower */
     0x98, 8, 84, /* fortress */
@@ -677,11 +706,14 @@ PopupBox::draw_adv_2_building_box() {
   draw_box_background(PatternConstruction);
   draw_custom_bld_box(l);
   draw_popup_icon(0, 128, 0x3d);
+
+  draw_popup_icon(14, 128, 60); /* exit */
 }
 
 /* Draw generic popup box of resources. */
 void
 PopupBox::draw_resources_box(const ResourceMap &resources) {
+  Log::Debug["popup.cc"] << "inside PopupBox::draw_resources_box";
   const int layout[] = {
     0x28, 1, 0, /* resources */
     0x29, 1, 16,
@@ -757,6 +789,7 @@ PopupBox::draw_resources_box(const ResourceMap &resources) {
 /* Draw generic popup box of serfs. */
 void
 PopupBox::draw_serfs_box(const int *serfs, int total) {
+  Log::Debug["popup.cc"] << "inside PopupBox::draw_serfs_box";
   const int layout[] = {
     0x9, 1, 0, /* serfs */
     0xa, 1, 16,
@@ -1904,6 +1937,7 @@ PopupBox::draw_knight_level_box() {
   draw_custom_icon_box(layout);
 }
 
+// this is the toolmaker tool priority box
 void
 PopupBox::draw_sett_4_box() {
   const int layout[] = {
@@ -1977,6 +2011,7 @@ PopupBox::draw_popup_resource_stairs(int order[]) {
 
 void
 PopupBox::draw_sett_5_box() {
+  Log::Debug["popup.cc"] << "inside PopupBox::draw_sett_5_box";
   const int layout[] = {
     237, 1, 120, /* up */
     238, 3, 120, /* smallup */
@@ -2016,6 +2051,7 @@ PopupBox::draw_no_save_quit_confirm_box() {
 
 void
 PopupBox::draw_options_box() {
+  Log::Debug["popup.cc"] << "inside PopupBox::draw_options_box";
   //draw_box_background(PatternDiagonalGreen);
   draw_large_box_background(PatternDiagonalGreen);
 
@@ -2115,6 +2151,9 @@ PopupBox::draw_game_options_box() {
   draw_green_string(3, 105, "Baby Trees Mature Slowly");
   draw_popup_icon(1, 102, option_BabyTreesMatureSlowly ? 288 : 220);
 
+  draw_green_string(2, 131, "Reset");
+  draw_popup_icon(0, 128, 295); // reset-to-defaults icon
+
   draw_green_string(18, 131, "Page 2 of 5");
   draw_popup_icon(30, 128, 0x3d); // flipbox to next page
   draw_popup_icon(32, 128, 60); /* exit */
@@ -2141,6 +2180,9 @@ PopupBox::draw_game_options2_box() {
   draw_green_string(3, 105, "Sailors Move Faster");
   draw_popup_icon(1, 102, option_SailorsMoveFaster ? 288 : 220);
 
+  draw_green_string(2, 131, "Reset");
+  draw_popup_icon(0, 128, 295); // reset-to-defaults icon
+
   draw_green_string(18, 131, "Page 3 of 5");
   draw_popup_icon(30, 128, 0x3d); // flipbox to previous page
   draw_popup_icon(32, 128, 60); /* exit */
@@ -2166,6 +2208,9 @@ PopupBox::draw_game_options3_box() {
 
   draw_green_string(3, 105, "Amiga-Style Spinning Star");
   draw_popup_icon(1, 102, option_SpinningAmigaStar ? 288 : 220);
+
+  draw_green_string(2, 131, "Reset");
+  draw_popup_icon(0, 128, 295); // reset-to-defaults icon
 
   draw_green_string(18, 131, "Page 4 of 5");
   draw_popup_icon(30, 128, 0x3d); // flipbox to previous page
@@ -2195,6 +2240,9 @@ PopupBox::draw_game_options4_box() {
   draw_popup_icon(1, 102, option_SpinningAmigaStar ? 288 : 220);
 */
 
+  draw_green_string(2, 131, "Reset");
+  draw_popup_icon(0, 128, 295); // reset-to-defaults icon
+
   draw_green_string(18, 131, "Page 5 of 5");
   draw_popup_icon(30, 128, 0x3d); // flipbox to previous page
   draw_popup_icon(32, 128, 60); /* exit */
@@ -2204,6 +2252,7 @@ PopupBox::draw_game_options4_box() {
 
 void
 PopupBox::draw_edit_map_generator_box() {
+  Log::Debug["popup.cc"] << "inside PopupBox::draw_edit_map_generator_box";
   draw_large_box_background(PatternDiagonalGreen);
 
   CustomMapGeneratorOptions generator_options = interface->get_custom_map_generator_options();
@@ -2311,8 +2360,9 @@ PopupBox::draw_edit_map_generator_box() {
   draw_colored_slide_bar(25, junk_y+16, slider_double_to_uint16(junk_desert_mean), Color::yellow);
 
 
-  draw_green_string(1, 128, "Reset Defaults");
-  draw_popup_icon(16, 124, 0x3d); // flipbox icon
+  draw_green_string(2, 131, "Reset");
+  //draw_popup_icon(16, 124, 0x3d); // flipbox icon
+  draw_popup_icon(0, 128, 295); // reset-to-defaults icon
 
   // instead, auto-save on any change
   //draw_green_string(22, 128, "Save");
@@ -2327,6 +2377,7 @@ PopupBox::draw_edit_map_generator_box() {
 
 void
 PopupBox::draw_edit_map_generator2_box() {
+  Log::Debug["popup.cc"] << "inside PopupBox::draw_edit_map_generator2_box";
   draw_large_box_background(PatternDiagonalGreen);
 
   CustomMapGeneratorOptions generator_options = interface->get_custom_map_generator_options();
@@ -2342,9 +2393,9 @@ PopupBox::draw_edit_map_generator2_box() {
   draw_colored_slide_bar(1, 32, generator_options.opt[CustomMapGeneratorOption::JunkWaterSubmergedBoulders] * 4096, Color::blue);
   draw_green_string(10, 32, "Submerged Stones");
 
-
-  draw_green_string(1, 128, "Reset Defaults");
-  draw_popup_icon(16, 124, 0x3d); // flipbox icon  
+  draw_green_string(2, 131, "Reset");
+  //draw_popup_icon(16, 124, 0x3d); // flipbox icon
+  draw_popup_icon(0, 128, 295); // reset-to-defaults icon
 
   // instead, auto-save on any change
   //draw_green_string(22, 128, "Save");
@@ -2358,9 +2409,25 @@ PopupBox::draw_edit_map_generator2_box() {
 }
 
 
+void
+PopupBox::draw_debug_box() {
+  Log::Debug["popup.cc"] << "inside PopupBox::draw_debug_box";
+  draw_box_background(PatternDiagonalGreen);
+  draw_green_string(5, 0, "Debug");
+
+  draw_green_string(1, 16, "Go To Pos");
+  debug_pos_text_input_field->set_displayed(true);
+  draw_popup_icon(14, 24, 0x3d); // flipbox icon
+  
+  draw_popup_icon(14, 128, 0x3c); /* exit */
+}
+
+
+
 
 void
 PopupBox::draw_castle_res_box() {
+  Log::Debug["popup.cc"] << "inside PopupBox::draw_castle_res_box";
   const int layout[] = {
     0x3d, 12, 128, /* flip */
     0x3c, 14, 128, /* exit */
@@ -2370,21 +2437,20 @@ PopupBox::draw_castle_res_box() {
   draw_box_background(PatternPlaidAlongGreen);
   draw_custom_icon_box(layout);
 
-  if (interface->get_player()->temp_index == 0) {
-    interface->close_popup();
+  Building *building = interface->get_game()->get_building(target_obj_index);
+  if (building == nullptr){
+    play_sound(Audio::TypeSfxAhhh);
+    interface->close_popup(this);
     return;
   }
-
-  Building *building =
-       interface->get_game()->get_building(interface->get_player()->temp_index);
   if (building->is_burning()) {
-    interface->close_popup();
+    interface->close_popup(this);
     return;
   }
 
   if (building->get_type() != Building::TypeStock &&
       building->get_type() != Building::TypeCastle) {
-    interface->close_popup();
+    interface->close_popup(this);
     return;
   }
 
@@ -2395,17 +2461,17 @@ PopupBox::draw_castle_res_box() {
 
 void
 PopupBox::draw_mine_output_box() {
+  Log::Debug["popup.cc"] << "inside PopupBox::draw_mine_output_box";
   draw_box_background(PatternPlaidAlongGreen);
 
-  if (interface->get_player()->temp_index == 0) {
-    interface->close_popup();
+  Building *building = interface->get_game()->get_building(target_obj_index);
+  if (building == nullptr){
+    play_sound(Audio::TypeSfxAhhh);
+    interface->close_popup(this);
     return;
   }
-
-  Building *building =
-       interface->get_game()->get_building(interface->get_player()->temp_index);
   if (building->is_burning()) {
-    interface->close_popup();
+    interface->close_popup(this);
     return;
   }
 
@@ -2415,7 +2481,7 @@ PopupBox::draw_mine_output_box() {
       type != Building::TypeCoalMine &&
       type != Building::TypeIronMine &&
       type != Building::TypeGoldMine) {
-    interface->close_popup();
+    interface->close_popup(this);
     return;
   }
 
@@ -2528,15 +2594,10 @@ void
 PopupBox::draw_ordered_building_box() {
   draw_box_background(PatternPlaidAlongGreen);
 
-  if (interface->get_player()->temp_index == 0) {
-    interface->close_popup();
-    return;
-  }
-
-  Building *building =
-       interface->get_game()->get_building(interface->get_player()->temp_index);
-  if (building->is_burning()) {
-    interface->close_popup();
+  Building *building = interface->get_game()->get_building(target_obj_index);
+  if (building == nullptr){
+    play_sound(Audio::TypeSfxAhhh);
+    interface->close_popup(this);
     return;
   }
 
@@ -2567,27 +2628,23 @@ void
 PopupBox::draw_defenders_box() {
   draw_box_background(PatternPlaidAlongGreen);
 
+  Building *building = interface->get_game()->get_building(target_obj_index);
+  if (building == nullptr){
+    play_sound(Audio::TypeSfxAhhh);
+    interface->close_popup(this);
+    return;
+  }
+
   Player *player = interface->get_player();
-  if (player->temp_index == 0) {
-    interface->close_popup();
-    return;
-  }
-
-  Building *building = interface->get_game()->get_building(player->temp_index);
-  if (building->is_burning()) {
-    interface->close_popup();
-    return;
-  }
-
   if (building->get_owner() != player->get_index()) {
-    interface->close_popup();
+    interface->close_popup(this);
     return;
   }
 
   if (building->get_type() != Building::TypeHut &&
       building->get_type() != Building::TypeTower &&
       building->get_type() != Building::TypeFortress) {
-    interface->close_popup();
+    interface->close_popup(this);
     return;
   }
 
@@ -2661,15 +2718,21 @@ PopupBox::draw_transport_info_box() {
   /* TODO show path merge button. */
   /* if (r == 0) draw_popup_icon(7, 51, 0x135); */
 
-  if (interface->get_player()->temp_index == 0) {
-    interface->close_popup();
+  Flag *flag = interface->get_game()->get_flag(target_obj_index);
+  if (flag == nullptr){
+    //play_sound(Audio::TypeSfxAhhh);  // don't play sound for lost flag
+    interface->close_popup(this);
     return;
   }
 
-  Flag *flag =
-           interface->get_game()->get_flag(interface->get_player()->temp_index);
-
+// testing disabling this, wondering if this mini viewport is
+//  responsible for the crashing while drawing frame after closing
+//  a pinned popup that uses mini viewport
+// NO! something else is wrong.  Removing this causes the same error
+//  on other draw frame code.  Something with closing pinned_popups
+//  must be corrupting the current frame
 #if 1
+//#if 0
   /* Draw viewport of flag */
   Viewport flag_view(interface, interface->get_game()->get_map());
   flag_view.switch_layer(Viewport::LayerLandscape);
@@ -2677,7 +2740,7 @@ PopupBox::draw_transport_info_box() {
   flag_view.switch_layer(Viewport::LayerCursor);
   flag_view.set_displayed(true);
 
-  flag_view.set_parent(this);
+  flag_view.set_parent(this);   // this allows flag_view to be refreshed when the popup box is 
   flag_view.set_size(128, 64);
   flag_view.move_to_map_pos(flag->get_position());
   flag_view.move_by_pixels(0, -10);
@@ -2686,7 +2749,8 @@ PopupBox::draw_transport_info_box() {
   flag_view.draw(frame);
 #else
   /* Static flag */
-  draw_popup_building(8, 40, 0x80 + 4*popup->interface->player->player_num);
+  //draw_popup_building(8, 40, 0x80 + 4*popup->interface->player->player_num);  // is this pseudo code?  
+  draw_popup_building(8, 40, 0x80 + 4*interface->get_player()->get_index());  // this is correct
 #endif
 
   for (Direction d : cycle_directions_cw()) {
@@ -2732,21 +2796,16 @@ PopupBox::draw_castle_serf_box() {
   draw_box_background(PatternPlaidAlongGreen);
   draw_custom_icon_box(layout);
 
-  if (interface->get_player()->temp_index == 0) {
-    interface->close_popup();
-    return;
-  }
-
-  Building *building =
-       interface->get_game()->get_building(interface->get_player()->temp_index);
-  if (building->is_burning()) {
-    interface->close_popup();
+  Building *building = interface->get_game()->get_building(target_obj_index);
+  if (building == nullptr){
+    play_sound(Audio::TypeSfxAhhh);
+    interface->close_popup(this);
     return;
   }
 
   Building::Type type = building->get_type();
   if (type != Building::TypeStock && type != Building::TypeCastle) {
-    interface->close_popup();
+    interface->close_popup(this);
     return;
   }
 
@@ -2758,6 +2817,9 @@ PopupBox::draw_castle_serf_box() {
   draw_serfs_box(serfs, -1);
 }
 
+// this is the third popup for Inventories (castle/stock) that shows
+//  the ResourceIn/Out and SerfIn/Out (i.e. normal, no-more-in, or evacuation mode)
+//  and for Castle shows knight defender status
 void
 PopupBox::draw_resdir_box() {
   const int layout[] = {
@@ -2786,15 +2848,10 @@ PopupBox::draw_resdir_box() {
   draw_box_background(PatternPlaidAlongGreen);
   draw_custom_icon_box(layout);
 
-  if (interface->get_player()->temp_index == 0) {
-    interface->close_popup();
-    return;
-  }
-
-  Building *building =
-       interface->get_game()->get_building(interface->get_player()->temp_index);
-  if (building->is_burning()) {
-    interface->close_popup();
+  Building *building = interface->get_game()->get_building(target_obj_index);
+  if (building == nullptr){
+    play_sound(Audio::TypeSfxAhhh);
+    interface->close_popup(this);
     return;
   }
 
@@ -2821,7 +2878,7 @@ PopupBox::draw_resdir_box() {
     draw_green_number(14, 80, knights[1]);
     draw_green_number(14, 100, knights[0]);
   } else if (type != Building::TypeStock) {
-    interface->close_popup();
+    interface->close_popup(this);
     return;
   }
 
@@ -2845,6 +2902,64 @@ PopupBox::draw_resdir_box() {
   } else { /* out */
     draw_popup_icon(9, 112, 0x120);
   }
+}
+
+// this is the new fourth page of Inventory building
+//  that shows the out-queue state for serfs and resources for Castle/Stock buildings
+void
+PopupBox::draw_inv_queues_box() {
+  draw_box_background(PatternPlaidAlongGreen);
+  draw_green_string(3, 0, "Out-Queues");
+
+  Building *building = interface->get_game()->get_building(target_obj_index);
+  if (building == nullptr){
+    play_sound(Audio::TypeSfxAhhh);
+    interface->close_popup(this);
+    return;
+  }
+  Inventory *inventory = building->get_inventory();
+
+  draw_green_string(1, 19, "Serfs");
+  //draw_green_string(6, 20, std::to_string(inventory->get_serf_queue_length()));
+
+  // the serf out queue seems to be unlimited!  and they come out not in the requested order
+  //  but instead ordered by their serf index!!!
+  int col = 0;  // icon placement for Serf icons
+  int row = 0;  // icon placement for Serf icons (8 per row)
+  for (Serf *serf : interface->get_game()->get_serfs_in_inventory_out_queue(inventory)){
+    //Log::Debug["popup.cc"] << "inside PopupBox::draw_inv_queues_box, serf #" << serf->get_index() << " with type " << serf->get_type() << " has state " << serf->get_state();
+    int icon = serf->get_type() + 9;
+    if (serf->get_type() >= Serf::TypeTransporterInventory){
+      icon--;  // there is a TypeTransporterInventory which I think doesn't actually exist nor have a sprite which messes up the ordering of most serf types
+    }
+    if (serf->get_type() >= Serf::TypeGeneric){
+      icon--;  // there is also a TypeGeneric which I think doesn't actually exist nor have a sprite which messes up the ordering of Knight types
+    }
+    if (col > 7){
+      row++;
+      if (row > 5){
+        // wow that's a lot, just quit drawing them
+        break;
+      }
+      col = 0;
+    }
+    Log::Debug["popup.cc"] << "inside PopupBox::draw_inv_queues_box, serf #" << serf->get_index() << " with type " << serf->get_type() << ", using icon #" << icon;
+    draw_popup_icon(col++*2, 28 + row*16, icon);
+  }
+
+  // the resource out queue has only two slots, while the serf out queue seems to be infinite
+  draw_green_string(1, 116, "Resources");
+  for (int x=0; x<2; x++){
+    if (inventory->get_out_queue_res_type(x) != Resource::TypeNone){
+      Log::Debug["popup.cc"] << "inside PopupBox::draw_inv_queues_box, res #" << x << " is type " << inventory->get_out_queue_res_type(x);
+      //hexadecimal 0x22 is fish(res0) which is decimal 34
+      int icon = 34 + inventory->get_out_queue_res_type(x);
+      draw_popup_icon(3+x*2, 125, icon);
+    }
+  }
+
+  draw_popup_icon(12, 128, 0x3d); /* flipbox */
+  draw_popup_icon(14, 128, 0x3c); /* exit */
 }
 
 // civ<>knight slider, create-knights button, gold-morale %, switch knights, button.  "Knight stomping" icon
@@ -3011,15 +3126,10 @@ void
 PopupBox::draw_building_stock_box() {
   draw_box_background(PatternPlaidAlongGreen);
 
-  if (interface->get_player()->temp_index == 0) {
-    interface->close_popup();
-    return;
-  }
-
-  Building *building = interface->get_game()->get_building(
-                                           interface->get_player()->temp_index);
-  if (building->is_burning()) {
-    interface->close_popup();
+  Building *building = interface->get_game()->get_building(target_obj_index);
+  if (building == nullptr){
+    play_sound(Audio::TypeSfxAhhh);
+    interface->close_popup(this);
     return;
   }
 
@@ -3139,24 +3249,30 @@ PopupBox::internal_draw() {
    || box == Type::TypeGameOptions3 || box == Type::TypeGameOptions4
    || box == Type::TypeEditMapGenerator || box == PopupBox::TypeEditMapGenerator2 || box == Type::TypeLoadSave){
     draw_large_popup_box_frame();
-      // work-around for joining of SettSelect and LoadSave popups, but only LoadSave doubled
-      if (box == Type::TypeLoadSave){
-        int loadsave_pos_x = 0;
-        int loadsave_pos_y = 0;
-        int *ptloadsave_pos_x = &loadsave_pos_x;
-        int *ptloadsave_pos_y = &loadsave_pos_y;
-        //this->get_position(ptloadsave_pos_x, ptloadsave_pos_y);
-        // cannot offset based on current popup position because it results in
-        //  the popup being shifted every time it is redrawn!
-        // Instead, center position relative to viewport which is absolute
-        interface->get_viewport()->get_size(ptloadsave_pos_x, ptloadsave_pos_y);
-        loadsave_pos_x = *ptloadsave_pos_x / 2 - 144;
-        loadsave_pos_y = *ptloadsave_pos_y / 2 - 80;
-        this->move_to(loadsave_pos_x, loadsave_pos_y);
-      }
+    int loadsave_pos_x = 0;
+    int loadsave_pos_y = 0;
+    int *ptloadsave_pos_x = &loadsave_pos_x;
+    int *ptloadsave_pos_y = &loadsave_pos_y;
+    //this->get_position(ptloadsave_pos_x, ptloadsave_pos_y);
+    // cannot offset based on current popup position because it results in
+    //  the popup being shifted every time it is redrawn!
+    // Instead, center position relative to viewport which is absolute
+    interface->get_viewport()->get_size(ptloadsave_pos_x, ptloadsave_pos_y);
+    loadsave_pos_x = *ptloadsave_pos_x / 2 - 144;
+    loadsave_pos_y = *ptloadsave_pos_y / 2 - 80;
+    this->move_to(loadsave_pos_x, loadsave_pos_y);
   }else{
     draw_popup_box_frame();
   }
+
+  //if (lifted){
+    //frame->draw_sprite(width - 8, 0, Data::AssetIcon, 317);  // the last Icon, the original game "exit button" which is just a small 8x8 square
+    //frame->draw_sprite(144 - 8, 0, Data::AssetIcon, 317);  // the last Icon, the original game "exit button" which is just a small 8x8 square
+    //frame->draw_sprite(144 - 8, 0, Data::AssetIcon, 1300);  // custom sprite tack
+    //frame->draw_sprite(144 - 8, 0, Data::AssetIcon, 106);  // the is a white check mark, not sure if/where used in original game
+
+    //frame->draw_sprite(144 - 8, 0, Data::AssetIcon, 1301);  // custom sprite closetack
+  //}
 
   /* Dispatch to one of the popup box functions above. */
   switch (box) {
@@ -3272,6 +3388,9 @@ PopupBox::internal_draw() {
   case TypeEditMapGenerator2:
     draw_edit_map_generator2_box();
     break;
+  case TypeDebug:
+    draw_debug_box();
+    break;
   case TypeCastleRes:
     draw_castle_res_box();
     break;
@@ -3292,6 +3411,9 @@ PopupBox::internal_draw() {
     break;
   case TypeResDir:
     draw_resdir_box();
+    break;
+  case TypeInventoryQueues:
+    draw_inv_queues_box();
     break;
   case TypeSett8:
     draw_sett_8_box();
@@ -3401,7 +3523,7 @@ PopupBox::handle_send_geologist() {
     play_sound(Audio::TypeSfxNotAccepted);
   } else {
     play_sound(Audio::TypeSfxAccepted);
-    interface->close_popup();
+    interface->close_popup(this);
   } 
 }
 
@@ -3418,16 +3540,24 @@ PopupBox::sett_8_train(int number) {
 
 void
 PopupBox::set_inventory_resource_mode(int mode) {
-  Building *building = interface->get_game()->get_building(
-                                           interface->get_player()->temp_index);
+  Building *building = interface->get_game()->get_building(target_obj_index);
+  if (building == nullptr){
+    play_sound(Audio::TypeSfxAhhh);
+    interface->close_popup(this);
+    return;
+  }
   Inventory *inventory = building->get_inventory();
   interface->get_game()->set_inventory_resource_mode(inventory, mode);
 }
 
 void
 PopupBox::set_inventory_serf_mode(int mode) {
-  Building *building = interface->get_game()->get_building(
-                                           interface->get_player()->temp_index);
+  Building *building = interface->get_game()->get_building(target_obj_index);
+  if (building == nullptr){
+    play_sound(Audio::TypeSfxAhhh);
+    interface->close_popup(this);
+    return;
+  }
   Inventory *inventory = building->get_inventory();
   interface->get_game()->set_inventory_serf_mode(inventory, mode);
 }
@@ -3491,7 +3621,7 @@ PopupBox::handle_action(int action, int x_, int /*y_*/) {
     break;
   case ACTION_BUILD_FLAG:
     interface->build_flag();
-    interface->close_popup();
+    interface->close_popup(this);
     break;
   case ACTION_BUILD_STONECUTTER:
     interface->build_building(Building::TypeStonecutter);
@@ -3583,8 +3713,28 @@ PopupBox::handle_action(int action, int x_, int /*y_*/) {
   case ACTION_CLOSE_BOX:
   case ACTION_CLOSE_SETT_BOX:
   case ACTION_CLOSE_GROUND_ANALYSIS:
-    interface->close_popup();
+    interface->close_popup(this);
     break;
+  case ACTION_DEBUG_GOTO_POS: {
+    if (debug_pos_text_input_field->get_text() == ""){
+      Log::Warn["popup.cc"] << "specified debug_pos is empty!";
+      play_sound(Audio::TypeSfxNotAccepted);
+      break;
+    }
+    MapPos debug_pos = std::stoi(debug_pos_text_input_field->get_text());
+    Log::Debug["popup.cc"] << "clicked on ACTION_DEBUG_GOTO_POS " << debug_pos;
+    if (debug_pos == 0 || debug_pos > interface->get_game()->get_map()->get_landscape_tiles_size()){
+      Log::Warn["popup.cc"] << "specified debug_pos " << debug_pos << " is out of range!";
+      play_sound(Audio::TypeSfxNotAccepted);
+      break;
+    }
+    Log::Debug["popup.cc"] << "moving cursor and viewport to map pos " << debug_pos;
+    interface->update_map_cursor_pos(debug_pos);
+    interface->get_viewport()->move_to_map_pos(debug_pos);
+    play_sound(Audio::TypeSfxAccepted);
+    // need to check for out of range!
+    break;
+  }
   case ACTION_SETT_8_SET_ASPECT_ALL:
     interface->set_current_stat_8_mode((0 << 2) |
                                     (interface->get_current_stat_8_mode() & 3));
@@ -3661,13 +3811,13 @@ PopupBox::handle_action(int action, int x_, int /*y_*/) {
         play_sound(Audio::TypeSfxAccepted);
         player->start_attack();
       }
-      interface->close_popup();
+      interface->close_popup(this);
     } else {
       play_sound(Audio::TypeSfxNotAccepted);
     }
     break;
   case ACTION_CLOSE_ATTACK_BOX:
-    interface->close_popup();
+    interface->close_popup(this);
     break;
     /* TODO */
   case ACTION_SHOW_SETT_1:
@@ -3692,159 +3842,159 @@ PopupBox::handle_action(int action, int x_, int /*y_*/) {
     set_box(TypeSettSelect);
     break;
   case ACTION_SETT_1_ADJUST_STONEMINE:
-    interface->open_popup(TypeSett1);
+    //interface->open_popup(TypeSett1);
     player->set_food_stonemine(gui_get_slider_click_value(x_));
     break;
   case ACTION_SETT_1_ADJUST_COALMINE:
-    interface->open_popup(TypeSett1);
+    //interface->open_popup(TypeSett1);
     player->set_food_coalmine(gui_get_slider_click_value(x_));
     break;
   case ACTION_SETT_1_ADJUST_IRONMINE:
-    interface->open_popup(TypeSett1);
+    //interface->open_popup(TypeSett1);
     player->set_food_ironmine(gui_get_slider_click_value(x_));
     break;
   case ACTION_SETT_1_ADJUST_GOLDMINE:
-    interface->open_popup(TypeSett1);
+    //interface->open_popup(TypeSett1);
     player->set_food_goldmine(gui_get_slider_click_value(x_));
     break;
   case ACTION_SETT_2_ADJUST_CONSTRUCTION:
-    interface->open_popup(TypeSett2);
+    //interface->open_popup(TypeSett2);
     player->set_planks_construction(gui_get_slider_click_value(x_));
     break;
   case ACTION_SETT_2_ADJUST_BOATBUILDER:
-    interface->open_popup(TypeSett2);
+    //interface->open_popup(TypeSett2);
     player->set_planks_boatbuilder(gui_get_slider_click_value(x_));
     break;
   case ACTION_SETT_2_ADJUST_TOOLMAKER_PLANKS:
-    interface->open_popup(TypeSett2);
+    //interface->open_popup(TypeSett2);
     player->set_planks_toolmaker(gui_get_slider_click_value(x_));
     break;
   case ACTION_SETT_2_ADJUST_TOOLMAKER_STEEL:
-    interface->open_popup(TypeSett2);
+    //interface->open_popup(TypeSett2);
     player->set_steel_toolmaker(gui_get_slider_click_value(x_));
     break;
   case ACTION_SETT_2_ADJUST_WEAPONSMITH:
-    interface->open_popup(TypeSett2);
+    //interface->open_popup(TypeSett2);
     player->set_steel_weaponsmith(gui_get_slider_click_value(x_));
     break;
   case ACTION_SETT_3_ADJUST_STEELSMELTER:
-    interface->open_popup(TypeSett3);
+    //interface->open_popup(TypeSett3);
     player->set_coal_steelsmelter(gui_get_slider_click_value(x_));
     break;
   case ACTION_SETT_3_ADJUST_GOLDSMELTER:
-    interface->open_popup(TypeSett3);
+    //interface->open_popup(TypeSett3);
     player->set_coal_goldsmelter(gui_get_slider_click_value(x_));
     break;
   case ACTION_SETT_3_ADJUST_WEAPONSMITH:
-    interface->open_popup(TypeSett3);
+    //interface->open_popup(TypeSett3);
     player->set_coal_weaponsmith(gui_get_slider_click_value(x_));
     break;
   case ACTION_SETT_3_ADJUST_PIGFARM:
-    interface->open_popup(TypeSett3);
+    //interface->open_popup(TypeSett3);
     player->set_wheat_pigfarm(gui_get_slider_click_value(x_));
     break;
   case ACTION_SETT_3_ADJUST_MILL:
-    interface->open_popup(TypeSett3);
+    //interface->open_popup(TypeSett3);
     player->set_wheat_mill(gui_get_slider_click_value(x_));
     break;
   case ACTION_KNIGHT_LEVEL_CLOSEST_MIN_DEC:
     player->change_knight_occupation(3, 0, -1);
-    interface->open_popup(TypeKnightLevel);
+    //interface->open_popup(TypeKnightLevel);
     break;
   case ACTION_KNIGHT_LEVEL_CLOSEST_MIN_INC:
     player->change_knight_occupation(3, 0, 1);
-    interface->open_popup(TypeKnightLevel);
+    //interface->open_popup(TypeKnightLevel);
     break;
   case ACTION_KNIGHT_LEVEL_CLOSEST_MAX_DEC:
     player->change_knight_occupation(3, 1, -1);
-    interface->open_popup(TypeKnightLevel);
+    //interface->open_popup(TypeKnightLevel);
     break;
   case ACTION_KNIGHT_LEVEL_CLOSEST_MAX_INC:
     player->change_knight_occupation(3, 1, 1);
-    interface->open_popup(TypeKnightLevel);
+    //interface->open_popup(TypeKnightLevel);
     break;
   case ACTION_KNIGHT_LEVEL_CLOSE_MIN_DEC:
     player->change_knight_occupation(2, 0, -1);
-    interface->open_popup(TypeKnightLevel);
+    //interface->open_popup(TypeKnightLevel);
     break;
   case ACTION_KNIGHT_LEVEL_CLOSE_MIN_INC:
     player->change_knight_occupation(2, 0, 1);
-    interface->open_popup(TypeKnightLevel);
+    //interface->open_popup(TypeKnightLevel);
     break;
   case ACTION_KNIGHT_LEVEL_CLOSE_MAX_DEC:
     player->change_knight_occupation(2, 1, -1);
-    interface->open_popup(TypeKnightLevel);
+    //interface->open_popup(TypeKnightLevel);
     break;
   case ACTION_KNIGHT_LEVEL_CLOSE_MAX_INC:
     player->change_knight_occupation(2, 1, 1);
-    interface->open_popup(TypeKnightLevel);
+    //interface->open_popup(TypeKnightLevel);
     break;
   case ACTION_KNIGHT_LEVEL_FAR_MIN_DEC:
     player->change_knight_occupation(1, 0, -1);
-    interface->open_popup(TypeKnightLevel);
+    //interface->open_popup(TypeKnightLevel);
     break;
   case ACTION_KNIGHT_LEVEL_FAR_MIN_INC:
     player->change_knight_occupation(1, 0, 1);
-    interface->open_popup(TypeKnightLevel);
+    //interface->open_popup(TypeKnightLevel);
     break;
   case ACTION_KNIGHT_LEVEL_FAR_MAX_DEC:
     player->change_knight_occupation(1, 1, -1);
-    interface->open_popup(TypeKnightLevel);
+    //interface->open_popup(TypeKnightLevel);
     break;
   case ACTION_KNIGHT_LEVEL_FAR_MAX_INC:
     player->change_knight_occupation(1, 1, 1);
-    interface->open_popup(TypeKnightLevel);
+    //interface->open_popup(TypeKnightLevel);
     break;
   case ACTION_KNIGHT_LEVEL_FARTHEST_MIN_DEC:
     player->change_knight_occupation(0, 0, -1);
-    interface->open_popup(TypeKnightLevel);
+    //interface->open_popup(TypeKnightLevel);
     break;
   case ACTION_KNIGHT_LEVEL_FARTHEST_MIN_INC:
     player->change_knight_occupation(0, 0, 1);
-    interface->open_popup(TypeKnightLevel);
+    //interface->open_popup(TypeKnightLevel);
     break;
   case ACTION_KNIGHT_LEVEL_FARTHEST_MAX_DEC:
     player->change_knight_occupation(0, 1, -1);
-    interface->open_popup(TypeKnightLevel);
+    //interface->open_popup(TypeKnightLevel);
     break;
   case ACTION_KNIGHT_LEVEL_FARTHEST_MAX_INC:
     player->change_knight_occupation(0, 1, 1);
-    interface->open_popup(TypeKnightLevel);
+    //interface->open_popup(TypeKnightLevel);
     break;
   case ACTION_SETT_4_ADJUST_SHOVEL:
-    interface->open_popup(TypeSett4);
+    //interface->open_popup(TypeSett4);
     player->set_tool_prio(0, gui_get_slider_click_value(x_));
     break;
   case ACTION_SETT_4_ADJUST_HAMMER:
-    interface->open_popup(TypeSett4);
+    //interface->open_popup(TypeSett4);
     player->set_tool_prio(1, gui_get_slider_click_value(x_));
     break;
   case ACTION_SETT_4_ADJUST_AXE:
-    interface->open_popup(TypeSett4);
+    //interface->open_popup(TypeSett4);
     player->set_tool_prio(5, gui_get_slider_click_value(x_));
     break;
   case ACTION_SETT_4_ADJUST_SAW:
-    interface->open_popup(TypeSett4);
+    //interface->open_popup(TypeSett4);
     player->set_tool_prio(6, gui_get_slider_click_value(x_));
     break;
   case ACTION_SETT_4_ADJUST_SCYTHE:
-    interface->open_popup(TypeSett4);
+    //interface->open_popup(TypeSett4);
     player->set_tool_prio(4, gui_get_slider_click_value(x_));
     break;
   case ACTION_SETT_4_ADJUST_PICK:
-    interface->open_popup(TypeSett4);
+    //interface->open_popup(TypeSett4);
     player->set_tool_prio(7, gui_get_slider_click_value(x_));
     break;
   case ACTION_SETT_4_ADJUST_PINCER:
-    interface->open_popup(TypeSett4);
+    //interface->open_popup(TypeSett4);
     player->set_tool_prio(8, gui_get_slider_click_value(x_));
     break;
   case ACTION_SETT_4_ADJUST_CLEAVER:
-    interface->open_popup(TypeSett4);
+    //interface->open_popup(TypeSett4);
     player->set_tool_prio(3, gui_get_slider_click_value(x_));
     break;
   case ACTION_SETT_4_ADJUST_ROD:
-    interface->open_popup(TypeSett4);
+    //interface->open_popup(TypeSett4);
     player->set_tool_prio(2, gui_get_slider_click_value(x_));
     break;
   case ACTION_SETT_5_6_ITEM_1:
@@ -3896,7 +4046,7 @@ PopupBox::handle_action(int action, int x_, int /*y_*/) {
 //    }
     break;
   case ACTION_QUIT_CANCEL:
-    interface->close_popup();
+    interface->close_popup(this);
     break;
   case ACTION_NO_SAVE_QUIT_CONFIRM:
     play_sound(Audio::TypeSfxAhhh);
@@ -3923,11 +4073,15 @@ PopupBox::handle_action(int action, int x_, int /*y_*/) {
     //set_redraw();
     //interface->set_regen_map();
     interface->tell_gameinit_regen_map();
-    interface->close_popup();
+    interface->close_popup(this);
     break;
   case ACTION_OPTIONS_FLIP_TO_GAME_OPTIONS:
   //case ACTION_GAME_OPTIONS_PREV_PAGE:
     interface->open_popup(TypeGameOptions);
+    break;
+  case ACTION_RESET_GAME_OPTIONS_DEFAULTS:
+    interface->get_game()->reset_game_options_defaults();
+    GameOptions::get_instance().save_options_to_file();
     break;
   case ACTION_GAME_OPTIONS_PAGE2:
     interface->open_popup(TypeGameOptions2);
@@ -4296,7 +4450,7 @@ PopupBox::handle_action(int action, int x_, int /*y_*/) {
     play_sound(Audio::TypeSfxAccepted);
     break;
   case ACTION_CLOSE_OPTIONS:
-    interface->close_popup();
+    interface->close_popup(this);
     break;
   case ACTION_OPTIONS_MESSAGE_COUNT_1:
     if (interface->get_config(3)) {
@@ -4343,6 +4497,9 @@ PopupBox::handle_action(int action, int x_, int /*y_*/) {
     break;
   case ACTION_SHOW_RESDIR:
     set_box(TypeResDir);
+    break;
+  case ACTION_SHOW_INVENTORY_QUEUES:
+    set_box(TypeInventoryQueues);
     break;
   case ACTION_SHOW_CASTLE_RES:
     set_box(TypeCastleRes);
@@ -4514,7 +4671,7 @@ PopupBox::handle_action(int action, int x_, int /*y_*/) {
   }
   case ACTION_DEMOLISH:
     interface->demolish_object();
-    interface->close_popup();
+    interface->close_popup(this);
     break;
   case ACTION_SHOW_SAVE:
     file_list->set_displayed(true);
@@ -4543,7 +4700,7 @@ PopupBox::handle_action(int action, int x_, int /*y_*/) {
     interface->get_game()->mutex_lock("saving game");
     if (GameStore::get_instance().save(file_path, interface->get_game().get())) {
       play_sound(Audio::TypeSfxAccepted);
-      interface->close_popup();
+      interface->close_popup(this);
     }
     interface->get_game()->mutex_unlock();
     break;
@@ -4582,6 +4739,17 @@ PopupBox::handle_box_close_clk(int cx, int cy) {
 }
 
 void
+PopupBox::handle_debug_clk(int cx, int cy) {
+  const int clkmap[] = {
+    ACTION_DEBUG_GOTO_POS, 112, 28, 16, 16,
+    ACTION_CLOSE_BOX, 112, 128, 16, 16,
+    -1
+  };
+  handle_clickmap(cx, cy, clkmap);
+}
+
+
+void
 PopupBox::handle_box_options_clk(int cx, int cy) {
   const int clkmap[] = {
     // left column
@@ -4617,6 +4785,7 @@ PopupBox::handle_box_game_options_clk(int cx, int cy) {
     ACTION_GAME_OPTIONS_QUICK_DEMO_EMPTY_BUILD_SITES, 7, 64, 150, 16,
     ACTION_GAME_OPTIONS_TREES_REPRODUCE, 7, 83, 150, 16,
     ACTION_GAME_OPTIONS_BABY_TREES_MATURE_SLOWLY, 7, 102, 150, 16,
+    ACTION_RESET_GAME_OPTIONS_DEFAULTS, 0, 126, 62, 16,  // click map the whole 'reset' text not just the button
     ACTION_GAME_OPTIONS_PAGE2, 239, 126, 16, 16,  // flip button
     ACTION_CLOSE_OPTIONS, 255, 126, 16, 16, // exit button
     -1
@@ -4635,6 +4804,7 @@ PopupBox::handle_box_game_options2_clk(int cx, int cy) {
     ACTION_GAME_OPTIONS_FogOfWar, 7, 83, 150, 16,
     //ACTION_GAME_OPTIONS_AdvancedDemolition, 7, 83, 150, 16,  /* removing AdvancedDemolition for now, see https://github.com/forkserf/forkserf/issues/180/
     ACTION_GAME_OPTIONS_SailorsMoveFaster, 7, 102, 150, 16,
+    ACTION_RESET_GAME_OPTIONS_DEFAULTS, 0, 126, 62, 16,  // click map the whole 'reset' text not just the button
     ACTION_GAME_OPTIONS_PAGE3, 239, 126, 16, 16,  // flip button
     ACTION_CLOSE_OPTIONS, 255, 126, 16, 16, // exit button
     -1
@@ -4653,6 +4823,7 @@ PopupBox::handle_box_game_options3_clk(int cx, int cy) {
     ACTION_GAME_OPTIONS_CheckPathBeforeAttack, 7, 83, 150, 16,
     //ACTION_GAME_OPTIONS_AdvancedDemolition, 7, 83, 150, 16,  /* removing AdvancedDemolition for now, see https://github.com/forkserf/forkserf/issues/180/
     ACTION_GAME_OPTIONS_SpinningAmigaStar, 7, 102, 150, 16,
+    ACTION_RESET_GAME_OPTIONS_DEFAULTS, 0, 126, 62, 16,  // click map the whole 'reset' text not just the button
     ACTION_GAME_OPTIONS_PAGE4, 239, 126, 16, 16,  // flip button
     ACTION_CLOSE_OPTIONS, 255, 126, 16, 16, // exit button
     -1
@@ -4671,6 +4842,7 @@ PopupBox::handle_box_game_options4_clk(int cx, int cy) {
     //ACTION_GAME_OPTIONS_ForesterMonoculture, 7, 64, 150, 16,
     //ACTION_GAME_OPTIONS_CheckPathBeforeAttack, 7, 83, 150, 16,
     //ACTION_GAME_OPTIONS_SpinningAmigaStar, 7, 102, 150, 16,
+    ACTION_RESET_GAME_OPTIONS_DEFAULTS, 0, 126, 62, 16,  // click map the whole 'reset' text not just the button
     ActionShowOptions, 239, 126, 16, 16,  // flip button
     ACTION_CLOSE_OPTIONS, 255, 126, 16, 16, // exit button
     -1
@@ -4699,7 +4871,8 @@ PopupBox::handle_box_edit_map_generator_clk(int cx, int cy) {
     ACTION_MAPGEN_ADJUST_JUNK_OBJ_DESERT, 199, 111, 64, 6,
     
 
-    ACTION_RESET_MAPGEN_DEFAULTS, 128, 124, 16, 16,
+    //ACTION_RESET_MAPGEN_DEFAULTS, 128, 124, 16, 16,
+    ACTION_RESET_MAPGEN_DEFAULTS, 0, 126, 62, 16,  // click map the whole 'reset' text not just the button
     //generate_map_preview(); ??
     //set_redraw()  ??
     //ACTION_CLOSE_BOX, 255, 126, 16, 16,
@@ -4732,7 +4905,8 @@ PopupBox::handle_box_edit_map_generator2_clk(int cx, int cy) {
     //ACTION_MAPGEN_ADJUST_JUNK_OBJ_DESERT, 199, 111, 64, 6,
     
 
-    ACTION_RESET_MAPGEN_DEFAULTS, 128, 124, 16, 16,
+    //ACTION_RESET_MAPGEN_DEFAULTS, 128, 124, 16, 16,
+    ACTION_RESET_MAPGEN_DEFAULTS, 0, 126, 62, 16,  // click map the whole 'reset' text not just the button
     //generate_map_preview(); ??
     //set_redraw()  ??
     //ACTION_CLOSE_BOX, 255, 126, 16, 16,
@@ -4751,6 +4925,8 @@ PopupBox::handle_mine_building_clk(int cx, int cy) {
     ACTION_BUILD_IRONMINE, 32, 77, 33, 65,
     ACTION_BUILD_GOLDMINE, 80, 77, 33, 65,
     ACTION_BUILD_FLAG, 10, 114, 17, 21,
+
+    ACTION_CLOSE_BOX, 112, 128, 16, 16,
     -1
   };
   handle_clickmap(cx, cy, clkmap);
@@ -4768,6 +4944,8 @@ PopupBox::handle_basic_building_clk(int cx, int cy, int flip) {
     ACTION_BUILD_MILL, 16, 92, 33, 46,
     ACTION_BUILD_FLAG, 58, 108, 17, 21,
     ACTION_BUILD_BOATBUILDER, 80, 87, 33, 53,
+
+    ACTION_CLOSE_BOX, 112, 128, 16, 16,
     -1
   };
 
@@ -4787,6 +4965,8 @@ PopupBox::handle_adv_1_building_clk(int cx, int cy) {
     ACTION_BUILD_SAWMILL, 64, 50, 49, 41,
     ACTION_BUILD_BAKER, 16, 100, 49, 33,
     ACTION_BUILD_GOLDSMELTER, 80, 96, 49, 40,
+
+    ACTION_CLOSE_BOX, 112, 128, 16, 16,
     -1
   };
   handle_clickmap(cx, cy, clkmap);
@@ -4802,6 +4982,8 @@ PopupBox::handle_adv_2_building_clk(int cx, int cy) {
     ACTION_BUILD_FARM, 64, 1, 64, 42,
     ACTION_BUILD_PIGFARM, 64, 45, 64, 41,
     ACTION_BUILD_STOCK, 0, 50, 48, 48,
+
+    ACTION_CLOSE_BOX, 112, 128, 16, 16,
     -1
   };
   handle_clickmap(cx, cy, clkmap);
@@ -5025,6 +5207,7 @@ PopupBox::handle_knight_level_click(int cx, int cy) {
   handle_clickmap(cx, cy, clkmap);
 }
 
+// this is the toolmaker tool priority box
 void
 PopupBox::handle_sett_4_click(int cx, int cy) {
   const int clkmap[] = {
@@ -5149,9 +5332,21 @@ PopupBox::handle_resdir_clk(int cx, int cy) {
     ACTION_SERF_MODE_STOP, 72, 96, 16, 16,
     ACTION_SERF_MODE_OUT, 72, 112, 16, 16,
 
-    ACTION_SHOW_CASTLE_RES, 96, 128, 16, 16,
+    //ACTION_SHOW_CASTLE_RES, 96, 128, 16, 16,
+    ACTION_SHOW_INVENTORY_QUEUES, 96, 128, 16, 16,
     ACTION_CLOSE_BOX, 112, 128, 16, 16,
 
+    -1
+  };
+
+  handle_clickmap(cx, cy, mode_clkmap);
+}
+
+void
+PopupBox::handle_inv_queues_clk(int cx, int cy) {
+  const int mode_clkmap[] = {
+    ACTION_SHOW_CASTLE_RES, 96, 128, 16, 16,
+    ACTION_CLOSE_BOX, 112, 128, 16, 16,
     -1
   };
 
@@ -5218,7 +5413,8 @@ PopupBox::handle_minimap_clk(int cx, int cy) {
     ACTION_MINIMAP_ROADS, 32, 128, 32, 16,
     ACTION_MINIMAP_BUILDINGS, 64, 128, 32, 16,
     ACTION_MINIMAP_GRID, 96, 128, 16, 16,
-    ACTION_MINIMAP_SCALE, 112, 128, 16, 16,
+    //ACTION_MINIMAP_SCALE, 112, 128, 16, 16,
+    ACTION_CLOSE_BOX, 112, 128, 16, 16,
     -1
   };
 
@@ -5307,6 +5503,12 @@ PopupBox::handle_save_clk(int cx, int cy) {
 bool
 //PopupBox::handle_left_click(int cx, int cy) {
 PopupBox::handle_left_click(int cx, int cy, int modifier) {
+  Log::Debug["popup.cc"] << "inside PopupBox::handle_left_click";
+  if (being_dragged){
+    being_dragged = false;
+    return false;
+  }
+  Log::Debug["popup.cc"] << "inside PopupBox::handle_left_click A, box type  " << box;
   cx -= 8;
   cy -= 8;
 
@@ -5387,6 +5589,9 @@ PopupBox::handle_left_click(int cx, int cy, int modifier) {
   case TypeNoSaveQuitConfirm:
     handle_no_save_quit_confirm_click(cx, cy);
     break;
+  case TypeDebug:
+    handle_debug_clk(cx, cy);
+    break;
   case TypeOptions:
     handle_box_options_clk(cx, cy);
     break;
@@ -5429,6 +5634,9 @@ PopupBox::handle_left_click(int cx, int cy, int modifier) {
   case TypeResDir:
     handle_resdir_clk(cx, cy);
     break;
+  case TypeInventoryQueues:
+    handle_inv_queues_clk(cx, cy);
+    break;
   case TypeSett8:
     handle_sett_8_click(cx, cy);
     break;
@@ -5467,6 +5675,218 @@ PopupBox::handle_left_click(int cx, int cy, int modifier) {
     break;
   }
 
+  Log::Debug["popup.cc"] << "inside PopupBox::handle_left_click Z";
+
+  return true;
+}
+
+// tlongstretch testing movable popups
+//   it works! kinda
+
+// right now the problem is that the mouse pointer/cursor does not follow the dragged pos and so once the
+//  pointer falls outside the popup it ceases moving the popup and instead drags the Viewport 
+//   because the pointer is now on the viewpot and not he popup
+// TO FIX - need to make he mouse pointer follow the drag
+bool
+PopupBox::handle_drag(int lx, int ly) {
+  Log::Debug["popup.cc"] << "inside PopupBox::handle_drag lx,ly = " << lx << "," << ly << " width " << width << ", height " << height;
+  if (lx != 0 || ly != 0) {
+
+    // to avoid issue where slight movement while clicking a popup button is intepreted as a drag,
+    //  force the initial drag to be a strong motion to "release" the popup into drag mode
+    //  THIS IS HANDLED INSIDE GuiObject::handle_event NOT HERE
+
+    // part of "no zoom w/ pinned popups work-around (also used later for other reason)
+    Graphics &gfx = Graphics::get_instance();
+
+    if (box == Type::TypeOptions || box == Type::TypeGameOptions || box == Type::TypeGameOptions2
+      || box == Type::TypeGameOptions3 || box == Type::TypeGameOptions4
+      || box == Type::TypeEditMapGenerator || box == PopupBox::TypeEditMapGenerator2 || box == Type::TypeLoadSave){
+      Log::Debug["popup.cc"] << "inside PopupBox::handle_drag, not allowing this type of popup to be lifted/pinned";
+      return true;
+    }else if (gfx.get_zoom_factor() != 1.f){
+      // temporary work-around to avoid bugs with zooming and pinned popups, for now simply disallow pinned popups while zoomed
+      //  and Viewport::update will close any that exist
+      Log::Warn["popup.cc"] << "inside PopupBox::handle_drag, not allowing popups to move when zoomed, it is buggy";
+      return true;
+    }else{
+      if (!lifted){
+        lifted = true;
+        Log::Debug["popup.cc"] << "inside PopupBox::handle_drag, setting lifted bool to true";
+        play_sound(Audio::TypeSfxPlanting);  // this is the "pop" sound
+        interface->pin_popup();
+      }
+    }
+
+    // save the offset from the original position so that the mouse pointer can be sent
+    //  there because it does not follow for reasons I don't quite understand
+    mouse_x_after_drag += lx;
+    mouse_y_after_drag += ly;
+
+    // store orig values for comparison when limiting
+    int orig_x = x;
+    int orig_y = y;
+
+    //move_by_pixels(lx, ly);
+    x += lx;
+    y += ly;
+    Log::Debug["popup.cc"] << "inside PopupBox::handle_drag, new x,y is " << x << "," << y;
+
+    // don't let it popup go off-screen
+    //Graphics &gfx = Graphics::get_instance();   // moved to earlier because of zoom_factor work-around
+    unsigned int res_width; 
+    unsigned int res_height;
+    gfx.get_resolution(&res_width, &res_height);
+    Log::Debug["popup.cc"] << "inside PopupBox::handle_drag, width/height is " << width << " / " << height;
+    int this_left = x;
+    int this_right = x + width;
+    int this_top = y;
+    int this_bottom = y + height;
+    // moving to after collision adjustment
+    //if (this_right > res_width - 1){ x = res_width - width; }
+    //if (this_bottom > res_height){ y = res_height - height; }
+    //if (x < 0){ x = 0; }
+    //if (y < 0){ y = 0; }
+
+    Log::Debug["event_loop.cc"] << "inside PopupBox::handle_drag, this popup has left " << this_left << ", right " << this_right << ", top " << this_top << ", bottom " << this_bottom;
+
+    //  so they cannot be overlapped
+    for (GuiObject *interface_float : interface->get_floats()) {
+      if (interface_float->get_objclass() == GuiObjClass::ClassViewport){
+        continue; // ignore Viewport
+      }
+      if (interface_float == this){
+        continue; // ignore self
+      }
+      Log::Debug["event_loop.cc"] << "inside PopupBox::handle_drag, found a float with class " << NameGuiObjClass[interface_float->get_objclass()] << " and type " << interface_float->get_objtype();
+      // get the absolute dimensions of the float object (relative to the SDL Window)
+      int float_x = 0;
+      int float_y = 0;
+      interface_float->get_position(&float_x, &float_y);
+      Log::Debug["popup.cc"] << "inside PopupBox::handle_drag, found a float with class " << NameGuiObjClass[interface_float->get_objclass()] << " and type " << interface_float->get_objtype() << " with coords " << float_x << "," << float_y;
+      int float_width = 0;
+      int float_height = 0;
+      interface_float->get_size(&float_width, &float_height);
+      Log::Debug["popup.cc"] << "inside PopupBox::handle_drag, found a float with class " << NameGuiObjClass[interface_float->get_objclass()] << " and type " << interface_float->get_objtype() << " with width/height " << float_width << "/" << float_height;
+      int float_left = float_x;
+      int float_right = float_x + float_width;
+      int float_top = float_y;
+      int float_bottom = float_y + float_height;
+      Log::Debug["popup.cc"] << "inside PopupBox::handle_drag, found a float with class " << NameGuiObjClass[interface_float->get_objclass()] << " and type " << interface_float->get_objtype() << " has left " << float_left << ", right " << float_right << ", top " << float_top << ", bottom " << float_bottom;
+
+      // remember that x/y 0,0 is TOP-LEFT not BOTTOM-LEFT as is usual, x-max,y-max is BOTTOM-RIGHT corner
+      if (this_left > float_right || float_right < this_left || this_top > float_bottom || this_bottom < float_top){
+        Log::Debug["popup.cc"] << "inside PopupBox::handle_drag, found a float with class " << NameGuiObjClass[interface_float->get_objclass()] << " and type " << interface_float->get_objtype() << ", this popup does not intersect";
+        // no intersection
+      }else{
+        Log::Debug["popup.cc"] << "inside PopupBox::handle_drag, found a float with class " << NameGuiObjClass[interface_float->get_objclass()] << " and type " << interface_float->get_objtype() << ", this popup intersects!";
+      }
+
+      int adjust_x = lx;
+      int adjust_y = ly;
+      if (this_left < float_right && this_right > float_left){
+        Log::Debug["popup.cc"] << "inside PopupBox::handle_drag, found a float with class " << NameGuiObjClass[interface_float->get_objclass()] << " and type " << interface_float->get_objtype() << ", this popup has Y-axis intersection";
+        // Y /axis/ overlaps
+        if (this_bottom > float_top && this_top < float_top){
+          Log::Debug["popup.cc"] << "inside PopupBox::handle_drag, found a float with class " << NameGuiObjClass[interface_float->get_objclass()] << " and type " << interface_float->get_objtype() << ", this popup is above the found float, cap its bottom at the float's top";
+          // this popup is above the found float, cap its bottom at the float's top
+          y = float_top - height;
+          Log::Debug["popup.cc"] << "inside PopupBox::handle_drag, found a float with class " << NameGuiObjClass[interface_float->get_objclass()] << " and type " << interface_float->get_objtype() << ", this_bottom " << this_bottom << " float_top " << float_top;
+          adjust_y = ly - (this_bottom - float_top);
+          //adjust_y = this_bottom - float_top;
+          Log::Debug["popup.cc"] << "inside PopupBox::handle_drag, found a float with class " << NameGuiObjClass[interface_float->get_objclass()] << " and type " << interface_float->get_objtype() << ", capping requested ly " << ly << " at adjust_y " << adjust_y;
+        }else if (this_top < float_bottom && this_bottom > float_bottom){
+          Log::Debug["popup.cc"] << "inside PopupBox::handle_drag, found a float with class " << NameGuiObjClass[interface_float->get_objclass()] << " and type " << interface_float->get_objtype() << ", this popup is below the found float, cap its top at the float's bottom";
+          // this popup is below the found float, cap its top at the float's bottom
+          y = float_bottom;
+          adjust_y = ly - (this_top - float_bottom);
+        }
+      }
+      if (this_bottom > float_top && this_top < float_bottom){
+        Log::Debug["popup.cc"] << "inside PopupBox::handle_drag, found a float with class " << NameGuiObjClass[interface_float->get_objclass()] << " and type " << interface_float->get_objtype() << ", this popup has X-axis intersection";
+        // X /axis/ overlaps
+        // if X axis also overlaps
+        if (this_right > float_left && this_left < float_left){
+          Log::Debug["popup.cc"] << "inside PopupBox::handle_drag, found a float with class " << NameGuiObjClass[interface_float->get_objclass()] << " and type " << interface_float->get_objtype() << ", this popup is left of the found float, cap its right at the float's left";
+          // this popup is left of the found float, cap its right at the float's left
+          x = float_left - width;
+          adjust_x = lx - (this_right - float_left);
+          Log::Debug["popup.cc"] << "inside PopupBox::handle_drag, found a float with class " << NameGuiObjClass[interface_float->get_objclass()] << " and type " << interface_float->get_objtype() << ", capping requested lx " << lx << " at adjust_x " << adjust_x;
+        }else if (this_left < float_right && this_right > float_right){
+          // this popup is right of the found float, cap its left at the float's right
+          x = float_right;
+          adjust_x = lx - (this_left - float_right);
+        }
+      }
+
+      // to avoid jumpiness, only apply the cap that results in the less extreme change
+      //  and simply do not allow the other axis value to change at all
+      //if (abs(adjust_x) > 0 || abs(adjust_y) > 0){
+      //if (abs(adjust_x) > 0 && abs(adjust_y) > 0){
+      // 
+      if (lx != adjust_x && ly != adjust_y){
+        Log::Debug["popup.cc"] << "inside PopupBox::handle_drag, found a float with class " << NameGuiObjClass[interface_float->get_objclass()] << " and type " << interface_float->get_objtype() << ", BOTH CHANGED adjust_x = " << adjust_x << ", lx = " << lx << ", adjust_y = " << adjust_y << ", ly = " << ly;
+      //if (adjust_x != 0 || adjust_y != 0){
+        //x = orig_x;
+        //y = orig_y;
+        /*
+        if (abs(adjust_x) < abs(adjust_y)){
+          Log::Debug["popup.cc"] << "inside PopupBox::handle_drag, found a float with class " << NameGuiObjClass[interface_float->get_objclass()] << " and type " << interface_float->get_objtype() << ", BOTH CHANGED adjusting x, leaving orig_y";
+          x = orig_x + adjust_x;
+          y = orig_y;
+        }else{
+          Log::Debug["popup.cc"] << "inside PopupBox::handle_drag, found a float with class " << NameGuiObjClass[interface_float->get_objclass()] << " and type " << interface_float->get_objtype() << ", BOTH CHANGED adjusting y, leaving orig_x";
+          y = orig_y + adjust_y;
+          x = orig_x;
+        }
+        */
+        // if a blocking float would result in a large jump in movement
+        //  instead use the lesser movement value
+        if (abs(adjust_x) < abs(lx)){
+          x = orig_x + adjust_x;
+        }else{
+          x = orig_x + lx;  // can just go back and remove the original assignment earlier!
+        }
+        if (abs(adjust_y) < abs(ly)){
+          y = orig_y + adjust_y;
+        }else{
+          y = orig_y + ly; // can just go back and remove the original assignment earlier!
+        }
+      //}if (abs(adjust_x) > 0 || abs(adjust_y) > 0){
+      //  Log::Debug["popup.cc"] << "inside PopupBox::handle_drag, found a float with class " << NameGuiObjClass[interface_float->get_objclass()] << " and type " << interface_float->get_objtype() << ", ONLY ONE CHANGED adjust_x = " << adjust_x << ", abs(adjust_x) = " << abs(adjust_x) << ", adjust_y = " << adjust_y << ", abs(adjust_y) = " << abs(adjust_y);
+      //  // only one of these is changed, so let it happen
+      //  x = orig_x + adjust_x;
+      //  y = orig_y + adjust_y;
+      //}
+      //}else{
+      //  x = orig_x + adjust_x;
+      //  y = orig_y + adjust_y;
+      }
+
+      if (this_right > res_width - 1){ x = res_width - width; }
+      if (this_bottom > res_height){ y = res_height - height; }
+      if (x < 0){ x = 0; }
+      if (y < 0){ y = 0; }
+
+
+      Log::Debug["popup.cc"] << "inside PopupBox::handle_drag, new x,y after adjustment is " << x << "," << y;
+      
+    }
+
+    set_redraw();
+  }
+  
+  return true;
+}
+
+bool
+PopupBox::handle_mouse_button_down(int lx, int ly, Event::Button button) {
+  Log::Debug["popup.cc"] << "inside PopupBox::handle_mouse_button_down lx,ly = " << lx << "," << ly << ", button " << button << ", setting focused bool to true";
+  being_dragged = false;  // need to UNSET this to prevent it from carrying over from prev drag, it will be set by the GuiObject::handle_event handler for TypeDrag
+  Graphics &gfx = Graphics::get_instance();
+  gfx.get_mouse_cursor_coord(&mouse_x_after_drag, &mouse_y_after_drag);  // store the CURRENT mouse x/y BEFORE dragging so its adjusted position can track the drag
+  Log::Debug["popup.cc"] << "inside PopupBox::handle_mouse_button_down, mouse_x_y_before_drag is " << mouse_x_after_drag << "," << mouse_y_after_drag;
+  set_focused();
   return true;
 }
 
@@ -5482,11 +5902,28 @@ void PopupBox::hide() {
 
 void
 PopupBox::set_box(Type box_) {
+  Log::Debug["popup.cc"] << "inside PopupBox::set_type, setting popup with prev box/objtype " << box << " to new objtype " << box_;
   box = box_;
+  //objtype = box_;
+  set_objtype(box_);
   if (box == TypeMap) {
     minimap->set_displayed(true);
   } else {
     minimap->set_displayed(false);
   }
+
+  if (box == PopupBox::TypeOptions || box == PopupBox::TypeGameOptions || box == PopupBox::TypeGameOptions2
+  || box == PopupBox::TypeGameOptions3 || box == PopupBox::TypeGameOptions4
+  || box == PopupBox::TypeEditMapGenerator || box == PopupBox::TypeEditMapGenerator2 || box == PopupBox::TypeLoadSave){
+    Log::Debug["interface.cc"] << "inside PopupBox::set_box(), for popup type " << box << ", drawing double-wide";
+    // double wide, normal height
+    set_size(288, 160);
+  }else{
+    Log::Debug["interface.cc"] << "inside PopupBox::set_box(), for popup type " << box << ", drawing single-wide";
+    // normal size (single-wide)
+    set_size(144, 160);
+  }
+
+
   set_redraw();
 }

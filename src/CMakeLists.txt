@@ -4,14 +4,16 @@ option(ENABLE_SDL2_MIXER "Enable audio support using SDL2_mixer" ON)
 option(ENABLE_SDL2_IMAGE "Enable image loading using SDL2_image" ON)
 set(SDL2_BUILDING_LIBRARY 1)
 find_package(SDL2 REQUIRED)
-if(SDL2_FOUND)
-  if(ENABLE_SDL2_MIXER)
-    find_package(SDL2_mixer)
-  endif()
-  if(ENABLE_SDL2_IMAGE)
-    find_package(SDL2_image)
-  endif()
-endif()
+find_package(SDL2_mixer REQUIRED)
+find_package(SDL2_image REQUIRED)
+#if(SDL2_FOUND)
+#  if(ENABLE_SDL2_MIXER)
+#    find_package(SDL2_mixer)
+#  endif()
+#  if(ENABLE_SDL2_IMAGE)
+#    find_package(SDL2_image)
+#  endif()
+#endif()
 
 if(WIN32)
   add_definitions(/D_CRT_SECURE_NO_WARNINGS /D_SCL_SECURE_NO_WARNINGS)
@@ -108,13 +110,13 @@ target_check_style(platform)
 set(DATA_SOURCES data.cc
                  data-source-dos.cc
                  data-source-amiga.cc
-                 data-source-legacy.cc
-                 data-source-custom.cc
-                 tpwm.cc
-                 sfx2wav.cc
-                 xmi2mid.cc
-                 pcm2wav.cc
-                 data-source.cc)
+                popup data-source-legacy.cc
+                popup data-source-custom.cc
+                popup tpwm.cc
+                popup sfx2wav.cc
+                popup xmi2mid.cc
+                popup pcm2wav.cc
+                popup data-source.cc)
 
 set(DATA_HEADERS data.h
                  data-source-dos.h

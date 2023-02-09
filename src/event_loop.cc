@@ -111,6 +111,20 @@ EventLoop::notify_special_click(int x, int y){ //,Event::Button button) {
   return notify_handlers(&event);
 }
 
+// this event is used to identify what is being dragged
+//  (either the Viewport-terrain, Minimap-terrain, or a Popup window)
+//  so that it can remain focused even when dragged outside of its original
+//  area (which normally caused it to lose focus)
+bool
+EventLoop::notify_mouse_button_down(int x, int y, Event::Button button) {
+  Event event;
+  event.type = Event::TypeMouseButtonDown;
+  event.x = x;
+  event.y = y;
+  event.button = button;
+  return notify_handlers(&event);
+}
+
 bool
 EventLoop::notify_drag(int x, int y, int dx, int dy, Event::Button button) {
   Event event;
@@ -134,14 +148,35 @@ EventLoop::notify_key_pressed(unsigned char key, unsigned char modifier) {
   return notify_handlers(&event);
 }
 
+bool
+EventLoop::notify_numpad_key_pressed(int numpad_key) {
+  Event event;
+  event.type = Event::TypeNumPadKeyPressed;
+  event.x = 0;
+  event.y = 0;
+  switch (numpad_key){
+    case 1073741920:    event.dx = 8; break;
+    case 1073741919:    event.dx = 7; break;
+    case 1073741918:    event.dx = 6; break;
+    case 1073741916:    event.dx = 4; break;
+    case 1073741915:    event.dx = 3; break;
+    case 1073741914:    event.dx = 2; break;
+    default: event.dx = 9999; break;
+  }
+  //event.dx = numpad_key;
+  //event.dy = modifier;
+  return notify_handlers(&event);
+}
+
 // 0=up, 1=down, 3=left, 4=right
 bool
-EventLoop::notify_arrow_key_pressed(unsigned char key) {
+EventLoop::notify_arrow_key_pressed(unsigned char key, unsigned char modifier) {
   Event event;
   event.type = Event::TypeArrowKeyPressed;
   event.x = 0;
   event.y = 0;
   event.dx = key; // this is where the key value is passed
+  event.dy = modifier;
   return notify_handlers(&event);
 }
 

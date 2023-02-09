@@ -33,8 +33,10 @@ class Event {
     TypeDoubleClick,
     TypeMiddleClick,
     TypeSpecialClick,
+    TypeMouseButtonDown,  // to help store the original mouse pos when dragging, NOT used for "clicking"
     TypeDrag,
     TypeKeyPressed,
+    TypeNumPadKeyPressed,  // NumPad isn't normally distinguishable once you get to ASCII chars
     TypeArrowKeyPressed,
     TypeListScroll,
     TypeResize,
@@ -124,8 +126,11 @@ class EventLoop {
   bool notify_middle_click(int x, int y); //, Event::Button button);
   bool notify_special_click(int x, int y); //, Event::Button button);
   bool notify_drag(int x, int y, int dx, int dy, Event::Button button);
+  bool notify_mouse_button_down(int x, int y, Event::Button button);  // to help track the original mouse-down-click-and-hold pos when dragging, NOT for normal clicking
   bool notify_key_pressed(unsigned char key, unsigned char modifier);
-  bool notify_arrow_key_pressed(unsigned char key);  //0=up,1=down,2=left,3=right
+  bool notify_numpad_key_pressed(int numpad_key);
+  //bool notify_arrow_key_pressed(unsigned char key);  //0=up,1=down,2=left,3=right
+  bool notify_arrow_key_pressed(unsigned char key, unsigned char modifier);  //0=up,1=down,2=left,3=right
   bool notify_list_scroll(int y);
   bool notify_resize(unsigned int width, unsigned int height);
   bool notify_zoom_resize(unsigned int width, unsigned int height);  // to distinguish between other resizes to fix centering of zoom after window resize

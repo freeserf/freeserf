@@ -465,6 +465,17 @@ Viewport::layout() {
   landscape_tiles.clear();
 }
 
+void
+Viewport::recenter() {
+  Log::Debug["viewport.cc"] << "inside Viewport::recenter()";
+  int width_change = width - last_window_width;
+  int height_change = height - last_window_height;
+  int x_move = -1 * (width_change * 0.25);
+  int y_move = -1 * (height_change * 0.25);
+  Log::Debug["viewport.cc"] << "inside Viewport::recenter(),  moving x " << x_move << " and y " << y_move;
+  move_by_pixels(x_move, y_move);
+}
+
 // work-around because GUIObject can't directly reference Viewport vars
 //void
 //Viewport::store_prev_res() {
@@ -477,8 +488,18 @@ void
 Viewport::store_prev_window_size() {
   last_window_height = height;
   last_window_width = width;
-  Log::Debug["viewport.cc"] << "inside Viewport::store_prev_window_size(), updating last_window_height/height to " << last_window_height << "," << last_window_width;
+  Log::Debug["viewport.cc"] << "inside Viewport::store_prev_window_size(), updating last_window_width/height to " << last_window_width << "," << last_window_height;
 }
+
+// I ran into some odd issue with popup moving where the popup movement
+//  behavior starts out broken (though it can be worked-around) but then
+//  reverts to the expected behavior any time after any resize has been done
+// to work-around this, try detecting if window has ever been resized
+//void
+//Viewport::set_resize_tainted() {
+//  Log::Debug["viewport.cc"] << "inside Viewport::set_resize_tainted(), resize_tainted is now true and will remain until the game is restarted";
+//  resize_tainted = true;
+//}
 
 // flush a single tile, which is 16x16 block of MapPos triangle-pairs
 //  from the tile cache so it will be redrawn by get_tile_frame on next update
@@ -1959,7 +1980,10 @@ Viewport::draw_map_objects_row(MapPos pos, int y_base, int cols, int x_base) {
 
       }
 
+      //Log::Debug["viewport.cc"] << "inside Viewport::draw_map_objects_row, FOO, sprite #" << sprite;
+
       // handle option_ForesterMonoculture
+      //   this is comparing by OBJECT TYPE so do not subtract 8 / Map::ObjectTree0
       if (map->get_obj(pos) >= Map::ObjectNewTree0 && map->get_obj(pos) <= Map::ObjectNewTree7){
         //Log::Debug["viewport.cc"] << "inside Viewport::draw_map_objects_row, found NewTree0+, setting index to +1000";
         sprite += 1000;
@@ -1967,6 +1991,7 @@ Viewport::draw_map_objects_row(MapPos pos, int y_base, int cols, int x_base) {
       }
 
       // handle partial sprite NewWaterStone0-7
+      //   this is comparing by OBJECT TYPE so do not subtract 8 / Map::ObjectTree0
       if (map->get_obj(pos) >= Map::ObjectNewWaterStone0 && map->get_obj(pos) <= Map::ObjectNewWaterStone7){
         //Log::Debug["viewport.cc"] << "inside Viewport::draw_map_objects_row, found NewWaterStone0+, setting index to +1000";
         sprite += 1000;
@@ -1996,6 +2021,7 @@ Viewport::draw_map_objects_row(MapPos pos, int y_base, int cols, int x_base) {
       // this cannot be done inside draw_waves_row because that is done before map_objects drawn
       // NOTE the normal sprite has already been drawn by above function, these splashes are drawn
       //  OVER TOP of the normal sprite
+      //   this is comparing by OBJECT TYPE so do not subtract 8 / Map::ObjectTree0
       if (map->get_obj(pos) == Map::ObjectWaterStone0 || map->get_obj(pos) == Map::ObjectWaterStone1){
       //||  (map->get_obj(pos) >= Map::ObjectWaterTree0 && map->get_obj(pos) <= Map::ObjectWaterTree3)){
         //Log::Debug["viewport.cc"] << "inside Viewport::draw_map_objects_row(), found water object, drawing splashes, setting frame to " << frame;
@@ -2004,6 +2030,7 @@ Viewport::draw_map_objects_row(MapPos pos, int y_base, int cols, int x_base) {
         int sprite = 20 + (fast_anim & 3);
         frame->draw_sprite(x_base, y_base, Data::AssetMapWaves, sprite, true);  // this is correct for original water objects
         //frame->draw_sprite(x_base, y_base - 16, Data::AssetMapWaves, sprite, true); // testing new partial stone sprites
+      //   this is comparing by OBJECT TYPE so do not subtract 8 / Map::ObjectTree0
       }else if (map->get_obj(pos) >= Map::ObjectNewWaterStone0 && map->get_obj(pos) <= Map::ObjectNewWaterStone7){
         // wider splashes for larger objects
         // splashes have 2 types with 4 frames of animation
@@ -2997,18 +3024,17 @@ Viewport::draw_active_serf(Serf *serf, MapPos pos, int x_base, int y_base) {
     int index = serf->get_attacking_def_index();
     if (index != 0) {
       Serf *def_serf = interface->get_game()->get_serf(index);
-
-      Data::Animation animation =
-                           data_source->get_animation(def_serf->get_animation(),
-                                                      def_serf->get_counter());
-
-      int lx = x_base + animation.x;
-      int ly = y_base + animation.y - 4 * map->get_height(pos);
-      int body = serf_get_body(def_serf);
-     
-      if (body > -1) {
-        Color color = interface->get_player_color(def_serf->get_owner());
-        draw_row_serf(lx, ly, true, color, body);
+      if (def_serf == nullptr){
+        Log::Warn["viewport.cc"] << "inside Viewport::draw_active_serf, draw other serf defending serf is nullptr!";
+      }else{
+        Data::Animation animation = data_source->get_animation(def_serf->get_animation(), def_serf->get_counter());
+        int lx = x_base + animation.x;
+        int ly = y_base + animation.y - 4 * map->get_height(pos);
+        int body = serf_get_body(def_serf);
+        if (body > -1) {
+          Color color = interface->get_player_color(def_serf->get_owner());
+          draw_row_serf(lx, ly, true, color, body);
+        }
       }
     }
   }
@@ -3020,20 +3046,23 @@ Viewport::draw_active_serf(Serf *serf, MapPos pos, int x_base, int y_base) {
     int index = serf->get_attacking_def_index();
     if (index != 0) {
       Serf *def_serf = interface->get_game()->get_serf(index);
+      if (def_serf == nullptr){
+        Log::Warn["viewport.cc"] << "inside Viewport::draw_active_serf, draw objects defending serf is nullptr!";
+      }else{
+        if (serf->get_animation() >= 146 && serf->get_animation() < 156) {
+          if ((serf->get_attacking_field_D() == 0 ||
+              serf->get_attacking_field_D() == 4) &&
+              serf->get_counter() < 32) {
+            int anim = -1;
+            if (serf->get_attacking_field_D() == 0) {
+              anim = serf->get_animation() - 147;
+            } else {
+              anim = def_serf->get_animation() - 147;
+            }
 
-      if (serf->get_animation() >= 146 && serf->get_animation() < 156) {
-        if ((serf->get_attacking_field_D() == 0 ||
-             serf->get_attacking_field_D() == 4) &&
-            serf->get_counter() < 32) {
-          int anim = -1;
-          if (serf->get_attacking_field_D() == 0) {
-            anim = serf->get_animation() - 147;
-          } else {
-            anim = def_serf->get_animation() - 147;
+            int sprite = 198 + ((serf->get_counter() >> 3) ^ 3);
+            draw_game_sprite(lx + arr_4[2*anim], ly - arr_4[2*anim+1], sprite);
           }
-
-          int sprite = 198 + ((serf->get_counter() >> 3) ^ 3);
-          draw_game_sprite(lx + arr_4[2*anim], ly - arr_4[2*anim+1], sprite);
         }
       }
     }
@@ -4199,8 +4228,29 @@ Viewport::internal_draw() {
   }
 }
 
+// use the numpad keys to move the map cursor around
+bool
+Viewport::handle_numpad_key_pressed(char key) {
+  Log::Debug["viewport"] << "inside Viewport::handle_numpad_key_pressed with key " << int(key);
+  switch (key){
+    case 6: interface->update_map_cursor_pos(map->move_right(interface->get_map_cursor_pos())); break;
+    case 3: interface->update_map_cursor_pos(map->move_down_right(interface->get_map_cursor_pos())); break;
+    case 2: interface->update_map_cursor_pos(map->move_down(interface->get_map_cursor_pos())); break;
+    case 4: interface->update_map_cursor_pos(map->move_left(interface->get_map_cursor_pos())); break;
+    case 7: interface->update_map_cursor_pos(map->move_up_left(interface->get_map_cursor_pos())); break;
+    case 8: interface->update_map_cursor_pos(map->move_up(interface->get_map_cursor_pos())); break;
+    default: throw ExceptionFreeserf("invalid numpad key");
+  }
+  //move_to_map_pos(interface->get_map_cursor_pos());
+  return true;
+}
+
 bool
 Viewport::handle_left_click(int lx, int ly, int modifier) {
+  if (being_dragged){
+    being_dragged = false;
+    //return false; // allow click after drag otherwise it makes the UI feel unresponsive
+  }
   set_redraw();
   MapPos clk_pos = map_pos_from_screen_pix(lx, ly);
 
@@ -4314,6 +4364,10 @@ Viewport::handle_left_click(int lx, int ly, int modifier) {
 
 bool
 Viewport::handle_dbl_click(int lx, int ly, Event::Button button) {
+  if (being_dragged){
+    being_dragged = false;
+    //return false; // allow click after drag otherwise it makes the UI feel unresponsive
+  }
   //Log::Debug["viewport.cc"] << "inside Viewport::handle_dbl_click, button " << button;
   // for now, this does nothing except call special-click function
   if (button != Event::ButtonLeft){
@@ -4324,6 +4378,10 @@ Viewport::handle_dbl_click(int lx, int ly, Event::Button button) {
 
 bool
 Viewport::handle_special_click(int lx, int ly) {
+  if (being_dragged){
+    being_dragged = false;
+    //return false; // allow click after drag otherwise it makes the UI feel unresponsive
+  }
   //Log::Debug["viewport.cc"] << "inside Viewport::handle_special_click()";
   set_redraw();
 
@@ -4373,9 +4431,10 @@ Viewport::handle_special_click(int lx, int ly) {
     if (map->get_obj(clk_pos) == Map::ObjectFlag) {
       if (map->get_owner(clk_pos) == player->get_index()) {
         interface->open_popup(PopupBox::TypeTransportInfo);
+        interface->get_popup_box()->set_target_obj_index(map->get_obj_index(clk_pos));
       }
 
-      player->temp_index = map->get_obj_index(clk_pos);
+      //player->popup_target_obj_index = map->get_obj_index(clk_pos);
     } else { /* Building */
       Building *building = interface->get_game()->get_building_at_pos(clk_pos);
       if ((building == nullptr) || building->is_burning()) {
@@ -4402,7 +4461,10 @@ Viewport::handle_special_click(int lx, int ly) {
           interface->open_popup(PopupBox::TypeBldStock);
         }
 
-        player->temp_index = map->get_obj_index(clk_pos);
+        //player->popup_target_obj_index = map->get_obj_index(clk_pos);
+        if(interface->get_popup_box() != nullptr){
+          interface->get_popup_box()->set_target_obj_index(map->get_obj_index(clk_pos));
+        }
       } else { /* Foreign building */
         /* TODO handle coop mode*/
 
@@ -4465,8 +4527,19 @@ Viewport::handle_special_click(int lx, int ly) {
 
 
 bool
+Viewport::handle_mouse_button_down(int lx, int ly, Event::Button button) {
+  Log::Debug["viewport.cc"] << "inside Viewport::handle_mouse_button_down lx,ly = " << lx << "," << ly << ", button " << button << ", setting focused bool to true";
+  //being_dragged = true;
+  /// because Interface and Viewport are tied together, mark both as true
+  //interface->set_being_dragged();
+  set_focused();
+  return true;
+}
+
+bool
 Viewport::handle_drag(int lx, int ly) {
-  //Log::Debug["event_loop.cc"] << "inside Viewport::handle_drag lx,ly = " << lx << "," << ly;
+  //set_resize_tainted(); // it seems dragging it also does same thing as resizing window
+  Log::Debug["viewport.cc"] << "inside Viewport::handle_drag lx,ly = " << lx << "," << ly;
   if (lx != 0 || ly != 0) {
     move_by_pixels(lx, ly);
   }
@@ -4783,10 +4856,11 @@ Viewport::update() {
         Log::Debug["viewport.cc"] << "inside Viewport::update, mouse y is " << mouse_y_offset_mult * 100 << "% of the screen height " << res_height;
         float mouse_x_offset_pix = 0.00;
         float mouse_y_offset_pix = 0.00;
-        // for zoom OUT, just use centered zoom as it looks funny if pointer-adjusted
         if (width_change < 0 || height_change < 0){
+          // for zoom OUT, just use centered zoom as it looks funny if pointer-adjusted
           move_by_pixels(width_change/2, height_change/2);
         }else{
+          // handle zoom in centered on pointer
           mouse_x_offset_pix = width_change * float(1 - mouse_x_offset_mult);
           mouse_y_offset_pix = height_change * mouse_y_offset_mult;
           move_by_pixels(mouse_x_offset_pix, mouse_y_offset_pix);
@@ -4803,4 +4877,55 @@ Viewport::update() {
   if (tick_xor >= 1 << 3) {
     set_redraw();
   }
+
+  // refresh/update floating/moveable/pinned/multiple popups
+  if (interface->get_game()->get_const_tick() % 40 == 0){
+    Log::Debug["viewport.cc"] << "inside Viewport::update(), refreshing any pinned_popups";
+    for (PopupBox *pinned_popup : interface->get_pinned_popup_boxes()){
+       Log::Debug["viewport.cc"] << "inside Viewport::update(), refreshing any pinned_popups, found a pinned popup with class " << NameGuiObjClass[pinned_popup->get_objclass()] << " and type " << pinned_popup->get_objtype();
+      // I think I saw an issue with trying to set redraw on parent
+      //   of a pinned popup, I think there is no reason that pinned 
+      //   popups need a parent, trying to set it nullptr to see
+      //popup->set_parent(nullptr);
+      pinned_popup->set_parent(nullptr);
+      pinned_popup->set_redraw();
+
+      // close any popups that have gone even partially off-screen (likely as a result of window resize or zoom)
+      //  because they can become unreachable (resize), and buggy behavior shows (zoom, even after unzoomed)
+      int popup_x = 0;
+      int popup_y = 0;
+      pinned_popup->get_position(&popup_x, &popup_y);
+      int popup_width = 0;
+      int popup_height = 0;
+      pinned_popup->get_size(&popup_width, &popup_height);
+      int popup_right = popup_x + popup_width;
+      int popup_bottom = popup_y + popup_height;
+      unsigned int viewport_width = 0;
+      unsigned int viewport_height = 0;
+      gfx.get_resolution(&viewport_width, &viewport_height);
+      if (popup_right > viewport_width || popup_bottom > viewport_height){
+        Log::Warn["viewport.cc"] << "inside Viewport::update(), refreshing any pinned_popups, found an off-screen pinned_popup, closing it";
+        interface->close_popup(pinned_popup);
+      }
+
+      // ugh, just don't allow pinned popups when zoomed for now, not sure why they are buggy but I don't feel
+      //  like solving it because I would rather change the way zoom works entirely
+      if (zoom_factor != 1.f){
+        Log::Warn["viewport.cc"] << "inside Viewport::update(), refreshing any pinned_popups, ZOOM FACTOR IS NOT 100%!  closing all any popups to avoid bugs";
+        interface->close_popup(pinned_popup);
+      }
+
+      // redraw minimap if popup pinned
+      if (pinned_popup->get_objclass() == GuiObjClass::ClassPopupBox && pinned_popup->get_objtype() == PopupBox::TypeMap){
+        Log::Debug["viewport.cc"] << "inside Viewport::update(), refreshing any pinned_popups, found MiniMap popup";
+        Minimap *minimap = pinned_popup->get_minimap();
+        if (minimap != nullptr) {
+          Log::Debug["viewport.cc"] << "inside Viewport::update(), refreshing any pinned_popups, found MiniMap popup, not null, calling move_to_map_pos " << get_current_map_pos();
+          minimap->move_to_map_pos(get_current_map_pos());
+        }
+      }
+
+    }
+  }
+
 }

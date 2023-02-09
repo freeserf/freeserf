@@ -102,6 +102,9 @@ class Inventory : public GameObject {
   bool is_queue_full() { return (out_queue[1].type != Resource::TypeNone); }
   void get_resource_from_queue(Resource::Type *res, int *dest);
   void reset_queue_for_dest(Flag *flag);
+  Resource::Type get_out_queue_res_type(int index){ return out_queue[index].type; }  // tlongstretch added for new Inventory out queues popup
+  //unsigned int get_out_queue_dest(int index){ return out_queue[index].dest; }  // not needed yet
+
 
   bool has_food() { return (resources[Resource::TypeFish] != 0 ||
                             resources[Resource::TypeMeat] != 0 ||

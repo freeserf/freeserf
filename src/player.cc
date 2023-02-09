@@ -81,7 +81,7 @@ Player::Player(Game* game, unsigned int index)
   ai_value_4 = 0;
   ai_value_5 = 0;
   ai_intelligence = 0;
-  temp_index = 0;
+  //popup_target_obj_index = 0;  //this should no longer be needed now that popup class objects store their target_obj_index
 
   building = 0;
   cont_search_after_non_optimal_find = 7;

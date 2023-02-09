@@ -864,7 +864,7 @@ void
 Map::set_object(MapPos pos, Object obj, int index) {
   landscape_tiles[pos].obj = obj;
   if (index >= 0) game_tiles[pos].obj_index = index;
-  //Log::Debug["map"] << "inside set_object, setting pos " << pos << " to object " << obj << ", index " << index;
+  Log::Debug["map"] << "inside set_object, setting pos " << pos << " to object " << obj << ", index " << index;
 
   /* Notify about object change */
   for (Direction d : cycle_directions_cw()) {
@@ -1248,6 +1248,57 @@ Map::is_road_segment_valid(MapPos pos, Direction dir) const {
       !(has_flag(pos) || has_flag(other_pos))) {
     return false;
   }
+
+   //  type_up/type_down refer to ONLY THESE triangles in a given hexagonal map pos:
+   //  *         1    0
+   //  *    2   ________   11
+   //  *       /\      /\
+   //  *      /  \    /  \
+   //  *  3  /    \  /    \  10
+   //  *    /______\/______\
+   //  *    \      /\      /
+   //  *  4  \    /  \down/  9
+   //  *      \  / up \  /
+   //  *       \/______\/
+   //  *    5             8
+   //  *         6    7
+  /*
+   switch (dir){
+     case DirectionRight:
+        tri up from up-right,
+        tri down from current,
+     case DirectionDownRight:
+        tri up from current,
+        tri down from current,
+     case DirectionDown:
+        tri down from left,
+        tri up from current,
+     case DirectionLeft:
+        tri down from left,
+        tri up from up-left,
+     case DirectionUpLeft:
+        tri up from up-left,
+        tri down from up-left,
+     case DirectionUp:
+        tri down from up-left,
+        tri up from up (right)
+        */
+
+  // for land roads reaching single-pos-wide strips of water, fix bug where interface shows path can be built across water
+  //if ( crosses_water(pos, dir)) {
+  //  Log::Debug["map.cc"] << "inside Map::is_road_segment_valid for pos " << pos << ", dir " << dir  << ", crosses water is TRUE";
+  //}else{
+  //  Log::Debug["map.cc"] << "inside Map::is_road_segment_valid for pos " << pos << ", dir " << dir  << ", crosses water is false";
+  //}
+  if ( crosses_water(pos, dir)
+    && !has_flag(pos)
+    && !has_flag(other_pos)
+    && !is_in_water(pos) 
+           ) {
+    Log::Debug["map.cc"] << "inside Map::is_road_segment_valid for pos " << pos << ", dir " << dir  << ", applying special logic to disallow land-road to span single water tile pos";
+    return false;
+  }
+
 
   return true;
 }

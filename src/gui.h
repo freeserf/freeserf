@@ -31,6 +31,7 @@ class GuiObject : public EventLoop::Handler {
  public:
   typedef enum GuiObjectClass {
     ClassNone = 0,
+    ClassInterface,
     ClassGameInitBox,
     ClassViewport,
     ClassPopupBox,
@@ -40,22 +41,11 @@ class GuiObject : public EventLoop::Handler {
     ClassSaveGameFileList,
     ClassLoadGameFileList,
     ClassSaveGameNameInput,
-    ClassRandomSeedInput
+    ClassRandomSeedInput,
+    ClassDebugPosTextInput
   } GuiObjClass;
 
-  const std::string NameGuiObjClass[11]{
-    "GuiObjClass::ClassNone",
-    "GuiObjClass::ClassGameInitBox",
-    "GuiObjClass::ClassViewport",
-    "GuiObjClass::ClassPopupBox",
-    "GuiObjClass::ClassPanelBar",
-    "GuiObjClass::ClassMinimap",
-    "GuiObjClass::ClassNotificationBox",
-    "GuiObjClass::ClassSaveGameFileList",
-    "GuiObjClass::ClassLoadGameFileList",
-    "GuiObjClass::ClassSaveGameNameInput",
-    "GuiObjClass::ClassRandomSeedInput",
-  };
+
 
  private:
   typedef std::list<GuiObject*> FloatList;
@@ -67,12 +57,13 @@ class GuiObject : public EventLoop::Handler {
   bool displayed;
   bool enabled;
   bool redraw;
-  GuiObject *parent;
+  GuiObject *parent;  // this is used for associating two parts of the same "popup window" for multi-part popups... which right now are only game lists and text input boxes.  So both can be refreshed if either is
   Frame *frame;
   static GuiObject *focused_object;
   bool focused;
   GuiObjClass objclass;  // PanelBar, PopupBox, GameInit, etc.
   int objtype;   // type within above class
+  bool being_dragged; // testing moveable popups   tlongstretch
 
   virtual void internal_draw() = 0;
   virtual void layout();
@@ -84,8 +75,11 @@ class GuiObject : public EventLoop::Handler {
   virtual bool handle_click_right(int x, int y) { return false; }
   virtual bool handle_dbl_click(int x, int y, Event::Button button) { return false; }
   virtual bool handle_special_click(int x, int y) { return false; }  // noop, overloaded
-  virtual bool handle_drag(int dx, int dy) { return true; }
+  virtual bool handle_mouse_button_down(int dx, int dy, Event::Button button) { return false; }  // noop, overloaded
+  //virtual bool handle_drag(int dx, int dy) { return true; }
+  virtual bool handle_drag(int dx, int dy) { return false; }  // not sure why this defaulted to return true, maybe my fault.  False looks correct
   virtual bool handle_key_pressed(char key, int modifier) { return false; }
+  virtual bool handle_numpad_key_pressed(char key) { return false; } // noop, overloaded
   virtual bool handle_arrow_key_pressed(uint8_t key) { return false; } // noop, overloaded
   virtual bool handle_list_scroll(int y) { return false; } // noop, overloaded
   virtual bool handle_focus_loose() { return false; }
@@ -103,14 +97,17 @@ class GuiObject : public EventLoop::Handler {
   void get_size(int *width, int *height);
   void set_displayed(bool displayed);
   void set_enabled(bool enabled);
+  void set_being_dragged() {being_dragged = true;}
   void set_redraw();
   bool is_displayed() { return displayed; }
-  GuiObject *get_parent() { return parent; }
+  GuiObject *get_parent() { return parent; }  // it seems this parent concept is used only multi-part single popup windows with text files/file lists to allow both to be refreshed, it has nothing to do with one popup opening another popup!
   void set_parent(GuiObject *parent) { this->parent = parent; }
+  //bool has_parent() { return this->parent != nullptr; }  // for debugging - tongstretch
   bool point_inside(int point_x, int point_y);
 
   void add_float(GuiObject *obj, int x, int y);
   void del_float(GuiObject *obj);
+  FloatList get_floats() {return floats; }  // for getting the Interface's float list for pinned popup handling
   GuiObjClass get_objclass() { return objclass; }
   void set_objclass(GuiObjClass objclass_) { objclass = objclass_; }
   int get_objtype() { return objtype; }

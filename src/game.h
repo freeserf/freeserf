@@ -167,6 +167,7 @@ class Game {
      debug_mark_road = road;
   }
   //void clear_debug_mark_road() {  // is this needed?
+  void reset_game_options_defaults();
 
   unsigned int get_tick() const { return tick; }
   unsigned int get_const_tick() const { return const_tick; }
@@ -290,6 +291,7 @@ class Game {
   ListSerfs get_player_serfs(Player *player);
   ListBuildings get_player_buildings(Player *player);
   ListSerfs get_serfs_in_inventory(Inventory *inventory);
+  ListSerfs get_serfs_in_inventory_out_queue(Inventory *inventory);
   ListSerfs get_serfs_related_to(unsigned int dest, Direction dir);
   ListInventories get_player_inventories(Player *player);
 
@@ -321,13 +323,13 @@ class Game {
   void get_resource_estimate(MapPos pos, int weight, int estimates[5]);
   bool road_segment_in_water(MapPos pos, Direction dir) const;
   void flag_reset_transport(Flag *flag);
-  void building_remove_player_refs(Building *building);
+  //void building_remove_player_refs(Building *building);  // this function should no longer be needed now that popup class objects store their target_obj_index
   bool path_serf_idle_to_wait_state(MapPos pos);
   void remove_road_forwards(MapPos pos, Direction dir);
   bool demolish_road_(MapPos pos);
   void build_flag_split_path(MapPos pos);
   bool map_types_within(MapPos pos, Map::Terrain low, Map::Terrain high) const;
-  void flag_remove_player_refs(Flag *flag);
+  //void flag_remove_player_refs(Flag *flag);  // this function should no longer be needed now that popup class objects store their target_obj_index
   bool demolish_flag_(MapPos pos);
   bool demolish_building_(MapPos pos);
   void surrender_land(MapPos pos);

@@ -89,6 +89,10 @@ ListSavedFiles::internal_draw() {
 
 bool
 ListSavedFiles::handle_left_click(int /*cx*/, int cy, int modifier) {
+  if (being_dragged){
+    being_dragged = false;
+    return false;
+  }
   //Log::Debug["text-input.cc"] << "inside ListSavedFiles::handle_left_click(), cy pos " << cy;
   set_focused();
   cy -= 3;

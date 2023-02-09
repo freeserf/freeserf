@@ -480,8 +480,8 @@ class Serf : public GameObject {
   void set_walking_wait_counter(int new_counter) {
     s.walking.wait_counter = new_counter; }
   int get_walking_dir() const { return s.walking.dir; }
-  unsigned int get_idle_in_stock_inv_index() const {
-                                             return s.idle_in_stock.inv_index; }
+  unsigned int get_idle_in_stock_inv_index() const { return s.idle_in_stock.inv_index; }
+  unsigned int get_ready_to_leave_inv_index() const { return s.ready_to_leave_inventory.inv_index; }
   int get_mining_substate() const { return s.mining.substate; }
   /* removing AdvancedDemolition for now, see https://github.com/forkserf/forkserf/issues/180
   //int get_digging_substate() { return s.digging.substate; } // re-using the Digging substate for option_AdvancedDemolitio to keep count of how many digs so far in this pos

@@ -64,10 +64,10 @@ class PopupBox : public GuiObject {
     TypeStartAttackRedraw,
     TypeGroundAnalysis,
     TypeLoadArchive,  // I don't think this is used
-    TypeLoadSave,    // this is tied to the SettSelect popup
+    TypeLoadSave,    // this is tied to the SettSelect popup  (no, the issue is that popups are re-used!)
     Type25,
     TypeDiskMsg,
-    TypeSettSelect,  // this is tied to the save game popup LoadSave
+    TypeSettSelect,  // this is tied to the save game popup LoadSave  (no, the issue is that popups are re-used!)
     TypeSett1,
     TypeSett2,
     TypeSett3,
@@ -85,6 +85,7 @@ class PopupBox : public GuiObject {
     TypeTransportInfo,
     TypeCastleSerf,
     TypeResDir,
+    TypeInventoryQueues,
     TypeSett8,
     TypeSett6,
     TypeBld1,
@@ -107,6 +108,7 @@ class PopupBox : public GuiObject {
     TypeGameOptions4,
     TypeEditMapGenerator,
     TypeEditMapGenerator2,
+    TypeDebug,
     TypePleaseWaitSaving,  // added for option_EnableAutoSave
     TypePleaseWaitFogOfWar // added for option_FogOfWar
   } Type;
@@ -156,6 +158,13 @@ class PopupBox : public GuiObject {
   std::unique_ptr<MinimapGame> minimap;
   std::unique_ptr<ListSavedFiles> file_list;
   std::unique_ptr<TextInput> file_field;
+  // tlongstretch debug popup
+  std::unique_ptr<TextInput> debug_pos_text_input_field;
+
+  bool lifted = false; // if this popup was ever dragged anywhere, it becomes lifted and eligible for pinning
+  //bool pinned = false; // if pinned the popup will not move
+  int target_obj_index;  // usually a Building, but sometimes a Flag, index of target object of many popups
+
 
   Type box;
 
@@ -179,6 +188,17 @@ class PopupBox : public GuiObject {
     return true;
   }
 
+  static bool numeric_text_input_filter(const char key, TextInput *text_input) {
+    // allow only 0-9
+    if (!(key >= '0' && key <= '9')) {
+      return false;
+    }
+    if (text_input->get_text().length() > 30) {
+      return false;
+    }
+    return true;
+  }
+
  public:
   explicit PopupBox(Interface *interface);
   virtual ~PopupBox();
@@ -188,6 +208,9 @@ class PopupBox : public GuiObject {
 
   void show(Type box);
   void hide();
+
+  //int get_target_obj_index() { return target_obj_index; }
+  void set_target_obj_index(int index) { target_obj_index = index; }
 
  protected:
   void draw_popup_box_frame();
@@ -206,7 +229,7 @@ class PopupBox : public GuiObject {
   void draw_custom_bld_box(const int sprites[]);
   void draw_custom_icon_box(const int sprites[]);
   const std::string prepare_res_amount_text(int amount) const;
-  void draw_map_box();
+  void draw_map_box(); // minimap popup
   void draw_mine_building_box();
   void draw_basic_building_box(int flip);
   void draw_adv_1_building_box();
@@ -252,6 +275,7 @@ class PopupBox : public GuiObject {
   void draw_game_options4_box();
   void draw_edit_map_generator_box();
   void draw_edit_map_generator2_box();
+  void draw_debug_box();
   void draw_castle_res_box();
   void draw_mine_output_box();
   void draw_ordered_building_box();
@@ -259,6 +283,7 @@ class PopupBox : public GuiObject {
   void draw_transport_info_box();
   void draw_castle_serf_box();
   void draw_resdir_box();
+  void draw_inv_queues_box();  // new
   void draw_sett_8_box();  // civ<>knight slider, create-knights button, gold-morale %, switch knights, button.  "Knight stomping" icon
   void draw_sett_6_box();  // "INVENTORY-priority" order for resources, only used in Evacuation mode for Castle/Stocks (very rarely used)
   void draw_bld_1_box();
@@ -280,8 +305,11 @@ class PopupBox : public GuiObject {
 
   void handle_action(int action, int x, int y);
   int handle_clickmap(int x, int y, const int clkmap[]);
+  bool handle_drag(int x, int y); // testing movable popup
+  bool handle_mouse_button_down(int x, int y, Event::Button button); // testing movable popup
 
   void handle_box_close_clk(int x, int y);
+  void handle_debug_clk(int x, int y);
   void handle_box_options_clk(int x, int y);
   void handle_box_game_options_clk(int x, int y);
   void handle_box_game_options2_clk(int x, int y);
@@ -313,6 +341,7 @@ class PopupBox : public GuiObject {
   void handle_transport_info_clk(int x, int y);
   void handle_castle_serf_clk(int x, int y);
   void handle_resdir_clk(int x, int y);
+  void handle_inv_queues_clk(int x, int y);
   void handle_sett_8_click(int x, int y);
   void handle_message_clk(int x, int y);
   void handle_player_faces_click(int x, int y);

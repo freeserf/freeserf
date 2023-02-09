@@ -1234,7 +1234,7 @@ Building::update() {
   //  is it okay to timeout/retry these also?  I assume if an extra knight arrives they just go back
   //  to Inventory as soon as they arrive - same as if knight staffing levels changed, right?
   //
-  // actually, I think holder may be true if a builder is there, so check for is_done
+  // actually, I think holder may be true if a builder is there, so check for is_done - YES builder can be a holder
   // testing - dec31 2021
   //if (is_done() && holder){
   //if (holder){

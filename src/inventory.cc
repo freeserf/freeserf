@@ -37,6 +37,7 @@ Inventory::Inventory(Game *game, unsigned int index)
   , serfs_out(0)
   , generic_count(0)
   , res_dir(0) {
+  // is increasing the out_queue size as simple as increasing this?  what effects might that have?
   for (int i = 0; i < 2; i++) {
     out_queue[i].type = Resource::TypeNone;
     out_queue[i].dest = 0;

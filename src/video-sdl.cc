@@ -448,6 +448,28 @@ VideoSDL::get_mouse_cursor_coord(int *x, int *y){
   //SDL_GetRelativeMouseState(x, y);  // "set to the mouse deltas since the last call to SDL_GetRelativeMouseState() or since event initialization"
 }
 
+//
+//  NOTES about attempt to scale Viewport separately from UI 
+//    https://github.com/forkserf/forkserf/issues/282
+//    https://stackoverflow.com/questions/328500/proper-way-to-scale-an-sdl-surface-without-clipping
+//
+// simpler explanation of below:
+//   "have a bool that determines if UI or no-UI sprite being drawn, if not UI scale each sprite when drawn according to zoom factor.  The Resolution never changes"
+//   "... and somehow avoid drawing anything that won't be seen"
+//
+//  try:
+//   - change the existing zoom logic to NOT change the resolution?  but somehow still only draw the Viewport elements
+//        that will actually be seen while zoomed (i.e don't waste time drawing anything that will end up outside the view when zoom applied)
+//        but instead of drawing to a small rectangle and using resolution scaling(?), change RenderCopy to RenderCopyEx and use dsrect
+//        to scale each drawn sprite according to the zoom factor, and draw onto the full window size, keeping the full resolution the entire time
+//  *****************************************************************************************************************************************************************
+//  TRY THIS FIRST BEFORE EVEN MESSING WITH UI DRAWING CHANGES.  SEE IF POSSIBLE TO GET SCALING WORKING ON ENTIRE GAME BY RenderCopyEx INSTEAD OF RESOLUTION SCALING!
+//  *****************************************************************************************************************************************************************
+//   - create a separate draw_image function for UI elements, have it use regular RenderCopy or just let dsrect be unscaled value
+//   - inside the normal draw_image function, somehow check to see if a UI element is being drawn? 
+//        a quick hack would be to set a global bool that is flipped on/off in Viewport::internal_draw() 
+//        and Viewport::draw_game_objects() when the UI elements are drawn
+//
 bool
 VideoSDL::set_zoom_factor(float factor) {
   if ((factor < 0.2f) || (factor > 1.f)) {

@@ -72,6 +72,10 @@ class RandomInput : public TextInput {
   }
 
   virtual bool handle_left_click(int cx, int cy, int modifier) {
+    if (being_dragged){
+      being_dragged = false;
+      return false;
+    }
     TextInput::handle_left_click(cx, cy, modifier);
     saved_text = text;
     text.clear();
@@ -94,6 +98,7 @@ GameInitBox::GameInitBox(Interface *interface)
   , file_list(new ListSavedFiles()) {
   this->interface = interface;
 
+  objclass = GuiObjClass::ClassGameInitBox;
   game_type = GameCustom;
   game_mission = 0;
 
@@ -133,7 +138,6 @@ GameInitBox::GameInitBox(Interface *interface)
     }
     */
   });
-  objclass = GuiObjClass::ClassGameInitBox;
   file_list->set_objclass(GuiObjClass::ClassLoadGameFileList);
   add_float(file_list.get(), 20, 55);
 }
@@ -473,7 +477,12 @@ GameInitBox::handle_action(int action) {
 }
 
 bool
-  GameInitBox::handle_left_click(int cx, int cy, int modifier) {
+GameInitBox::handle_left_click(int cx, int cy, int modifier) {
+  //Log::Debug["game-init.cc"] << "inside GameInitBox::handle_left_click";
+  if (being_dragged){
+    being_dragged = false;
+    return false;
+  }
   const int clickmap_mission[] = {
     ActionStartGame,        20,  16, 32, 32,
     ActionToggleGameType,   60,  16, 32, 32,
@@ -555,6 +564,10 @@ bool
 //  player face/character
 bool
 GameInitBox::handle_click_right(int cx, int cy) {
+  if (being_dragged){
+    being_dragged = false;
+    return false;
+  }
   //Log::Debug["game-init.cc"] << "inside GameInitBox::handle_click_right()";
 
   if (game_type != GameCustom){
@@ -644,6 +657,7 @@ GameInitBox::get_prev_character(unsigned int player_index) {
 
 bool
 GameInitBox::handle_player_click(unsigned int player_index, int cx, int cy) {
+  //Log::Debug["game-init.cc"] << "inside GameInitBox::handle_player_click";
   if (game_type != GameCustom) {
     return true;
   }

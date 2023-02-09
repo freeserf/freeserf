@@ -209,49 +209,64 @@ EventLoopSDL::run() {
           //Log::Debug["event_loop-sdl.cc"] << "inside EventLoopSDL::run(), type SDL_MOUSEBUTTONUP, drag_button = 0";
         }
 
-        if (event.button.button <= 3) {
-          //Log::Debug["event_loop-sdl.cc"] << "inside EventLoopSDL::run(), type SDL_MOUSEBUTTONUP, event.button.button " << event.button.button << " is <= 3";
-          int x = static_cast<int>(static_cast<float>(event.button.x) *
-                                   zoom_factor * screen_factor_x);
-          int y = static_cast<int>(static_cast<float>(event.button.y) *
-                                   zoom_factor * screen_factor_y);
-          if (button_middle_down || event.button.button == 2){
-            if (option_SpecialClickMiddle){
-              notify_middle_click(x, y);  // this simply executes special click function
-            }
-          }else if (button_left_down && button_right_down){
-            if (option_SpecialClickBoth){
-              notify_special_click(x, y);
-            }
-          }else if (event.button.button == 1){
-            SDL_Keymod mod = SDL_GetModState();
-            notify_left_click(x, y, mod, (Event::Button)event.button.button);
-          }else if (event.button.button == 3){
-            notify_right_click(x, y);
-          }
-          //Log::Debug["event_loop-sdl.cc"] << "inside EventLoopSDL::run(), type SDL_MOUSEBUTTONUP, foo";
+        Log::Debug["event_loop-sdl.cc"] << "inside EventLoopSDL::run(), type SDL_MOUSEBUTTONUP, is_dragging_popup bool is " << is_dragging_popup;
+        if (is_dragging_popup){
+          Log::Debug["event_loop-sdl.cc"] << "inside EventLoopSDL::run(), type SDL_MOUSEBUTTONUP, is_dragging_popup bool is true, calling warp to " << mouse_x_after_drag << "," << mouse_y_after_drag;
+          SDL_ShowCursor(SDL_ENABLE); // this is disabled at start of a Popup drag
+          SDL_WarpMouseInWindow(nullptr, mouse_x_after_drag, mouse_y_after_drag);
+          is_dragging_popup = false;
+        }else{
 
-          if (option_SpecialClickDouble){
-            if (current_ticks - last_click[event.button.button] <
-                  MOUSE_TIME_SENSITIVITY &&
-                event.button.x >= (last_click_x - MOUSE_MOVE_SENSITIVITY) &&
-                event.button.x <= (last_click_x + MOUSE_MOVE_SENSITIVITY) &&
-                event.button.y >= (last_click_y - MOUSE_MOVE_SENSITIVITY) &&
-                event.button.y <= (last_click_y + MOUSE_MOVE_SENSITIVITY)) {
-              notify_dbl_click(x, y, (Event::Button)event.button.button);
+          if (event.button.button <= 3) {
+            //Log::Debug["event_loop-sdl.cc"] << "inside EventLoopSDL::run(), type SDL_MOUSEBUTTONUP, event.button.button " << event.button.button << " is <= 3";
+            int x = static_cast<int>(static_cast<float>(event.button.x) *
+                                    zoom_factor * screen_factor_x);
+            int y = static_cast<int>(static_cast<float>(event.button.y) *
+                                    zoom_factor * screen_factor_y);
+            if (button_middle_down || event.button.button == 2){
+              if (option_SpecialClickMiddle){
+                notify_middle_click(x, y);  // this simply executes special click function
+              }
+            }else if (button_left_down && button_right_down){
+              if (option_SpecialClickBoth){
+                notify_special_click(x, y);
+              }
+            }else if (event.button.button == 1){
+              SDL_Keymod mod = SDL_GetModState();
+              notify_left_click(x, y, mod, (Event::Button)event.button.button);
+            }else if (event.button.button == 3){
+              notify_right_click(x, y);
             }
-            //Log::Debug["event_loop-sdl.cc"] << "inside EventLoopSDL::run(), type SDL_MOUSEBUTTONUP, foo2";
+            //Log::Debug["event_loop-sdl.cc"] << "inside EventLoopSDL::run(), type SDL_MOUSEBUTTONUP, foo";
+
+            if (option_SpecialClickDouble){
+              if (current_ticks - last_click[event.button.button] <
+                    MOUSE_TIME_SENSITIVITY &&
+                  event.button.x >= (last_click_x - MOUSE_MOVE_SENSITIVITY) &&
+                  event.button.x <= (last_click_x + MOUSE_MOVE_SENSITIVITY) &&
+                  event.button.y >= (last_click_y - MOUSE_MOVE_SENSITIVITY) &&
+                  event.button.y <= (last_click_y + MOUSE_MOVE_SENSITIVITY)) {
+                notify_dbl_click(x, y, (Event::Button)event.button.button);
+              }
+              //Log::Debug["event_loop-sdl.cc"] << "inside EventLoopSDL::run(), type SDL_MOUSEBUTTONUP, foo2";
+            }
+            //Log::Debug["event_loop-sdl.cc"] << "inside EventLoopSDL::run(), type SDL_MOUSEBUTTONUP, foo3";
+            last_click[event.button.button] = current_ticks;
+            last_click_x = event.button.x;
+            last_click_y = event.button.y;
           }
-          //Log::Debug["event_loop-sdl.cc"] << "inside EventLoopSDL::run(), type SDL_MOUSEBUTTONUP, foo3";
-          last_click[event.button.button] = current_ticks;
-          last_click_x = event.button.x;
-          last_click_y = event.button.y;
+
         }
 
         //Log::Debug["event_loop-sdl.cc"] << "inside EventLoopSDL::run(), type SDL_MOUSEBUTTONUP, foo4";
         button_left_down = false;
         button_middle_down = false;
         button_right_down = false;
+
+        //if (is_dragging_viewport_or_minimap){
+        //  is_dragging_viewport_or_minimap = false;
+        //}
+
         break;
       case SDL_MOUSEBUTTONDOWN:
         //Log::Debug["event_loop-sdl.cc"] << "inside EventLoopSDL::run(), type SDL_MOUSEBUTTONDOWN";
@@ -271,6 +286,12 @@ EventLoopSDL::run() {
             //Log::Debug["event_loop-sdl.cc"] << "inside EventLoopSDL::run(), type SDL_MOUSEBUTTONDOWN right";
             button_right_down = true;
           }
+          // notify each handler at the start of the click so the handler
+          //  can determine current viewport/popup focus for dragged popups to avoid losing focus as soon
+          //  as the mouse pointer is out of the original popup area
+          int x = event.motion.x;
+          int y = event.motion.y;
+          notify_mouse_button_down(x, y, (Event::Button)event.button.button);
         }
         break;
       case SDL_MOUSEMOTION:
@@ -289,7 +310,12 @@ EventLoopSDL::run() {
               drag_x = wtf_x;
               drag_y = wtf_y;
               */
+
+              //Graphics &gfx = Graphics::get_instance();
+              //gfx.get_mouse_cursor_coord(&mouse_x_after_drag, &mouse_y_after_drag);  // store the CURRENT mouse x/y BEFORE dragging so its adjusted position can track the drag
+
             }
+
 
             //Log::Debug["event_loop-sdl.cc"] << "inside EventLoopSDL::run(), type SDL_MOUSEMOTION, drag_button " << drag_button << ", drag_x " << drag_x << ", drag_y " << drag_y;
             //Log::Debug["event_loop-sdl.cc"] << "inside EventLoopSDL::run(), type SDL_MOUSEMOTION, zoom_factor " << zoom_factor << ", screen_factor_x " << screen_factor_x << ", screen_factor_y " << screen_factor_y;
@@ -304,12 +330,17 @@ EventLoopSDL::run() {
               //Log::Debug["event_loop-sdl.cc"] << "inside EventLoopSDL::run(), type SDL_MOUSEMOTION, calling notify_drag inverted with x,y values " << x << ", " << y << ", xmove " << event.motion.x - drag_x << ", ymove " << (event.motion.y - drag_y) * -1;
               notify_drag(x, y, event.motion.x - drag_x, (event.motion.y - drag_y) * -1, (Event::Button)drag_button);
             }else{
-              //Log::Debug["event_loop-sdl.cc"] << "inside EventLoopSDL::run(), type SDL_MOUSEMOTION, calling notify_drag normal with x,y values " << x << ", " << y << ", xmove " << event.motion.x - drag_x << ", ymove " << event.motion.y - drag_y;
+              Log::Debug["event_loop-sdl.cc"] << "inside EventLoopSDL::run(), type SDL_MOUSEMOTION, calling notify_drag normal with x,y values " << x << ", " << y << ", xmove " << event.motion.x - drag_x << ", ymove " << event.motion.y - drag_y;
               notify_drag(x, y, event.motion.x - drag_x, event.motion.y - drag_y, (Event::Button)drag_button);
             }
 
-            //Log::Debug["event_loop-sdl.cc"] << "inside EventLoopSDL::run(), type SDL_MOUSEMOTION, calling SDL_WarpMouseInWindow with drag_x/y values " << drag_x << ", " << drag_y;
-            SDL_WarpMouseInWindow(nullptr, drag_x, drag_y);
+            Log::Debug["event_loop-sdl.cc"] << "inside EventLoopSDL::run(), type SDL_MOUSEMOTION, calling SDL_WarpMouseInWindow with drag_x/y values " << drag_x << ", " << drag_y;
+            // this seems to be to keep the mouse cursor from moving while dragging, as the screen is moved instead
+            // if this is commented out, both the viewport AND the mouse pointer move together which way accelerates the viewport move
+            //  and is unwieldy
+            //if (!is_dragging_popup){
+              SDL_WarpMouseInWindow(nullptr, drag_x, drag_y); 
+            //}
 
             break;
           }
@@ -386,14 +417,14 @@ EventLoopSDL::run() {
             if (!is_list_in_focus){
               notify_drag(0, 0, 0, -32, Event::ButtonLeft);  // hack for map scrolling
             }
-            notify_arrow_key_pressed(0);  // for load game scrolling  //0=up,1=down,2=left,3=right
+            notify_arrow_key_pressed(0, event.key.keysym.mod);  // for load game scrolling  //0=up,1=down,2=left,3=right
             break;
           }
           case SDLK_DOWN: {
             if (!is_list_in_focus){
               notify_drag(0, 0, 0, 32, Event::ButtonLeft); // hack for map scrolling
             }
-            notify_arrow_key_pressed(1);  // for load game scrolling //0=up,1=down,2=left,3=right
+            notify_arrow_key_pressed(1, event.key.keysym.mod);  // for load game scrolling //0=up,1=down,2=left,3=right
             break;
           }
           case SDLK_LEFT: {
@@ -417,6 +448,31 @@ EventLoopSDL::run() {
           case SDLK_MINUS:
           case SDLK_KP_MINUS:
             notify_key_pressed('-', 0);
+            break;
+
+          // for MapPos map cursor debug moving  SDLK_KP_1 https://wiki.libsdl.org/SDL2/SDL_Keycode
+          //DirectionRight      KP_6
+          //DirectionDownRight  KP_3
+          //DirectionDown       KP_2
+          //DirectionLeft,      KP_4
+          //DirectionUpLeft,    KP_6
+          //DirectionUp,        KP_8
+          // # keys correspond to Directions in a "slanted-hexagon" shape
+          // keys 1/5/9 not used
+          //   ##9               78X
+          //   #5#    -- or --   4X6   where X is unused keys
+          //   1##               X23  
+          //
+          //
+          case SDLK_KP_6:
+          case SDLK_KP_3:
+          case SDLK_KP_2:
+          case SDLK_KP_4:
+          case SDLK_KP_7:
+          case SDLK_KP_8:
+            Log::Info["event_loop-sdl.cc"] << "inside EventLoopSDL::run(), event.key.keysym.sym is " << int(event.key.keysym.sym) << ", calling notify_numpad_key_pressed()";
+            //notify_key_pressed(event.key.keysym.sym, 0);
+            notify_numpad_key_pressed(event.key.keysym.sym);
             break;
 
           // Video

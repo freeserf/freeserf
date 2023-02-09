@@ -209,7 +209,7 @@ PanelBar::button_click(int button) {
       play_sound(Audio::TypeSfxClick);
       if ((popup != nullptr) && popup->is_displayed()) {
         //Log::Debug["panel.cc"] << "inside PanelBar::button_click, opening minimap Z, closing popup";
-        interface->close_popup();
+        interface->close_popup(popup);
       } else {
         panel_btns[0] = ButtonBuildInactive;
         panel_btns[1] = ButtonDestroyInactive;
@@ -266,7 +266,7 @@ PanelBar::button_click(int button) {
     case ButtonSettStarred:
       play_sound(Audio::TypeSfxClick);
       if ((popup != nullptr) && popup->is_displayed()) {
-        interface->close_popup();
+        interface->close_popup(popup);
       } else {
         panel_btns[0] = ButtonBuildInactive;
         panel_btns[1] = ButtonDestroyInactive;
@@ -280,7 +280,7 @@ PanelBar::button_click(int button) {
     case ButtonStatsStarred:
       play_sound(Audio::TypeSfxClick);
       if ((popup != nullptr) && popup->is_displayed()) {
-        interface->close_popup();
+        interface->close_popup(popup);
       } else {
         panel_btns[0] = ButtonBuildInactive;
         panel_btns[1] = ButtonDestroyInactive;
@@ -307,7 +307,7 @@ PanelBar::button_click(int button) {
     case ButtonBuildSmallStarred:
       play_sound(Audio::TypeSfxClick);
       if ((popup != nullptr) && popup->is_displayed()) {
-        interface->close_popup();
+        interface->close_popup(popup);
       } else {
         panel_btns[0] = ButtonBuildSmallStarred;
         panel_btns[1] = ButtonDestroyInactive;
@@ -321,7 +321,7 @@ PanelBar::button_click(int button) {
     case ButtonBuildLargeStarred:
       play_sound(Audio::TypeSfxClick);
       if ((popup != nullptr) && popup->is_displayed()) {
-        interface->close_popup();
+        interface->close_popup(popup);
       } else {
         panel_btns[0] = ButtonBuildLargeStarred;
         panel_btns[1] = ButtonDestroyInactive;
@@ -335,7 +335,7 @@ PanelBar::button_click(int button) {
     case ButtonBuildMineStarred:
       play_sound(Audio::TypeSfxClick);
       if ((popup != nullptr) && popup->is_displayed()) {
-        interface->close_popup();
+        interface->close_popup(popup);
       } else {
         panel_btns[0] = ButtonBuildMineStarred;
         panel_btns[1] = ButtonDestroyInactive;
@@ -391,7 +391,7 @@ PanelBar::button_click(int button) {
     case ButtonGroundAnalysisStarred:
       play_sound(Audio::TypeSfxClick);
       if ((popup != nullptr) && popup->is_displayed()) {
-        interface->close_popup();
+        interface->close_popup(popup);
       } else {
         panel_btns[0] = ButtonBuildInactive;
         panel_btns[1] = ButtonGroundAnalysisStarred;
@@ -422,7 +422,11 @@ PanelBar::button_special_click(int button) {
 
 bool
 PanelBar::handle_left_click(int cx, int cy, int modifier) {
-  //Log::Debug["panel.cc"] << "inside PanelBar::handle_left_click(), cx " << cx << ", cy " << cy;
+  if (being_dragged){
+    being_dragged = false;
+    return false;
+  }
+  Log::Debug["panel.cc"] << "inside PanelBar::handle_left_click(), cx " << cx << ", cy " << cy;
   set_redraw();
 
   if (cx >= 41 && cx < 53) {
@@ -436,6 +440,7 @@ PanelBar::handle_left_click(int cx, int cy, int modifier) {
     }
   } else if (cx >= 301 && cx < 313) {
     /* Timer bar click */
+    Log::Debug["panel.cc"] << "inside PanelBar::handle_left_click, a timer was clicked";
     /* Call to map position */
     unsigned int timer_length = 0;
 
@@ -455,6 +460,17 @@ PanelBar::handle_left_click(int cx, int cy, int modifier) {
     interface->get_player()->add_timer(timer_length * 1000/tick_length, interface->get_map_cursor_pos());
 
     play_sound(Audio::TypeSfxAccepted);
+  } else if (cx >= 316) {
+    // invisible debug "button"
+    //  bring up popup by clicking on the right shield icon 
+    PopupBox *popup = interface->get_popup_box();
+    if ((popup != nullptr) && popup->is_displayed()) {
+      Log::Debug["panel.cc"] << "inside PanelBar::handle_left_click, closing debug popup";
+      interface->close_popup(popup);
+    } else {
+      Log::Debug["panel.cc"] << "inside PanelBar::handle_left_click, opening debug popup";
+      interface->open_popup(PopupBox::TypeDebug);
+    }
   } else if (cy >= 4 && cy < 36 && cx >= 64) {
     cx -= 64;
 
@@ -474,12 +490,15 @@ PanelBar::handle_left_click(int cx, int cy, int modifier) {
     }
     button_click(button);
   }
-
   return true;
 }
 
 bool
 PanelBar::handle_dbl_click(int lx, int ly, Event::Button button) {
+  if (being_dragged){
+    being_dragged = false;
+    return false;
+  }
   //Log::Debug["panel.cc"] << "inside PanelBar::handle_dbl_click, button " << button;
   // for now, this does nothing except call special-click function
   if (button != Event::ButtonLeft){
@@ -490,6 +509,10 @@ PanelBar::handle_dbl_click(int lx, int ly, Event::Button button) {
 
 bool
 PanelBar::handle_special_click(int cx, int cy) {
+  if (being_dragged){
+    being_dragged = false;
+    return false;
+  }
   //Log::Debug["panel.cc"] << "inside PanelBar::handle_special_click(), cx " << cx << ", cy " << cy;
   set_redraw();
 

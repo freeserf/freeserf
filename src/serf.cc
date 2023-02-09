@@ -1808,33 +1808,43 @@ Serf::handle_serf_walking_state_waiting() {
   if ((!map->has_flag(pos) || s.walking.wait_counter >= 10) &&
       (map->has_flag(pos) || s.walking.wait_counter >= 50)) {
     MapPos pos_ = pos;
+    Log::Warn["serf.cc"] << "inside Serf::handle_serf_walking_state_waiting, wait counter loop detection triggered, this serf's s.walking.wait_counter is " << s.walking.wait_counter;
     /* Follow the chain of serfs waiting for each other and
        see if there is a loop. */
     for (int i = 0; i < 100; i++) {
       pos_ = map->move(pos_, dir);
+      Log::Warn["serf.cc"] << "inside Serf::handle_serf_walking_state_waiting, wait counter loop detection running, checking for a serf at pos " << pos_;
 
       if (!map->has_serf(pos_)) {
+        //Log::Warn["serf.cc"] << "inside Serf::handle_serf_walking_state_waiting, wait counter loop detection running, pos " << pos_ << " has no serf, breaking";
         break;
       } else if (map->get_serf_index(pos_) == index) {
         /* We have found a loop, try a different direction. */
+        Log::Warn["serf.cc"] << "inside Serf::handle_serf_walking_state_waiting, wait counter loop detection running, calling change_direction for a serf at pos " << pos_;
         change_direction(reverse_direction(dir), 0);
         return;
       }
 
       /* Get next serf and follow the chain */
-      Serf *other_serf = game->get_serf_at_pos(pos);
+      //Serf *other_serf = game->get_serf_at_pos(pos);  shouldn't this be pos_ not pos???
+      Serf *other_serf = game->get_serf_at_pos(pos_);
+      //Log::Warn["serf.cc"] << "inside Serf::handle_serf_walking_state_waiting, wait counter loop detection running, pos " << pos_ << " has a serf";
       if (other_serf->state != StateWalking &&
           other_serf->state != StateTransporting) {
+        //Log::Warn["serf.cc"] << "inside Serf::handle_serf_walking_state_waiting, wait counter loop detection running, pos " << pos_ << " has a serf but he is not walking/transport and not eligible for loop checking, breaking";
         break;
       }
 
+      //Log::Warn["serf.cc"] << "inside Serf::handle_serf_walking_state_waiting, wait counter loop detection running, pos " << pos_ << " has a serf walking in dir " << other_serf->s.walking.dir;
       if (other_serf->s.walking.dir >= 0 ||
           (other_serf->s.walking.dir + 6) == reverse_direction(dir)) {
+        //Log::Warn["serf.cc"] << "inside Serf::handle_serf_walking_state_waiting, wait counter loop detection running, pos " << pos_ << " has a serf walking but dir check failed. breaking";
         break;
       }
-
+      //Log::Warn["serf.cc"] << "inside Serf::handle_serf_walking_state_waiting, wait counter loop detection running, pos " << pos_ << " has a serf walking, reached end, setting dir to other serf's dir (reversed?)";
       dir = (Direction)(other_serf->s.walking.dir + 6);
     }
+    Log::Warn["serf.cc"] << "inside Serf::handle_serf_walking_state_waiting, wait counter loop detection done";
     // bugfix from nicymike:
     /* Wait counter should only be reset inside the if. If not it will never be increased above one. */
     // it was originally outside the if block, right alongside change_direction below
@@ -1973,14 +1983,21 @@ Serf::handle_serf_walking_state() {
       }
 
       Flag *flag = game->get_flag(s.walking.dest);
-      Building *building = flag->get_building();
-      building->requested_serf_lost();
+      if (flag == nullptr){
+        Log::Warn["serf"] << "inside Serf::handle_serf_walking_state B, s.walking.dest flag is nullptr!";
+      }else{
+        Building *building = flag->get_building();
+        building->requested_serf_lost();
+      }
     } else if (s.walking.dir1 != 6) {
       Flag *flag = game->get_flag(s.walking.dest);
       Direction d = (Direction)s.walking.dir1;
-      flag->cancel_serf_request(d);
-      flag->get_other_end_flag(d)->cancel_serf_request(
-                                     flag->get_other_end_dir(d));
+      if (flag == nullptr){
+        Log::Warn["serf"] << "inside Serf::handle_serf_walking_state x, s.walking.dest flag is nullptr!";
+      }else{
+        flag->cancel_serf_request(d);
+        flag->get_other_end_flag(d)->cancel_serf_request(flag->get_other_end_dir(d));
+      }
     }
 
     s.walking.dir1 = -2;
@@ -3296,6 +3313,11 @@ Serf::handle_serf_delivering_state() {
   }
 }
 
+
+// NOTE - it appears that the order that serfs leave the castle/stock is ENTIRELY
+//  depending on the serf's index and NOT the order that they were requested
+//  SO, if the queue is constantly full it explains why it sometimes takes a long
+//  time for an expected serf to leave
 void
 Serf::handle_serf_ready_to_leave_inventory_state() {
   tick = game->get_tick();
@@ -4480,20 +4502,26 @@ Serf::handle_serf_planting_state() {
     //  the serf's index to determine the tree type
     Map::Object new_obj;
     if (option_ForesterMonoculture){
-      Map::Object new_obj = (Map::Object)(get_index()); // this is the SERF's index, being used as a consistent random number
+      Log::Debug["serf.cc"] << "inside Serf::handle_serf_planting_state, option_ForesterMonoculture is on";
+      new_obj = (Map::Object)(get_index()); // this is the SERF's index, being used as a consistent random number
       if (new_obj % 16 > 7){
         // pine, only one type
         new_obj = (Map::Object)(Map::ObjectNewPine);
+        Log::Debug["serf.cc"] << "inside Serf::handle_serf_planting_state, option_ForesterMonoculture is on, planting newpine, only type " << new_obj;
+
       }else{
         // deciduous tree, choose from one of 8 types (orig == 0, plus 7 new types)
         new_obj = (Map::Object)(Map::ObjectNewTree0 + (new_obj % 8));
+        Log::Debug["serf.cc"] << "inside Serf::handle_serf_planting_state, option_ForesterMonoculture is on, planting newtree type " << new_obj;
       }
     }else{
       // normal behavior, random chance of either tree type, which will mature into random subtype
       new_obj = (Map::Object)(Map::ObjectNewPine + (game->random_int() & 1));
+      Log::Debug["serf.cc"] << "inside Serf::handle_serf_planting_state, option_ForesterMonoculture is off, planting new pine or tree type " << new_obj;
     }
 
     if (map->paths(pos) == 0 && map->get_obj(pos) == Map::ObjectNone) {
+      Log::Debug["serf.cc"] << "inside Serf::handle_serf_planting_state, calling map->set_object at pos " << pos << " to new_obj " << new_obj;
       map->set_object(pos, new_obj, -1);
     }
 
@@ -6966,6 +6994,14 @@ Serf::handle_serf_cleaning_rubble_state() {
 void
 Serf::update() {
   //Log::Debug["serf.cc"] << "inside Serf::update, serf with index " << get_index() << " has type " << NameSerf[get_type()] << " and state name " << get_state_name(get_state());
+  
+  // corruption detection
+  if (counter > 10000){
+    Log::Error["serf.cc"] << "inside Serf::update, serf with excessively high counter detected!  with index " << get_index() << " at pos " << get_pos() << " with type " << NameSerf[get_type()] << " and state name " << get_state_name(get_state()) << " has counter " << counter << " and animation " << animation;
+    Log::Error["serf.cc"] << "inside Serf::update, serf with excessively high counter detected!  setting this serf counter to 0";
+    counter = 0;
+  }
+
   switch (state) {
   case StateNull: /* 0 */
     break;
