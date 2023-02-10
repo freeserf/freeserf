@@ -100,24 +100,60 @@ GuiObject::draw(Frame *_frame) {
     frame = Graphics::get_instance().create_frame(width, height);
   }
 
+  // hack to draw unscaled UI elements over scaled viewport/game window
   if (is_drawing_ui == true){
     for (GuiObject *float_window : floats) {
-      if (float_window->get_objclass() == GuiObjClass::ClassPanelBar){
-        Log::Debug["gui.cc"] << "inside GuiObject::draw, drawing_ui true, this is PanelBar, drawing it";
+      if (float_window->get_objclass() == GuiObjClass::ClassPanelBar
+       || float_window->get_objclass() == GuiObjClass::ClassPopupBox
+                 ){
+        Log::Debug["gui.cc"] << "inside GuiObject::draw, drawing_ui true, this is UI element, drawing it";
         if (float_window->frame == nullptr) {
-          Log::Debug["event_loop.cc"] << "inside GuiObject::draw, drawing_ui true, this is PanelBar, its internal frame is nullptr, creating it";
+          Log::Debug["event_loop.cc"] << "inside GuiObject::draw, drawing_ui true, this is UI element, its internal frame is nullptr, creating it";
           //float_window->frame = Graphics::get_instance().create_frame(float_window->width, float_window->height);
           //float_window->frame = Graphics::get_instance().create_frame(352, 40);
           float_window->frame = Graphics::get_instance().create_frame(1920, 1057);
           float_window->internal_draw();
         }
+
+        Graphics &gfx = Graphics::get_instance();
+
         unsigned int window_x = 0;
         unsigned int window_y = 0;
-        Graphics &gfx = Graphics::get_instance();
         gfx.get_resolution(&window_x, &window_y);
-        _frame->draw_frame(window_x/2 - float_window->width/2, window_y - float_window->height, 0, 0, float_window->frame, float_window->width, float_window->height);
-        //_frame->draw_frame(1920/2 - float_window->width / 2, 1057 - float_window->height, 0, 0, float_window->frame, float_window->width, float_window->height);
-        //_frame->draw_frame(1920/2 - float_window->width / 2, 1057 - float_window->height, 0, 0, float_window->frame, float_window->width, float_window->height);
+
+        /*
+        // this doesn't work because it is already scaled...
+        float factor_x = 0.00;
+        float factor_y = 0.00;
+        gfx.get_screen_factor(&factor_x, &factor_y);
+        */
+        // but the underlying logic is simple:
+        /*
+              if (fx != nullptr) {
+                *fx = static_cast<float>(rw) / static_cast<float>(w);
+              }
+              if (fy != nullptr) {
+                *fy = static_cast<float>(rh) / static_cast<float>(h);
+              }
+        */
+        
+        float zoom_factor = gfx.get_zoom_factor();
+        float factor_x = (1.00 - zoom_factor) * window_x / 2;
+        float factor_y = (1.00 - zoom_factor) * window_y / 2;
+        Log::Debug["event_loop.cc"] << "inside GuiObject::draw, drawing_ui true, this is UI element, zoom_factor is " << zoom_factor << ", resolution is " << window_x << "x" << window_y << " and screen factor is " << factor_x << "/" << factor_y;
+
+        //
+        //  RELATIVE POSITION OF UI ELEMENTS WHILE ZOOMING NEEDS TO BE FIXED
+        //    check the existing mouse-pointer-zoom logic and see if can be
+        //    copied from Viewport::update() where this logic already exists
+        //
+
+        // hack to keep PanelBar at bottom
+        if (float_window->get_objclass() == GuiObjClass::ClassPanelBar){
+          _frame->draw_frame(window_x/2 - float_window->width/2, window_y - float_window->height, 0, 0, float_window->frame, float_window->width, float_window->height);
+        }else{
+          _frame->draw_frame(float_window->x + factor_x, float_window->y + factor_y, 0, 0, float_window->frame, float_window->width, float_window->height);
+        }
       }
     }
     return;
@@ -149,24 +185,15 @@ GuiObject::draw(Frame *_frame) {
 
   Log::Debug["event_loop.cc"] << "inside GuiObject::draw, " << recursion_indicator << " this->objclass " << this->get_objclass() << " calling draw_frame";
   if (is_drawing_ui){
-    Log::Debug["event_loop.cc"] << "inside GuiObject::draw, " << recursion_indicator << " this->objclass " << this->get_objclass() << " is_drawing_ui is true";
-    //if (objclass == GuiObjClass::ClassPanelBar || objclass == GuiObjClass::ClassInterface){
-    if (objclass == GuiObjClass::ClassPanelBar){
-       Log::Debug["event_loop.cc"] << "inside GuiObject::draw, " << recursion_indicator << " this->objclass " << this->get_objclass() << " is_drawing_ui is true, this is PanelBar";
-      //_frame->draw_frame(x + 400, y + 400, 0, 0, frame, width, height);
-      _frame->draw_frame(x + 400, y + 400, 0, 0, _frame, width, height);
-      //_frame->fill_rect(0, 0, 300, 300, Color::red);
-      //redraw = false;
-    }else{
-      Log::Debug["event_loop.cc"] << "inside GuiObject::draw, " << recursion_indicator << " this->objclass " << this->get_objclass() << " is_drawing_ui is true, this is not PanelBar";
-      //_frame->fill_rect(0, 0, 200, 200, Color::green);
-    }
+    // do nothing here, drawn at start of this function (hack)
   }else{
     Log::Debug["event_loop.cc"] << "inside GuiObject::draw, " << recursion_indicator << " this->objclass " << this->get_objclass() << " is_drawing_ui is false";
-    if (objclass != GuiObjClass::ClassPanelBar){
+    if (objclass == GuiObjClass::ClassPanelBar
+     || objclass == GuiObjClass::ClassPopupBox
+                 ){
+      // don't draw
+    }else{
       _frame->draw_frame(x, y, 0, 0, frame, width, height);
-    //}else{
-    //  redraw = true; // must redraw PanelBar
     }
   }
 
