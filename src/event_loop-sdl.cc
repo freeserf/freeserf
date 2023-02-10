@@ -122,6 +122,7 @@ EventLoopSDL::run() {
 
   Graphics &gfx = Graphics::get_instance();
   Frame *screen = nullptr;
+  Frame *unscaled_screen = nullptr;
   gfx.get_screen_factor(&screen_factor_x, &screen_factor_y);
   
   // for FPS counter
@@ -561,10 +562,22 @@ EventLoopSDL::run() {
           if (screen == nullptr) {
             screen = gfx.get_screen_frame();
           }
+          is_drawing_ui = false;
           notify_draw(screen);
+          gfx.render_viewport();
+
+          is_drawing_ui = true;
+          if (unscaled_screen == nullptr) {
+            unscaled_screen = gfx.get_unscaled_screen_frame();
+          }
+          notify_draw(unscaled_screen);
+          is_drawing_ui = false;
 
           // Swap video buffers
-          gfx.swap_buffers();
+          //gfx.swap_buffers();
+          gfx.render_ui();
+
+          Log::Debug["event_loop-sdl.cc"] << "====================== DONE DRAWING FRAME =================================";
 
           SDL_FlushEvent(eventUserTypeStep);
 
@@ -577,6 +590,10 @@ EventLoopSDL::run() {
   if (screen != nullptr) {
     delete screen;
     screen = nullptr;
+  }
+  if (unscaled_screen != nullptr) {
+    delete unscaled_screen;
+    unscaled_screen = nullptr;
   }
 }
 

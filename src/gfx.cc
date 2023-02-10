@@ -820,6 +820,20 @@ Graphics::get_screen_frame() {
   return new Frame(video, video->get_screen_frame());
 }
 
+Frame *
+Graphics::get_unscaled_screen_frame() {
+  return new Frame(video, video->get_unscaled_screen_frame());
+}
+
+////Frame *
+SDL_Texture *
+Graphics::get_unscaled_screen_frame_texture() {
+  //return new Frame(video, video->get_unscaled_screen_frame());
+  return video->get_unscaled_screen_frame_texture();
+}
+
+
+
 void
 Graphics::set_resolution(unsigned int width, unsigned int height,
                          bool fullscreen) {
@@ -831,9 +845,24 @@ Graphics::get_resolution(unsigned int *width, unsigned int *height) {
   video->get_resolution(width, height);
 }
 
+//void
+//Graphics::swap_buffers() {
+//  video->swap_buffers();
+//}
+
 void
-Graphics::swap_buffers() {
-  video->swap_buffers();
+Graphics::render_viewport() {
+  video->render_viewport();
+}
+
+void
+Graphics::render_ui() {
+  video->render_ui();
+}
+
+void
+Graphics::change_to_unscaled_render_target() {
+  video->change_to_unscaled_render_target();
 }
 
 float

@@ -131,7 +131,9 @@ main(int argc, char *argv[]) {
   //  "Assertion 'm' failed at pulse/mainloop.c:921, function pa_mainloop_iterate().  Aborting."
   int current_loglevel = Log::get_level();  // start of work-around
   Log::set_level(Log::Level(1));  // part of work-around
+  Log::set_level(Log::Level(current_loglevel));  // end of work-around
 
+/*
   // TODO move to right place //
   //  tlongstretch - I'm not sure what the "right place" is, the above was a note in Freeserf
   Audio &audio = Audio::get_instance();  // 
@@ -143,7 +145,8 @@ main(int argc, char *argv[]) {
   //  while DOS has three or four similar tracks that play one after another?
   //  on further inspection it seems that DOS only has two working tracks, not sure if this is a
   //  freeserf issue or original game only had two
-  if (player) {
+  if (false){
+  //DISABLE AUDIO//if (player) {
     Log::Debug["freeserf.cc"] << "inside freeserf main(), starting audio midi music, about to call player->play_track";
     //Audio::PTrack t = player->play_track(Audio::TypeMidiTrack0);
     Data &data = Data::get_instance();
@@ -173,6 +176,7 @@ main(int argc, char *argv[]) {
     // DOS MUSIC DOES NOT WORK IN LINUX AT ALL - at least not for me, but Amiga works fine in linux
     //Audio::PTrack t = player->play_track(Audio::TypeMidiTrack0, DataSourceType::DOS);  // 0=Amiga, 1=DOS, 2=Custom
   }
+  */
 
   GameManager &game_manager = GameManager::get_instance();
 

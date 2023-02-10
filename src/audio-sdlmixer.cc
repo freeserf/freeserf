@@ -80,7 +80,7 @@ AudioSDL::AudioSDL() {
   //  pulseaudio version
   // NOPE updating pulseaudio doesn't help
   //try {
-      r = Mix_OpenAudio(44100, MIX_DEFAULT_FORMAT, MIX_DEFAULT_CHANNELS, 512);
+      //r = Mix_OpenAudio(44100, MIX_DEFAULT_FORMAT, MIX_DEFAULT_CHANNELS, 512);
   //} catch (...) {
   //  throw ExceptionSDLmixer("inside AudioSDL::AudioSDL() constructor, Mix_OpenAudio call failed");
   //}

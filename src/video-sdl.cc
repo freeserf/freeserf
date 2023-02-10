@@ -153,6 +153,22 @@ VideoSDL::set_resolution(unsigned int width, unsigned int height, bool fs) {
   }
   screen->texture = create_texture(width, height);
 
+  // create a second texture that is unscaled - full size of the window
+  if (unscaled_screen == nullptr) {
+    unscaled_screen = new Video::Frame();
+  }
+  int window_w = 0;
+  int window_h = 0;
+  SDL_GL_GetDrawableSize(window, &window_w, &window_h);
+  if (unscaled_screen->texture != nullptr) {
+    SDL_DestroyTexture(unscaled_screen->texture);
+  }
+  SDL_Texture *unscaled_texture = SDL_CreateTexture(renderer, pixel_format, SDL_TEXTUREACCESS_TARGET, window_w, window_h);
+  if (unscaled_texture == nullptr) {
+    throw ExceptionSDL("Unable to create unscaled SDL texture");
+  }
+  unscaled_screen->texture = unscaled_texture;
+
   /* Set logical size of screen */
   r = SDL_RenderSetLogicalSize(renderer, width, height);
   if (r < 0) {
@@ -191,6 +207,16 @@ VideoSDL::is_fullscreen() {
 Video::Frame *
 VideoSDL::get_screen_frame() {
   return screen;
+}
+
+Video::Frame *
+VideoSDL::get_unscaled_screen_frame() {
+  return unscaled_screen;
+}
+
+SDL_Texture *
+VideoSDL::get_unscaled_screen_frame_texture() {
+  return unscaled_screen->get_texture();
 }
 
 Video::Frame *
@@ -415,12 +441,74 @@ VideoSDL::draw_thick_line(int x, int y, int x1, int y1, const Video::Color color
   */
 }
 
-
+/*
 void
 VideoSDL::swap_buffers() {
-  SDL_SetRenderTarget(renderer, nullptr);
+
+  // draw red square which scales with zoom
+  Video::Color red = { 255,0,0,0 };
+  fill_rect(0,0,200,200, red, screen);
+
+  SDL_SetRenderTarget(renderer, unscaled_screen->texture);
   SDL_RenderCopy(renderer, screen->texture, nullptr, nullptr);
+
+  // draw green square that does NOT scale with zoom
+  Video::Color green = { 0,255,0,0 };
+  fill_rect(0,0,200,200, green, unscaled_screen);
+
+  SDL_SetRenderTarget(renderer, nullptr);
+  SDL_RenderCopy(renderer, unscaled_screen->texture, nullptr, nullptr);
+  
+
+  // SDL_Rect dest_rect = { 0, 0, 1920, 1057 };
+  // unsigned int res_w = 0;
+  // unsigned int res_h = 0;
+  // get_resolution(&res_w, &res_h);
+  // SDL_Rect src_rect = { 0, 0, int(res_w), int(res_h) };
+  // int r = SDL_RenderCopy(renderer, unscaled_screen->texture, &src_rect, &dest_rect);
+  // //SDL_RenderCopy(renderer, unscaled_screen->texture, nullptr, nullptr);
+  // //Color colorx = Color(0xcf, 0x63, 0x63);
+  
+
   SDL_RenderPresent(renderer);
+}
+*/
+
+void
+VideoSDL::render_viewport() {
+  // draw red square which scales with zoom
+  Video::Color red = { 255,0,0,0 };
+  fill_rect(0,0,200,200, red, screen);
+
+  // draw the scalable texture onto the unscaled texture, scaling it up to full size
+  SDL_SetRenderTarget(renderer, unscaled_screen->texture);
+  SDL_RenderCopy(renderer, screen->texture, nullptr, nullptr);
+}
+
+void
+VideoSDL::render_ui() {
+  // draw green square that does NOT scale with zoom
+  Video::Color green = { 0,255,0,0 };
+  fill_rect(0,0,200,200, green, unscaled_screen);
+
+  // draw the unscaled texture to the window
+  SDL_SetRenderTarget(renderer, nullptr);
+  SDL_RenderCopy(renderer, unscaled_screen->texture, nullptr, nullptr);
+
+  // finalize rendering, this is irreversible
+  SDL_RenderPresent(renderer);
+}
+
+void
+VideoSDL::change_to_unscaled_render_target() {
+  SDL_SetRenderTarget(renderer, unscaled_screen->texture);
+  //SDL_RenderCopy(renderer, screen->texture, nullptr, nullptr);
+  SDL_Rect dest_rect = { 0, 0, 1920, 1057 };
+  unsigned int res_w = 0;
+  unsigned int res_h = 0;
+  get_resolution(&res_w, &res_h);
+  SDL_Rect src_rect = { 0, 0, int(res_w), int(res_h) };
+  int r = SDL_RenderCopy(renderer, screen->texture, &src_rect, &dest_rect);
 }
 
 // this sets the mouse pointer cursor, NOT the game/map cursor

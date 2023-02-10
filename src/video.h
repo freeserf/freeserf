@@ -25,6 +25,8 @@
 #include <exception>
 #include <string>
 
+#include <SDL.h>   // for SDL_Texture hack
+
 #include "src/debug.h"
 
 class ExceptionVideo : public ExceptionFreeserf {
@@ -64,6 +66,8 @@ class Video {
   virtual bool is_fullscreen() = 0;
 
   virtual Frame *get_screen_frame() = 0;
+  virtual Frame *get_unscaled_screen_frame() = 0; // NULL STUB
+  virtual SDL_Texture *get_unscaled_screen_frame_texture() = 0; // NULL STUB
   virtual Frame *create_frame(unsigned int width,
                                       unsigned int height) = 0;
   virtual void destroy_frame(Frame *frame) = 0;
@@ -87,7 +91,10 @@ class Video {
   virtual void draw_thick_line(int x, int y, int x1, int y1,
                          const Video::Color color, Frame *dest) = 0;
 
-  virtual void swap_buffers() = 0;
+  //virtual void swap_buffers() = 0;
+  virtual void render_viewport() = 0; // NULL STUB
+  virtual void render_ui() = 0; // NULL STUB
+  virtual void change_to_unscaled_render_target() = 0; // NULL STUB
 
   virtual void set_cursor(void *data, unsigned int width, unsigned int height) = 0;
   virtual void get_mouse_cursor_coord(int *x, int *y) = 0; // NULL STUB - pure virtual overloaded in video-sdl // trying to center zoom around MOUSE POINTER cursor pos (not selected tile on map cursor)

@@ -135,6 +135,8 @@ bool is_dragging_popup = false;
 //bool is_dragging_viewport_or_minimap = false;
 int mouse_x_after_drag = 0;
 int mouse_y_after_drag = 0;
+bool is_drawing_ui = false;
+int recursion_depth = 0;
 typedef enum Season {
   SeasonSpring = 0,
   SeasonSummer = 1,

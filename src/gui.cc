@@ -100,6 +100,31 @@ GuiObject::draw(Frame *_frame) {
     frame = Graphics::get_instance().create_frame(width, height);
   }
 
+  if (is_drawing_ui == true){
+    for (GuiObject *float_window : floats) {
+      if (float_window->get_objclass() == GuiObjClass::ClassPanelBar){
+        Log::Debug["gui.cc"] << "inside GuiObject::draw, drawing_ui true, this is PanelBar, drawing it";
+        if (float_window->frame == nullptr) {
+          Log::Debug["event_loop.cc"] << "inside GuiObject::draw, drawing_ui true, this is PanelBar, its internal frame is nullptr, creating it";
+          //float_window->frame = Graphics::get_instance().create_frame(float_window->width, float_window->height);
+          //float_window->frame = Graphics::get_instance().create_frame(352, 40);
+          float_window->frame = Graphics::get_instance().create_frame(1920, 1057);
+          float_window->internal_draw();
+        }
+        unsigned int window_x = 0;
+        unsigned int window_y = 0;
+        Graphics &gfx = Graphics::get_instance();
+        gfx.get_resolution(&window_x, &window_y);
+        _frame->draw_frame(window_x/2 - float_window->width/2, window_y - float_window->height, 0, 0, float_window->frame, float_window->width, float_window->height);
+        //_frame->draw_frame(1920/2 - float_window->width / 2, 1057 - float_window->height, 0, 0, float_window->frame, float_window->width, float_window->height);
+        //_frame->draw_frame(1920/2 - float_window->width / 2, 1057 - float_window->height, 0, 0, float_window->frame, float_window->width, float_window->height);
+      }
+    }
+    return;
+  }
+
+
+
   if (redraw) {
     //Log::Debug["gui.cc"] << "inside GuiObject::draw, this->objclass " << this->get_objclass() << " redraw is true, calling internal_draw";
     internal_draw();
@@ -110,13 +135,42 @@ GuiObject::draw(Frame *_frame) {
         //Log::Debug["gui.cc"] << "inside GuiObject::draw, about to call float->draw for float but float is nullptr!";
         continue;
       }
+      recursion_depth++;
       float_window->draw(frame);
+      recursion_depth--;
     }
 
-    redraw = false;
+    if (is_drawing_ui){
+      redraw = false;
+    }
   }
-  //Log::Debug["event_loop.cc"] << "inside GuiObject::draw, this->objclass " << this->get_objclass() << " calling draw_frame";
-  _frame->draw_frame(x, y, 0, 0, frame, width, height);
+
+  std::string recursion_indicator(recursion_depth, '+');
+
+  Log::Debug["event_loop.cc"] << "inside GuiObject::draw, " << recursion_indicator << " this->objclass " << this->get_objclass() << " calling draw_frame";
+  if (is_drawing_ui){
+    Log::Debug["event_loop.cc"] << "inside GuiObject::draw, " << recursion_indicator << " this->objclass " << this->get_objclass() << " is_drawing_ui is true";
+    //if (objclass == GuiObjClass::ClassPanelBar || objclass == GuiObjClass::ClassInterface){
+    if (objclass == GuiObjClass::ClassPanelBar){
+       Log::Debug["event_loop.cc"] << "inside GuiObject::draw, " << recursion_indicator << " this->objclass " << this->get_objclass() << " is_drawing_ui is true, this is PanelBar";
+      //_frame->draw_frame(x + 400, y + 400, 0, 0, frame, width, height);
+      _frame->draw_frame(x + 400, y + 400, 0, 0, _frame, width, height);
+      //_frame->fill_rect(0, 0, 300, 300, Color::red);
+      //redraw = false;
+    }else{
+      Log::Debug["event_loop.cc"] << "inside GuiObject::draw, " << recursion_indicator << " this->objclass " << this->get_objclass() << " is_drawing_ui is true, this is not PanelBar";
+      //_frame->fill_rect(0, 0, 200, 200, Color::green);
+    }
+  }else{
+    Log::Debug["event_loop.cc"] << "inside GuiObject::draw, " << recursion_indicator << " this->objclass " << this->get_objclass() << " is_drawing_ui is false";
+    if (objclass != GuiObjClass::ClassPanelBar){
+      _frame->draw_frame(x, y, 0, 0, frame, width, height);
+    //}else{
+    //  redraw = true; // must redraw PanelBar
+    }
+  }
+
+  //_frame->draw_frame(x, y, 0, 0, frame, width, height);
 }
 
 bool

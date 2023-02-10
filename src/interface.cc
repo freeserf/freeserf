@@ -327,7 +327,9 @@ Interface::draw_transient_popup() {
   // draw text
   frame->draw_string(transient_popup_base_x + 26, transient_popup_base_y + 30, "Please Wait", Color::green);
 
-  gfx.swap_buffers();
+  //gfx.swap_buffers();
+  gfx.render_viewport();
+  gfx.render_ui();
 }
 
 /* Open box for starting a new game */

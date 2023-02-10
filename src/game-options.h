@@ -83,5 +83,7 @@ extern bool is_dragging_popup;
 //extern bool is_dragging_viewport_or_minimap;
 extern int mouse_x_after_drag;
 extern int mouse_y_after_drag;
+extern bool is_drawing_ui;
+extern int recursion_depth;
 
 #endif  // SRC_GAME_OPTIONS_H_
