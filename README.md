@@ -11,7 +11,7 @@ https://forkserf.github.io/
 Current Release
 ===============
 
-version 0.6.1 released Feb?? 2023
+version 0.6.1 released Feb11 2023
 
 
 Play
