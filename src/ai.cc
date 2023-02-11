@@ -17,7 +17,7 @@
 
 
 #ifdef WIN32
- include <SDL.h>  // for SDL popup to notify player when AI cannot place castle (and game will crash)
+#include <SDL.h>  // for SDL popup to notify player when AI cannot place castle (and game will crash)
 #endif  // WIN32
 
 AI::AI(PGame current_game, unsigned int _player_index) {
