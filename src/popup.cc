@@ -5705,7 +5705,7 @@ PopupBox::handle_left_click(int cx, int cy, int modifier) {
 
 // right now the problem is that the mouse pointer/cursor does not follow the dragged pos and so once the
 //  pointer falls outside the popup it ceases moving the popup and instead drags the Viewport 
-//   because the pointer is now on the viewpot and not he popup
+//   because the pointer is now on the viewport and not the popup
 // TO FIX - need to make he mouse pointer follow the drag
 bool
 PopupBox::handle_drag(int lx, int ly) {
@@ -5751,13 +5751,19 @@ PopupBox::handle_drag(int lx, int ly) {
     //move_by_pixels(lx, ly);
     x += lx;
     y += ly;
-    Log::Debug["popup.cc"] << "inside PopupBox::handle_drag, new x,y is " << x << "," << y;
+    Log::Debug["popup.cc"] << "inside PopupBox::handle_drag, current x,y is " << orig_x << "," << orig_y << ", new x,y is " << x << "," << y;
 
     // don't let it popup go off-screen
     Graphics &gfx = Graphics::get_instance();
-    unsigned int res_width; 
-    unsigned int res_height;
-    gfx.get_resolution(&res_width, &res_height);
+
+    // use window/screen size not viewport/resolution which scales with zoom
+    //unsigned int res_width; 
+    //unsigned int res_height;
+    //gfx.get_resolution(&res_width, &res_height);
+    int screen_width; 
+    int screen_height; 
+    gfx.get_screen_size(&screen_width, &screen_height);
+
     Log::Debug["popup.cc"] << "inside PopupBox::handle_drag, width/height is " << width << " / " << height;
     int this_left = x;
     int this_right = x + width;
@@ -5879,8 +5885,8 @@ PopupBox::handle_drag(int lx, int ly) {
       //  y = orig_y + adjust_y;
       }
 
-      if (this_right > res_width - 1){ x = res_width - width; }
-      if (this_bottom > res_height){ y = res_height - height; }
+      if (this_right > screen_width - 1){ x = screen_width - width; }
+      if (this_bottom > screen_height){ y = screen_height - height; }
       if (x < 0){ x = 0; }
       if (y < 0){ y = 0; }
 

@@ -1123,7 +1123,7 @@ Interface::layout() {
   if (viewport != nullptr) {
     Log::Debug["interface.cc"] << "inside Interface::layout, viewport is defined";
     viewport->set_size(width, height);
-    //viewport->recenter();  // this may no longer be needed with new zoom?
+    viewport->recenter();
     
   }
 
@@ -1651,7 +1651,7 @@ Interface::handle_event(const Event *event) {
     case Event::TypeResize:
     Log::Debug["event_loop.cc"] << "inside Interface::handle_event, TypeResize";
       set_size(event->dx, event->dy);
-      viewport->store_prev_window_size();
+      viewport->store_prev_viewport_size();
       //viewport->set_resize_tainted();
       break;
     case Event::TypeZoom:

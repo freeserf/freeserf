@@ -50,8 +50,8 @@ GuiObject::layout() {
 //}
 
 void
-GuiObject::store_prev_window_size() {
-  Log::Debug["gui.cc"] << "inside GuiObject::store_prev_window_size, doing nothing";
+GuiObject::store_prev_viewport_size() {
+  Log::Debug["gui.cc"] << "inside GuiObject::store_prev_viewport_size, doing nothing";
   //store_prev_res();
 }
 
@@ -210,21 +210,36 @@ GuiObject::handle_event(const Event *event) {
     event_y = event->y - y;
     event_unscaled_x = event->unscaled_x - x;
     event_unscaled_y = event->unscaled_y - y;
-    if (objclass == GuiObjClass::ClassPanelBar || objclass == GuiObjClass::ClassPopupBox){
-      if (event_unscaled_x < 0 || event_unscaled_y < 0 || event_unscaled_x > width || event_unscaled_y > height) {
-        // mouse pos is outside this gui object area
-        in_scope = false;
-        Log::Debug["gui.cc"] << "inside GuiObject::handle_event1 with event type " << event->type << " / " << NameGuiObjEvent[event->type] << " and objclass " << get_objclass() << " / " << NameGuiObjClass[get_objclass()] << " and objtype " << get_objtype() << ", click/drag event is NOT in_scope";
-      }else{
-        Log::Debug["gui.cc"] << "inside GuiObject::handle_event1 with event type " << event->type << " / " << NameGuiObjEvent[event->type] << " and objclass " << get_objclass() << " / " << NameGuiObjClass[get_objclass()] << " and objtype " << get_objtype() << ", click/drag event is in_scope";
-      }
+
+    /* this doesn't work right, it messes up the viewport pointer location
+    // to avoid Viewport click/drag appearing not in_scope when zoomed, use actual window size for viewport
+    if (objclass == GuiObjClass::ClassViewport){
+      // replace the current (possibly scaled) GuiObject height&width of the Viewport with the values of the actual screen height/width
+      Graphics &gfx = Graphics::get_instance();
+      gfx.get_screen_size(&width, &height);
+    }
+    */
+    // instead, try just making Viewport always in scope.  This seems to work
+    if (objclass == GuiObjClass::ClassViewport){
+      // viewport is always in scope
     }else{
-      if (event_x < 0 || event_y < 0 || event_x > width || event_y > height) {
-        // mouse pos is outside this gui object area
-        in_scope = false;
-        Log::Debug["gui.cc"] << "inside GuiObject::handle_event2 with event type " << event->type << " / " << NameGuiObjEvent[event->type] << " and objclass " << get_objclass() << " / " << NameGuiObjClass[get_objclass()] << " and objtype " << get_objtype() << ", click/drag event is NOT in_scope";
+      // for other objects, check the click coordinates
+      if (objclass == GuiObjClass::ClassPanelBar || objclass == GuiObjClass::ClassPopupBox){
+        if (event_unscaled_x < 0 || event_unscaled_y < 0 || event_unscaled_x > width || event_unscaled_y > height) {
+          // mouse pos is outside this gui object area
+          in_scope = false;
+          Log::Debug["gui.cc"] << "inside GuiObject::handle_event1 with event type " << event->type << " / " << NameGuiObjEvent[event->type] << " and objclass " << get_objclass() << " / " << NameGuiObjClass[get_objclass()] << " and objtype " << get_objtype() << ", click/drag event is NOT in_scope";
+        }else{
+          Log::Debug["gui.cc"] << "inside GuiObject::handle_event1 with event type " << event->type << " / " << NameGuiObjEvent[event->type] << " and objclass " << get_objclass() << " / " << NameGuiObjClass[get_objclass()] << " and objtype " << get_objtype() << ", click/drag event is in_scope";
+        }
       }else{
-        Log::Debug["gui.cc"] << "inside GuiObject::handle_event2 with event type " << event->type << " / " << NameGuiObjEvent[event->type] << " and objclass " << get_objclass() << " / " << NameGuiObjClass[get_objclass()] << " and objtype " << get_objtype() << ", click/drag event is in_scope";
+        if (event_x < 0 || event_y < 0 || event_x > width || event_y > height) {
+          // mouse pos is outside this gui object area
+          in_scope = false;
+          Log::Debug["gui.cc"] << "inside GuiObject::handle_event2 with event type " << event->type << " / " << NameGuiObjEvent[event->type] << " and objclass " << get_objclass() << " / " << NameGuiObjClass[get_objclass()] << " and objtype " << get_objtype() << ", click/drag event is NOT in_scope";
+        }else{
+          Log::Debug["gui.cc"] << "inside GuiObject::handle_event2 with event type " << event->type << " / " << NameGuiObjEvent[event->type] << " and objclass " << get_objclass() << " / " << NameGuiObjClass[get_objclass()] << " and objtype " << get_objtype() << ", click/drag event is in_scope";
+        }
       }
     }
 

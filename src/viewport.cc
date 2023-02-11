@@ -468,8 +468,16 @@ Viewport::layout() {
 void
 Viewport::recenter() {
   Log::Debug["viewport.cc"] << "inside Viewport::recenter()";
-  int width_change = width - last_window_width;
-  int height_change = height - last_window_height;
+  // use window/screen size not viewport/resolution which scales with zoom
+  Graphics &gfx = Graphics::get_instance();
+  int screen_width; 
+  int screen_height; 
+  gfx.get_screen_size(&screen_width, &screen_height);
+  //int width_change = width - last_window_width;
+  //int height_change = height - last_window_height;
+  int width_change = screen_width - last_window_width;
+  int height_change = screen_height - last_window_height;
+  Log::Debug["viewport.cc"] << "inside Viewport::recenter(), screen_w/h " << screen_width << "," << screen_height << ", last_window_w/h " << last_window_width << "," << last_window_height;
   int x_move = -1 * (width_change * 0.25);
   int y_move = -1 * (height_change * 0.25);
   Log::Debug["viewport.cc"] << "inside Viewport::recenter(),  moving x " << x_move << " and y " << y_move;
@@ -477,29 +485,24 @@ Viewport::recenter() {
 }
 
 // work-around because GUIObject can't directly reference Viewport vars
-//void
-//Viewport::store_prev_res() {
-//  last_res_height = height;
-//  last_res_width = width;
-//  Log::Debug["viewport.cc"] << "inside Viewport::store_prev_res(), updating last_res_width/height to " << last_res_width << "," << last_res_height;
-//}
-// work-around because GUIObject can't directly reference Viewport vars
 void
-Viewport::store_prev_window_size() {
-  last_window_height = height;
-  last_window_width = width;
-  Log::Debug["viewport.cc"] << "inside Viewport::store_prev_window_size(), updating last_window_width/height to " << last_window_width << "," << last_window_height;
+Viewport::store_prev_viewport_size() {
+  // store the actual window/screen size not zoom-scaled size
+  Graphics &gfx = Graphics::get_instance();
+  int screen_width; 
+  int screen_height; 
+  gfx.get_screen_size(&screen_width, &screen_height);
+  last_window_height = screen_height;
+  last_window_width = screen_width;
+  Log::Debug["viewport.cc"] << "inside Viewport::store_prev_viewport_size(), updating last_window_width/height to " << last_window_width << "," << last_window_height;
+  // and also store scaled size/res
+  unsigned int res_width; 
+  unsigned int res_height;
+  gfx.get_resolution(&res_width, &res_height);
+  last_res_height = res_height;
+  last_res_width = res_width;
+  Log::Debug["viewport.cc"] << "inside Viewport::store_prev_viewport_size(), updating last_res_width/height to " << last_res_width << "," << last_res_height;
 }
-
-// I ran into some odd issue with popup moving where the popup movement
-//  behavior starts out broken (though it can be worked-around) but then
-//  reverts to the expected behavior any time after any resize has been done
-// to work-around this, try detecting if window has ever been resized
-//void
-//Viewport::set_resize_tainted() {
-//  Log::Debug["viewport.cc"] << "inside Viewport::set_resize_tainted(), resize_tainted is now true and will remain until the game is restarted";
-//  resize_tainted = true;
-//}
 
 // flush a single tile, which is 16x16 block of MapPos triangle-pairs
 //  from the tile cache so it will be redrawn by get_tile_frame on next update
@@ -4791,6 +4794,9 @@ Viewport::update() {
   //
   Graphics &gfx = Graphics::get_instance();
 
+  int screen_width; 
+  int screen_height; 
+
   // at start of game, resolution is unknown/zero, if so set last_res_width/height
   if (last_res_height == 0 || last_res_width == 0 || last_window_width == 0 || last_window_height == 0){
     Log::Debug["viewport.cc"] << "inside Viewport::update, this is probably the first update, setting last_res_width and last_res_height and last_window_width and last_window_height for later zoom checks";
@@ -4799,9 +4805,17 @@ Viewport::update() {
     gfx.get_resolution(&res_width, &res_height);
     last_res_width = res_width;
     last_res_height = res_height;
-    last_window_width = res_width; // tlongstretch, attempt to recenter screen when zooming
-    last_window_height = res_height; // tlongstretch, attempt to recenter screen when zooming
+    Log::Debug["viewport.cc"] << "inside Viewport::update(), start of game? updating zeroed last_res_width/height to " << last_res_width << "," << last_res_height;
+    // use actual screen/window size not scaled relative viewport res
+    //last_window_width = res_width; // tlongstretch, attempt to recenter screen when zooming
+    //last_window_height = res_height; // tlongstretch, attempt to recenter screen when zooming
+    //int screen_width; 
+    //int screen_height; 
+    gfx.get_screen_size(&screen_width, &screen_height);
+    last_window_height = screen_height;
+    last_window_width = screen_width;
   }
+
 
   float zoom_factor = gfx.get_zoom_factor();
   if (zoom_factor != 0){
@@ -4809,16 +4823,19 @@ Viewport::update() {
     if (last_zoom_factor != zoom_factor){
       Log::Debug["viewport.cc"] << "inside Viewport::update, the zoom factor was just changed to " << zoom_factor;
       last_zoom_factor = zoom_factor;
-
       Log::Debug["viewport.cc"] << "inside Viewport::update, the zoom factor was just changed to " << zoom_factor << ", attempting to move the viewport";
+      gfx.get_screen_size(&screen_width, &screen_height);
       unsigned int res_width; 
       unsigned int res_height;
       gfx.get_resolution(&res_width, &res_height);
       int last_width = 0;
       int last_height = 0;
-      Log::Debug["viewport.cc"] << "inside Viewport::update, the zoom factor was just changed, last_res_width/height " << last_res_width << "," << last_res_height << " and last_window_width/height " << last_window_width << "," << last_window_height;
+      Log::Debug["viewport.cc"] << "inside Viewport::update, the zoom factor was just changed, last_res_width/height " << last_res_width << "," << last_res_height << " and last_window_width/height " << last_window_width << "," << last_window_height << ", new res is " << res_width << "x" << res_height;
       // if the window was resized since last zoom change, use the previous WINDOW size instead
-      if (last_res_height != last_window_height || last_res_width != last_window_width){
+      //if (true){
+      if (false){
+      //if (last_res_height != last_window_height || last_res_width != last_window_width){
+      //if (screen_height == last_window_height && screen_width == last_window_width){
         Log::Debug["viewport.cc"] << "inside Viewport::update, the game window was resized since last zoom, using previous WINDOW size instead of previous resolution";
         last_width = last_window_width;
         last_height = last_window_height;
@@ -4829,6 +4846,8 @@ Viewport::update() {
       }
       int width_change = last_width - res_width;
       int height_change = last_height - res_height;
+      //int width_change = last_width - screen_width;
+      //int height_change = last_height - screen_height;
       int zoom_type = gfx.get_zoom_type();
       if (zoom_type == 0){  // keyboard zoom, centered on center of viewport
         Log::Debug["viewport.cc"] << "inside Viewport::update, zoom type " << zoom_type << " (keyboard zoom), the prev resolution was " << last_width << "x" <<  last_height << ", new res is " << res_width << "x" << res_height << ", diff is " << width_change << "," << height_change;
@@ -4839,13 +4858,6 @@ Viewport::update() {
         int mouse_x = 0;
         int mouse_y = 0;
         gfx.get_mouse_cursor_coord(&mouse_x, &mouse_y);
-
-        // I can't figure out what screen_factor is for, seems to always be 1
-        //float screen_factor_x = 0.00;
-        //float screen_factor_y = 0.00;
-        //gfx.get_screen_factor(&screen_factor_x, &screen_factor_y);
-        //Log::Debug["viewport.cc"] << "inside Viewport::update, screen_factor_x " << screen_factor_x << ", screen_factor_y " << screen_factor_y;
-        // this is what I was looking for, the un-scaled actual game window size in pixels (default is 800x600)
         int screen_size_x = 0;
         int screen_size_y = 0;
         gfx.get_screen_size(&screen_size_x, &screen_size_y);
@@ -4853,9 +4865,7 @@ Viewport::update() {
 
         // one of the coords is inverted for whatever reason
         mouse_y = screen_size_y - mouse_y;
-
         Log::Debug["viewport.cc"] << "inside Viewport::update, zoom type " << zoom_type << " (mousewheel zoom), the mouse has coord " << mouse_x << "," << mouse_y;
-
 
         //int mouse_x_offset = last_res_width - mouse_x + (7 * width_change * (1.00 - zoom_factor));
         int mouse_x_offset = screen_size_x - mouse_x;
@@ -4879,8 +4889,15 @@ Viewport::update() {
       }
       last_res_width = res_width;
       last_res_height = res_height;
-      last_window_width = res_width;
-      last_window_height = res_height;
+      Log::Debug["viewport.cc"] << "inside Viewport::update(), updating last_res_width/height to " << last_res_width << "," << last_res_height;
+      // use actual screen/window size not scaled relative viewport res
+      //last_window_width = res_width;
+      //last_window_height = res_height;
+      //int screen_width; 
+      //int screen_height; 
+      //gfx.get_screen_size(&screen_width, &screen_height);
+      last_window_height = screen_height;
+      last_window_width = screen_width;
     }
   }
 
@@ -4893,9 +4910,15 @@ Viewport::update() {
   //  try to move them on-screen, if not possible close them
   // only right & bottom matter, as the popups do not move relative to the top or left side of viewport
   for (PopupBox *pinned_popup : interface->get_pinned_popup_boxes()){
-    unsigned int viewport_width = 0;
-    unsigned int viewport_height = 0;
-    gfx.get_resolution(&viewport_width, &viewport_height);
+
+    // need actual window/screen size not Viewport size (which is scaled with zoom)
+    //unsigned int viewport_width = 0;
+    //unsigned int viewport_height = 0;
+    //gfx.get_resolution(&viewport_width, &viewport_height);
+    int screen_size_x = 0;
+    int screen_size_y = 0;
+    gfx.get_screen_size(&screen_size_x, &screen_size_y);
+
     int popup_width = 0;
     int popup_height = 0;
     pinned_popup->get_size(&popup_width, &popup_height);
@@ -4907,10 +4930,10 @@ Viewport::update() {
       int popup_bottom = popup_y + popup_height;
       int adjust_x = 0;
       int adjust_y = 0;
-      if (popup_right > viewport_width){
+      if (popup_right > screen_size_x){
         adjust_x = -1;
       }
-      if (popup_bottom > viewport_height){
+      if (popup_bottom > screen_size_y){
         adjust_y = -1;
       }
       if (adjust_x == 0 && adjust_y == 0){
