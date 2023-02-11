@@ -5716,8 +5716,8 @@ PopupBox::handle_drag(int lx, int ly) {
     //  force the initial drag to be a strong motion to "release" the popup into drag mode
     //  THIS IS HANDLED INSIDE GuiObject::handle_event NOT HERE
 
-    // part of "no zoom w/ pinned popups work-around (also used later for other reason)
-    Graphics &gfx = Graphics::get_instance();
+    //// part of "no zoom w/ pinned popups work-around (also used later for other reason)
+    //Graphics &gfx = Graphics::get_instance();
 
     if (box == Type::TypeOptions || box == Type::TypeGameOptions || box == Type::TypeGameOptions2
       || box == Type::TypeGameOptions3 || box == Type::TypeGameOptions4
@@ -5754,7 +5754,7 @@ PopupBox::handle_drag(int lx, int ly) {
     Log::Debug["popup.cc"] << "inside PopupBox::handle_drag, new x,y is " << x << "," << y;
 
     // don't let it popup go off-screen
-    //Graphics &gfx = Graphics::get_instance();   // moved to earlier because of zoom_factor work-around
+    Graphics &gfx = Graphics::get_instance();
     unsigned int res_width; 
     unsigned int res_height;
     gfx.get_resolution(&res_width, &res_height);
@@ -5763,11 +5763,6 @@ PopupBox::handle_drag(int lx, int ly) {
     int this_right = x + width;
     int this_top = y;
     int this_bottom = y + height;
-    // moving to after collision adjustment
-    //if (this_right > res_width - 1){ x = res_width - width; }
-    //if (this_bottom > res_height){ y = res_height - height; }
-    //if (x < 0){ x = 0; }
-    //if (y < 0){ y = 0; }
 
     Log::Debug["event_loop.cc"] << "inside PopupBox::handle_drag, this popup has left " << this_left << ", right " << this_right << ", top " << this_top << ", bottom " << this_bottom;
 

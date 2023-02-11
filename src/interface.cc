@@ -1123,7 +1123,7 @@ Interface::layout() {
   if (viewport != nullptr) {
     Log::Debug["interface.cc"] << "inside Interface::layout, viewport is defined";
     viewport->set_size(width, height);
-    viewport->recenter();
+    //viewport->recenter();  // this may no longer be needed with new zoom?
     
   }
 

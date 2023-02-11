@@ -4889,6 +4889,47 @@ Viewport::update() {
     set_redraw();
   }
 
+  // handle and pinned_popups that have become even partially off-screen
+  //  try to move them on-screen, if not possible close them
+  // only right & bottom matter, as the popups do not move relative to the top or left side of viewport
+  for (PopupBox *pinned_popup : interface->get_pinned_popup_boxes()){
+    unsigned int viewport_width = 0;
+    unsigned int viewport_height = 0;
+    gfx.get_resolution(&viewport_width, &viewport_height);
+    int popup_width = 0;
+    int popup_height = 0;
+    pinned_popup->get_size(&popup_width, &popup_height);
+    while (true){
+      int popup_x = 0;
+      int popup_y = 0;
+      pinned_popup->get_position(&popup_x, &popup_y);
+      int popup_right = popup_x + popup_width;
+      int popup_bottom = popup_y + popup_height;
+      int adjust_x = 0;
+      int adjust_y = 0;
+      if (popup_right > viewport_width){
+        adjust_x = -1;
+      }
+      if (popup_bottom > viewport_height){
+        adjust_y = -1;
+      }
+      if (adjust_x == 0 && adjust_y == 0){
+        // nothing to do, popup is not offscreen
+        break;
+      }
+      pinned_popup->handle_drag(adjust_x, adjust_y);
+      int new_popup_x = 0;
+      int new_popup_y = 0;
+      pinned_popup->get_position(&new_popup_x, &new_popup_y);
+      if (popup_x == new_popup_x && popup_y == new_popup_y){
+        // unable to move popup, close it
+        Log::Warn["viewport.cc"] << "inside Viewport::update(), refreshing any pinned_popups, found an off-screen pinned_popup, unable to move it on-screen, closing it";
+        interface->close_popup(pinned_popup);
+        break;
+      }
+    }
+  }  // handle pinned_popups moving off-screen
+
   // refresh/update floating/moveable/pinned/multiple popups
   if (interface->get_game()->get_const_tick() % 40 == 0){
     Log::Debug["viewport.cc"] << "inside Viewport::update(), refreshing any pinned_popups";
@@ -4901,30 +4942,44 @@ Viewport::update() {
       pinned_popup->set_parent(nullptr);
       pinned_popup->set_redraw();
 
-      // close any popups that have gone even partially off-screen (likely as a result of window resize or zoom)
-      //  because they can become unreachable (resize), and buggy behavior shows (zoom, even after unzoomed)
-      int popup_x = 0;
-      int popup_y = 0;
-      pinned_popup->get_position(&popup_x, &popup_y);
-      int popup_width = 0;
-      int popup_height = 0;
-      pinned_popup->get_size(&popup_width, &popup_height);
-      int popup_right = popup_x + popup_width;
-      int popup_bottom = popup_y + popup_height;
+      /* moving this to happen every update
+      // handle and pinned_popups that have become even partially off-screen
+      //  try to move them on-screen, if not possible close them
+      // only right & bottom matter, as the popups do not move relative to the top or left side of viewport
       unsigned int viewport_width = 0;
       unsigned int viewport_height = 0;
       gfx.get_resolution(&viewport_width, &viewport_height);
-      if (popup_right > viewport_width || popup_bottom > viewport_height){
-        Log::Warn["viewport.cc"] << "inside Viewport::update(), refreshing any pinned_popups, found an off-screen pinned_popup, closing it";
-        interface->close_popup(pinned_popup);
-      }
-
-      /* this should not be required anymore with new zoom  method
-      // ugh, just don't allow pinned popups when zoomed for now, not sure why they are buggy but I don't feel
-      //  like solving it because I would rather change the way zoom works entirely
-      if (zoom_factor != 1.f){
-        Log::Warn["viewport.cc"] << "inside Viewport::update(), refreshing any pinned_popups, ZOOM FACTOR IS NOT 100%!  closing all any popups to avoid bugs";
-        interface->close_popup(pinned_popup);
+      int popup_width = 0;
+      int popup_height = 0;
+      pinned_popup->get_size(&popup_width, &popup_height);
+      while (true){
+        int popup_x = 0;
+        int popup_y = 0;
+        pinned_popup->get_position(&popup_x, &popup_y);
+        int popup_right = popup_x + popup_width;
+        int popup_bottom = popup_y + popup_height;
+        int adjust_x = 0;
+        int adjust_y = 0;
+        if (popup_right > viewport_width){
+          adjust_x = -1;
+        }
+        if (popup_bottom > viewport_height){
+          adjust_y = -1;
+        }
+        if (adjust_x == 0 && adjust_y == 0){
+          // nothing to do, popup is not offscreen
+          break;
+        }
+        pinned_popup->handle_drag(adjust_x, adjust_y);
+        int new_popup_x = 0;
+        int new_popup_y = 0;
+        pinned_popup->get_position(&new_popup_x, &new_popup_y);
+        if (popup_x == new_popup_x && popup_y == new_popup_y){
+          // unable to move popup, close it
+          Log::Warn["viewport.cc"] << "inside Viewport::update(), refreshing any pinned_popups, found an off-screen pinned_popup, unable to move it on-screen, closing it";
+          interface->close_popup(pinned_popup);
+          break;
+        }
       }
       */
 
