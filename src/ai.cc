@@ -17,7 +17,7 @@
 
 
 #ifdef WIN32
-# include <SDL.h>  // for SDL popup to notify player when AI cannot place castle (and game will crash)
+ include <SDL.h>  // for SDL popup to notify player when AI cannot place castle (and game will crash)
 #endif  // WIN32
 
 AI::AI(PGame current_game, unsigned int _player_index) {
@@ -366,7 +366,7 @@ AI::do_place_castle() {
         AILogDebug["do_place_castle"] << "unable to place castle after " << x << " tries, maxtries reached!";
         AILogError["do_place_castle"] << "unable to place castle after " << x << " tries!  maxtries reached!  game will crash now";
         #ifdef WIN32
-        int msgboxID = SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "ForkSerf", "unable find acceptable place for castle for at least one AI player, try adjusting MapGen settings", NULL);
+        int msgboxID = SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "Forkserf", "unable find acceptable place for castle for at least one AI player, try adjusting MapGen settings", NULL);
         #endif
         throw ExceptionFreeserf("unable to place castle for an AI player after exhausting all tries!");
       }
