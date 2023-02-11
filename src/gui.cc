@@ -107,9 +107,9 @@ GuiObject::draw(Frame *_frame) {
       if (float_window->get_objclass() == GuiObjClass::ClassPanelBar
        || float_window->get_objclass() == GuiObjClass::ClassPopupBox
                  ){
-        Log::Debug["gui.cc"] << "inside GuiObject::draw, drawing_ui true, this is UI element, drawing it";
+        //Log::Debug["gui.cc"] << "inside GuiObject::draw, drawing_ui true, this is UI element, drawing it";
         if (float_window->frame == nullptr) {
-          Log::Debug["event_loop.cc"] << "inside GuiObject::draw, drawing_ui true, this is UI element, its internal frame is nullptr, creating it";
+          //Log::Debug["event_loop.cc"] << "inside GuiObject::draw, drawing_ui true, this is UI element, its internal frame is nullptr, creating it";
           //float_window->frame = Graphics::get_instance().create_frame(float_window->width, float_window->height);
           //float_window->frame = Graphics::get_instance().create_frame(352, 40);
           float_window->frame = Graphics::get_instance().create_frame(1920, 1057);
@@ -133,9 +133,9 @@ GuiObject::draw(Frame *_frame) {
         //Log::Debug["gui.cc"] << "inside GuiObject::draw, about to call float->draw for float but float is nullptr!";
         continue;
       }
-      recursion_depth++;
+      //recursion_depth++;
       float_window->draw(frame);
-      recursion_depth--;
+      //recursion_depth--;
     }
 
     if (is_drawing_ui){
@@ -143,13 +143,13 @@ GuiObject::draw(Frame *_frame) {
     }
   }
 
-  std::string recursion_indicator(recursion_depth, '+');
+  //std::string recursion_indicator(recursion_depth, '+');
 
-  Log::Debug["event_loop.cc"] << "inside GuiObject::draw, " << recursion_indicator << " this->objclass " << this->get_objclass() << " calling draw_frame";
+  //Log::Debug["event_loop.cc"] << "inside GuiObject::draw, " << recursion_indicator << " this->objclass " << this->get_objclass() << " calling draw_frame";
   if (is_drawing_ui){
     // do nothing here, drawn at start of this function (hack)
   }else{
-    Log::Debug["event_loop.cc"] << "inside GuiObject::draw, " << recursion_indicator << " this->objclass " << this->get_objclass() << " is_drawing_ui is false";
+    //Log::Debug["event_loop.cc"] << "inside GuiObject::draw, " << recursion_indicator << " this->objclass " << this->get_objclass() << " is_drawing_ui is false";
     if (objclass == GuiObjClass::ClassPanelBar
      || objclass == GuiObjClass::ClassPopupBox
                  ){

@@ -223,31 +223,25 @@ EventLoopSDL::run() {
 
           if (event.button.button <= 3) {
             //Log::Debug["event_loop-sdl.cc"] << "inside EventLoopSDL::run(), type SDL_MOUSEBUTTONUP, event.button.button " << event.button.button << " is <= 3";
-            int x = static_cast<int>(static_cast<float>(event.button.x) *
-                                    zoom_factor * screen_factor_x);
-            int y = static_cast<int>(static_cast<float>(event.button.y) *
-                                    zoom_factor * screen_factor_y);
-
-            // screen factor seems to be equal resolution * zoom_factor / 2?  so, at 0.5 zoom, screen factor for 800x600 is 200x150
-            Log::Debug["event_loop-sdl.cc"] << "inside EventLoopSDL::run(), type SDL_MOUSEBUTTONUP, zoom_factor " << zoom_factor << ", screen_factor_x " << screen_factor_x << ", screen_factor_y " << screen_factor_y;
+            int x = static_cast<int>(static_cast<float>(event.button.x) * zoom_factor * screen_factor_x);
+            int y = static_cast<int>(static_cast<float>(event.button.y) * zoom_factor * screen_factor_y);
             int unscaled_x = static_cast<int>(event.button.x);
             int unscaled_y = static_cast<int>(event.button.y);
-            Log::Debug["event_loop-sdl.cc"] << "inside EventLoopSDL::run(), type SDL_MOUSEBUTTONUP, x/y " << x << "/" << y << ", unscaled_x/y " << unscaled_x << "/" << unscaled_y;
 
             if (button_middle_down || event.button.button == 2){
               if (option_SpecialClickMiddle){
-                notify_middle_click(x, y);  // this simply executes special click function
+                notify_middle_click(x, y, unscaled_x, unscaled_y);  // this simply executes special click function
               }
             }else if (button_left_down && button_right_down){
               if (option_SpecialClickBoth){
-                notify_special_click(x, y);
+                notify_special_click(x, y, unscaled_x, unscaled_y);
               }
             }else if (event.button.button == 1){
               SDL_Keymod mod = SDL_GetModState();
               Log::Debug["event_loop-sdl.cc"] << "inside EventLoopSDL::run(), type SDL_MOUSEBUTTONUP, x/y " << x << "/" << y << ", unscaled_x/y " << unscaled_x << "/" << unscaled_y << ", calling notify_left_click";
               notify_left_click(x, y, unscaled_x, unscaled_y, mod, (Event::Button)event.button.button);
             }else if (event.button.button == 3){
-              notify_right_click(x, y);
+              notify_right_click(x, unscaled_x, unscaled_y, y);
             }
             //Log::Debug["event_loop-sdl.cc"] << "inside EventLoopSDL::run(), type SDL_MOUSEBUTTONUP, foo";
 
@@ -258,7 +252,7 @@ EventLoopSDL::run() {
                   event.button.x <= (last_click_x + MOUSE_MOVE_SENSITIVITY) &&
                   event.button.y >= (last_click_y - MOUSE_MOVE_SENSITIVITY) &&
                   event.button.y <= (last_click_y + MOUSE_MOVE_SENSITIVITY)) {
-                notify_dbl_click(x, y, (Event::Button)event.button.button);
+                notify_dbl_click(x, y, unscaled_x, unscaled_y, (Event::Button)event.button.button);
               }
               //Log::Debug["event_loop-sdl.cc"] << "inside EventLoopSDL::run(), type SDL_MOUSEBUTTONUP, foo2";
             }
@@ -303,7 +297,9 @@ EventLoopSDL::run() {
           //  as the mouse pointer is out of the original popup area
           int x = event.motion.x;
           int y = event.motion.y;
-          notify_mouse_button_down(x, y, (Event::Button)event.button.button);
+          int unscaled_x = event.motion.x;  // it is already unscaled
+          int unscaled_y = event.motion.y;  // it is already unscaled
+          notify_mouse_button_down(x, y, unscaled_x, unscaled_y, (Event::Button)event.button.button);
         }
         break;
       case SDL_MOUSEMOTION:
@@ -333,17 +329,17 @@ EventLoopSDL::run() {
             //Log::Debug["event_loop-sdl.cc"] << "inside EventLoopSDL::run(), type SDL_MOUSEMOTION, zoom_factor " << zoom_factor << ", screen_factor_x " << screen_factor_x << ", screen_factor_y " << screen_factor_y;
             //Log::Debug["event_loop-sdl.cc"] << "inside EventLoopSDL::run(), type SDL_MOUSEMOTION, event.motion.x " << event.motion.x << ", event.motion.y " << event.motion.y;
 
-            int x = static_cast<int>(static_cast<float>(drag_x) *
-                                     zoom_factor * screen_factor_x);
-            int y = static_cast<int>(static_cast<float>(drag_y) *
-                                     zoom_factor * screen_factor_y);
+            int x = static_cast<int>(static_cast<float>(drag_x) * zoom_factor * screen_factor_x);
+            int y = static_cast<int>(static_cast<float>(drag_y) * zoom_factor * screen_factor_y);
+            int unscaled_x = static_cast<int>(event.button.x);
+            int unscaled_y = static_cast<int>(event.button.y);
 
             if (option_InvertMouse){
               //Log::Debug["event_loop-sdl.cc"] << "inside EventLoopSDL::run(), type SDL_MOUSEMOTION, calling notify_drag inverted with x,y values " << x << ", " << y << ", xmove " << event.motion.x - drag_x << ", ymove " << (event.motion.y - drag_y) * -1;
-              notify_drag(x, y, event.motion.x - drag_x, (event.motion.y - drag_y) * -1, (Event::Button)drag_button);
+              notify_drag(x, y, unscaled_x, unscaled_y, event.motion.x - drag_x, (event.motion.y - drag_y) * -1, (Event::Button)drag_button);
             }else{
               Log::Debug["event_loop-sdl.cc"] << "inside EventLoopSDL::run(), type SDL_MOUSEMOTION, calling notify_drag normal with x,y values " << x << ", " << y << ", xmove " << event.motion.x - drag_x << ", ymove " << event.motion.y - drag_y;
-              notify_drag(x, y, event.motion.x - drag_x, event.motion.y - drag_y, (Event::Button)drag_button);
+              notify_drag(x, y, unscaled_x, unscaled_y, event.motion.x - drag_x, event.motion.y - drag_y, (Event::Button)drag_button);
             }
 
             Log::Debug["event_loop-sdl.cc"] << "inside EventLoopSDL::run(), type SDL_MOUSEMOTION, calling SDL_WarpMouseInWindow with drag_x/y values " << drag_x << ", " << drag_y;
@@ -427,27 +423,27 @@ EventLoopSDL::run() {
           //  must exclude it when not in list scrolling mode
           case SDLK_UP: {
             if (!is_list_in_focus){
-              notify_drag(0, 0, 0, -32, Event::ButtonLeft);  // hack for map scrolling
+              notify_drag(0, 0, 0, 0, 0, -32, Event::ButtonLeft);  // hack for map scrolling
             }
             notify_arrow_key_pressed(0, event.key.keysym.mod);  // for load game scrolling  //0=up,1=down,2=left,3=right
             break;
           }
           case SDLK_DOWN: {
             if (!is_list_in_focus){
-              notify_drag(0, 0, 0, 32, Event::ButtonLeft); // hack for map scrolling
+              notify_drag(0, 0, 0, 0, 0, 32, Event::ButtonLeft); // hack for map scrolling
             }
             notify_arrow_key_pressed(1, event.key.keysym.mod);  // for load game scrolling //0=up,1=down,2=left,3=right
             break;
           }
           case SDLK_LEFT: {
             if (!is_list_in_focus){
-              notify_drag(0, 0, -32, 0, Event::ButtonLeft); // hack for map scrolling
+              notify_drag(0, 0, 0, 0, -32, 0, Event::ButtonLeft); // hack for map scrolling
             }
             break;
           }
           case SDLK_RIGHT: {
             if (!is_list_in_focus){
-              notify_drag(0, 0, 32, 0, Event::ButtonLeft); // hack for map scrolling
+              notify_drag(0, 0, 0, 0, 32, 0, Event::ButtonLeft); // hack for map scrolling
             }
             break;
           }
@@ -594,7 +590,7 @@ EventLoopSDL::run() {
           //  debug_draw = false;
           //}
 
-          Log::Debug["event_loop-sdl.cc"] << "====================== DONE DRAWING FRAME =================================";
+          //Log::Debug["event_loop-sdl.cc"] << "====================== DONE DRAWING FRAME =================================";
 
           SDL_FlushEvent(eventUserTypeStep);
 

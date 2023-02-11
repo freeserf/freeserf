@@ -4919,12 +4919,14 @@ Viewport::update() {
         interface->close_popup(pinned_popup);
       }
 
+      /* this should not be required anymore with new zoom  method
       // ugh, just don't allow pinned popups when zoomed for now, not sure why they are buggy but I don't feel
       //  like solving it because I would rather change the way zoom works entirely
       if (zoom_factor != 1.f){
         Log::Warn["viewport.cc"] << "inside Viewport::update(), refreshing any pinned_popups, ZOOM FACTOR IS NOT 100%!  closing all any popups to avoid bugs";
         interface->close_popup(pinned_popup);
       }
+      */
 
       // redraw minimap if popup pinned
       if (pinned_popup->get_objclass() == GuiObjClass::ClassPopupBox && pinned_popup->get_objtype() == PopupBox::TypeMap){

@@ -5724,11 +5724,12 @@ PopupBox::handle_drag(int lx, int ly) {
       || box == Type::TypeEditMapGenerator || box == PopupBox::TypeEditMapGenerator2 || box == Type::TypeLoadSave){
       Log::Debug["popup.cc"] << "inside PopupBox::handle_drag, not allowing this type of popup to be lifted/pinned";
       return true;
-    }else if (gfx.get_zoom_factor() != 1.f){
-      // temporary work-around to avoid bugs with zooming and pinned popups, for now simply disallow pinned popups while zoomed
-      //  and Viewport::update will close any that exist
-      Log::Warn["popup.cc"] << "inside PopupBox::handle_drag, not allowing popups to move when zoomed, it is buggy";
-      return true;
+    //  THIS SHOULD NOW BE POSSIBLE WITH NEW ZOOM METHOD
+    //}else if (gfx.get_zoom_factor() != 1.f){
+    //  // temporary work-around to avoid bugs with zooming and pinned popups, for now simply disallow pinned popups while zoomed
+    //  //  and Viewport::update will close any that exist
+    //  Log::Warn["popup.cc"] << "inside PopupBox::handle_drag, not allowing popups to move when zoomed, it is buggy";
+    //  return true;
     }else{
       if (!lifted){
         lifted = true;
