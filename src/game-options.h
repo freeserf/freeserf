@@ -85,5 +85,8 @@ extern int mouse_x_after_drag;
 extern int mouse_y_after_drag;
 extern bool is_drawing_ui;
 extern int recursion_depth;
+//extern bool debug_draw;  // used to briefly pause game to show a debug dot on the screen
+//extern int debug_draw_x;  // used to briefly pause game to show a debug dot on the screen
+//extern int debug_draw_y;  // used to briefly pause game to show a debug dot on the screen
 
 #endif  // SRC_GAME_OPTIONS_H_

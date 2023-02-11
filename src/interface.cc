@@ -1656,30 +1656,10 @@ Interface::handle_event(const Event *event) {
       break;
     case Event::TypeZoom:
       Log::Debug["event_loop.cc"] << "inside Interface::handle_event, TypeZoom";
-      set_size(event->dx, event->dy);
+      // no longer zoom the Interface, only the Viewport
+      //set_size(event->dx, event->dy);
+      viewport->set_size(event->dx, event->dy);
       viewport->set_focused(); // tlongstretch, to fix issue where zooming at start of game means viewport can't drag until clicked on
-      /* failed attempt to zoom ONLY the view port
-      it seems that other floats are scaled because they are on top of the viewport and the entire viewport is scaled?
-      and they must be drawn separately??
-      
-      if (this->get_objclass() == GuiObjClass::ClassViewport){
-        set_size(event->dx, event->dy);
-      }else{
-        //x += event->dx;
-        //y += event->dy;
-        //if (event->dy < height || event->dx < width){
-        //  y -= 30;
-        //  x -= 20;
-        //}else{
-        //  y += 30;
-        //  x += 20;
-        //}
-
-        delete_frame();
-        layout();  // this appears to do nothing for generic GuiObject, but I think it exists because it is overridden by some GuiObject superclasses such as Viewport, Interface, and their layout() is important
-        set_redraw();
-      }
-      */
       break;
     case Event::TypeUpdate:
       update();
@@ -1709,6 +1689,7 @@ Interface::handle_event(const Event *event) {
       break;
     default:
     Log::Debug["interface.cc"] << "inside Interface::handle_event(), default, no case matched, event type is " << event->type;
+    Log::Debug["interface.cc"] << "inside Interface::handle_event(), DEBUG unscaled_x/y is " << event->unscaled_x << "/" << event->unscaled_y;
       return GuiObject::handle_event(event);
       break;
   }

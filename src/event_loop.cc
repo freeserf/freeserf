@@ -60,12 +60,27 @@ EventLoop::notify_handlers(Event *event) {
   return result;
 }
 
+/* orig
 bool
 EventLoop::notify_left_click(int x, int y, unsigned char modifier, Event::Button button) {
   Event event;
   event.type = Event::TypeLeftClick;
   event.x = x;
   event.y = y;
+  event.dy = modifier;
+  event.button = button;
+  return notify_handlers(&event);
+}
+*/
+
+bool
+EventLoop::notify_left_click(int x, int y, int unscaled_x, int unscaled_y, unsigned char modifier, Event::Button button) {
+  Event event;
+  event.type = Event::TypeLeftClick;
+  event.x = x;
+  event.y = y;
+  event.unscaled_x = unscaled_x;
+  event.unscaled_y = unscaled_y;
   event.dy = modifier;
   event.button = button;
   return notify_handlers(&event);

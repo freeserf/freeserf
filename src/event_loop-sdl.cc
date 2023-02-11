@@ -28,6 +28,9 @@
 #include "src/freeserf.h"
 #include "src/video-sdl.h"
 
+//#include <chrono>        // for debug sleeping with debug_draw bool
+//#include <thread>        // for debug sleeping with debug_draw bool
+
 #include "src/version.h"  // for tick_length, I couldn't figure out how else to get it without redefinitions because of the rat's nest of header includes
 
 EventLoop &
@@ -224,6 +227,13 @@ EventLoopSDL::run() {
                                     zoom_factor * screen_factor_x);
             int y = static_cast<int>(static_cast<float>(event.button.y) *
                                     zoom_factor * screen_factor_y);
+
+            // screen factor seems to be equal resolution * zoom_factor / 2?  so, at 0.5 zoom, screen factor for 800x600 is 200x150
+            Log::Debug["event_loop-sdl.cc"] << "inside EventLoopSDL::run(), type SDL_MOUSEBUTTONUP, zoom_factor " << zoom_factor << ", screen_factor_x " << screen_factor_x << ", screen_factor_y " << screen_factor_y;
+            int unscaled_x = static_cast<int>(event.button.x);
+            int unscaled_y = static_cast<int>(event.button.y);
+            Log::Debug["event_loop-sdl.cc"] << "inside EventLoopSDL::run(), type SDL_MOUSEBUTTONUP, x/y " << x << "/" << y << ", unscaled_x/y " << unscaled_x << "/" << unscaled_y;
+
             if (button_middle_down || event.button.button == 2){
               if (option_SpecialClickMiddle){
                 notify_middle_click(x, y);  // this simply executes special click function
@@ -234,7 +244,8 @@ EventLoopSDL::run() {
               }
             }else if (event.button.button == 1){
               SDL_Keymod mod = SDL_GetModState();
-              notify_left_click(x, y, mod, (Event::Button)event.button.button);
+              Log::Debug["event_loop-sdl.cc"] << "inside EventLoopSDL::run(), type SDL_MOUSEBUTTONUP, x/y " << x << "/" << y << ", unscaled_x/y " << unscaled_x << "/" << unscaled_y << ", calling notify_left_click";
+              notify_left_click(x, y, unscaled_x, unscaled_y, mod, (Event::Button)event.button.button);
             }else if (event.button.button == 3){
               notify_right_click(x, y);
             }
@@ -576,6 +587,12 @@ EventLoopSDL::run() {
           // Swap video buffers
           //gfx.swap_buffers();
           gfx.render_ui();
+
+          //if (debug_draw){
+          //  Log::Debug["event_loop-sdl.cc"] << "debug_draw is true, pausing very briefly";
+          //  std::this_thread::sleep_for(std::chrono::milliseconds(300));
+          //  debug_draw = false;
+          //}
 
           Log::Debug["event_loop-sdl.cc"] << "====================== DONE DRAWING FRAME =================================";
 

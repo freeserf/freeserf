@@ -55,6 +55,7 @@ class Event {
   void *object;
   int x, y;
   int dx, dy;
+  int unscaled_x, unscaled_y; // tlongstretch testing new scaling
   Type type;
   Button button;
 };
@@ -120,7 +121,8 @@ class EventLoop {
 
   bool notify_handlers(Event *event);
 
-  bool notify_left_click(int x, int y, unsigned char modifier, Event::Button button);
+  //bool notify_left_click(int x, int y, unsigned char modifier, Event::Button button);
+  bool notify_left_click(int x, int y, int unscaled_x, int unscaled_y, unsigned char modifier, Event::Button button);
   bool notify_right_click(int x, int y);
   bool notify_dbl_click(int x, int y, Event::Button button);
   bool notify_middle_click(int x, int y); //, Event::Button button);

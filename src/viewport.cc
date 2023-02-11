@@ -4199,6 +4199,7 @@ Viewport::draw_height_grid_overlay(const Color &color) {
 
 void
 Viewport::internal_draw() {
+  //Log::Debug["viewport.cc"] << "inside Viewport::internal_draw";
   if (map == NULL) {
     return;
   }
@@ -4226,6 +4227,16 @@ Viewport::internal_draw() {
   if (layers & LayerCursor) {
     draw_map_cursor();
   }
+
+  //// DEBUG - draw a mark at the last clicked on pos to help debug scaling issues
+  //if (debug_draw){
+  //  if (is_drawing_ui){
+  //    frame->fill_rect(debug_draw_x, debug_draw_y, 25, 25, Color::red);
+  //  }else{
+  //    frame->fill_rect(debug_draw_x, debug_draw_y, 25, 25, Color::blue);
+  //  }
+  //}
+
 }
 
 // use the numpad keys to move the map cursor around

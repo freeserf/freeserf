@@ -137,6 +137,9 @@ int mouse_x_after_drag = 0;
 int mouse_y_after_drag = 0;
 bool is_drawing_ui = false;
 int recursion_depth = 0;
+//bool debug_draw = false;
+//int debug_draw_x = 0;
+//int debug_draw_y = 0;
 typedef enum Season {
   SeasonSpring = 0,
   SeasonSummer = 1,

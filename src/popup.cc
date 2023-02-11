@@ -3454,6 +3454,26 @@ PopupBox::internal_draw() {
   default:
     break;
   }
+
+  //// DEBUG - draw a mark at the last clicked on pos to help debug scaling issues
+  //if (debug_draw){
+  //  // screen factor seems to be equal resolution * zoom_factor / 2?  so, at 0.5 zoom, screen factor for 800x600 is 200x150
+  //  //   HOWEVER like in the other zoom area it seems to always be equal to 1 here, even when zoom is not
+  //  float screen_factor_x = 0.00;
+  //  float screen_factor_y = 0.00;
+  //  Graphics &gfx = Graphics::get_instance();
+  //  gfx.get_screen_factor(&screen_factor_x, &screen_factor_y);
+  //  float zoom_factor = gfx.get_zoom_factor();
+  //  Log::Debug["popup.cc"] << "inside PopupBox::internal_draw(), zoom_factor " << zoom_factor << ", screen_factor_x " << screen_factor_x << ", screen_factor_y " << screen_factor_y;
+  //  if (is_drawing_ui){
+  //    frame->fill_rect(debug_draw_x, debug_draw_y, 25, 25, Color::yellow);
+  //  }else{
+  //    frame->fill_rect(debug_draw_x, debug_draw_y, 25, 25, Color::green);
+  //    //frame->fill_rect(debug_draw_x * (zoom_factor / 2), debug_draw_y * (zoom_factor / 2), 25, 25, Color::green);
+  //    //frame->fill_rect(debug_draw_x + (1.00 - zoom_factor ), debug_draw_y + ( 1.00 - zoom_factor), 25, 25, Color::green);
+  //  }
+  //}
+
 }
 
 void
@@ -5503,7 +5523,7 @@ PopupBox::handle_save_clk(int cx, int cy) {
 bool
 //PopupBox::handle_left_click(int cx, int cy) {
 PopupBox::handle_left_click(int cx, int cy, int modifier) {
-  Log::Debug["popup.cc"] << "inside PopupBox::handle_left_click";
+  Log::Debug["popup.cc"] << "inside PopupBox::handle_left_click, cx/cy " << cx << "/" << cy;
   if (being_dragged){
     being_dragged = false;
     return false;

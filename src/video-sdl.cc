@@ -478,7 +478,7 @@ void
 VideoSDL::render_viewport() {
   // draw red square which scales with zoom
   Video::Color red = { 255,0,0,0 };
-  fill_rect(0,0,200,200, red, screen);
+  fill_rect(0,200,200,200, red, screen);
 
   // draw the scalable texture onto the unscaled texture, scaling it up to full size
   SDL_SetRenderTarget(renderer, unscaled_screen->texture);
@@ -489,7 +489,7 @@ void
 VideoSDL::render_ui() {
   // draw green square that does NOT scale with zoom
   Video::Color green = { 0,255,0,0 };
-  fill_rect(0,0,200,200, green, unscaled_screen);
+  fill_rect(0,200,200,200, green, unscaled_screen);
 
   // draw the unscaled texture to the window
   SDL_SetRenderTarget(renderer, nullptr);
