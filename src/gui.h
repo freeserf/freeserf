@@ -67,7 +67,7 @@ class GuiObject : public EventLoop::Handler {
 
   virtual void internal_draw() = 0;
   virtual void layout();
-  virtual void store_prev_window_size();  // does nothing
+  virtual void store_prev_viewport_size();  // does nothing
   //virtual void store_prev_res() = 0;    // noop, overloaded
   //virtual void store_prev_res();
 

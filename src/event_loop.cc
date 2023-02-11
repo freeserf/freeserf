@@ -60,6 +60,7 @@ EventLoop::notify_handlers(Event *event) {
   return result;
 }
 
+/* orig
 bool
 EventLoop::notify_left_click(int x, int y, unsigned char modifier, Event::Button button) {
   Event event;
@@ -70,43 +71,65 @@ EventLoop::notify_left_click(int x, int y, unsigned char modifier, Event::Button
   event.button = button;
   return notify_handlers(&event);
 }
+*/
 
 bool
-EventLoop::notify_right_click(int x, int y) {
+EventLoop::notify_left_click(int x, int y, int unscaled_x, int unscaled_y, unsigned char modifier, Event::Button button) {
   Event event;
-  event.type = Event::TypeRightClick;
+  event.type = Event::TypeLeftClick;
   event.x = x;
   event.y = y;
-  //event.button = button;
-  return notify_handlers(&event);
-}
-
-bool
-EventLoop::notify_dbl_click(int x, int y, Event::Button button) {
-  Event event;
-  event.type = Event::TypeDoubleClick;
-  event.x = x;
-  event.y = y;
+  event.unscaled_x = unscaled_x;
+  event.unscaled_y = unscaled_y;
+  event.dy = modifier;
   event.button = button;
   return notify_handlers(&event);
 }
 
 bool
-EventLoop::notify_middle_click(int x, int y){ //,Event::Button button) {
+EventLoop::notify_right_click(int x, int y, int unscaled_x, int unscaled_y) {
   Event event;
-  event.type = Event::TypeMiddleClick;
+  event.type = Event::TypeRightClick;
   event.x = x;
   event.y = y;
+  event.unscaled_x = unscaled_x;
+  event.unscaled_y = unscaled_y;
   //event.button = button;
   return notify_handlers(&event);
 }
 
 bool
-EventLoop::notify_special_click(int x, int y){ //,Event::Button button) {
+EventLoop::notify_dbl_click(int x, int y, int unscaled_x, int unscaled_y, Event::Button button) {
+  Event event;
+  event.type = Event::TypeDoubleClick;
+  event.x = x;
+  event.y = y;
+  event.unscaled_x = unscaled_x;
+  event.unscaled_y = unscaled_y;
+  event.button = button;
+  return notify_handlers(&event);
+}
+
+bool
+EventLoop::notify_middle_click(int x, int y, int unscaled_x, int unscaled_y){ //,Event::Button button) {
+  Event event;
+  event.type = Event::TypeMiddleClick;
+  event.x = x;
+  event.y = y;
+  event.unscaled_x = unscaled_x;
+  event.unscaled_y = unscaled_y;
+  //event.button = button;
+  return notify_handlers(&event);
+}
+
+bool
+EventLoop::notify_special_click(int x, int y, int unscaled_x, int unscaled_y){ //,Event::Button button) {
   Event event;
   event.type = Event::TypeSpecialClick;
   event.x = x;
   event.y = y;
+  event.unscaled_x = unscaled_x;
+  event.unscaled_y = unscaled_y;
   //event.button = button;
   return notify_handlers(&event);
 }
@@ -116,21 +139,25 @@ EventLoop::notify_special_click(int x, int y){ //,Event::Button button) {
 //  so that it can remain focused even when dragged outside of its original
 //  area (which normally caused it to lose focus)
 bool
-EventLoop::notify_mouse_button_down(int x, int y, Event::Button button) {
+EventLoop::notify_mouse_button_down(int x, int y, int unscaled_x, int unscaled_y, Event::Button button) {
   Event event;
   event.type = Event::TypeMouseButtonDown;
   event.x = x;
   event.y = y;
+  event.unscaled_x = unscaled_x;  // for mouse_down it is already unscaled, but adding for simplicity
+  event.unscaled_y = unscaled_y;  // for mouse_down it is already unscaled, but adding for simplicity
   event.button = button;
   return notify_handlers(&event);
 }
 
 bool
-EventLoop::notify_drag(int x, int y, int dx, int dy, Event::Button button) {
+EventLoop::notify_drag(int x, int y, int unscaled_x, int unscaled_y, int dx, int dy, Event::Button button) {
   Event event;
   event.type = Event::TypeDrag;
   event.x = x;
   event.y = y;
+  event.unscaled_x = unscaled_x;
+  event.unscaled_y = unscaled_y;
   event.dx = dx;
   event.dy = dy;
   event.button = button;

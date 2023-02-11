@@ -12,7 +12,7 @@ Game Information Website
 Current Release
 ===============
 
-version 0.6.0 released Feb09 2023
+version 0.6.1 released Feb11 2023
 
 
 Play

@@ -55,6 +55,7 @@ class Event {
   void *object;
   int x, y;
   int dx, dy;
+  int unscaled_x, unscaled_y; // tlongstretch testing new scaling
   Type type;
   Button button;
 };
@@ -120,13 +121,13 @@ class EventLoop {
 
   bool notify_handlers(Event *event);
 
-  bool notify_left_click(int x, int y, unsigned char modifier, Event::Button button);
-  bool notify_right_click(int x, int y);
-  bool notify_dbl_click(int x, int y, Event::Button button);
-  bool notify_middle_click(int x, int y); //, Event::Button button);
-  bool notify_special_click(int x, int y); //, Event::Button button);
-  bool notify_drag(int x, int y, int dx, int dy, Event::Button button);
-  bool notify_mouse_button_down(int x, int y, Event::Button button);  // to help track the original mouse-down-click-and-hold pos when dragging, NOT for normal clicking
+  bool notify_left_click(int x, int y, int unscaled_x, int unscaled_y, unsigned char modifier, Event::Button button);
+  bool notify_right_click(int x, int y, int unscaled_x, int unscaled_y);
+  bool notify_dbl_click(int x, int y, int unscaled_x, int unscaled_y, Event::Button button);
+  bool notify_middle_click(int x, int y, int unscaled_x, int unscaled_y); //, Event::Button button);
+  bool notify_special_click(int x, int y, int unscaled_x, int unscaled_y); //, Event::Button button);
+  bool notify_drag(int x, int y, int unscaled_x, int unscaled_y, int dx, int dy, Event::Button button);
+  bool notify_mouse_button_down(int x, int y, int unscaled_x, int unscaled_y, Event::Button button);  // to help track the original mouse-down-click-and-hold pos when dragging, NOT for normal clicking
   bool notify_key_pressed(unsigned char key, unsigned char modifier);
   bool notify_numpad_key_pressed(int numpad_key);
   //bool notify_arrow_key_pressed(unsigned char key);  //0=up,1=down,2=left,3=right

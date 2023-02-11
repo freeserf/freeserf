@@ -3454,6 +3454,26 @@ PopupBox::internal_draw() {
   default:
     break;
   }
+
+  //// DEBUG - draw a mark at the last clicked on pos to help debug scaling issues
+  //if (debug_draw){
+  //  // screen factor seems to be equal resolution * zoom_factor / 2?  so, at 0.5 zoom, screen factor for 800x600 is 200x150
+  //  //   HOWEVER like in the other zoom area it seems to always be equal to 1 here, even when zoom is not
+  //  float screen_factor_x = 0.00;
+  //  float screen_factor_y = 0.00;
+  //  Graphics &gfx = Graphics::get_instance();
+  //  gfx.get_screen_factor(&screen_factor_x, &screen_factor_y);
+  //  float zoom_factor = gfx.get_zoom_factor();
+  //  Log::Debug["popup.cc"] << "inside PopupBox::internal_draw(), zoom_factor " << zoom_factor << ", screen_factor_x " << screen_factor_x << ", screen_factor_y " << screen_factor_y;
+  //  if (is_drawing_ui){
+  //    frame->fill_rect(debug_draw_x, debug_draw_y, 25, 25, Color::yellow);
+  //  }else{
+  //    frame->fill_rect(debug_draw_x, debug_draw_y, 25, 25, Color::green);
+  //    //frame->fill_rect(debug_draw_x * (zoom_factor / 2), debug_draw_y * (zoom_factor / 2), 25, 25, Color::green);
+  //    //frame->fill_rect(debug_draw_x + (1.00 - zoom_factor ), debug_draw_y + ( 1.00 - zoom_factor), 25, 25, Color::green);
+  //  }
+  //}
+
 }
 
 void
@@ -5503,7 +5523,7 @@ PopupBox::handle_save_clk(int cx, int cy) {
 bool
 //PopupBox::handle_left_click(int cx, int cy) {
 PopupBox::handle_left_click(int cx, int cy, int modifier) {
-  Log::Debug["popup.cc"] << "inside PopupBox::handle_left_click";
+  Log::Debug["popup.cc"] << "inside PopupBox::handle_left_click, cx/cy " << cx << "/" << cy;
   if (being_dragged){
     being_dragged = false;
     return false;
@@ -5685,7 +5705,7 @@ PopupBox::handle_left_click(int cx, int cy, int modifier) {
 
 // right now the problem is that the mouse pointer/cursor does not follow the dragged pos and so once the
 //  pointer falls outside the popup it ceases moving the popup and instead drags the Viewport 
-//   because the pointer is now on the viewpot and not he popup
+//   because the pointer is now on the viewport and not the popup
 // TO FIX - need to make he mouse pointer follow the drag
 bool
 PopupBox::handle_drag(int lx, int ly) {
@@ -5696,19 +5716,20 @@ PopupBox::handle_drag(int lx, int ly) {
     //  force the initial drag to be a strong motion to "release" the popup into drag mode
     //  THIS IS HANDLED INSIDE GuiObject::handle_event NOT HERE
 
-    // part of "no zoom w/ pinned popups work-around (also used later for other reason)
-    Graphics &gfx = Graphics::get_instance();
+    //// part of "no zoom w/ pinned popups work-around (also used later for other reason)
+    //Graphics &gfx = Graphics::get_instance();
 
     if (box == Type::TypeOptions || box == Type::TypeGameOptions || box == Type::TypeGameOptions2
       || box == Type::TypeGameOptions3 || box == Type::TypeGameOptions4
       || box == Type::TypeEditMapGenerator || box == PopupBox::TypeEditMapGenerator2 || box == Type::TypeLoadSave){
       Log::Debug["popup.cc"] << "inside PopupBox::handle_drag, not allowing this type of popup to be lifted/pinned";
       return true;
-    }else if (gfx.get_zoom_factor() != 1.f){
-      // temporary work-around to avoid bugs with zooming and pinned popups, for now simply disallow pinned popups while zoomed
-      //  and Viewport::update will close any that exist
-      Log::Warn["popup.cc"] << "inside PopupBox::handle_drag, not allowing popups to move when zoomed, it is buggy";
-      return true;
+    //  THIS SHOULD NOW BE POSSIBLE WITH NEW ZOOM METHOD
+    //}else if (gfx.get_zoom_factor() != 1.f){
+    //  // temporary work-around to avoid bugs with zooming and pinned popups, for now simply disallow pinned popups while zoomed
+    //  //  and Viewport::update will close any that exist
+    //  Log::Warn["popup.cc"] << "inside PopupBox::handle_drag, not allowing popups to move when zoomed, it is buggy";
+    //  return true;
     }else{
       if (!lifted){
         lifted = true;
@@ -5730,23 +5751,24 @@ PopupBox::handle_drag(int lx, int ly) {
     //move_by_pixels(lx, ly);
     x += lx;
     y += ly;
-    Log::Debug["popup.cc"] << "inside PopupBox::handle_drag, new x,y is " << x << "," << y;
+    Log::Debug["popup.cc"] << "inside PopupBox::handle_drag, current x,y is " << orig_x << "," << orig_y << ", new x,y is " << x << "," << y;
 
     // don't let it popup go off-screen
-    //Graphics &gfx = Graphics::get_instance();   // moved to earlier because of zoom_factor work-around
-    unsigned int res_width; 
-    unsigned int res_height;
-    gfx.get_resolution(&res_width, &res_height);
+    Graphics &gfx = Graphics::get_instance();
+
+    // use window/screen size not viewport/resolution which scales with zoom
+    //unsigned int res_width; 
+    //unsigned int res_height;
+    //gfx.get_resolution(&res_width, &res_height);
+    int screen_width; 
+    int screen_height; 
+    gfx.get_screen_size(&screen_width, &screen_height);
+
     Log::Debug["popup.cc"] << "inside PopupBox::handle_drag, width/height is " << width << " / " << height;
     int this_left = x;
     int this_right = x + width;
     int this_top = y;
     int this_bottom = y + height;
-    // moving to after collision adjustment
-    //if (this_right > res_width - 1){ x = res_width - width; }
-    //if (this_bottom > res_height){ y = res_height - height; }
-    //if (x < 0){ x = 0; }
-    //if (y < 0){ y = 0; }
 
     Log::Debug["event_loop.cc"] << "inside PopupBox::handle_drag, this popup has left " << this_left << ", right " << this_right << ", top " << this_top << ", bottom " << this_bottom;
 
@@ -5863,8 +5885,8 @@ PopupBox::handle_drag(int lx, int ly) {
       //  y = orig_y + adjust_y;
       }
 
-      if (this_right > res_width - 1){ x = res_width - width; }
-      if (this_bottom > res_height){ y = res_height - height; }
+      if (this_right > screen_width - 1){ x = screen_width - width; }
+      if (this_bottom > screen_height){ y = screen_height - height; }
       if (x < 0){ x = 0; }
       if (y < 0){ y = 0; }
 

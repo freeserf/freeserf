@@ -153,6 +153,22 @@ VideoSDL::set_resolution(unsigned int width, unsigned int height, bool fs) {
   }
   screen->texture = create_texture(width, height);
 
+  // create a second texture that is unscaled - full size of the window
+  if (unscaled_screen == nullptr) {
+    unscaled_screen = new Video::Frame();
+  }
+  int window_w = 0;
+  int window_h = 0;
+  SDL_GL_GetDrawableSize(window, &window_w, &window_h);
+  if (unscaled_screen->texture != nullptr) {
+    SDL_DestroyTexture(unscaled_screen->texture);
+  }
+  SDL_Texture *unscaled_texture = SDL_CreateTexture(renderer, pixel_format, SDL_TEXTUREACCESS_TARGET, window_w, window_h);
+  if (unscaled_texture == nullptr) {
+    throw ExceptionSDL("Unable to create unscaled SDL texture");
+  }
+  unscaled_screen->texture = unscaled_texture;
+
   /* Set logical size of screen */
   r = SDL_RenderSetLogicalSize(renderer, width, height);
   if (r < 0) {
@@ -191,6 +207,16 @@ VideoSDL::is_fullscreen() {
 Video::Frame *
 VideoSDL::get_screen_frame() {
   return screen;
+}
+
+Video::Frame *
+VideoSDL::get_unscaled_screen_frame() {
+  return unscaled_screen;
+}
+
+SDL_Texture *
+VideoSDL::get_unscaled_screen_frame_texture() {
+  return unscaled_screen->get_texture();
 }
 
 Video::Frame *
@@ -415,12 +441,74 @@ VideoSDL::draw_thick_line(int x, int y, int x1, int y1, const Video::Color color
   */
 }
 
-
+/*
 void
 VideoSDL::swap_buffers() {
-  SDL_SetRenderTarget(renderer, nullptr);
+
+  // draw red square which scales with zoom
+  Video::Color red = { 255,0,0,0 };
+  fill_rect(0,0,200,200, red, screen);
+
+  SDL_SetRenderTarget(renderer, unscaled_screen->texture);
   SDL_RenderCopy(renderer, screen->texture, nullptr, nullptr);
+
+  // draw green square that does NOT scale with zoom
+  Video::Color green = { 0,255,0,0 };
+  fill_rect(0,0,200,200, green, unscaled_screen);
+
+  SDL_SetRenderTarget(renderer, nullptr);
+  SDL_RenderCopy(renderer, unscaled_screen->texture, nullptr, nullptr);
+  
+
+  // SDL_Rect dest_rect = { 0, 0, 1920, 1057 };
+  // unsigned int res_w = 0;
+  // unsigned int res_h = 0;
+  // get_resolution(&res_w, &res_h);
+  // SDL_Rect src_rect = { 0, 0, int(res_w), int(res_h) };
+  // int r = SDL_RenderCopy(renderer, unscaled_screen->texture, &src_rect, &dest_rect);
+  // //SDL_RenderCopy(renderer, unscaled_screen->texture, nullptr, nullptr);
+  // //Color colorx = Color(0xcf, 0x63, 0x63);
+  
+
   SDL_RenderPresent(renderer);
+}
+*/
+
+void
+VideoSDL::render_viewport() {
+  //// draw red square which scales with zoom
+  //Video::Color red = { 255,0,0,0 };
+  //fill_rect(0,200,200,200, red, screen);
+
+  // draw the scalable texture onto the unscaled texture, scaling it up to full size
+  SDL_SetRenderTarget(renderer, unscaled_screen->texture);
+  SDL_RenderCopy(renderer, screen->texture, nullptr, nullptr);
+}
+
+void
+VideoSDL::render_ui() {
+  //// draw green square that does NOT scale with zoom
+  //Video::Color green = { 0,255,0,0 };
+  //fill_rect(0,200,200,200, green, unscaled_screen);
+
+  // draw the unscaled texture to the window
+  SDL_SetRenderTarget(renderer, nullptr);
+  SDL_RenderCopy(renderer, unscaled_screen->texture, nullptr, nullptr);
+
+  // finalize rendering, this is irreversible
+  SDL_RenderPresent(renderer);
+}
+
+void
+VideoSDL::change_to_unscaled_render_target() {
+  SDL_SetRenderTarget(renderer, unscaled_screen->texture);
+  //SDL_RenderCopy(renderer, screen->texture, nullptr, nullptr);
+  SDL_Rect dest_rect = { 0, 0, 1920, 1057 };
+  unsigned int res_w = 0;
+  unsigned int res_h = 0;
+  get_resolution(&res_w, &res_h);
+  SDL_Rect src_rect = { 0, 0, int(res_w), int(res_h) };
+  int r = SDL_RenderCopy(renderer, screen->texture, &src_rect, &dest_rect);
 }
 
 // this sets the mouse pointer cursor, NOT the game/map cursor
@@ -448,28 +536,6 @@ VideoSDL::get_mouse_cursor_coord(int *x, int *y){
   //SDL_GetRelativeMouseState(x, y);  // "set to the mouse deltas since the last call to SDL_GetRelativeMouseState() or since event initialization"
 }
 
-//
-//  NOTES about attempt to scale Viewport separately from UI 
-//    https://github.com/forkserf/forkserf/issues/282
-//    https://stackoverflow.com/questions/328500/proper-way-to-scale-an-sdl-surface-without-clipping
-//
-// simpler explanation of below:
-//   "have a bool that determines if UI or no-UI sprite being drawn, if not UI scale each sprite when drawn according to zoom factor.  The Resolution never changes"
-//   "... and somehow avoid drawing anything that won't be seen"
-//
-//  try:
-//   - change the existing zoom logic to NOT change the resolution?  but somehow still only draw the Viewport elements
-//        that will actually be seen while zoomed (i.e don't waste time drawing anything that will end up outside the view when zoom applied)
-//        but instead of drawing to a small rectangle and using resolution scaling(?), change RenderCopy to RenderCopyEx and use dsrect
-//        to scale each drawn sprite according to the zoom factor, and draw onto the full window size, keeping the full resolution the entire time
-//  *****************************************************************************************************************************************************************
-//  TRY THIS FIRST BEFORE EVEN MESSING WITH UI DRAWING CHANGES.  SEE IF POSSIBLE TO GET SCALING WORKING ON ENTIRE GAME BY RenderCopyEx INSTEAD OF RESOLUTION SCALING!
-//  *****************************************************************************************************************************************************************
-//   - create a separate draw_image function for UI elements, have it use regular RenderCopy or just let dsrect be unscaled value
-//   - inside the normal draw_image function, somehow check to see if a UI element is being drawn? 
-//        a quick hack would be to set a global bool that is flipped on/off in Viewport::internal_draw() 
-//        and Viewport::draw_game_objects() when the UI elements are drawn
-//
 bool
 VideoSDL::set_zoom_factor(float factor) {
   if ((factor < 0.2f) || (factor > 1.f)) {

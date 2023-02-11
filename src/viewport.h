@@ -372,7 +372,7 @@ class Viewport : public GuiObject, public Map::Handler {
   void update();
 
   //virtual void store_prev_res();
-  virtual void store_prev_window_size();
+  virtual void store_prev_viewport_size();
   //void set_resize_tainted();
   //bool get_resize_tainted() { return resize_tainted; }
   virtual void recenter();

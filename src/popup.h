@@ -212,6 +212,8 @@ class PopupBox : public GuiObject {
   //int get_target_obj_index() { return target_obj_index; }
   void set_target_obj_index(int index) { target_obj_index = index; }
 
+  bool handle_drag(int x, int y); // testing movable popup  // moved from public Viewport::layout can call it when screen is resized
+
  protected:
   void draw_popup_box_frame();
   void draw_large_popup_box_frame();
@@ -305,7 +307,7 @@ class PopupBox : public GuiObject {
 
   void handle_action(int action, int x, int y);
   int handle_clickmap(int x, int y, const int clkmap[]);
-  bool handle_drag(int x, int y); // testing movable popup
+  //bool handle_drag(int x, int y); // testing movable popup  // moved to public Viewport::layout can call it when screen is resized
   bool handle_mouse_button_down(int x, int y, Event::Button button); // testing movable popup
 
   void handle_box_close_clk(int x, int y);

@@ -34,6 +34,8 @@ class Video::Frame {
   SDL_Texture *texture;
 
   Frame() : texture(NULL) {}
+ public:
+  SDL_Texture * get_texture() { return texture; }
 };
 
 class Video::Image {
@@ -68,6 +70,7 @@ class VideoSDL : public Video {
   SDL_Window *window;
   SDL_Renderer *renderer;
   Video::Frame *screen;
+  Video::Frame *unscaled_screen;
   bool fullscreen;
   SDL_Cursor *cursor;
   float zoom_factor;
@@ -85,6 +88,8 @@ class VideoSDL : public Video {
   virtual bool is_fullscreen();
 
   virtual Video::Frame *get_screen_frame();
+  virtual Video::Frame *get_unscaled_screen_frame();
+  virtual SDL_Texture *get_unscaled_screen_frame_texture();
   virtual Video::Frame *create_frame(unsigned int width, unsigned int height);
   virtual void destroy_frame(Video::Frame *frame);
 
@@ -107,7 +112,10 @@ class VideoSDL : public Video {
   virtual void draw_thick_line(int x, int y, int x1, int y1,
                          const Video::Color color, Video::Frame *dest);
 
-  virtual void swap_buffers();
+  //virtual void swap_buffers();
+  virtual void render_viewport();
+  virtual void render_ui();
+  virtual void change_to_unscaled_render_target();
 
   virtual void set_cursor(void *data, unsigned int width, unsigned int height);
   virtual void get_mouse_cursor_coord(int *x, int *y); // trying to center zoom around MOUSE POINTER cursor pos (not selected tile on map cursor)

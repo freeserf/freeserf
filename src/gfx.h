@@ -188,12 +188,17 @@ class Graphics {
 
   /* Screen functions */
   Frame *get_screen_frame();
+  Frame *get_unscaled_screen_frame();
+  SDL_Texture *get_unscaled_screen_frame_texture();
   void set_resolution(unsigned int width, unsigned int height, bool fullscreen);
   void get_resolution(unsigned int *width, unsigned int *height);
   void set_fullscreen(bool enable);
   bool is_fullscreen();
 
-  void swap_buffers();
+  //void swap_buffers();
+  void render_viewport();
+  void render_ui();
+  void change_to_unscaled_render_target();
 
   float get_zoom_factor();
   bool set_zoom_factor(float factor);

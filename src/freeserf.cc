@@ -131,6 +131,7 @@ main(int argc, char *argv[]) {
   //  "Assertion 'm' failed at pulse/mainloop.c:921, function pa_mainloop_iterate().  Aborting."
   int current_loglevel = Log::get_level();  // start of work-around
   Log::set_level(Log::Level(1));  // part of work-around
+  Log::set_level(Log::Level(current_loglevel));  // end of work-around
 
   // TODO move to right place //
   //  tlongstretch - I'm not sure what the "right place" is, the above was a note in Freeserf
