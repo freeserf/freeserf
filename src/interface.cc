@@ -348,6 +348,18 @@ Interface::open_game_init() {
   viewport->set_enabled(false);
   layout();
 
+  /* this doesn't work, even though it scales out properly the game-init box
+     buttons aren't clickable
+  // hack to avoid handling zoom for GameInit box, just reset zoom to zero for now
+  Graphics &gfx = Graphics::get_instance();
+  gfx.set_zoom_factor(1.0f);
+  int screen_width; 
+  int screen_height; 
+  gfx.get_screen_size(&screen_width, &screen_height);
+  gfx.set_resolution(screen_width, screen_height, gfx.is_fullscreen());
+  */
+
+  is_list_in_focus = true;  // make sure wheel moves loadgame list and not zooms when game init open
 }
 
 void
@@ -1000,7 +1012,12 @@ Interface::demolish_object() {
 
     // handle normal demo (either option_AdvancedDemolition is not enabled, or
     //                      the building type or state is not eligible for it)
-    play_sound(Audio::TypeSfxAhhh);
+    if (option_QuickDemoEmptyBuildSites && !building->is_done()){
+      // this building is not finished and QuickDemo is on, don't play Ahhh sound
+    }else{
+      // building is done or QuickDemo is not on
+      play_sound(Audio::TypeSfxAhhh);
+    }
     game->demolish_building(map_cursor_pos, player);
   } else {
     play_sound(Audio::TypeSfxNotAccepted);

@@ -4488,11 +4488,11 @@ PopupBox::handle_action(int action, int x_, int /*y_*/) {
     }
     break;
   case ACTION_DEFAULT_SETT_1:
-    interface->open_popup(TypeSett1);
+    //interface->open_popup(TypeSett1);
     player->reset_food_priority();
     break;
   case ACTION_DEFAULT_SETT_2:
-    interface->open_popup(TypeSett2);
+    //interface->open_popup(TypeSett2);
     player->reset_planks_priority();
     player->reset_steel_priority();
     break;
@@ -4559,7 +4559,7 @@ PopupBox::handle_action(int action, int x_, int /*y_*/) {
     sett_8_train(100);
     break;
   case ACTION_DEFAULT_SETT_3:
-    interface->open_popup(TypeSett3);
+    //interface->open_popup(TypeSett3);
     player->reset_coal_priority();
     player->reset_wheat_priority();
     break;
@@ -4630,7 +4630,7 @@ PopupBox::handle_action(int action, int x_, int /*y_*/) {
     set_box(TypeMap);
     break;
   case ACTION_DEFAULT_SETT_4:
-    interface->open_popup(TypeSett4);
+    //interface->open_popup(TypeSett4);
     player->reset_tool_priority();
     break;
   case ACTION_SHOW_PLAYER_FACES:

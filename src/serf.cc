@@ -6997,6 +6997,8 @@ Serf::update() {
   
   // corruption detection
   if (counter > 10000){
+  // this seems to happen to Farmers constantly, I think because with option_AdvancedFarming on they stay in their
+  //  buildings for long periods of time.  Either change that logic or ignore this for Farmers
     Log::Error["serf.cc"] << "inside Serf::update, serf with excessively high counter detected!  with index " << get_index() << " at pos " << get_pos() << " with type " << NameSerf[get_type()] << " and state name " << get_state_name(get_state()) << " has counter " << counter << " and animation " << animation;
     Log::Error["serf.cc"] << "inside Serf::update, serf with excessively high counter detected!  setting this serf counter to 0";
     counter = 0;
