@@ -2568,7 +2568,34 @@ PopupBox::draw_mine_output_box() {
                     0x24); /* meat (food) sprite */
   }
 
-  /* Calculate output percentage (simple WMA) */
+  // draw mine output as a histogram of success/failures
+  //  instead of the original percentage efficiency which
+  //   was somewhat confusing
+  draw_green_string(1, 14, "MINING OUTPUT:");
+  frame->fill_rect(35, 36, 75, 8, Color::black);
+  int output = 0;
+  for (int i = 0; i < 15; i++) {
+    // new logic to aid distinguishing new mines from depleted ones, and to aid drawing
+    //  of the new popup for mine output showing a bar chart histogram instead of efficiency percentage %
+    // re-use the 'threat_level' Building variable.  It starts at zero, increment it by one each time
+    //  increase_mining is called, capping it at 15 I guess for safety
+    // this value can be used by AI to determine if an expired mine is still around (though it doesn't use this yet)
+    // and for the mining output popup histogram to show no data instead of negative result for new mines
+    if (i >= building->get_threat_level()){
+      // don't draw a bar for this value
+      continue;
+    }
+    if (BIT_TEST(building->get_progress(), i)){
+      frame->fill_rect(106-(5*i), 36, 3, 8, Color::green);
+    }else{
+      frame->fill_rect(106-(5*i), 42, 3, 2, Color::red);
+    }
+  }
+  //draw_green_string(0, 37, "OLD");
+  //draw_green_string(13, 37, "NOW");
+
+  /*
+  // Calculate output percentage (simple WMA) 
   const int output_weight[] = { 10, 10, 9, 9, 8, 8, 7, 7,
                                  6,  6, 5, 5, 4, 3, 2, 1 };
   int output = 0;
@@ -2576,7 +2603,7 @@ PopupBox::draw_mine_output_box() {
     output += !!BIT_TEST(building->get_progress(), i) * output_weight[i];
   }
 
-  /* Print output precentage */
+  // Print output percentage
   int lx = 7;
   if (output >= 100) lx += 1;
   if (output >= 10) lx += 1;
@@ -2585,6 +2612,7 @@ PopupBox::draw_mine_output_box() {
 
   draw_green_string(1, 14, "MINING");
   draw_green_string(1, 24, "OUTPUT:");
+  */
 
   /* Exit box */
   draw_popup_icon(14, 128, 0x3c);

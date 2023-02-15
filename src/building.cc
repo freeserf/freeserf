@@ -37,7 +37,9 @@ Building::Building(Game *game, unsigned int index)
   //pending_demolition = false;  // for option_AdvancedDemolition  /* removing AdvancedDemolition for now, see https://github.com/forkserf/forkserf/issues/180*/
   flag = 0;
   playing_sfx = false;
-  threat_level = 0;  // 0 is safest/white flag, 3 is highest threat, thick cross
+  threat_level = 0;  // 0 is safest/white flag, 3 is highest threat, thick cross 
+      // ALSO RE-USED TO DETERMINE WHEN A NEW MINE BECAME ACTIVE
+      //  in this case, a new mine starts at "threat_level" 0 and increases by one each time a mining attempt is made, capping out at 15 as that is as far back as the tracking goes
   owner = 0;
   serf_requested = false;
   serf_request_failed = false;
@@ -216,6 +218,16 @@ Building::increase_mining(int res) {
   progress = (progress << 1) & 0xffff;
   if (res > 0) {
     progress++;
+  }
+
+  // new logic to aid distinguishing new mines from depleted ones, and to aid drawing
+  //  of the new popup for mine output showing a bar chart histogram instead of efficiency percentage %
+  // re-use the 'threat_level' Building variable.  It starts at zero, increment it by one each time
+  //  increase_mining is called, capping it at 15 I guess for safety
+  // this value can be used by AI to determine if an expired mine is still around (though it doesn't use this yet)
+  // and for the mining output popup histogram to show no data instead of negative result for new mines
+  if (threat_level < 15){
+    threat_level++;
   }
 }
 
