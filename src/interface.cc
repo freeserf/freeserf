@@ -308,21 +308,24 @@ Interface::pin_popup() {
 //  at the next game update (after the slow function completes)
 void
 Interface::draw_transient_popup() {
-  // find the correct base x/y to match normal popups
-  //   because the viewport->get_position call requires providing pointers to ints,
-  //   we must create those ints and pointers and then check them after the call
+  Graphics &gfx = Graphics::get_instance();
+ 
+  // updating this to draw onto unscaled UI frame, so first draw the viewport frame so we can draw overtop of it
+  gfx.render_viewport(); 
+
   int transient_popup_base_x = 0;
   int transient_popup_base_y = 0;
-  int *ptransient_popup_base_x = &transient_popup_base_x;
-  int *ptransient_popup_base_y = &transient_popup_base_y;
-  viewport->get_size(ptransient_popup_base_x, ptransient_popup_base_y);
-  transient_popup_base_x = *ptransient_popup_base_x / 2 - 72;
-  transient_popup_base_y = *ptransient_popup_base_y / 2 - 80;
+  //gfx.get_resolution(&transient_popup_base_x, &transient_popup_base_y);
+  gfx.get_screen_size(&transient_popup_base_x, &transient_popup_base_y);
+  transient_popup_base_x = transient_popup_base_x / 2 - 72;
+  transient_popup_base_y = transient_popup_base_y / 2 - 80;
   //
   // draw the popup
   //
-  Graphics &gfx = Graphics::get_instance();
-  Frame *frame = gfx.get_screen_frame();
+  //Graphics &gfx = Graphics::get_instance();  // moved earlier
+  //Frame *frame = gfx.get_screen_frame();  // now using unscaled UI frame
+  Frame *frame = gfx.get_unscaled_screen_frame();
+
   // draw background
   for (int iy = 0; iy < 144; iy += 16) {
     for (int ix = 0; ix < 16; ix += 2) {
@@ -339,7 +342,6 @@ Interface::draw_transient_popup() {
   frame->draw_string(transient_popup_base_x + 26, transient_popup_base_y + 30, "Please Wait", Color::green);
 
   //gfx.swap_buffers();
-  gfx.render_viewport();
   gfx.render_ui();
 }
 
