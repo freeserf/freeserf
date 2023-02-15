@@ -153,6 +153,7 @@ class Interface : public GuiObject, public GameManager::Handler {
   //void close_popup();
   //void close_popup(int x, int y);  // added coordinates to determine which pinned popup (if any) is being closed
   void close_popup(PopupBox *popup_to_close);  // close specific popup box
+  void close_pinned_popups();  // close ALL pinned popups
   void pin_popup();  // for moveable popups
   void draw_transient_popup(); // for PleaseWait notification popups that require no user action and disappear once complete, for slow functions
 

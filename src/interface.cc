@@ -264,6 +264,17 @@ Interface::close_popup(PopupBox *popup_to_close) {
   Log::Debug["popup.cc"] << "inside Interface::close_popup, closing 'the one' transient popup I";
 }
 
+// close all popups, now that there is no longer one single popup whose index is tied to player, it becomes
+//  possible to have popups open for multiple players, which is confusing I think
+void
+Interface::close_pinned_popups() {
+  Log::Debug["popup.cc"] << "inside Interface::close_pinned_popups";
+  for (PopupBox *pinned_popup : get_pinned_popup_boxes()){
+    close_popup(pinned_popup);
+  }
+  pinned_popups = {};
+}
+
 void
 Interface::pin_popup() {
   Log::Debug["popup.cc"] << "inside Interface::pin_popup";
@@ -1538,22 +1549,7 @@ Interface::handle_key_pressed(char key, int modifier) {
         }
       }
       else {
-        // close all popups, now that there is no longer one single popup whose index is tied to player, it becomes
-        //  possible to have popups open for multiple players, which is confusing I think
-        for (PopupBox *pinned_popup : get_pinned_popup_boxes()){
-          close_popup(pinned_popup);
-        }
-        /*    wait this style isn't needed because we don't need to prune specific popups
-        //     just delete all their objects and then empty the vector
-        //std::vector<PopupBox *>::iterator it = pinned_popups.begin();
-        //while (it != pinned_popups.end()){
-        //  del_float((*it));
-        //  delete (*it);
-        //  //it = pinned_popups.erase(it);
-        //}
-        */
-        pinned_popups = {};
-
+        close_pinned_popups();
         close_popup(popup);  // non-pinned "the one" popup
 
         set_player(next_index);
@@ -1721,6 +1717,7 @@ Interface::on_new_game(PGame new_game) {
 
 void
 Interface::on_end_game(PGame /*game*/) {
+  close_pinned_popups();
   set_game(nullptr);
 }
 
