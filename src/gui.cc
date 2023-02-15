@@ -104,16 +104,20 @@ GuiObject::draw(Frame *_frame) {
     // hack to draw unscaled UI elements over scaled viewport/game window
   if (is_drawing_ui == true){
     for (GuiObject *float_window : floats) {
-      if (float_window->get_objclass() == GuiObjClass::ClassPanelBar
-       || float_window->get_objclass() == GuiObjClass::ClassPopupBox
-       || float_window->get_objclass() == GuiObjClass::ClassGameInitBox
+      if (float_window->get_objclass() == GuiObjClass::ClassPanelBar || float_window->get_objclass() == GuiObjClass::ClassPopupBox
+       || float_window->get_objclass() == GuiObjClass::ClassGameInitBox || float_window->objclass == GuiObjClass::ClassNotificationBox
                  ){
-        //Log::Debug["gui.cc"] << "inside GuiObject::draw, drawing_ui true, this is UI element, drawing it";
+        //Log::Debug["gui.cc"] << "inside GuiObject::draw, float_window->objclass " << float_window->get_objclass() << ", is_drawing_ui is true, this is UI element, drawing it";
         if (float_window->frame == nullptr) {
           //Log::Debug["event_loop.cc"] << "inside GuiObject::draw, drawing_ui true, this is UI element, its internal frame is nullptr, creating it";
-          //float_window->frame = Graphics::get_instance().create_frame(float_window->width, float_window->height);
+          float_window->frame = Graphics::get_instance().create_frame(float_window->width, float_window->height);  // is this right?
           //float_window->frame = Graphics::get_instance().create_frame(352, 40);
-          float_window->frame = Graphics::get_instance().create_frame(1920, 1057);
+          //float_window->frame = Graphics::get_instance().create_frame(1920, 1057);
+          //int screen_width; 
+          //int screen_height; 
+          //Graphics &gfx = Graphics::get_instance();
+          //gfx.get_screen_size(&screen_width, &screen_height);
+          //float_window->frame = Graphics::get_instance().create_frame(screen_width, screen_height);
           float_window->internal_draw();
         }
         _frame->draw_frame(float_window->x, float_window->y, 0, 0, float_window->frame, float_window->width, float_window->height);
@@ -151,9 +155,9 @@ GuiObject::draw(Frame *_frame) {
     // do nothing here, drawn at start of this function (hack)
   }else{
     //Log::Debug["event_loop.cc"] << "inside GuiObject::draw, " << recursion_indicator << " this->objclass " << this->get_objclass() << " is_drawing_ui is false";
-    if (objclass == GuiObjClass::ClassPanelBar
-     || objclass == GuiObjClass::ClassPopupBox
-     || objclass == GuiObjClass::ClassGameInitBox
+    //Log::Debug["event_loop.cc"] << "inside GuiObject::draw, this->objclass " << this->get_objclass() << " is_drawing_ui is false";
+    if (objclass == GuiObjClass::ClassPanelBar || objclass == GuiObjClass::ClassPopupBox
+     || objclass == GuiObjClass::ClassGameInitBox || objclass == GuiObjClass::ClassNotificationBox
                  ){
       // don't draw
     }else{
@@ -227,7 +231,9 @@ GuiObject::handle_event(const Event *event) {
     }else{
       // for other objects, check the click coordinates
       //if (objclass == GuiObjClass::ClassPanelBar || objclass == GuiObjClass::ClassPopupBox){
-      if (objclass == GuiObjClass::ClassPanelBar || objclass == GuiObjClass::ClassPopupBox || objclass == GuiObjClass::ClassGameInitBox){
+      if (objclass == GuiObjClass::ClassPanelBar || objclass == GuiObjClass::ClassPopupBox
+       || objclass == GuiObjClass::ClassGameInitBox || objclass == GuiObjClass::ClassNotificationBox
+              ){
         if (event_unscaled_x < 0 || event_unscaled_y < 0 || event_unscaled_x > width || event_unscaled_y > height) {
           // mouse pos is outside this gui object area
           in_scope = false;
@@ -423,7 +429,9 @@ GuiObject::handle_event(const Event *event) {
       Log::Debug["gui.cc"] << "inside GuiObject::handle_event with event type " << NameGuiObjEvent[event->type] << " and objclass " << NameGuiObjClass[objclass] << " and objtype " << get_objtype() << " calling 'result = handle_left_click' event->x/y " << event->x << "/" << event->y << ", event_x/y " << event_x << "/" << event_y << ", unscaled_x/y " << event->unscaled_x << "/" << event->unscaled_y;
       // test new scaling
       //if (objclass == GuiObjClass::ClassPanelBar || objclass == GuiObjClass::ClassPopupBox){
-      if (objclass == GuiObjClass::ClassPanelBar || objclass == GuiObjClass::ClassPopupBox || objclass == GuiObjClass::ClassGameInitBox){
+      if (objclass == GuiObjClass::ClassPanelBar || objclass == GuiObjClass::ClassPopupBox
+       || objclass == GuiObjClass::ClassGameInitBox || objclass == GuiObjClass::ClassNotificationBox
+                  ){
         Log::Debug["gui.cc"] << "inside GuiObject::handle_event with event type " << event->type << " / " << NameGuiObjEvent[event->type] << " and objclass " << get_objclass() << " / " << NameGuiObjClass[get_objclass()] << ", USING UNSCALED x/y " << event->unscaled_x << "/" << event->unscaled_y;
         result = handle_left_click(event_unscaled_x, event_unscaled_y, event->dy);
       }else{
