@@ -104,15 +104,20 @@ GuiObject::draw(Frame *_frame) {
     // hack to draw unscaled UI elements over scaled viewport/game window
   if (is_drawing_ui == true){
     for (GuiObject *float_window : floats) {
-      if (float_window->get_objclass() == GuiObjClass::ClassPanelBar
-       || float_window->get_objclass() == GuiObjClass::ClassPopupBox
+      if (float_window->get_objclass() == GuiObjClass::ClassPanelBar || float_window->get_objclass() == GuiObjClass::ClassPopupBox
+       || float_window->get_objclass() == GuiObjClass::ClassGameInitBox || float_window->objclass == GuiObjClass::ClassNotificationBox
                  ){
-        //Log::Debug["gui.cc"] << "inside GuiObject::draw, drawing_ui true, this is UI element, drawing it";
+        //Log::Debug["gui.cc"] << "inside GuiObject::draw, float_window->objclass " << float_window->get_objclass() << ", is_drawing_ui is true, this is UI element, drawing it";
         if (float_window->frame == nullptr) {
           //Log::Debug["event_loop.cc"] << "inside GuiObject::draw, drawing_ui true, this is UI element, its internal frame is nullptr, creating it";
-          //float_window->frame = Graphics::get_instance().create_frame(float_window->width, float_window->height);
+          float_window->frame = Graphics::get_instance().create_frame(float_window->width, float_window->height);  // is this right?
           //float_window->frame = Graphics::get_instance().create_frame(352, 40);
-          float_window->frame = Graphics::get_instance().create_frame(1920, 1057);
+          //float_window->frame = Graphics::get_instance().create_frame(1920, 1057);
+          //int screen_width; 
+          //int screen_height; 
+          //Graphics &gfx = Graphics::get_instance();
+          //gfx.get_screen_size(&screen_width, &screen_height);
+          //float_window->frame = Graphics::get_instance().create_frame(screen_width, screen_height);
           float_window->internal_draw();
         }
         _frame->draw_frame(float_window->x, float_window->y, 0, 0, float_window->frame, float_window->width, float_window->height);
@@ -150,8 +155,9 @@ GuiObject::draw(Frame *_frame) {
     // do nothing here, drawn at start of this function (hack)
   }else{
     //Log::Debug["event_loop.cc"] << "inside GuiObject::draw, " << recursion_indicator << " this->objclass " << this->get_objclass() << " is_drawing_ui is false";
-    if (objclass == GuiObjClass::ClassPanelBar
-     || objclass == GuiObjClass::ClassPopupBox
+    //Log::Debug["event_loop.cc"] << "inside GuiObject::draw, this->objclass " << this->get_objclass() << " is_drawing_ui is false";
+    if (objclass == GuiObjClass::ClassPanelBar || objclass == GuiObjClass::ClassPopupBox
+     || objclass == GuiObjClass::ClassGameInitBox || objclass == GuiObjClass::ClassNotificationBox
                  ){
       // don't draw
     }else{
@@ -224,7 +230,10 @@ GuiObject::handle_event(const Event *event) {
       // viewport is always in scope
     }else{
       // for other objects, check the click coordinates
-      if (objclass == GuiObjClass::ClassPanelBar || objclass == GuiObjClass::ClassPopupBox){
+      //if (objclass == GuiObjClass::ClassPanelBar || objclass == GuiObjClass::ClassPopupBox){
+      if (objclass == GuiObjClass::ClassPanelBar || objclass == GuiObjClass::ClassPopupBox
+       || objclass == GuiObjClass::ClassGameInitBox || objclass == GuiObjClass::ClassNotificationBox
+              ){
         if (event_unscaled_x < 0 || event_unscaled_y < 0 || event_unscaled_x > width || event_unscaled_y > height) {
           // mouse pos is outside this gui object area
           in_scope = false;
@@ -367,40 +376,15 @@ GuiObject::handle_event(const Event *event) {
   //   this is so the add_float function create additional sub-floats for popups the have multiple
   //   float components such as minimap, save/load game, anything with a text input
   //  
-  //int floats_size = floats.size();
-  //int floats_i = 0;
   FloatList::reverse_iterator fl = floats.rbegin();
   for ( ; fl != floats.rend() ; ++fl) {
-    //floats_i++;
-    //Log::Debug["event_loop.cc"] << "inside GuiObject::handle_event for fl with objclass " << int((*fl)->get_objclass()) << " and objtype " << int((*fl)->get_objtype());
-    // failed attempt to only zoom the viewport, not the UI elements
-    //if ((internal_event.type == Event::TypeZoom || internal_event.type == Event::TypeResize)
-    // && (*fl)->get_objclass() != GuiObjClass::ClassViewport){
-    //  Log::Debug["event_loop.cc"] << "inside GuiObject::handle_event, not zooming non-Viewport float";
-    //  skip_event = true;
-    //  continue;
-      //return false;
-    //}
-    //if (skip_event && (*fl) == this){
-    //  Log::Debug["event_loop.cc"] << "inside GuiObject::handle_event for fl with objclass " << int((*fl)->get_objclass()) << " and objtype " << int((*fl)->get_objtype()) << " this fl is the current object and is marked skip_event";
-    //  continue;
-    //}
-
-    //Log::Debug["gui.cc"] << "inside GuiObject::handle_event for fl,  floats_size " << floats_size << ", floats_i " << floats_i;
-    //if (floats_i > floats_size){
-    //  // don't handle the last one
-    //  break;
-    //}
-
+    Log::Debug["event_loop.cc"] << "inside GuiObject::handle_event for fl with objclass " << int((*fl)->get_objclass()) << " and objtype " << int((*fl)->get_objtype());
     Log::Debug["gui.cc"] << "inside GuiObject::handle_event for fl with objclass " << int((*fl)->get_objclass()) << " and objtype " << int((*fl)->get_objtype()) << ", calling handle_event for this fl";
     bool result = (*fl)->handle_event(&internal_event);
     if (result != 0) {
       // stop checking other floats as one seems to have handled this
       Log::Debug["gui.cc"] << "inside GuiObject::handle_event for fl with objclass " << int((*fl)->get_objclass()) << " and objtype " << int((*fl)->get_objtype()) << " returning float element result";
       return result; 
-      ////trying NOT returning early
-      // THIS DOES NOT WORK... not exactly sure why
-      //Log::Debug["gui.cc"] << "inside GuiObject::handle_event for fl with objclass " << int((*fl)->get_objclass()) << " and objtype " << int((*fl)->get_objtype()) << " NOT RETURNING EARLY";
     }else{
       // check next float
       Log::Debug["gui.cc"] << "inside GuiObject::handle_event for fl with objclass " << int((*fl)->get_objclass()) << " and objtype " << int((*fl)->get_objtype()) << " returned false, continuing";
@@ -418,8 +402,10 @@ GuiObject::handle_event(const Event *event) {
     case Event::TypeLeftClick:
       Log::Debug["gui.cc"] << "inside GuiObject::handle_event with event type " << NameGuiObjEvent[event->type] << " and objclass " << NameGuiObjClass[objclass] << " and objtype " << get_objtype() << " calling 'result = handle_left_click' with event->dy " << event->dy;
       Log::Debug["gui.cc"] << "inside GuiObject::handle_event with event type " << NameGuiObjEvent[event->type] << " and objclass " << NameGuiObjClass[objclass] << " and objtype " << get_objtype() << " calling 'result = handle_left_click' event->x/y " << event->x << "/" << event->y << ", event_x/y " << event_x << "/" << event_y << ", unscaled_x/y " << event->unscaled_x << "/" << event->unscaled_y;
-      // test new scaling
-      if (objclass == GuiObjClass::ClassPanelBar || objclass == GuiObjClass::ClassPopupBox){
+      // new fixed UI scaling
+      if (objclass == GuiObjClass::ClassPanelBar || objclass == GuiObjClass::ClassPopupBox
+       || objclass == GuiObjClass::ClassGameInitBox || objclass == GuiObjClass::ClassNotificationBox
+                  ){
         Log::Debug["gui.cc"] << "inside GuiObject::handle_event with event type " << event->type << " / " << NameGuiObjEvent[event->type] << " and objclass " << get_objclass() << " / " << NameGuiObjClass[get_objclass()] << ", USING UNSCALED x/y " << event->unscaled_x << "/" << event->unscaled_y;
         result = handle_left_click(event_unscaled_x, event_unscaled_y, event->dy);
       }else{
@@ -441,13 +427,19 @@ GuiObject::handle_event(const Event *event) {
       result = handle_click_right(event_x, event_y);
       break;
     case Event::TypeDoubleClick:
+      Log::Debug["gui.cc"] << "inside GuiObject::handle_event with event type " << NameGuiObjEvent[event->type] << " and objclass " << NameGuiObjClass[objclass] << " and objtype " << get_objtype() << " calling 'handle_double_click'";
       result = handle_dbl_click(event_x, event_y, event->button);
+      Log::Debug["gui.cc"] << "inside GuiObject::handle_event with event type " << NameGuiObjEvent[event->type] << " and objclass " << NameGuiObjClass[objclass] << " and objtype " << get_objtype() << " called 'handle_double_click'";
       break;
     case Event::TypeMiddleClick:
+      Log::Debug["gui.cc"] << "inside GuiObject::handle_event with event type " << NameGuiObjEvent[event->type] << " and objclass " << NameGuiObjClass[objclass] << " and objtype " << get_objtype() << " calling 'handle_middle_click'";
       result = handle_special_click(event_x, event_y);
+      Log::Debug["gui.cc"] << "inside GuiObject::handle_event with event type " << NameGuiObjEvent[event->type] << " and objclass " << NameGuiObjClass[objclass] << " and objtype " << get_objtype() << " called 'handle_middle_click'";
       break;
     case Event::TypeSpecialClick:
+      Log::Debug["gui.cc"] << "inside GuiObject::handle_event with event type " << NameGuiObjEvent[event->type] << " and objclass " << NameGuiObjClass[objclass] << " and objtype " << get_objtype() << " calling 'handle_special_click'";
       result = handle_special_click(event_x, event_y);
+      Log::Debug["gui.cc"] << "inside GuiObject::handle_event with event type " << NameGuiObjEvent[event->type] << " and objclass " << NameGuiObjClass[objclass] << " and objtype " << get_objtype() << " called 'handle_special_click'";
       break;
     case Event::TypeKeyPressed:
       result = handle_key_pressed(event->dx, event->dy);

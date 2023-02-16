@@ -264,6 +264,17 @@ Interface::close_popup(PopupBox *popup_to_close) {
   Log::Debug["popup.cc"] << "inside Interface::close_popup, closing 'the one' transient popup I";
 }
 
+// close all popups, now that there is no longer one single popup whose index is tied to player, it becomes
+//  possible to have popups open for multiple players, which is confusing I think
+void
+Interface::close_pinned_popups() {
+  Log::Debug["popup.cc"] << "inside Interface::close_pinned_popups";
+  for (PopupBox *pinned_popup : get_pinned_popup_boxes()){
+    close_popup(pinned_popup);
+  }
+  pinned_popups = {};
+}
+
 void
 Interface::pin_popup() {
   Log::Debug["popup.cc"] << "inside Interface::pin_popup";
@@ -297,21 +308,24 @@ Interface::pin_popup() {
 //  at the next game update (after the slow function completes)
 void
 Interface::draw_transient_popup() {
-  // find the correct base x/y to match normal popups
-  //   because the viewport->get_position call requires providing pointers to ints,
-  //   we must create those ints and pointers and then check them after the call
+  Graphics &gfx = Graphics::get_instance();
+ 
+  // updating this to draw onto unscaled UI frame, so first draw the viewport frame so we can draw overtop of it
+  gfx.render_viewport(); 
+
   int transient_popup_base_x = 0;
   int transient_popup_base_y = 0;
-  int *ptransient_popup_base_x = &transient_popup_base_x;
-  int *ptransient_popup_base_y = &transient_popup_base_y;
-  viewport->get_size(ptransient_popup_base_x, ptransient_popup_base_y);
-  transient_popup_base_x = *ptransient_popup_base_x / 2 - 72;
-  transient_popup_base_y = *ptransient_popup_base_y / 2 - 80;
+  //gfx.get_resolution(&transient_popup_base_x, &transient_popup_base_y);
+  gfx.get_screen_size(&transient_popup_base_x, &transient_popup_base_y);
+  transient_popup_base_x = transient_popup_base_x / 2 - 72;
+  transient_popup_base_y = transient_popup_base_y / 2 - 80;
   //
   // draw the popup
   //
-  Graphics &gfx = Graphics::get_instance();
-  Frame *frame = gfx.get_screen_frame();
+  //Graphics &gfx = Graphics::get_instance();  // moved earlier
+  //Frame *frame = gfx.get_screen_frame();  // now using unscaled UI frame
+  Frame *frame = gfx.get_unscaled_screen_frame();
+
   // draw background
   for (int iy = 0; iy < 144; iy += 16) {
     for (int ix = 0; ix < 16; ix += 2) {
@@ -328,7 +342,6 @@ Interface::draw_transient_popup() {
   frame->draw_string(transient_popup_base_x + 26, transient_popup_base_y + 30, "Please Wait", Color::green);
 
   //gfx.swap_buffers();
-  gfx.render_viewport();
   gfx.render_ui();
 }
 
@@ -348,6 +361,18 @@ Interface::open_game_init() {
   viewport->set_enabled(false);
   layout();
 
+  /* this doesn't work, even though it scales out properly the game-init box
+     buttons aren't clickable
+  // hack to avoid handling zoom for GameInit box, just reset zoom to zero for now
+  Graphics &gfx = Graphics::get_instance();
+  gfx.set_zoom_factor(1.0f);
+  int screen_width; 
+  int screen_height; 
+  gfx.get_screen_size(&screen_width, &screen_height);
+  gfx.set_resolution(screen_width, screen_height, gfx.is_fullscreen());
+  */
+
+  is_list_in_focus = true;  // make sure wheel moves loadgame list and not zooms when game init open
 }
 
 void
@@ -1000,7 +1025,12 @@ Interface::demolish_object() {
 
     // handle normal demo (either option_AdvancedDemolition is not enabled, or
     //                      the building type or state is not eligible for it)
-    play_sound(Audio::TypeSfxAhhh);
+    if (option_QuickDemoEmptyBuildSites && !building->is_done()){
+      // this building is not finished and QuickDemo is on, don't play Ahhh sound
+    }else{
+      // building is done or QuickDemo is not on
+      play_sound(Audio::TypeSfxAhhh);
+    }
     game->demolish_building(map_cursor_pos, player);
   } else {
     play_sound(Audio::TypeSfxNotAccepted);
@@ -1485,6 +1515,7 @@ Interface::handle_key_pressed(char key, int modifier) {
       break;
     }
 
+/* disabling this as I am not using it now
     // debugging function to "boot" clicked serf by making them Lost (only works for AI players currently)
     case 'l': {
       if (modifier & 1) {
@@ -1497,6 +1528,51 @@ Interface::handle_key_pressed(char key, int modifier) {
           ai_ptr->set_serf_lost();
         }
       }
+    }
+*/
+
+    // open popup for next Mine (for this player), for conveniently cycling through all player's mines (to check for expiry)
+    case 'i': {
+      Log::Info["interface.cc"] << "'i' key pressed, opening next mine popup";
+      int current_mine_index = 0;
+      int next_mine_index = 0;
+      if (get_popup_box() != nullptr){
+        if (get_popup_box()->get_box() == PopupBox::TypeMineOutput){
+          current_mine_index = get_popup_box()->get_target_obj_index();
+          Log::Debug["interface.cc"] << "'i' key pressed, opening next mine popup, an existing MineOutput popup already open, with building index " << current_mine_index;
+        }
+      }
+      // find the next mine (after this one, if one already selected)
+      for (Building *building : game->get_player_buildings(player)) {
+        if (building->get_index() > current_mine_index){
+          if (building->get_type() >= Building::TypeStoneMine && building->get_type() <= Building::TypeGoldMine
+           && building->is_done() && !building->is_burning() && building->has_serf()) {
+            next_mine_index = building->get_index();
+            break;
+          }
+        }
+      }
+      // loop back around if not starting from the beginning, if another not found yet
+      if (current_mine_index > 0 && next_mine_index == 0){
+        for (Building *building : game->get_player_buildings(player)) {
+          if (building->get_index() >= current_mine_index){
+            // no other active mine could be found
+            break;
+          }
+          if (building->get_type() >= Building::TypeStoneMine && building->get_type() <= Building::TypeGoldMine
+           && building->is_done() && !building->is_burning() && building->has_serf()) {
+            next_mine_index = building->get_index();
+            break;
+          }
+        }
+      }
+      if (next_mine_index > 0){
+        open_popup(PopupBox::TypeMineOutput);
+        get_popup_box()->set_target_obj_index(next_mine_index);
+      }else{
+        play_sound(Audio::TypeSfxNotAccepted);
+      }
+      break;
     }
 
     case 'j': {
@@ -1521,22 +1597,7 @@ Interface::handle_key_pressed(char key, int modifier) {
         }
       }
       else {
-        // close all popups, now that there is no longer one single popup whose index is tied to player, it becomes
-        //  possible to have popups open for multiple players, which is confusing I think
-        for (PopupBox *pinned_popup : get_pinned_popup_boxes()){
-          close_popup(pinned_popup);
-        }
-        /*    wait this style isn't needed because we don't need to prune specific popups
-        //     just delete all their objects and then empty the vector
-        //std::vector<PopupBox *>::iterator it = pinned_popups.begin();
-        //while (it != pinned_popups.end()){
-        //  del_float((*it));
-        //  delete (*it);
-        //  //it = pinned_popups.erase(it);
-        //}
-        */
-        pinned_popups = {};
-
+        close_pinned_popups();
         close_popup(popup);  // non-pinned "the one" popup
 
         set_player(next_index);
@@ -1704,6 +1765,7 @@ Interface::on_new_game(PGame new_game) {
 
 void
 Interface::on_end_game(PGame /*game*/) {
+  close_pinned_popups();
   set_game(nullptr);
 }
 

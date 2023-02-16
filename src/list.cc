@@ -177,7 +177,7 @@ bool
 ListSavedFiles::handle_focus_loose() {
   //Log::Debug["list.cc"] << "inside ListSavedFiles::handle_focus_loose";
   focused = false;
-  is_list_in_focus = false;
+  //is_list_in_focus = false;  // keep this true as long as the game init box is still open, it will be unset when closed
   set_redraw();
   return true;
 }

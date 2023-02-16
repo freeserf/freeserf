@@ -2252,6 +2252,12 @@ AI::do_demolish_unproductive_mines() {
     //  which will leave only the most recent 6 miner runs.  If any positive value remains then at
     //  least one of the past 6 runs was successful, if not - demolish the mine!
     // 
+    //  ---------------- UPDATE! feb 2023 --------------------------
+    // re-using the Building threat_level variable to indicate if a mine has ever been active, 0 is a new mine, sets to 1 once a resource successfully mined
+    //   this can now be used to distinguish a new mine from a depleted one more definitively
+    //  note this will be set to 2 once the first success reaches the "end of the last 16 samples" for visual purposes in the drawing mine efficiency box
+    //   THIS LOGIC IS NOT ADDED TO AI YET, ADD IT BELOW AT SOME POINT!
+    // -----------------------------------------------------------------------
     int recently_found_res = building->get_progress() & 63; // wipe the leftmost bits, keep only the rightmost 6 bits
     if (recently_found_res){  // if any bits still positive in last 6 results
       AILogDebug["do_demolish_unproductive_mines"] << "mine of type " << NameBuilding[building_type] << " at pos " << building_pos << " has 'progress' " << std::bitset<16>(building->get_progress()) << " has recent success, not demolishing";

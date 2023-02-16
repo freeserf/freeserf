@@ -112,6 +112,8 @@ class Building : public GameObject {
   //bool pending_demolition; // for option_AdvancedDemolition    /* removing AdvancedDemolition for now, see https://github.com/forkserf/forkserf/issues/180*/
   /* Flags */
   size_t threat_level;  // 0 is safest/white flag, 3 is highest threat, thick cross
+                        // THIS IS ALSO BEING RE-USED for tracking if a mine has ever mined a resource, to distinguish between a new mine and a totally depleted one
+                        //  in this case, a new mine starts at "threat_level" 0 and increases by one each time a mining attempt is made, capping out at 15 as that is as far back as the tracking goes
   bool playing_sfx;
   bool serf_request_failed;
   bool serf_requested;
@@ -172,7 +174,9 @@ class Building : public GameObject {
 
   /* The threat level of the building. Higher values mean that
    the building is closer to the enemy. */
-  size_t get_threat_level() const { return threat_level; }  // 0 is safest/white flag, 3 is highest threat, thick cross
+  // ALSO RE-USED TO DETERMINE IF A MINE HAS EVER BEEN ACTIVE
+  //  in this case, a new mine starts at "threat_level" 0 and increases by one each time a mining attempt is made, capping out at 15 as that is as far back as the tracking goes
+  size_t get_threat_level() const { return threat_level; }  // 0 is safest/white flag, 3 is highest threat, thick cross  
   /* Building is currently playing back a sound effect. */
   //
   // THESE FUNCTION NAMES ARE MISLEADING:
