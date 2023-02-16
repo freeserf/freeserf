@@ -365,6 +365,7 @@ GameInitBox::handle_action(int action) {
           return;
         }
         play_sound(Audio::TypeSfxAccepted);
+        interface->clear_custom_graphics_cache();
         if (!GameManager::get_instance().load_game(path)) {
           return;
         }

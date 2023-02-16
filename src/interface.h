@@ -277,6 +277,8 @@ class Interface : public GuiObject, public GameManager::Handler {
   bool is_playing_desertsfx;
   int water_in_view;
   bool is_playing_watersfx;
+
+  void clear_custom_graphics_cache();  // for messing with weather/seasons/palette  // moved from protected
   
 
  protected:
@@ -307,7 +309,7 @@ class Interface : public GuiObject, public GameManager::Handler {
   double slider_mineral_uint16_to_int_to_double(uint16_t val){ return double(int(val / 7277)); }  // convert to int midway so there are no fractional values
   uint16_t slider_mineral_double_to_uint16(double val){ return uint16_t(val * 7278); }
 
-  void clear_custom_graphics_cache();  // for messing with weather/seasons/palette
+  //void clear_custom_graphics_cache();  // for messing with weather/seasons/palette  // moved to public
 
   // GameManager::Handler implementation
  public:
