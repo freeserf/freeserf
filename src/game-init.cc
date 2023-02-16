@@ -358,6 +358,12 @@ GameInitBox::handle_action(int action) {
   switch (action) {
     case ActionStartGame: {
       is_list_in_focus = false;  // another hack, to restore normal zoom once game starts
+      interface->close_pinned_popups();  // close any popups from any previous game
+      // and close 'the one' popup too if open
+      if (interface->get_popup_box() != nullptr){
+        interface->close_popup(interface->get_popup_box());
+      }
+
       if (game_type == GameLoad) {
         std::string path = file_list->get_selected();
         if (path == ""){

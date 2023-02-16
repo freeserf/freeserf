@@ -1765,7 +1765,7 @@ Interface::on_new_game(PGame new_game) {
 
 void
 Interface::on_end_game(PGame /*game*/) {
-  close_pinned_popups();
+  //close_pinned_popups();  // move to set_game
   set_game(nullptr);
 }
 
