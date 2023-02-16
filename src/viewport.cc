@@ -4396,16 +4396,20 @@ Viewport::handle_special_click(int lx, int ly) {
     being_dragged = false;
     //return false; // allow click after drag otherwise it makes the UI feel unresponsive
   }
-  //Log::Debug["viewport.cc"] << "inside Viewport::handle_special_click()";
+  Log::Debug["viewport.cc"] << "inside Viewport::handle_special_click()";
   set_redraw();
 
   Player *player = interface->get_player();
 
+  /* NO CANNOT DO THIS, need to be able to re-target a popup as this is the original behavior
+  // what problem was I trying to solve here?  wondering if this was a work-around to some
+  //  bad behavior, but it seems okay to me so far since removing this
   if (interface->get_popup_box() != nullptr){
     // a popup is currently open, ignore special-clicks as
     //  they only interfere
     return false;
   }
+  */
 
   MapPos clk_pos = map_pos_from_screen_pix(lx, ly);
 
@@ -4450,11 +4454,14 @@ Viewport::handle_special_click(int lx, int ly) {
 
       //player->popup_target_obj_index = map->get_obj_index(clk_pos);
     } else { /* Building */
+      Log::Debug["viewport.cc"] << "inside Viewport::handle_special_click(), clicked a building";
       Building *building = interface->get_game()->get_building_at_pos(clk_pos);
       if ((building == nullptr) || building->is_burning()) {
+        Log::Debug["viewport.cc"] << "inside Viewport::handle_special_click(), building is nullptr";
         return false;
       }
       if (map->get_owner(clk_pos) == player->get_index()) {
+        Log::Debug["viewport.cc"] << "inside Viewport::handle_special_click(), this pos owned by player";
         if (!building->is_done()) {
           interface->open_popup(PopupBox::TypeOrderedBld);
         } else if (building->get_type() == Building::TypeCastle) {
@@ -4477,7 +4484,10 @@ Viewport::handle_special_click(int lx, int ly) {
 
         //player->popup_target_obj_index = map->get_obj_index(clk_pos);
         if(interface->get_popup_box() != nullptr){
+          Log::Debug["viewport.cc"] << "inside Viewport::handle_special_click() on a building, setting new target";
           interface->get_popup_box()->set_target_obj_index(map->get_obj_index(clk_pos));
+        }else{
+          Log::Debug["viewport.cc"] << "inside Viewport::handle_special_click() on a building, popup is nullptr, not doing anything?";
         }
       } else { /* Foreign building */
         /* TODO handle coop mode*/
