@@ -68,12 +68,12 @@ Save games
 ----------
 To load a save game file:
 
-`$ freeserf -l FILE`
+`$ Forkserf -l FILE`
 
 Freeserf will (try to) load save games from the original game, as well as saves from freeserf itself.
 The game is paused after loading so press `p` to start the game.
 
-Run `freeserf -h` for more info on command line options.
+Run `Forkserf -h` for more info on command line options.
 
 
 Bugs
