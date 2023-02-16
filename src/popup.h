@@ -209,7 +209,7 @@ class PopupBox : public GuiObject {
   void show(Type box);
   void hide();
 
-  //int get_target_obj_index() { return target_obj_index; }
+  int get_target_obj_index() { return target_obj_index; }
   void set_target_obj_index(int index) { target_obj_index = index; }
 
   bool handle_drag(int x, int y); // testing movable popup  // moved from public Viewport::layout can call it when screen is resized

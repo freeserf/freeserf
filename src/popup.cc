@@ -2461,7 +2461,7 @@ PopupBox::draw_castle_res_box() {
 
 void
 PopupBox::draw_mine_output_box() {
-  Log::Debug["popup.cc"] << "inside PopupBox::draw_mine_output_box";
+  //Log::Debug["popup.cc"] << "inside PopupBox::draw_mine_output_box";
   draw_box_background(PatternPlaidAlongGreen);
 
   Building *building = interface->get_game()->get_building(target_obj_index);

@@ -1515,6 +1515,7 @@ Interface::handle_key_pressed(char key, int modifier) {
       break;
     }
 
+/* disabling this as I am not using it now
     // debugging function to "boot" clicked serf by making them Lost (only works for AI players currently)
     case 'l': {
       if (modifier & 1) {
@@ -1527,6 +1528,51 @@ Interface::handle_key_pressed(char key, int modifier) {
           ai_ptr->set_serf_lost();
         }
       }
+    }
+*/
+
+    // open popup for next Mine (for this player), for conveniently cycling through all player's mines (to check for expiry)
+    case 'i': {
+      Log::Info["interface.cc"] << "'i' key pressed, opening next mine popup";
+      int current_mine_index = 0;
+      int next_mine_index = 0;
+      if (get_popup_box() != nullptr){
+        if (get_popup_box()->get_box() == PopupBox::TypeMineOutput){
+          current_mine_index = get_popup_box()->get_target_obj_index();
+          Log::Debug["interface.cc"] << "'i' key pressed, opening next mine popup, an existing MineOutput popup already open, with building index " << current_mine_index;
+        }
+      }
+      // find the next mine (after this one, if one already selected)
+      for (Building *building : game->get_player_buildings(player)) {
+        if (building->get_index() > current_mine_index){
+          if (building->get_type() >= Building::TypeStoneMine && building->get_type() <= Building::TypeGoldMine
+           && building->is_done() && !building->is_burning() && building->has_serf()) {
+            next_mine_index = building->get_index();
+            break;
+          }
+        }
+      }
+      // loop back around if not starting from the beginning, if another not found yet
+      if (current_mine_index > 0 && next_mine_index == 0){
+        for (Building *building : game->get_player_buildings(player)) {
+          if (building->get_index() >= current_mine_index){
+            // no other active mine could be found
+            break;
+          }
+          if (building->get_type() >= Building::TypeStoneMine && building->get_type() <= Building::TypeGoldMine
+           && building->is_done() && !building->is_burning() && building->has_serf()) {
+            next_mine_index = building->get_index();
+            break;
+          }
+        }
+      }
+      if (next_mine_index > 0){
+        open_popup(PopupBox::TypeMineOutput);
+        get_popup_box()->set_target_obj_index(next_mine_index);
+      }else{
+        play_sound(Audio::TypeSfxNotAccepted);
+      }
+      break;
     }
 
     case 'j': {
