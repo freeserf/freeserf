@@ -411,17 +411,14 @@ GuiObject::handle_event(const Event *event) {
       }else{
         result = handle_left_click(event_x, event_y, event->dy);
       }
-      Log::Debug["gui.cc"] << "inside GuiObject::handle_event with event type " << NameGuiObjEvent[event->type] << " and objclass " << NameGuiObjClass[objclass] << " and objtype " << get_objtype() << " called 'result = handle_left_click', result was " << result;
       break;
     case Event::TypeMouseButtonDown:
       Log::Debug["gui.cc"] << "inside GuiObject::handle_event with event type " << NameGuiObjEvent[event->type] << " and objclass " << NameGuiObjClass[objclass] << " and objtype " << get_objtype() << " calling 'result = handle_mouse_button_down' with event->dx " << event->dx << " and event->dy " << event->dy;
       result = handle_mouse_button_down(event->dx, event->dy, event->button);
-      Log::Debug["gui.cc"] << "inside GuiObject::handle_event with event type " << NameGuiObjEvent[event->type] << " and objclass " << NameGuiObjClass[objclass] << " and objtype " << get_objtype() << " called 'result = handle_mouse_button_down', result was " << result;
       break;
     case Event::TypeDrag:
       Log::Debug["gui.cc"] << "inside GuiObject::handle_event with event type " << NameGuiObjEvent[event->type] << " and objclass " << NameGuiObjClass[objclass] << " and objtype " << get_objtype() << " calling 'result = handle_drag' with event->dx " << event->dx << " and event->dy " << event->dy;
       result = handle_drag(event->dx, event->dy);
-      Log::Debug["gui.cc"] << "inside GuiObject::handle_event with event type " << NameGuiObjEvent[event->type] << " and objclass " << NameGuiObjClass[objclass] << " and objtype " << get_objtype() << " called 'result = handle_drag', result was " << result;
       break;
     case Event::TypeRightClick:
       result = handle_click_right(event_x, event_y);
@@ -429,17 +426,14 @@ GuiObject::handle_event(const Event *event) {
     case Event::TypeDoubleClick:
       Log::Debug["gui.cc"] << "inside GuiObject::handle_event with event type " << NameGuiObjEvent[event->type] << " and objclass " << NameGuiObjClass[objclass] << " and objtype " << get_objtype() << " calling 'handle_double_click'";
       result = handle_dbl_click(event_x, event_y, event->button);
-      Log::Debug["gui.cc"] << "inside GuiObject::handle_event with event type " << NameGuiObjEvent[event->type] << " and objclass " << NameGuiObjClass[objclass] << " and objtype " << get_objtype() << " called 'handle_double_click'";
       break;
     case Event::TypeMiddleClick:
       Log::Debug["gui.cc"] << "inside GuiObject::handle_event with event type " << NameGuiObjEvent[event->type] << " and objclass " << NameGuiObjClass[objclass] << " and objtype " << get_objtype() << " calling 'handle_middle_click'";
       result = handle_special_click(event_x, event_y);
-      Log::Debug["gui.cc"] << "inside GuiObject::handle_event with event type " << NameGuiObjEvent[event->type] << " and objclass " << NameGuiObjClass[objclass] << " and objtype " << get_objtype() << " called 'handle_middle_click'";
       break;
     case Event::TypeSpecialClick:
       Log::Debug["gui.cc"] << "inside GuiObject::handle_event with event type " << NameGuiObjEvent[event->type] << " and objclass " << NameGuiObjClass[objclass] << " and objtype " << get_objtype() << " calling 'handle_special_click'";
       result = handle_special_click(event_x, event_y);
-      Log::Debug["gui.cc"] << "inside GuiObject::handle_event with event type " << NameGuiObjEvent[event->type] << " and objclass " << NameGuiObjClass[objclass] << " and objtype " << get_objtype() << " called 'handle_special_click'";
       break;
     case Event::TypeKeyPressed:
       result = handle_key_pressed(event->dx, event->dy);

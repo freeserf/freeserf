@@ -1608,7 +1608,7 @@ Interface::handle_key_pressed(char key, int modifier) {
       break;
     }
     case 'w':
-      Log::Info["interface.cc"] << "'w' key pressed, toggling FourSeasons";
+      Log::Info["interface.cc"] << "'w' key pressed, toggling FourSeasons (NOT toggling AdvancedFarming anymore!)";
       if (option_FourSeasons){
         clear_custom_graphics_cache();  // to ensure any mutated sprites are restored
         option_FourSeasons = false;
