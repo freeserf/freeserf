@@ -418,7 +418,18 @@ PanelBar::button_special_click(int button) {
     Log::Debug["panel.cc"] << "inside PanelBar::button_special_click(), clicked button " << button << ", toggling Build view";
     viewport->switch_layer(Viewport::LayerBuilds);
   }else if (button == 1){  // second/destroy button
-    // do nothing, I don't think there is any special functionality here?
+    // adding feature where special-clicking on destroy bypasses the confirm destroy popup
+    Log::Debug["panel.cc"] << "inside PanelBar::button_special_click(), clicked button " << button << ", bypassing confirmation and triggering destroy";
+    if (interface->get_map_cursor_type() == Interface::CursorTypeRemovableFlag) {
+      interface->demolish_object();
+    } else if (interface->get_map_cursor_type() == Interface::CursorTypeBuilding) {
+      Building *building = interface->get_game()->get_building_at_pos(interface->get_map_cursor_pos());
+      if (building == nullptr){
+        Log::Warn["panel.cc"] << "inside PanelBar::button_special_click for ButtonDestroy, building at pos " << interface->get_map_cursor_pos() << "is nullptr!  breaking early";
+        return;
+      }
+      interface->demolish_object();
+    }
   }else if (button == 2){  // third/map button
     Log::Debug["panel.cc"] << "inside PanelBar::button_special_click(), clicked button " << button << ", centering viewport on player's castle (if found)";
     // center on this player's castle at least

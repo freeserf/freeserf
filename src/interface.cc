@@ -1691,13 +1691,76 @@ Interface::handle_key_pressed(char key, int modifier) {
       }
       break;
     case 'c':
-      Log::Info["interface"] << "'c' key pressed, confirming quit";
-      // ALLOW ENTER KEY TO DO THIS!
-      if (modifier & 1) {
-        open_popup(PopupBox::TypeQuitConfirm);
+    {
+      Log::Info["interface.cc"] << "'c' key pressed, cycling Inventory popup (starting with castle)";
+      int current_inventory_index = -1;
+      int next_inventory_index = -1;
+      int current_box_type = 0;
+      if (get_popup_box() != nullptr){
+        if (get_popup_box()->get_box() == PopupBox::TypeCastleRes
+         || get_popup_box()->get_box() == PopupBox::TypeCastleSerf
+         || get_popup_box()->get_box() == PopupBox::TypeResDir
+         || get_popup_box()->get_box() == PopupBox::TypeInventoryQueues
+                  ){
+          current_inventory_index = get_popup_box()->get_target_obj_index();
+          current_box_type = get_popup_box()->get_box();
+          Log::Debug["interface.cc"] << "'c' key pressed, opening next inventory popup, an existing inventory-type popup already open, with building index " << current_inventory_index;
+        }
+      }else{
+        // if an Inventory popup is not already open, check to see if the current map cursor pos is on an Inventory building
+        //  and if so, use that as the current inventory for cycling (but don't open the Inventory popup, just cycle positions)
+        MapPos current_pos = get_map_cursor_pos();
+        Building *current_building = game->get_building_at_pos(current_pos);
+        if (current_building != nullptr){
+          if (current_building->get_type() == Building::TypeCastle || current_building->get_type() == Building::TypeStock){
+            current_inventory_index = game->get_building_at_pos(current_pos)->get_index();
+          }
+        }
+      }
+      // find the next Inventory (after this one, if one already selected)
+      for (Building *building : game->get_player_buildings(player)) {
+        if (building->get_index() > current_inventory_index){
+          if ((building->get_type() == Building::TypeCastle || building->get_type() == Building::TypeStock)
+           && building->is_done() && !building->is_burning() && building->has_serf()) {
+            next_inventory_index = building->get_index();
+            break;
+          }
+        }
+      }
+      // loop back around if not starting from the beginning, if another not found yet
+      //if (current_inventory_index > -1 && next_inventory_index == -1){
+      if (next_inventory_index == -1){
+        for (Building *building : game->get_player_buildings(player)) {
+          if (building->get_index() >= current_inventory_index){
+            // no other active inventory could be found
+            break;
+          }
+          if ((building->get_type() == Building::TypeCastle || building->get_type() == Building::TypeStock)
+           && building->is_done() && !building->is_burning() && building->has_serf()) {
+            next_inventory_index = building->get_index();
+            break;
+          }
+        }
+      }
+      if (next_inventory_index > -1){
+        MapPos next_inventory_pos = bad_map_pos;
+        Building *next_inventory_building = game->get_building(next_inventory_index);
+        if (next_inventory_building != nullptr){
+          next_inventory_pos = next_inventory_building->get_position();
+          update_map_cursor_pos(next_inventory_pos);
+          viewport->move_to_map_pos(next_inventory_pos);
+        }
+        if (current_box_type > 0){
+          open_popup(current_box_type);
+          get_popup_box()->set_target_obj_index(next_inventory_index);
+          // move up a bit so that the popup isn't blocking view of the Inventory building
+          viewport->move_by_pixels(0, -140);
+        }
+      }else{
+        play_sound(Audio::TypeSfxNotAccepted);
       }
       break;
-
+    }
     default:
       return false;
   }
