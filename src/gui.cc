@@ -170,16 +170,16 @@ GuiObject::draw(Frame *_frame) {
 
 bool
 GuiObject::handle_event(const Event *event) {
-  Log::Debug["gui.cc"] << "start of GuiObject::handle_event with event type #" << event->type;
-  Log::Debug["gui.cc"] << "inside GuiObject::handle_event with event type " << event->type << " / " << NameGuiObjEvent[event->type] << " and objclass " << get_objclass() << " / " << NameGuiObjClass[get_objclass()] << ", debug unscaled x/y " << event->unscaled_x << "/" << event->unscaled_y;
+  //Log::Debug["gui.cc"] << "start of GuiObject::handle_event with event type #" << event->type;
+  //Log::Debug["gui.cc"] << "inside GuiObject::handle_event with event type " << event->type << " / " << NameGuiObjEvent[event->type] << " and objclass " << get_objclass() << " / " << NameGuiObjClass[get_objclass()] << ", debug unscaled x/y " << event->unscaled_x << "/" << event->unscaled_y;
 
-  Log::Debug["gui.cc"] << "start of GuiObject::handle_event with event type " << event->type << " / " << NameGuiObjEvent[event->type] << " and objclass " << objclass << " / " << NameGuiObjClass[objclass];
+  //Log::Debug["gui.cc"] << "start of GuiObject::handle_event with event type " << event->type << " / " << NameGuiObjEvent[event->type] << " and objclass " << objclass << " / " << NameGuiObjClass[objclass];
   if (!enabled || !displayed) {
-    Log::Debug["gui.cc"] << "inside GuiObject::handle_event with event type " << event->type << " / " << NameGuiObjEvent[event->type] << " and objclass " << objclass << " / " << NameGuiObjClass[objclass] << ", rejected because !enabled or !displayed";
+    //Log::Debug["gui.cc"] << "inside GuiObject::handle_event with event type " << event->type << " / " << NameGuiObjEvent[event->type] << " and objclass " << objclass << " / " << NameGuiObjClass[objclass] << ", rejected because !enabled or !displayed";
     return false;
   }
 
-  Log::Debug["event_loop.cc"] << "inside GuiObject::handle_event with event type " << event->type << " / " << NameGuiObjEvent[event->type] << " and objclass " << get_objclass() << " / " << NameGuiObjClass[get_objclass()] << " this object is enabled and displayed";
+  //Log::Debug["event_loop.cc"] << "inside GuiObject::handle_event with event type " << event->type << " / " << NameGuiObjEvent[event->type] << " and objclass " << get_objclass() << " / " << NameGuiObjClass[get_objclass()] << " this object is enabled and displayed";
 
 
   // another failed attempt to only zoom the viewport, not the UI elements
@@ -237,17 +237,17 @@ GuiObject::handle_event(const Event *event) {
         if (event_unscaled_x < 0 || event_unscaled_y < 0 || event_unscaled_x > width || event_unscaled_y > height) {
           // mouse pos is outside this gui object area
           in_scope = false;
-          Log::Debug["gui.cc"] << "inside GuiObject::handle_event1 with event type " << event->type << " / " << NameGuiObjEvent[event->type] << " and objclass " << get_objclass() << " / " << NameGuiObjClass[get_objclass()] << " and objtype " << get_objtype() << ", click/drag event is NOT in_scope";
+          //Log::Debug["gui.cc"] << "inside GuiObject::handle_event1 with event type " << event->type << " / " << NameGuiObjEvent[event->type] << " and objclass " << get_objclass() << " / " << NameGuiObjClass[get_objclass()] << " and objtype " << get_objtype() << ", click/drag event is NOT in_scope";
         }else{
-          Log::Debug["gui.cc"] << "inside GuiObject::handle_event1 with event type " << event->type << " / " << NameGuiObjEvent[event->type] << " and objclass " << get_objclass() << " / " << NameGuiObjClass[get_objclass()] << " and objtype " << get_objtype() << ", click/drag event is in_scope";
+          //Log::Debug["gui.cc"] << "inside GuiObject::handle_event1 with event type " << event->type << " / " << NameGuiObjEvent[event->type] << " and objclass " << get_objclass() << " / " << NameGuiObjClass[get_objclass()] << " and objtype " << get_objtype() << ", click/drag event is in_scope";
         }
       }else{
         if (event_x < 0 || event_y < 0 || event_x > width || event_y > height) {
           // mouse pos is outside this gui object area
           in_scope = false;
-          Log::Debug["gui.cc"] << "inside GuiObject::handle_event2 with event type " << event->type << " / " << NameGuiObjEvent[event->type] << " and objclass " << get_objclass() << " / " << NameGuiObjClass[get_objclass()] << " and objtype " << get_objtype() << ", click/drag event is NOT in_scope";
+          //Log::Debug["gui.cc"] << "inside GuiObject::handle_event2 with event type " << event->type << " / " << NameGuiObjEvent[event->type] << " and objclass " << get_objclass() << " / " << NameGuiObjClass[get_objclass()] << " and objtype " << get_objtype() << ", click/drag event is NOT in_scope";
         }else{
-          Log::Debug["gui.cc"] << "inside GuiObject::handle_event2 with event type " << event->type << " / " << NameGuiObjEvent[event->type] << " and objclass " << get_objclass() << " / " << NameGuiObjClass[get_objclass()] << " and objtype " << get_objtype() << ", click/drag event is in_scope";
+          //Log::Debug["gui.cc"] << "inside GuiObject::handle_event2 with event type " << event->type << " / " << NameGuiObjEvent[event->type] << " and objclass " << get_objclass() << " / " << NameGuiObjClass[get_objclass()] << " and objtype " << get_objtype() << ", click/drag event is in_scope";
         }
       }
     }
@@ -290,20 +290,20 @@ GuiObject::handle_event(const Event *event) {
     //}else if (!in_scope && !being_dragged){
     }else if (!in_scope && !focused){
       //Log::Debug["event_loop.cc"] << "inside GuiObject::handle_event, GuiObjectClass " << NameGuiObjClass[objclass] << ", event is out of bounds and not being_dragged, ignoring this event for this game object";
-      Log::Debug["gui.cc"] << "inside GuiObject::handle_event, GuiObjectClass " << NameGuiObjClass[objclass] << " and objtype " << get_objtype() << ", event is out of bounds and not focused, ignoring this event for this game object";
+      //Log::Debug["gui.cc"] << "inside GuiObject::handle_event, GuiObjectClass " << NameGuiObjClass[objclass] << " and objtype " << get_objtype() << ", event is out of bounds and not focused, ignoring this event for this game object";
       skip_event = true;
     //}else if (in_scope && being_dragged){
     }else if (in_scope && focused){
       //Log::Debug["event_loop.cc"] << "inside GuiObject::handle_event, GuiObjectClass " << NameGuiObjClass[objclass] << ", event is in bounds and being_dragged, handling normally";
-      Log::Debug["gui.cc"] << "inside GuiObject::handle_event, GuiObjectClass " << NameGuiObjClass[objclass] << " and objtype " << get_objtype() << ", event is in bounds and focused, handling normally";
+      //Log::Debug["gui.cc"] << "inside GuiObject::handle_event, GuiObjectClass " << NameGuiObjClass[objclass] << " and objtype " << get_objtype() << ", event is in bounds and focused, handling normally";
       // to avoid issue where slight movement while clicking a popup button is intepreted as a drag,
       //  force the initial drag to be a strong motion to "release" the popup into drag mode
       if (being_dragged == false){
         if (objclass == GuiObjectClass::ClassPopupBox) {
           if (event->dx < -5 || event->dx > 5 || event->dy < -5 || event->dy > 5){
-            Log::Debug["gui.cc"] << "inside GuiObject::handle_event, GuiObjectClass " << NameGuiObjClass[objclass] << " and objtype " << get_objtype() << ", event is in bounds and focused, and drag pressure is enough to release the popup to drag mode, setting being_dragged bool true";
+            //Log::Debug["gui.cc"] << "inside GuiObject::handle_event, GuiObjectClass " << NameGuiObjClass[objclass] << " and objtype " << get_objtype() << ", event is in bounds and focused, and drag pressure is enough to release the popup to drag mode, setting being_dragged bool true";
             being_dragged = true;
-            Log::Debug["gui.cc"] << "inside GuiObject::handle_event, GuiObjectClass " << NameGuiObjClass[objclass] << " and objtype " << get_objtype() << ", event is in bounds and focused, and drag pressure is enough to release the popup to drag mode, setting global is_dragging_popup bool true";
+            //Log::Debug["gui.cc"] << "inside GuiObject::handle_event, GuiObjectClass " << NameGuiObjClass[objclass] << " and objtype " << get_objtype() << ", event is in bounds and focused, and drag pressure is enough to release the popup to drag mode, setting global is_dragging_popup bool true";
             is_dragging_popup = true; // global bool, for telling SDL event loop if the mouse pointer should try to stay put (for viewport/minimap) or move with drag motion (for popups)
                                       // AND ALSO to prevent triggering a click event at the end of the drag for Viewport, because Viewport is always "in_scope" even behind a popup
             // add pin icon to popup to allow it to become sticky
@@ -311,11 +311,11 @@ GuiObject::handle_event(const Event *event) {
 
             //Graphics &gfx = Graphics::get_instance();
             //gfx.get_mouse_cursor_coord(&mouse_x_after_drag, &mouse_y_after_drag);  // store the CURRENT mouse x/y BEFORE dragging so its adjusted position can track the drag
-            Log::Debug["gui.cc"] << "inside GuiObject::handle_event, GuiObjectClass " << NameGuiObjClass[objclass] << " and objtype " << get_objtype() << ", event is in bounds and focused, and drag pressure is enough to release the popup to drag mode, hiding the mouse pointer until dragging complete";
+            //Log::Debug["gui.cc"] << "inside GuiObject::handle_event, GuiObjectClass " << NameGuiObjClass[objclass] << " and objtype " << get_objtype() << ", event is in bounds and focused, and drag pressure is enough to release the popup to drag mode, hiding the mouse pointer until dragging complete";
             SDL_ShowCursor(SDL_DISABLE);
             skip_event = false;
           }else{
-            Log::Debug["gui.cc"] << "inside GuiObject::handle_event, GuiObjectClass " << NameGuiObjClass[objclass] << " and objtype " << get_objtype() << ", event is in bounds and focused, but drag pressure is not enough, ignoring drag and allowing event to be handled as click";
+            //Log::Debug["gui.cc"] << "inside GuiObject::handle_event, GuiObjectClass " << NameGuiObjClass[objclass] << " and objtype " << get_objtype() << ", event is in bounds and focused, but drag pressure is not enough, ignoring drag and allowing event to be handled as click";
             skip_event = true;
           }
         }else{
@@ -324,7 +324,7 @@ GuiObject::handle_event(const Event *event) {
           skip_event = false;
         }
       }else{
-        Log::Debug["gui.cc"] << "inside GuiObject::handle_event, GuiObjectClass " << NameGuiObjClass[objclass] << " and objtype " << get_objtype() << ", event is in bounds and focused, and being_dragged bool is already true!";
+        //Log::Debug["gui.cc"] << "inside GuiObject::handle_event, GuiObjectClass " << NameGuiObjClass[objclass] << " and objtype " << get_objtype() << ", event is in bounds and focused, and being_dragged bool is already true!";
       }
     //}else if (in_scope && !being_dragged){
     }else if (in_scope && !focused){
@@ -337,7 +337,7 @@ GuiObject::handle_event(const Event *event) {
       //  Log::Debug["gui.cc"] << "inside GuiObject::handle_event, GuiObjectClass " << NameGuiObjClass[objclass] << " and objtype " << get_objtype() << ", event is in bounds and not focused, but this is TypeDrag and is_dragging_viewport_or_minimap is true and this is Interface/Viewport, allowing it";
       //}else{
         //Log::Debug["event_loop.cc"] << "inside GuiObject::handle_event, GuiObjectClass " << NameGuiObjClass[objclass] << ", event is in bounds BUT not being_dragged, ignoring this event for this object becaus some other object is being dragged";
-        Log::Debug["gui.cc"] << "inside GuiObject::handle_event, GuiObjectClass " << NameGuiObjClass[objclass] << " and objtype " << get_objtype() << ", event is in bounds BUT not focused, ignoring this event for this object because some other object is being dragged";
+        //Log::Debug["gui.cc"] << "inside GuiObject::handle_event, GuiObjectClass " << NameGuiObjClass[objclass] << " and objtype " << get_objtype() << ", event is in bounds BUT not focused, ignoring this event for this object because some other object is being dragged";
         skip_event = true;
       //}
     }
@@ -378,68 +378,68 @@ GuiObject::handle_event(const Event *event) {
   //  
   FloatList::reverse_iterator fl = floats.rbegin();
   for ( ; fl != floats.rend() ; ++fl) {
-    Log::Debug["event_loop.cc"] << "inside GuiObject::handle_event for fl with objclass " << int((*fl)->get_objclass()) << " and objtype " << int((*fl)->get_objtype());
-    Log::Debug["gui.cc"] << "inside GuiObject::handle_event for fl with objclass " << int((*fl)->get_objclass()) << " and objtype " << int((*fl)->get_objtype()) << ", calling handle_event for this fl";
+    //Log::Debug["event_loop.cc"] << "inside GuiObject::handle_event for fl with objclass " << int((*fl)->get_objclass()) << " and objtype " << int((*fl)->get_objtype());
+    //Log::Debug["gui.cc"] << "inside GuiObject::handle_event for fl with objclass " << int((*fl)->get_objclass()) << " and objtype " << int((*fl)->get_objtype()) << ", calling handle_event for this fl";
     bool result = (*fl)->handle_event(&internal_event);
     if (result != 0) {
       // stop checking other floats as one seems to have handled this
-      Log::Debug["gui.cc"] << "inside GuiObject::handle_event for fl with objclass " << int((*fl)->get_objclass()) << " and objtype " << int((*fl)->get_objtype()) << " returning float element result";
+      //Log::Debug["gui.cc"] << "inside GuiObject::handle_event for fl with objclass " << int((*fl)->get_objclass()) << " and objtype " << int((*fl)->get_objtype()) << " returning float element result";
       return result; 
     }else{
       // check next float
-      Log::Debug["gui.cc"] << "inside GuiObject::handle_event for fl with objclass " << int((*fl)->get_objclass()) << " and objtype " << int((*fl)->get_objtype()) << " returned false, continuing";
+      //Log::Debug["gui.cc"] << "inside GuiObject::handle_event for fl with objclass " << int((*fl)->get_objclass()) << " and objtype " << int((*fl)->get_objtype()) << " returned false, continuing";
     }
   }
 
   if (skip_event){
-    Log::Debug["gui.cc"] << "inside GuiObject::handle_event, GuiObjectClass " << NameGuiObjClass[objclass] << ", skip_event is true, returning false";
+    //Log::Debug["gui.cc"] << "inside GuiObject::handle_event, GuiObjectClass " << NameGuiObjClass[objclass] << ", skip_event is true, returning false";
     return false;
   }
 
-  Log::Debug["event_loop.cc"] << "inside GuiObject::handle_event with event type " << NameGuiObjEvent[event->type] << " and objclass " << NameGuiObjClass[objclass] << " and objtype " << get_objtype() << ", checking event type w switch/case";
+  //Log::Debug["event_loop.cc"] << "inside GuiObject::handle_event with event type " << NameGuiObjEvent[event->type] << " and objclass " << NameGuiObjClass[objclass] << " and objtype " << get_objtype() << ", checking event type w switch/case";
   bool result = false;
   switch (event->type) {
     case Event::TypeLeftClick:
-      Log::Debug["gui.cc"] << "inside GuiObject::handle_event with event type " << NameGuiObjEvent[event->type] << " and objclass " << NameGuiObjClass[objclass] << " and objtype " << get_objtype() << " calling 'result = handle_left_click' with event->dy " << event->dy;
-      Log::Debug["gui.cc"] << "inside GuiObject::handle_event with event type " << NameGuiObjEvent[event->type] << " and objclass " << NameGuiObjClass[objclass] << " and objtype " << get_objtype() << " calling 'result = handle_left_click' event->x/y " << event->x << "/" << event->y << ", event_x/y " << event_x << "/" << event_y << ", unscaled_x/y " << event->unscaled_x << "/" << event->unscaled_y;
+      //Log::Debug["gui.cc"] << "inside GuiObject::handle_event with event type " << NameGuiObjEvent[event->type] << " and objclass " << NameGuiObjClass[objclass] << " and objtype " << get_objtype() << " calling 'result = handle_left_click' with event->dy " << event->dy;
+      //Log::Debug["gui.cc"] << "inside GuiObject::handle_event with event type " << NameGuiObjEvent[event->type] << " and objclass " << NameGuiObjClass[objclass] << " and objtype " << get_objtype() << " calling 'result = handle_left_click' event->x/y " << event->x << "/" << event->y << ", event_x/y " << event_x << "/" << event_y << ", unscaled_x/y " << event->unscaled_x << "/" << event->unscaled_y;
       // new fixed UI scaling
       if (objclass == GuiObjClass::ClassPanelBar || objclass == GuiObjClass::ClassPopupBox
        || objclass == GuiObjClass::ClassGameInitBox || objclass == GuiObjClass::ClassNotificationBox
                   ){
-        Log::Debug["gui.cc"] << "inside GuiObject::handle_event with event type " << event->type << " / " << NameGuiObjEvent[event->type] << " and objclass " << get_objclass() << " / " << NameGuiObjClass[get_objclass()] << ", USING UNSCALED x/y " << event->unscaled_x << "/" << event->unscaled_y;
+        //Log::Debug["gui.cc"] << "inside GuiObject::handle_event with event type " << event->type << " / " << NameGuiObjEvent[event->type] << " and objclass " << get_objclass() << " / " << NameGuiObjClass[get_objclass()] << ", USING UNSCALED x/y " << event->unscaled_x << "/" << event->unscaled_y;
         result = handle_left_click(event_unscaled_x, event_unscaled_y, event->dy);
       }else{
         result = handle_left_click(event_x, event_y, event->dy);
       }
       break;
     case Event::TypeMouseButtonDown:
-      Log::Debug["gui.cc"] << "inside GuiObject::handle_event with event type " << NameGuiObjEvent[event->type] << " and objclass " << NameGuiObjClass[objclass] << " and objtype " << get_objtype() << " calling 'result = handle_mouse_button_down' with event->dx " << event->dx << " and event->dy " << event->dy;
+      //Log::Debug["gui.cc"] << "inside GuiObject::handle_event with event type " << NameGuiObjEvent[event->type] << " and objclass " << NameGuiObjClass[objclass] << " and objtype " << get_objtype() << " calling 'result = handle_mouse_button_down' with event->dx " << event->dx << " and event->dy " << event->dy;
       result = handle_mouse_button_down(event->dx, event->dy, event->button);
       break;
     case Event::TypeDrag:
-      Log::Debug["gui.cc"] << "inside GuiObject::handle_event with event type " << NameGuiObjEvent[event->type] << " and objclass " << NameGuiObjClass[objclass] << " and objtype " << get_objtype() << " calling 'result = handle_drag' with event->dx " << event->dx << " and event->dy " << event->dy;
+      //Log::Debug["gui.cc"] << "inside GuiObject::handle_event with event type " << NameGuiObjEvent[event->type] << " and objclass " << NameGuiObjClass[objclass] << " and objtype " << get_objtype() << " calling 'result = handle_drag' with event->dx " << event->dx << " and event->dy " << event->dy;
       result = handle_drag(event->dx, event->dy);
       break;
     case Event::TypeRightClick:
       result = handle_click_right(event_x, event_y);
       break;
     case Event::TypeDoubleClick:
-      Log::Debug["gui.cc"] << "inside GuiObject::handle_event with event type " << NameGuiObjEvent[event->type] << " and objclass " << NameGuiObjClass[objclass] << " and objtype " << get_objtype() << " calling 'handle_double_click'";
+      //Log::Debug["gui.cc"] << "inside GuiObject::handle_event with event type " << NameGuiObjEvent[event->type] << " and objclass " << NameGuiObjClass[objclass] << " and objtype " << get_objtype() << " calling 'handle_double_click'";
       result = handle_dbl_click(event_x, event_y, event->button);
       break;
     case Event::TypeMiddleClick:
-      Log::Debug["gui.cc"] << "inside GuiObject::handle_event with event type " << NameGuiObjEvent[event->type] << " and objclass " << NameGuiObjClass[objclass] << " and objtype " << get_objtype() << " calling 'handle_middle_click'";
+      //Log::Debug["gui.cc"] << "inside GuiObject::handle_event with event type " << NameGuiObjEvent[event->type] << " and objclass " << NameGuiObjClass[objclass] << " and objtype " << get_objtype() << " calling 'handle_middle_click'";
       result = handle_special_click(event_x, event_y);
       break;
     case Event::TypeSpecialClick:
-      Log::Debug["gui.cc"] << "inside GuiObject::handle_event with event type " << NameGuiObjEvent[event->type] << " and objclass " << NameGuiObjClass[objclass] << " and objtype " << get_objtype() << " calling 'handle_special_click'";
+      //Log::Debug["gui.cc"] << "inside GuiObject::handle_event with event type " << NameGuiObjEvent[event->type] << " and objclass " << NameGuiObjClass[objclass] << " and objtype " << get_objtype() << " calling 'handle_special_click'";
       result = handle_special_click(event_x, event_y);
       break;
     case Event::TypeKeyPressed:
       result = handle_key_pressed(event->dx, event->dy);
       break;
     case Event::TypeNumPadKeyPressed:
-      Log::Debug["gui.cc"] << "inside GuiObject::handle_event type TypeNumPadKeyPressed, event->dx is " << event->dx; 
+      //Log::Debug["gui.cc"] << "inside GuiObject::handle_event type TypeNumPadKeyPressed, event->dx is " << event->dx; 
       result = handle_numpad_key_pressed(event->dx);
       break;
     case Event::TypeArrowKeyPressed:
@@ -449,7 +449,7 @@ GuiObject::handle_event(const Event *event) {
       result = handle_list_scroll(event->dx);
       break;
     default:
-      Log::Debug["gui.cc"] << "inside GuiObject::handle_event with event type #" << event->type << " and objclass " << NameGuiObjClass[objclass] << ", case default, no matching event type";
+      //Log::Debug["gui.cc"] << "inside GuiObject::handle_event with event type #" << event->type << " and objclass " << NameGuiObjClass[objclass] << ", case default, no matching event type";
       break;
   }
 

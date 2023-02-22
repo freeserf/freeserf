@@ -864,7 +864,7 @@ void
 Map::set_object(MapPos pos, Object obj, int index) {
   landscape_tiles[pos].obj = obj;
   if (index >= 0) game_tiles[pos].obj_index = index;
-  Log::Debug["map"] << "inside set_object, setting pos " << pos << " to object " << obj << ", index " << index;
+  //Log::Debug["map"] << "inside set_object, setting pos " << pos << " to object " << obj << ", index " << index;
 
   /* Notify about object change */
   for (Direction d : cycle_directions_cw()) {

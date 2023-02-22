@@ -1352,7 +1352,7 @@ Interface::update() {
 bool
 Interface::handle_key_pressed(char key, int modifier) {
 
-  Log::Info["interface"] << "inside Interface::handle_key_pressed, key '" << key << "' key with number '" << int(key) << "' pressed";
+  //Log::Info["interface"] << "inside Interface::handle_key_pressed, key '" << key << "' key with number '" << int(key) << "' pressed";
 
   switch (key) {
     /* Interface control */
@@ -1780,13 +1780,13 @@ Interface::handle_event(const Event *event) {
   //Log::Debug["event_loop.cc"] << "inside Interface::handle_event, type " << event->type;
   switch (event->type) {
     case Event::TypeResize:
-    Log::Debug["event_loop.cc"] << "inside Interface::handle_event, TypeResize";
+      //Log::Debug["event_loop.cc"] << "inside Interface::handle_event, TypeResize";
       set_size(event->dx, event->dy);
       viewport->store_prev_viewport_size();
       //viewport->set_resize_tainted();
       break;
     case Event::TypeZoom:
-      Log::Debug["event_loop.cc"] << "inside Interface::handle_event, TypeZoom";
+      //Log::Debug["event_loop.cc"] << "inside Interface::handle_event, TypeZoom";
       // no longer zoom the Interface, only the Viewport
       //set_size(event->dx, event->dy);
       viewport->set_size(event->dx, event->dy);
@@ -1804,23 +1804,23 @@ Interface::handle_event(const Event *event) {
       if (init_box != nullptr && init_box->is_displayed()){
         GuiObject::handle_event(event);
       }else{
-        Log::Debug["interface.cc"] << "inside Interface::handle_event(), TypeRightClick, closing popups/notifications/canceling road";
+        //Log::Debug["interface.cc"] << "inside Interface::handle_event(), TypeRightClick, closing popups/notifications/canceling road";
         // for all other cases, trigger "close-popup/cancel-action"
         if ((notification_box != nullptr) && notification_box->is_displayed()) {
-          Log::Debug["interface.cc"] << "inside Interface::handle_event(), TypeRightClick, closing notification message";
+          //Log::Debug["interface.cc"] << "inside Interface::handle_event(), TypeRightClick, closing notification message";
           close_message();
         } else if ((popup != nullptr) && popup->is_displayed()) {
-          Log::Debug["interface.cc"] << "inside Interface::handle_event(), TypeRightClick, closing 'the one' popup";
+          //Log::Debug["interface.cc"] << "inside Interface::handle_event(), TypeRightClick, closing 'the one' popup";
           close_popup(popup);
         } else if (building_road.is_valid()) {
-          Log::Debug["interface.cc"] << "inside Interface::handle_event(), TypeRightClick, closing 'build_road' effort";
+          //Log::Debug["interface.cc"] << "inside Interface::handle_event(), TypeRightClick, closing 'build_road' effort";
           build_road_end();
         }
       }
       break;
     default:
-    Log::Debug["interface.cc"] << "inside Interface::handle_event(), default, no case matched, event type is " << event->type;
-    Log::Debug["interface.cc"] << "inside Interface::handle_event(), DEBUG unscaled_x/y is " << event->unscaled_x << "/" << event->unscaled_y;
+      //Log::Debug["interface.cc"] << "inside Interface::handle_event(), default, no case matched, event type is " << event->type;
+      //Log::Debug["interface.cc"] << "inside Interface::handle_event(), DEBUG unscaled_x/y is " << event->unscaled_x << "/" << event->unscaled_y;
       return GuiObject::handle_event(event);
       break;
   }
