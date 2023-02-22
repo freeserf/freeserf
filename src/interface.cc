@@ -1692,10 +1692,14 @@ Interface::handle_key_pressed(char key, int modifier) {
       break;
     case 'c':
     {
+      // cycle Castle/Stocks
+      //  move the viewport and map cursor to the next one
+      //  if 'the popup' is open for one, keep it open and open for the next one
       Log::Info["interface.cc"] << "'c' key pressed, cycling Inventory popup (starting with castle)";
       int current_inventory_index = -1;
       int next_inventory_index = -1;
       int current_box_type = 0;
+      // check for a current popup
       if (get_popup_box() != nullptr){
         if (get_popup_box()->get_box() == PopupBox::TypeCastleRes
          || get_popup_box()->get_box() == PopupBox::TypeCastleSerf
@@ -1746,10 +1750,12 @@ Interface::handle_key_pressed(char key, int modifier) {
         MapPos next_inventory_pos = bad_map_pos;
         Building *next_inventory_building = game->get_building(next_inventory_index);
         if (next_inventory_building != nullptr){
+          // move the map cursor and viewport to the new inventory pos
           next_inventory_pos = next_inventory_building->get_position();
           update_map_cursor_pos(next_inventory_pos);
           viewport->move_to_map_pos(next_inventory_pos);
         }
+        // if a popup open, change its target building to the next inventory also
         if (current_box_type > 0){
           open_popup(current_box_type);
           get_popup_box()->set_target_obj_index(next_inventory_index);
@@ -1757,6 +1763,7 @@ Interface::handle_key_pressed(char key, int modifier) {
           viewport->move_by_pixels(0, -140);
         }
       }else{
+        // no [other] inventory available
         play_sound(Audio::TypeSfxNotAccepted);
       }
       break;

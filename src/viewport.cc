@@ -2913,13 +2913,16 @@ Viewport::draw_active_serf(Serf *serf, MapPos pos, int x_base, int y_base) {
     //
     if (layers & Layer::LayerDebug){
       std::vector<int> debug_mark_serf = *(interface->get_game()->get_debug_mark_serf());
-      if (std::count(debug_mark_serf.begin(), debug_mark_serf.end(), serf->get_index()) > 0){
-      //if (true){
-        std::string state_details = "";
-        state_details += serf->get_state_name(serf->get_state());
-        state_details += "\n";
-        frame->draw_string(lx, ly + 8, state_details, colors.at("black"));
-        frame->draw_string(lx, ly + 8, serf->print_state(),  colors.at("black"));
+      if (std::count(debug_mark_serf.begin(), debug_mark_serf.end(), serf->get_index()) > 0
+        || serf->get_state() == Serf::StateWaitForBoat // debuging CanTransportSerfsInBoats issues
+        || serf->get_type() == Serf::TypeSailor // debuging CanTransportSerfsInBoats issues
+            ){
+        //std::string state_details = "";
+        //state_details += serf->get_state_name(serf->get_state());
+        //state_details += "\n";
+        std::string state_details = std::string(serf->get_state_name(serf->get_state())) + std::string(" index ") + std::to_string(serf->get_index()) + std::string("\n");
+        frame->draw_string(lx, ly + 8, state_details, colors.at("white"));
+        //frame->draw_string(lx, ly + 8, serf->print_state(),  colors.at("white"));
       }
     }
     
