@@ -281,18 +281,18 @@ add_custom_command(TARGET Forkserf POST_BUILD
                        ${CMAKE_SOURCE_DIR}/custom_graphics/panel_button $<TARGET_FILE_DIR:Forkserf>/panel_button)
 
 
-# Profiler executable
+## Profiler executable
+#
+#set(PROFILER_SOURCES profiler.cc
+#                     version.cc
+#                     command_line.cc
+#                     pathfinder.cc)
+#
+#set(PROFILER_HEADERS profiler.h
+#                     version.h
+#                     command_line.h
+#                     pathfinder.h)
 
-set(PROFILER_SOURCES profiler.cc
-                     version.cc
-                     command_line.cc
-                     pathfinder.cc)
-
-set(PROFILER_HEADERS profiler.h
-                     version.h
-                     command_line.h
-                     pathfinder.h)
-
-add_executable(profiler ${PROFILER_SOURCES} ${PROFILER_HEADERS})
-target_check_style(profiler)
-target_link_libraries(profiler game tools)
+#add_executable(profiler ${PROFILER_SOURCES} ${PROFILER_HEADERS})
+#target_check_style(profiler)
+#target_link_libraries(profiler game tools)
