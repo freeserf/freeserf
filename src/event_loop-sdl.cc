@@ -152,16 +152,20 @@ EventLoopSDL::run() {
               drag_button = button;
               drag_x = event.motion.x;
               drag_y = event.motion.y;
+              break;
             }
 
             int x = static_cast<int>(static_cast<float>(drag_x) *
                                      zoom_factor * screen_factor_x);
             int y = static_cast<int>(static_cast<float>(drag_y) *
                                      zoom_factor * screen_factor_y);
+            int dx = event.motion.x - drag_x;
+            int dy = event.motion.y - drag_y;
+            if ((dx == 0) && (dy == 0)) {
+                break;
+            }
 
-            notify_drag(x, y,
-                        event.motion.x - drag_x, event.motion.y - drag_y,
-                        (Event::Button)drag_button);
+            notify_drag(x, y, dx, dy, (Event::Button)drag_button);
 
             SDL_WarpMouseInWindow(nullptr, drag_x, drag_y);
 
