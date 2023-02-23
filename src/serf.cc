@@ -4540,21 +4540,21 @@ Serf::handle_serf_planting_state() {
       if (new_obj % 16 > 7){
         // pine, only one type
         new_obj = (Map::Object)(Map::ObjectNewPine);
-        Log::Debug["serf.cc"] << "inside Serf::handle_serf_planting_state, option_ForesterMonoculture is on, planting newpine, only type " << new_obj;
+        //Log::Debug["serf.cc"] << "inside Serf::handle_serf_planting_state, option_ForesterMonoculture is on, planting newpine, only type " << new_obj;
 
       }else{
         // deciduous tree, choose from one of 8 types (orig == 0, plus 7 new types)
         new_obj = (Map::Object)(Map::ObjectNewTree0 + (new_obj % 8));
-        Log::Debug["serf.cc"] << "inside Serf::handle_serf_planting_state, option_ForesterMonoculture is on, planting newtree type " << new_obj;
+        //Log::Debug["serf.cc"] << "inside Serf::handle_serf_planting_state, option_ForesterMonoculture is on, planting newtree type " << new_obj;
       }
     }else{
       // normal behavior, random chance of either tree type, which will mature into random subtype
       new_obj = (Map::Object)(Map::ObjectNewPine + (game->random_int() & 1));
-      Log::Debug["serf.cc"] << "inside Serf::handle_serf_planting_state, option_ForesterMonoculture is off, planting new pine or tree type " << new_obj;
+      //Log::Debug["serf.cc"] << "inside Serf::handle_serf_planting_state, option_ForesterMonoculture is off, planting new pine or tree type " << new_obj;
     }
 
     if (map->paths(pos) == 0 && map->get_obj(pos) == Map::ObjectNone) {
-      Log::Debug["serf.cc"] << "inside Serf::handle_serf_planting_state, calling map->set_object at pos " << pos << " to new_obj " << new_obj;
+      //Log::Debug["serf.cc"] << "inside Serf::handle_serf_planting_state, calling map->set_object at pos " << pos << " to new_obj " << new_obj;
       map->set_object(pos, new_obj, -1);
     }
 

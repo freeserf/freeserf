@@ -50,5 +50,5 @@ jobs:
       - name: Upload artifact
         uses: actions/upload-artifact@v3
         with:
-          name: BROKEN-${{ matrix.architecture }}-${{ matrix.buildtype }}
-          path: ./build/BROKEN-${{ matrix.architecture }}-${{ matrix.buildtype }}.exe
+          name: TESTINGFIX-${{ matrix.architecture }}-${{ matrix.buildtype }}
+          path: ./build/TESTINGFIX-${{ matrix.architecture }}-${{ matrix.buildtype }}.exe
