@@ -221,9 +221,9 @@ Interface::close_popup(PopupBox *popup_to_close) {
   //Log::Debug["popup.cc"] << "inside Interface::close_popup, with click coords " << x << "," << y;
   Log::Debug["popup.cc"] << "inside Interface::close_popup";
   if (popup != popup_to_close){
-    Log::Debug["popup.cc"] << "inside Interface::close_popup, closing a pinned popup";
+    //Log::Debug["popup.cc"] << "inside Interface::close_popup, closing a pinned popup";
     if (popup_to_close == nullptr) {
-      Log::Debug["popup.cc"] << "inside Interface::close_popup, closing a pinned popup but popup_to_close is nullptr!";
+      //Log::Debug["popup.cc"] << "inside Interface::close_popup, closing a pinned popup but popup_to_close is nullptr!";
       return;
     }
     popup_to_close->hide();
@@ -239,36 +239,39 @@ Interface::close_popup(PopupBox *popup_to_close) {
     //popup_to_close = nullptr;
     //set_redraw();  // attempt to fix frame corruption after closing pinned popup issue
   }else{
-    Log::Debug["popup.cc"] << "inside Interface::close_popup, closing 'the one' transient popup";
+    //Log::Debug["popup.cc"] << "inside Interface::close_popup, closing 'the one' transient popup";
     if (popup == nullptr) {
-      Log::Debug["popup.cc"] << "inside Interface::close_popup, closing 'the one' transient popup A";
+      //Log::Debug["popup.cc"] << "inside Interface::close_popup, closing 'the one' transient popup A";
       return;
     }
-    Log::Debug["popup.cc"] << "inside Interface::close_popup, closing 'the one' transient popup B";
+    //Log::Debug["popup.cc"] << "inside Interface::close_popup, closing 'the one' transient popup B";
     popup->hide();
-    Log::Debug["popup.cc"] << "inside Interface::close_popup, closing 'the one' transient popup C";
+    //Log::Debug["popup.cc"] << "inside Interface::close_popup, closing 'the one' transient popup C";
     del_float(popup);
-    Log::Debug["popup.cc"] << "inside Interface::close_popup, closing 'the one' transient popup D";
+    //Log::Debug["popup.cc"] << "inside Interface::close_popup, closing 'the one' transient popup D";
     delete popup;
-    Log::Debug["popup.cc"] << "inside Interface::close_popup, closing 'the one' transient popup E";
+    //Log::Debug["popup.cc"] << "inside Interface::close_popup, closing 'the one' transient popup E";
     popup = nullptr;
-    Log::Debug["popup.cc"] << "inside Interface::close_popup, closing 'the one' transient popup F";
+    //Log::Debug["popup.cc"] << "inside Interface::close_popup, closing 'the one' transient popup F";
     viewport->set_focused(); // tlongstretch, to fix issue where after closing options popup viewport can't drag until clicked on
   }
-  Log::Debug["popup.cc"] << "inside Interface::close_popup, closing 'the one' transient popup G";
+  //Log::Debug["popup.cc"] << "inside Interface::close_popup, closing 'the one' transient popup G";
   update_map_cursor_pos(map_cursor_pos);
   if (panel != nullptr) {
-    Log::Debug["popup.cc"] << "inside Interface::close_popup, closing 'the one' transient popup H";
+    //Log::Debug["popup.cc"] << "inside Interface::close_popup, closing 'the one' transient popup H";
     panel->update();
   }
-  Log::Debug["popup.cc"] << "inside Interface::close_popup, closing 'the one' transient popup I";
+  //Log::Debug["popup.cc"] << "inside Interface::close_popup, closing 'the one' transient popup I";
+
+  // unset list focus in case it is
+  is_list_in_focus = false;
 }
 
 // close all popups, now that there is no longer one single popup whose index is tied to player, it becomes
 //  possible to have popups open for multiple players, which is confusing I think
 void
 Interface::close_pinned_popups() {
-  Log::Debug["popup.cc"] << "inside Interface::close_pinned_popups";
+  //Log::Debug["popup.cc"] << "inside Interface::close_pinned_popups";
   for (PopupBox *pinned_popup : get_pinned_popup_boxes()){
     close_popup(pinned_popup);
   }
@@ -277,7 +280,7 @@ Interface::close_pinned_popups() {
 
 void
 Interface::pin_popup() {
-  Log::Debug["popup.cc"] << "inside Interface::pin_popup";
+  //Log::Debug["popup.cc"] << "inside Interface::pin_popup";
   if (popup == nullptr) {
     return;
   }
@@ -1777,16 +1780,16 @@ Interface::handle_key_pressed(char key, int modifier) {
 
 bool
 Interface::handle_event(const Event *event) {
-  //Log::Debug["event_loop.cc"] << "inside Interface::handle_event, type " << event->type;
+  //Log::Debug["interface.cc"] << "inside Interface::handle_event, type " << event->type;
   switch (event->type) {
     case Event::TypeResize:
-      //Log::Debug["event_loop.cc"] << "inside Interface::handle_event, TypeResize";
+      //Log::Debug["interface.cc"] << "inside Interface::handle_event, TypeResize";
       set_size(event->dx, event->dy);
       viewport->store_prev_viewport_size();
       //viewport->set_resize_tainted();
       break;
     case Event::TypeZoom:
-      //Log::Debug["event_loop.cc"] << "inside Interface::handle_event, TypeZoom";
+      //Log::Debug["interface.cc"] << "inside Interface::handle_event, TypeZoom";
       // no longer zoom the Interface, only the Viewport
       //set_size(event->dx, event->dy);
       viewport->set_size(event->dx, event->dy);

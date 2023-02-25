@@ -158,26 +158,6 @@ EventLoopSDL::run() {
 
   while (SDL_WaitEvent(&event)) {
 
-  /*
-        if (button_left_down) {
-          Log::Debug["event_loop-sdl.cc"] << "inside EventLoopSDL::run(), DEBUG button_left_down";
-        }else{
-          Log::Debug["event_loop-sdl.cc"] << "inside EventLoopSDL::run(), DEBUG button_left_up";
-        }
-        // NOTE - SDL shows middle/wheel mouse button as button2, not button3 as you might expect
-        if (button_middle_down) {
-          Log::Debug["event_loop-sdl.cc"] << "inside EventLoopSDL::run(), DEBUG button_middle_down";
-        }else{
-          Log::Debug["event_loop-sdl.cc"] << "inside EventLoopSDL::run(), DEBUG button_middle_up";
-        }
-        // NOTE - SDL shows right mouse button as button3, not button2 as you might expect
-        if (button_right_down) {
-          Log::Debug["event_loop-sdl.cc"] << "inside EventLoopSDL::run(), DEBUG button_right_down";
-        }else{
-          Log::Debug["event_loop-sdl.cc"] << "inside EventLoopSDL::run(), DEBUG button_right_up";
-        }
-  */
-
     //Log::Debug["event_loop-sdl.cc"] << "tick_length is " << tick_length;
     // TRIGGER RESET OF Timer here!
     if (tick_length != last_tick_length){
@@ -375,17 +355,6 @@ EventLoopSDL::run() {
 
             // I am seeing an issue where if zooming quickly the zoom is messed up
             //  trying to limit it to a single increment per game update/tick
-            // NOPE THIS ISN'T THE CAUSE
-            /*
-            if (event.wheel.y > 1){
-              Log::Debug["event_loop-sdl.cc"] << "inside EventLoopSDL::run(), event.wheel.y is " << event.wheel.y << ", limit it to 1";
-              event.wheel.y = 1;
-            }else if (event.wheel.y < -1){
-              event.wheel.y = -1;
-              Log::Debug["event_loop-sdl.cc"] << "inside EventLoopSDL::run(), event.wheel.y is " << event.wheel.y << ", limit it to -1";
-            }
-            */
-
             if (zoom_changed){
               Log::Debug["event_loop-sdl.cc"] << "inside EventLoopSDL::run(), zoom was already changed this SDL loop, not changing again";
               break;
@@ -526,7 +495,8 @@ EventLoopSDL::run() {
         break;
       }
       case SDL_QUIT:
-        notify_key_pressed('c', 1);
+        //notify_key_pressed('c', 1);
+        quit();
         break;
       case SDL_WINDOWEVENT:
         if (SDL_WINDOWEVENT_SIZE_CHANGED == event.window.event) {

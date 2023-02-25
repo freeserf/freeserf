@@ -40,7 +40,7 @@ void
 GuiObject::layout() {
   // this function only exists to allow overloading by Viewport and Interface, I think, but it is important for those
   //  this function cannot be removed, and the upstream call to it cannot be removed either!
-  Log::Debug["gui.cc"] << "the useless function GuiObject::layout() has been called";
+  //Log::Debug["gui.cc"] << "the useless function GuiObject::layout() has been called";
 }
 
 //void
@@ -171,25 +171,15 @@ GuiObject::draw(Frame *_frame) {
 bool
 GuiObject::handle_event(const Event *event) {
   //Log::Debug["gui.cc"] << "start of GuiObject::handle_event with event type #" << event->type;
-  //Log::Debug["gui.cc"] << "inside GuiObject::handle_event with event type " << event->type << " / " << NameGuiObjEvent[event->type] << " and objclass " << get_objclass() << " / " << NameGuiObjClass[get_objclass()] << ", debug unscaled x/y " << event->unscaled_x << "/" << event->unscaled_y;
+  Log::Debug["gui.cc"] << "inside GuiObject::handle_event with event type " << event->type << " / " << NameGuiObjEvent[event->type] << " and objclass " << get_objclass() << " / " << NameGuiObjClass[get_objclass()] << ", debug unscaled x/y " << event->unscaled_x << "/" << event->unscaled_y;
 
   //Log::Debug["gui.cc"] << "start of GuiObject::handle_event with event type " << event->type << " / " << NameGuiObjEvent[event->type] << " and objclass " << objclass << " / " << NameGuiObjClass[objclass];
   if (!enabled || !displayed) {
-    //Log::Debug["gui.cc"] << "inside GuiObject::handle_event with event type " << event->type << " / " << NameGuiObjEvent[event->type] << " and objclass " << objclass << " / " << NameGuiObjClass[objclass] << ", rejected because !enabled or !displayed";
+    Log::Debug["gui.cc"] << "inside GuiObject::handle_event with event type " << event->type << " / " << NameGuiObjEvent[event->type] << " and objclass " << objclass << " / " << NameGuiObjClass[objclass] << ", rejected because !enabled or !displayed";
     return false;
   }
 
   //Log::Debug["event_loop.cc"] << "inside GuiObject::handle_event with event type " << event->type << " / " << NameGuiObjEvent[event->type] << " and objclass " << get_objclass() << " / " << NameGuiObjClass[get_objclass()] << " this object is enabled and displayed";
-
-
-  // another failed attempt to only zoom the viewport, not the UI elements
-  //if ((event->type == Event::TypeZoom || event->type == Event::TypeResize)
-  // && objclass != GuiObjClass::ClassViewport){
-  //  Log::Debug["event_loop.cc"] << "inside GuiObject::handle_event, not zooming non-Viewport float";
-  //  //skip_event = true;
-  //  //continue;
-  //  return false;
-  //}
 
   //
   // check to see if the mouse is within a Popup window so we can determine
@@ -230,10 +220,11 @@ GuiObject::handle_event(const Event *event) {
       // viewport is always in scope
     }else{
       // for other objects, check the click coordinates
-      //if (objclass == GuiObjClass::ClassPanelBar || objclass == GuiObjClass::ClassPopupBox){
-      if (objclass == GuiObjClass::ClassPanelBar || objclass == GuiObjClass::ClassPopupBox
-       || objclass == GuiObjClass::ClassGameInitBox || objclass == GuiObjClass::ClassNotificationBox
-              ){
+      //if (objclass == GuiObjClass::ClassPanelBar || objclass == GuiObjClass::ClassPopupBox
+      // || objclass == GuiObjClass::ClassGameInitBox || objclass == GuiObjClass::ClassNotificationBox
+      // || objclass == GuiObjClass::ClassDebugPosTextInput || objclass == GuiObjClass::ClassTe
+      //        ){
+      if (objclass != GuiObjClass::ClassInterface){
         if (event_unscaled_x < 0 || event_unscaled_y < 0 || event_unscaled_x > width || event_unscaled_y > height) {
           // mouse pos is outside this gui object area
           in_scope = false;
@@ -251,23 +242,6 @@ GuiObject::handle_event(const Event *event) {
         }
       }
     }
-
-    //// DEBUG
-    //debug_draw = true;
-    ////if (false){
-    //if (objclass == GuiObjClass::ClassPanelBar || objclass == GuiObjClass::ClassPopupBox){
-    //  //debug_draw_x = event->unscaled_x;
-    //  //debug_draw_y = event->unscaled_y;
-    //  debug_draw_x = event_unscaled_x;  // RELATIVE x/y
-    //  debug_draw_y = event_unscaled_y;  // RELATIVE x/y
-    //}else{
-    //  //debug_draw_x = event->x;
-    //  //debug_draw_y = event->y;
-    //  debug_draw_x = event_x;  // RELATIVE x/y
-    //  debug_draw_y = event_y;  // RELATIVE x/y
-    //}
-
-
     // actual drawing will be done inside internal_draw functions
   }
 
@@ -285,7 +259,7 @@ GuiObject::handle_event(const Event *event) {
     //if (!in_scope && being_dragged){
     if (!in_scope && focused){
       //Log::Debug["event_loop.cc"] << "inside GuiObject::handle_event, GuiObjectClass " << NameGuiObjClass[objclass] << ", event is out of bounds BUT being_dragged bool is true so continuing as if it were in focus";
-      Log::Debug["gui.cc"] << "inside GuiObject::handle_event, GuiObjectClass " << NameGuiObjClass[objclass] << " and objtype " << get_objtype() << ", event is out of bounds BUT focused bool is true so continuing as if it were in focus";
+      //Log::Debug["gui.cc"] << "inside GuiObject::handle_event, GuiObjectClass " << NameGuiObjClass[objclass] << " and objtype " << get_objtype() << ", event is out of bounds BUT focused bool is true so continuing as if it were in focus";
       skip_event = false;
     //}else if (!in_scope && !being_dragged){
     }else if (!in_scope && !focused){
@@ -343,10 +317,6 @@ GuiObject::handle_event(const Event *event) {
     }
   }
 
-  //if (skip_event){
-  //  Log::Debug["event_loop.cc"] << "inside GuiObject::handle_event, GuiObjectClass " << NameGuiObjClass[objclass] << ", skip_event is true, returning false";
-  //  return false;
-  //}
 
   //
   // if this point reached, the event is in scope for this game object
@@ -378,12 +348,11 @@ GuiObject::handle_event(const Event *event) {
   //  
   FloatList::reverse_iterator fl = floats.rbegin();
   for ( ; fl != floats.rend() ; ++fl) {
-    //Log::Debug["event_loop.cc"] << "inside GuiObject::handle_event for fl with objclass " << int((*fl)->get_objclass()) << " and objtype " << int((*fl)->get_objtype());
-    //Log::Debug["gui.cc"] << "inside GuiObject::handle_event for fl with objclass " << int((*fl)->get_objclass()) << " and objtype " << int((*fl)->get_objtype()) << ", calling handle_event for this fl";
+    Log::Debug["gui.cc"] << "inside GuiObject::handle_event for fl with objclass " << int((*fl)->get_objclass()) << " and objtype " << int((*fl)->get_objtype()) << ", calling handle_event for this fl";
     bool result = (*fl)->handle_event(&internal_event);
     if (result != 0) {
       // stop checking other floats as one seems to have handled this
-      //Log::Debug["gui.cc"] << "inside GuiObject::handle_event for fl with objclass " << int((*fl)->get_objclass()) << " and objtype " << int((*fl)->get_objtype()) << " returning float element result";
+      Log::Debug["gui.cc"] << "inside GuiObject::handle_event for fl with objclass " << int((*fl)->get_objclass()) << " and objtype " << int((*fl)->get_objtype()) << " returning float element result";
       return result; 
     }else{
       // check next float
@@ -392,25 +361,24 @@ GuiObject::handle_event(const Event *event) {
   }
 
   if (skip_event){
-    //Log::Debug["gui.cc"] << "inside GuiObject::handle_event, GuiObjectClass " << NameGuiObjClass[objclass] << ", skip_event is true, returning false";
+    Log::Debug["gui.cc"] << "inside GuiObject::handle_event, GuiObjectClass " << NameGuiObjClass[objclass] << ", skip_event is true, returning false";
     return false;
   }
 
-  //Log::Debug["event_loop.cc"] << "inside GuiObject::handle_event with event type " << NameGuiObjEvent[event->type] << " and objclass " << NameGuiObjClass[objclass] << " and objtype " << get_objtype() << ", checking event type w switch/case";
+  Log::Debug["event_loop.cc"] << "inside GuiObject::handle_event with event type " << NameGuiObjEvent[event->type] << " and objclass " << NameGuiObjClass[objclass] << " and objtype " << get_objtype() << ", checking event type w switch/case";
   bool result = false;
+
+  // only use scaled coordinates for Viewport & Interface, rest are unscaled UI elements
+  if (objclass != GuiObjClass::ClassInterface && objclass != GuiObjClass::ClassViewport){
+    event_x = event_unscaled_x;
+    event_y = event_unscaled_y;
+  }
+  
   switch (event->type) {
     case Event::TypeLeftClick:
       //Log::Debug["gui.cc"] << "inside GuiObject::handle_event with event type " << NameGuiObjEvent[event->type] << " and objclass " << NameGuiObjClass[objclass] << " and objtype " << get_objtype() << " calling 'result = handle_left_click' with event->dy " << event->dy;
       //Log::Debug["gui.cc"] << "inside GuiObject::handle_event with event type " << NameGuiObjEvent[event->type] << " and objclass " << NameGuiObjClass[objclass] << " and objtype " << get_objtype() << " calling 'result = handle_left_click' event->x/y " << event->x << "/" << event->y << ", event_x/y " << event_x << "/" << event_y << ", unscaled_x/y " << event->unscaled_x << "/" << event->unscaled_y;
-      // new fixed UI scaling
-      if (objclass == GuiObjClass::ClassPanelBar || objclass == GuiObjClass::ClassPopupBox
-       || objclass == GuiObjClass::ClassGameInitBox || objclass == GuiObjClass::ClassNotificationBox
-                  ){
-        //Log::Debug["gui.cc"] << "inside GuiObject::handle_event with event type " << event->type << " / " << NameGuiObjEvent[event->type] << " and objclass " << get_objclass() << " / " << NameGuiObjClass[get_objclass()] << ", USING UNSCALED x/y " << event->unscaled_x << "/" << event->unscaled_y;
-        result = handle_left_click(event_unscaled_x, event_unscaled_y, event->dy);
-      }else{
-        result = handle_left_click(event_x, event_y, event->dy);
-      }
+      result = handle_left_click(event_x, event_y, event->dy);
       break;
     case Event::TypeMouseButtonDown:
       //Log::Debug["gui.cc"] << "inside GuiObject::handle_event with event type " << NameGuiObjEvent[event->type] << " and objclass " << NameGuiObjClass[objclass] << " and objtype " << get_objtype() << " calling 'result = handle_mouse_button_down' with event->dx " << event->dx << " and event->dy " << event->dy;
@@ -502,15 +470,15 @@ GuiObject::get_position(int *px, int *py) {
 
 void
 GuiObject::set_size(int new_width, int new_height) {
-  Log::Debug["gui.cc"] << "start of GuiObject::set_size for obj with objclass " << NameGuiObjClass[objclass] << ", new size " << new_width << "x" << new_height;
+  //Log::Debug["gui.cc"] << "start of GuiObject::set_size for obj with objclass " << NameGuiObjClass[objclass] << ", new size " << new_width << "x" << new_height;
   delete_frame();
   width = new_width;
   height = new_height;
-  Log::Debug["gui.cc"] << "start of GuiObject::set_size for obj with objclass " << NameGuiObjClass[objclass] << ", calling layout";
+  //Log::Debug["gui.cc"] << "start of GuiObject::set_size for obj with objclass " << NameGuiObjClass[objclass] << ", calling layout";
   layout();  // this appears to do nothing for generic GuiObject, but I think it exists because it is overridden by some GuiObject superclasses such as Viewport, Interface, and their layout() is important
   //store_prev_res();
   set_redraw();
-  Log::Debug["gui.cc"] << "done GuiObject::set_size for obj with objclass " << NameGuiObjClass[objclass];
+  //Log::Debug["gui.cc"] << "done GuiObject::set_size for obj with objclass " << NameGuiObjClass[objclass];
 }
 
 void
@@ -550,7 +518,7 @@ GuiObject::point_inside(int point_x, int point_y) {
 
 void
 GuiObject::add_float(GuiObject *obj, int fx, int fy) {
-  Log::Debug["gui.cc"] << "inside GuiObject::add_float() with type " << NameGuiObjClass[obj->get_objclass()] << " and type " << obj->get_objtype();
+  //Log::Debug["gui.cc"] << "inside GuiObject::add_float() with type " << NameGuiObjClass[obj->get_objclass()] << " and type " << obj->get_objtype();
   obj->set_parent(this);
   // it seems this parent concept is used only multi-part single popup windows with text files/file lists to allow both to be refreshed
   //  such as save/load game boxes and random seed number box

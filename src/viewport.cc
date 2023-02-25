@@ -4404,16 +4404,6 @@ Viewport::handle_special_click(int lx, int ly) {
 
   Player *player = interface->get_player();
 
-  /* NO CANNOT DO THIS, need to be able to re-target a popup as this is the original behavior
-  // what problem was I trying to solve here?  wondering if this was a work-around to some
-  //  bad behavior, but it seems okay to me so far since removing this
-  if (interface->get_popup_box() != nullptr){
-    // a popup is currently open, ignore special-clicks as
-    //  they only interfere
-    return false;
-  }
-  */
-
   MapPos clk_pos = map_pos_from_screen_pix(lx, ly);
 
   if (interface->is_building_road()) {
@@ -4470,8 +4460,13 @@ Viewport::handle_special_click(int lx, int ly) {
         } else if (building->get_type() == Building::TypeCastle) {
           interface->open_popup(PopupBox::TypeCastleRes);
         } else if (building->get_type() == Building::TypeStock) {
-          if (!building->is_active()) return 0;
-          interface->open_popup(PopupBox::TypeCastleRes);
+          if (building->has_serf()){
+            // building has holder (Serf::TypeTransporterInventory)
+            interface->open_popup(PopupBox::TypeCastleRes);
+          }else{
+            // holder has not yet arrived, don't draw full detailed inventory
+            interface->open_popup(PopupBox::TypeBldStock);
+          }
         } else if (building->get_type() == Building::TypeHut ||
                    building->get_type() == Building::TypeTower ||
                    building->get_type() == Building::TypeFortress) {

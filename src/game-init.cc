@@ -363,6 +363,9 @@ GameInitBox::handle_action(int action) {
       if (interface->get_popup_box() != nullptr){
         interface->close_popup(interface->get_popup_box());
       }
+      // reset zoom
+      Graphics &gfx = Graphics::get_instance();
+      gfx.set_zoom_factor(1.0f);
 
       if (game_type == GameLoad) {
         std::string path = file_list->get_selected();
