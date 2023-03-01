@@ -14,18 +14,16 @@ or select platform dependent [generator](https://cmake.org/cmake/help/v3.0/manua
 
 Some useful configure variables (set as environment variable or with `-D` command line option):
 
-* `SDL2DIR` - path to SDL2 root directory
-* `SDL2MIXERDIR` - path to SDL2_mixer root directory (optional)
-* `SDL2IMAGEDIR` - path to SDL2_image root directory (optional)
-* `XMPDIR` - path to libxmp root directory (optional)
+* `SDL2_DIR` - path to SDL2 root directory
+* `SDL2_mixer_DIR` - path to SDL2_mixer root directory (optional)
+* `SDL2_image_DIR` - path to SDL2_image root directory (optional)
 
 Dependencies
 ------------
 
-* [SDL2](https://www.libsdl.org/download-2.0.php) (Development Libraries)
-* [SDL2_mixer](https://www.libsdl.org/projects/SDL_mixer/) (Optional; for audio playback) (Development Libraries)
-* [SDL2_image](https://www.libsdl.org/projects/SDL_image/) (Optional; for custom resources) (Development Libraries)
-* [libxmp](http://xmp.sourceforge.net/) (Optional; for Amiga music playback) (Building needed)
+* [SDL2](https://github.com/libsdl-org/SDL/releases) (Development Libraries)
+* [SDL2_mixer](https://github.com/libsdl-org/SDL_mixer/releases) (Optional; for audio playback) (Development Libraries)
+* [SDL2_image](https://github.com/libsdl-org/SDL_image/releases) (Optional; for custom resources) (Development Libraries)
 
 Coding style
 ------------
