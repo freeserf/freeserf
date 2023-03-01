@@ -27,11 +27,16 @@ jobs:
           arch: ${{ matrix.architecture }}
 
       - name: Install dependencies
-        uses: lukka/run-vcpkg@v7.3
+        uses: lukka/run-vcpkg@v10
+        env:
+          VCPKG_DEFAULT_TRIPLET: '${{ matrix.architecture }}-windows'
+          VCPKG_INSTALLED_DIR: '${{ github.workspace }}/vcpkg/installed'
         with:
-          vcpkgGitCommitId: '12c2a93b4007612b5ffa980c9d2235eb0bcac10f'
-          vcpkgTriplet: ${{ matrix.architecture }}-windows
-          vcpkgArguments: 'sdl2 sdl2-mixer[core,libmodplug,nativemidi] sdl2-image'
+          vcpkgDirectory: '${{ github.workspace }}/vcpkg'
+          vcpkgGitCommitId: 'a7b6122f6b6504d16d96117336a0562693579933'
+          runVcpkgInstall: true
+          vcpkgJsonGlob: '**/cmake/vcpkg.json'
+          appendedCacheKey: 'vcpkginstall-${{ matrix.architecture }}'
 
       - name: Configure FreeSerf
         run: |
