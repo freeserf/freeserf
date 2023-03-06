@@ -158,30 +158,10 @@ EventLoopSDL::run() {
 
   while (SDL_WaitEvent(&event)) {
 
-  /*
-        if (button_left_down) {
-          Log::Debug["event_loop-sdl.cc"] << "inside EventLoopSDL::run(), DEBUG button_left_down";
-        }else{
-          Log::Debug["event_loop-sdl.cc"] << "inside EventLoopSDL::run(), DEBUG button_left_up";
-        }
-        // NOTE - SDL shows middle/wheel mouse button as button2, not button3 as you might expect
-        if (button_middle_down) {
-          Log::Debug["event_loop-sdl.cc"] << "inside EventLoopSDL::run(), DEBUG button_middle_down";
-        }else{
-          Log::Debug["event_loop-sdl.cc"] << "inside EventLoopSDL::run(), DEBUG button_middle_up";
-        }
-        // NOTE - SDL shows right mouse button as button3, not button2 as you might expect
-        if (button_right_down) {
-          Log::Debug["event_loop-sdl.cc"] << "inside EventLoopSDL::run(), DEBUG button_right_down";
-        }else{
-          Log::Debug["event_loop-sdl.cc"] << "inside EventLoopSDL::run(), DEBUG button_right_up";
-        }
-  */
-
     //Log::Debug["event_loop-sdl.cc"] << "tick_length is " << tick_length;
     // TRIGGER RESET OF Timer here!
     if (tick_length != last_tick_length){
-      Log::Debug["event_loop-sdl.cc"] << "tick_length changed from " << last_tick_length << " to " << tick_length << ", resetting SDL Timer";
+      //Log::Debug["event_loop-sdl.cc"] << "tick_length changed from " << last_tick_length << " to " << tick_length << ", resetting SDL Timer";
       last_tick_length = tick_length;
       if (SDL_RemoveTimer(timer_id)){
         Log::Debug["event_loop-sdl.cc"] << "SDL_RemoveTimer successfully removed timer_id " << timer_id;
@@ -213,9 +193,9 @@ EventLoopSDL::run() {
           //Log::Debug["event_loop-sdl.cc"] << "inside EventLoopSDL::run(), type SDL_MOUSEBUTTONUP, drag_button = 0";
         }
 
-        Log::Debug["event_loop-sdl.cc"] << "inside EventLoopSDL::run(), type SDL_MOUSEBUTTONUP, is_dragging_popup bool is " << is_dragging_popup;
+        //Log::Debug["event_loop-sdl.cc"] << "inside EventLoopSDL::run(), type SDL_MOUSEBUTTONUP, is_dragging_popup bool is " << is_dragging_popup;
         if (is_dragging_popup){
-          Log::Debug["event_loop-sdl.cc"] << "inside EventLoopSDL::run(), type SDL_MOUSEBUTTONUP, is_dragging_popup bool is true, calling warp to " << mouse_x_after_drag << "," << mouse_y_after_drag;
+          //Log::Debug["event_loop-sdl.cc"] << "inside EventLoopSDL::run(), type SDL_MOUSEBUTTONUP, is_dragging_popup bool is true, calling warp to " << mouse_x_after_drag << "," << mouse_y_after_drag;
           SDL_ShowCursor(SDL_ENABLE); // this is disabled at start of a Popup drag
           SDL_WarpMouseInWindow(nullptr, mouse_x_after_drag, mouse_y_after_drag);
           is_dragging_popup = false;
@@ -238,7 +218,7 @@ EventLoopSDL::run() {
               }
             }else if (event.button.button == 1){
               SDL_Keymod mod = SDL_GetModState();
-              Log::Debug["event_loop-sdl.cc"] << "inside EventLoopSDL::run(), type SDL_MOUSEBUTTONUP, x/y " << x << "/" << y << ", unscaled_x/y " << unscaled_x << "/" << unscaled_y << ", calling notify_left_click";
+              //Log::Debug["event_loop-sdl.cc"] << "inside EventLoopSDL::run(), type SDL_MOUSEBUTTONUP, x/y " << x << "/" << y << ", unscaled_x/y " << unscaled_x << "/" << unscaled_y << ", calling notify_left_click";
               notify_left_click(x, y, unscaled_x, unscaled_y, mod, (Event::Button)event.button.button);
             }else if (event.button.button == 3){
               notify_right_click(x, unscaled_x, unscaled_y, y);
@@ -321,7 +301,7 @@ EventLoopSDL::run() {
 
               //Graphics &gfx = Graphics::get_instance();
               //gfx.get_mouse_cursor_coord(&mouse_x_after_drag, &mouse_y_after_drag);  // store the CURRENT mouse x/y BEFORE dragging so its adjusted position can track the drag
-
+              break;  // added based on Freeserf commit #540cef4
             }
 
 
@@ -334,12 +314,22 @@ EventLoopSDL::run() {
             int unscaled_x = static_cast<int>(event.button.x);
             int unscaled_y = static_cast<int>(event.button.y);
 
+            int dx = event.motion.x - drag_x; // added based on Freeserf commit #540cef4
+            int dy = event.motion.y - drag_y; // added based on Freeserf commit #540cef4
+            if ((dx == 0) && (dy == 0)) {     // added based on Freeserf commit #540cef4
+              break;                          // added based on Freeserf commit #540cef4
+            }                                 // added based on Freeserf commit #540cef4
+
             if (option_InvertMouse){
               //Log::Debug["event_loop-sdl.cc"] << "inside EventLoopSDL::run(), type SDL_MOUSEMOTION, calling notify_drag inverted with x,y values " << x << ", " << y << ", xmove " << event.motion.x - drag_x << ", ymove " << (event.motion.y - drag_y) * -1;
-              notify_drag(x, y, unscaled_x, unscaled_y, event.motion.x - drag_x, (event.motion.y - drag_y) * -1, (Event::Button)drag_button);
+              // updating based on   Freeserf commit #540cef4
+              //notify_drag(x, y, unscaled_x, unscaled_y, event.motion.x - drag_x, (event.motion.y - drag_y) * -1, (Event::Button)drag_button);
+              notify_drag(x, y, unscaled_x, unscaled_y, dx, (dy) * -1, (Event::Button)drag_button);
             }else{
-              Log::Debug["event_loop-sdl.cc"] << "inside EventLoopSDL::run(), type SDL_MOUSEMOTION, calling notify_drag normal with x,y values " << x << ", " << y << ", xmove " << event.motion.x - drag_x << ", ymove " << event.motion.y - drag_y;
-              notify_drag(x, y, unscaled_x, unscaled_y, event.motion.x - drag_x, event.motion.y - drag_y, (Event::Button)drag_button);
+              //Log::Debug["event_loop-sdl.cc"] << "inside EventLoopSDL::run(), type SDL_MOUSEMOTION, calling notify_drag normal with x,y values " << x << ", " << y << ", xmove " << event.motion.x - drag_x << ", ymove " << event.motion.y - drag_y;
+              // updating based on   Freeserf commit #540cef4
+              //notify_drag(x, y, unscaled_x, unscaled_y, event.motion.x - drag_x, event.motion.y - drag_y, (Event::Button)drag_button);
+              notify_drag(x, y, unscaled_x, unscaled_y, dx, dy, (Event::Button)drag_button);
             }
 
             Log::Debug["event_loop-sdl.cc"] << "inside EventLoopSDL::run(), type SDL_MOUSEMOTION, calling SDL_WarpMouseInWindow with drag_x/y values " << drag_x << ", " << drag_y;
@@ -365,17 +355,6 @@ EventLoopSDL::run() {
 
             // I am seeing an issue where if zooming quickly the zoom is messed up
             //  trying to limit it to a single increment per game update/tick
-            // NOPE THIS ISN'T THE CAUSE
-            /*
-            if (event.wheel.y > 1){
-              Log::Debug["event_loop-sdl.cc"] << "inside EventLoopSDL::run(), event.wheel.y is " << event.wheel.y << ", limit it to 1";
-              event.wheel.y = 1;
-            }else if (event.wheel.y < -1){
-              event.wheel.y = -1;
-              Log::Debug["event_loop-sdl.cc"] << "inside EventLoopSDL::run(), event.wheel.y is " << event.wheel.y << ", limit it to -1";
-            }
-            */
-
             if (zoom_changed){
               Log::Debug["event_loop-sdl.cc"] << "inside EventLoopSDL::run(), zoom was already changed this SDL loop, not changing again";
               break;
@@ -516,7 +495,8 @@ EventLoopSDL::run() {
         break;
       }
       case SDL_QUIT:
-        notify_key_pressed('c', 1);
+        //notify_key_pressed('c', 1);
+        quit();
         break;
       case SDL_WINDOWEVENT:
         if (SDL_WINDOWEVENT_SIZE_CHANGED == event.window.event) {

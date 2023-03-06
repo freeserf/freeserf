@@ -550,7 +550,7 @@ PopupBox::draw_player_face(int ix, int iy, int player) {
 /* Draw a layout of buildings in a popup box. */
 void
 PopupBox::draw_custom_bld_box(const int sprites[]) {
-  Log::Debug["popup.cc"] << "inside PopupBox::draw_custom_bld_box";
+  //Log::Debug["popup.cc"] << "inside PopupBox::draw_custom_bld_box";
   while (sprites[0] > 0) {
     int sx = sprites[1];
     int sy = sprites[2];
@@ -564,7 +564,7 @@ PopupBox::draw_custom_bld_box(const int sprites[]) {
 /* Draw a layout of icons in a popup box. */
 void
 PopupBox::draw_custom_icon_box(const int sprites[]) {
-  Log::Debug["popup.cc"] << "inside PopupBox::draw_custom_icon_box";
+  //Log::Debug["popup.cc"] << "inside PopupBox::draw_custom_icon_box";
   while (sprites[0] > 0) {
     draw_popup_icon(sprites[1], sprites[2], sprites[0]);
     sprites += 3;
@@ -713,7 +713,7 @@ PopupBox::draw_adv_2_building_box() {
 /* Draw generic popup box of resources. */
 void
 PopupBox::draw_resources_box(const ResourceMap &resources) {
-  Log::Debug["popup.cc"] << "inside PopupBox::draw_resources_box";
+  //Log::Debug["popup.cc"] << "inside PopupBox::draw_resources_box";
   const int layout[] = {
     0x28, 1, 0, /* resources */
     0x29, 1, 16,
@@ -789,7 +789,7 @@ PopupBox::draw_resources_box(const ResourceMap &resources) {
 /* Draw generic popup box of serfs. */
 void
 PopupBox::draw_serfs_box(const int *serfs, int total) {
-  Log::Debug["popup.cc"] << "inside PopupBox::draw_serfs_box";
+  //Log::Debug["popup.cc"] << "inside PopupBox::draw_serfs_box";
   const int layout[] = {
     0x9, 1, 0, /* serfs */
     0xa, 1, 16,
@@ -2411,7 +2411,7 @@ PopupBox::draw_edit_map_generator2_box() {
 
 void
 PopupBox::draw_debug_box() {
-  Log::Debug["popup.cc"] << "inside PopupBox::draw_debug_box";
+  //Log::Debug["popup.cc"] << "inside PopupBox::draw_debug_box";
   draw_box_background(PatternDiagonalGreen);
   draw_green_string(5, 0, "Debug");
 
@@ -2427,7 +2427,7 @@ PopupBox::draw_debug_box() {
 
 void
 PopupBox::draw_castle_res_box() {
-  Log::Debug["popup.cc"] << "inside PopupBox::draw_castle_res_box";
+  //Log::Debug["popup.cc"] << "inside PopupBox::draw_castle_res_box";
   const int layout[] = {
     0x3d, 12, 128, /* flip */
     0x3c, 14, 128, /* exit */
@@ -2971,7 +2971,7 @@ PopupBox::draw_inv_queues_box() {
       }
       col = 0;
     }
-    Log::Debug["popup.cc"] << "inside PopupBox::draw_inv_queues_box, serf #" << serf->get_index() << " with type " << serf->get_type() << ", using icon #" << icon;
+    //Log::Debug["popup.cc"] << "inside PopupBox::draw_inv_queues_box, serf #" << serf->get_index() << " with type " << serf->get_type() << ", using icon #" << icon;
     draw_popup_icon(col++*2, 28 + row*16, icon);
   }
 
@@ -2979,7 +2979,7 @@ PopupBox::draw_inv_queues_box() {
   draw_green_string(1, 116, "Resources");
   for (int x=0; x<2; x++){
     if (inventory->get_out_queue_res_type(x) != Resource::TypeNone){
-      Log::Debug["popup.cc"] << "inside PopupBox::draw_inv_queues_box, res #" << x << " is type " << inventory->get_out_queue_res_type(x);
+      //Log::Debug["popup.cc"] << "inside PopupBox::draw_inv_queues_box, res #" << x << " is type " << inventory->get_out_queue_res_type(x);
       //hexadecimal 0x22 is fish(res0) which is decimal 34
       int icon = 34 + inventory->get_out_queue_res_type(x);
       draw_popup_icon(3+x*2, 125, icon);

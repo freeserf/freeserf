@@ -408,15 +408,42 @@ PanelBar::button_click(int button) {
 /* Handle a click on the panel buttons. */
 void
 PanelBar::button_special_click(int button) {
-  //Log::Debug["panel.cc"] << "inside PanelBar::button_special_click()";
-  if (panel_btns[button] == ButtonBuildInactive){
-    //Log::Debug["panel.cc"] << "inside PanelBar::button_special_click(), clicked ButtonBuildInactive";
-    Viewport *viewport = interface->get_viewport();
-    if (viewport == nullptr){
-      throw ExceptionFreeserf("inside PanelBar::button_special_click, viewport is nullptr!");
-    }
-    viewport->switch_layer(Viewport::LayerBuilds);
+  Log::Debug["panel.cc"] << "inside PanelBar::button_special_click(), clicked button " << button;
+  Viewport *viewport = interface->get_viewport();
+  if (viewport == nullptr){
+    throw ExceptionFreeserf("inside PanelBar::button_special_click, viewport is nullptr!");
   }
+
+  if (button == 0){  // first/build button
+    Log::Debug["panel.cc"] << "inside PanelBar::button_special_click(), clicked button " << button << ", toggling Build view";
+    viewport->switch_layer(Viewport::LayerBuilds);
+  }else if (button == 1){  // second/destroy button
+    // adding feature where special-clicking on destroy bypasses the confirm destroy popup
+    Log::Debug["panel.cc"] << "inside PanelBar::button_special_click(), clicked button " << button << ", bypassing confirmation and triggering destroy";
+    if (interface->get_map_cursor_type() == Interface::CursorTypeRemovableFlag) {
+      interface->demolish_object();
+    } else if (interface->get_map_cursor_type() == Interface::CursorTypeBuilding) {
+      Building *building = interface->get_game()->get_building_at_pos(interface->get_map_cursor_pos());
+      if (building == nullptr){
+        Log::Warn["panel.cc"] << "inside PanelBar::button_special_click for ButtonDestroy, building at pos " << interface->get_map_cursor_pos() << "is nullptr!  breaking early";
+        return;
+      }
+      interface->demolish_object();
+    }
+  }else if (button == 2){  // third/map button
+    Log::Debug["panel.cc"] << "inside PanelBar::button_special_click(), clicked button " << button << ", centering viewport on player's castle (if found)";
+    // center on this player's castle at least
+    for (Building *building : interface->get_game()->get_player_buildings(interface->get_player())) {
+      if (building->get_type() == Building::TypeCastle) {
+        viewport->move_to_map_pos(building->get_position());
+      }
+    }
+  }else if (button == 3){  // fourth/graph button
+    // do nothing, I don't think there is any special functionality here?
+  }else if (button == 4){  // fifth/computer button
+    // do nothing, I don't think there is any special functionality here?
+  }
+
 }
 
 
@@ -495,11 +522,7 @@ PanelBar::handle_left_click(int cx, int cy, int modifier) {
 
 bool
 PanelBar::handle_dbl_click(int lx, int ly, Event::Button button) {
-  if (being_dragged){
-    being_dragged = false;
-    return false;
-  }
-  //Log::Debug["panel.cc"] << "inside PanelBar::handle_dbl_click, button " << button;
+  Log::Debug["panel.cc"] << "inside PanelBar::handle_dbl_click, button " << button;
   // for now, this does nothing except call special-click function
   if (button != Event::ButtonLeft){
     return false;
@@ -509,11 +532,7 @@ PanelBar::handle_dbl_click(int lx, int ly, Event::Button button) {
 
 bool
 PanelBar::handle_special_click(int cx, int cy) {
-  if (being_dragged){
-    being_dragged = false;
-    return false;
-  }
-  //Log::Debug["panel.cc"] << "inside PanelBar::handle_special_click(), cx " << cx << ", cy " << cy;
+  Log::Debug["panel.cc"] << "inside PanelBar::handle_special_click(), cx " << cx << ", cy " << cy;
   set_redraw();
 
   if (cy >= 4 && cy < 36 && cx >= 64) {

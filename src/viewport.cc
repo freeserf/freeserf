@@ -2913,13 +2913,16 @@ Viewport::draw_active_serf(Serf *serf, MapPos pos, int x_base, int y_base) {
     //
     if (layers & Layer::LayerDebug){
       std::vector<int> debug_mark_serf = *(interface->get_game()->get_debug_mark_serf());
-      if (std::count(debug_mark_serf.begin(), debug_mark_serf.end(), serf->get_index()) > 0){
-      //if (true){
-        std::string state_details = "";
-        state_details += serf->get_state_name(serf->get_state());
-        state_details += "\n";
-        frame->draw_string(lx, ly + 8, state_details, colors.at("black"));
-        frame->draw_string(lx, ly + 8, serf->print_state(),  colors.at("black"));
+      if (std::count(debug_mark_serf.begin(), debug_mark_serf.end(), serf->get_index()) > 0
+        || serf->get_state() == Serf::StateWaitForBoat // debuging CanTransportSerfsInBoats issues
+        || serf->get_type() == Serf::TypeSailor // debuging CanTransportSerfsInBoats issues
+            ){
+        //std::string state_details = "";
+        //state_details += serf->get_state_name(serf->get_state());
+        //state_details += "\n";
+        std::string state_details = std::string(serf->get_state_name(serf->get_state())) + std::string(" index ") + std::to_string(serf->get_index()) + std::string("\n");
+        frame->draw_string(lx, ly + 8, state_details, colors.at("white"));
+        //frame->draw_string(lx, ly + 8, serf->print_state(),  colors.at("white"));
       }
     }
     
@@ -4401,16 +4404,6 @@ Viewport::handle_special_click(int lx, int ly) {
 
   Player *player = interface->get_player();
 
-  /* NO CANNOT DO THIS, need to be able to re-target a popup as this is the original behavior
-  // what problem was I trying to solve here?  wondering if this was a work-around to some
-  //  bad behavior, but it seems okay to me so far since removing this
-  if (interface->get_popup_box() != nullptr){
-    // a popup is currently open, ignore special-clicks as
-    //  they only interfere
-    return false;
-  }
-  */
-
   MapPos clk_pos = map_pos_from_screen_pix(lx, ly);
 
   if (interface->is_building_road()) {
@@ -4467,8 +4460,13 @@ Viewport::handle_special_click(int lx, int ly) {
         } else if (building->get_type() == Building::TypeCastle) {
           interface->open_popup(PopupBox::TypeCastleRes);
         } else if (building->get_type() == Building::TypeStock) {
-          if (!building->is_active()) return 0;
-          interface->open_popup(PopupBox::TypeCastleRes);
+          if (building->has_serf()){
+            // building has holder (Serf::TypeTransporterInventory)
+            interface->open_popup(PopupBox::TypeCastleRes);
+          }else{
+            // holder has not yet arrived, don't draw full detailed inventory
+            interface->open_popup(PopupBox::TypeBldStock);
+          }
         } else if (building->get_type() == Building::TypeHut ||
                    building->get_type() == Building::TypeTower ||
                    building->get_type() == Building::TypeFortress) {
@@ -4965,9 +4963,9 @@ Viewport::update() {
 
   // refresh/update floating/moveable/pinned/multiple popups
   if (interface->get_game()->get_const_tick() % 40 == 0){
-    Log::Debug["viewport.cc"] << "inside Viewport::update(), refreshing any pinned_popups";
+    //Log::Debug["viewport.cc"] << "inside Viewport::update(), refreshing any pinned_popups";
     for (PopupBox *pinned_popup : interface->get_pinned_popup_boxes()){
-       Log::Debug["viewport.cc"] << "inside Viewport::update(), refreshing any pinned_popups, found a pinned popup with class " << NameGuiObjClass[pinned_popup->get_objclass()] << " and type " << pinned_popup->get_objtype();
+      //Log::Debug["viewport.cc"] << "inside Viewport::update(), refreshing any pinned_popups, found a pinned popup with class " << NameGuiObjClass[pinned_popup->get_objclass()] << " and type " << pinned_popup->get_objtype();
       // I think I saw an issue with trying to set redraw on parent
       //   of a pinned popup, I think there is no reason that pinned 
       //   popups need a parent, trying to set it nullptr to see
@@ -5018,10 +5016,10 @@ Viewport::update() {
 
       // redraw minimap if popup pinned
       if (pinned_popup->get_objclass() == GuiObjClass::ClassPopupBox && pinned_popup->get_objtype() == PopupBox::TypeMap){
-        Log::Debug["viewport.cc"] << "inside Viewport::update(), refreshing any pinned_popups, found MiniMap popup";
+        //Log::Debug["viewport.cc"] << "inside Viewport::update(), refreshing any pinned_popups, found MiniMap popup";
         Minimap *minimap = pinned_popup->get_minimap();
         if (minimap != nullptr) {
-          Log::Debug["viewport.cc"] << "inside Viewport::update(), refreshing any pinned_popups, found MiniMap popup, not null, calling move_to_map_pos " << get_current_map_pos();
+          //Log::Debug["viewport.cc"] << "inside Viewport::update(), refreshing any pinned_popups, found MiniMap popup, not null, calling move_to_map_pos " << get_current_map_pos();
           minimap->move_to_map_pos(get_current_map_pos());
         }
       }

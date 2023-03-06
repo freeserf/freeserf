@@ -221,9 +221,9 @@ Interface::close_popup(PopupBox *popup_to_close) {
   //Log::Debug["popup.cc"] << "inside Interface::close_popup, with click coords " << x << "," << y;
   Log::Debug["popup.cc"] << "inside Interface::close_popup";
   if (popup != popup_to_close){
-    Log::Debug["popup.cc"] << "inside Interface::close_popup, closing a pinned popup";
+    //Log::Debug["popup.cc"] << "inside Interface::close_popup, closing a pinned popup";
     if (popup_to_close == nullptr) {
-      Log::Debug["popup.cc"] << "inside Interface::close_popup, closing a pinned popup but popup_to_close is nullptr!";
+      //Log::Debug["popup.cc"] << "inside Interface::close_popup, closing a pinned popup but popup_to_close is nullptr!";
       return;
     }
     popup_to_close->hide();
@@ -239,36 +239,39 @@ Interface::close_popup(PopupBox *popup_to_close) {
     //popup_to_close = nullptr;
     //set_redraw();  // attempt to fix frame corruption after closing pinned popup issue
   }else{
-    Log::Debug["popup.cc"] << "inside Interface::close_popup, closing 'the one' transient popup";
+    //Log::Debug["popup.cc"] << "inside Interface::close_popup, closing 'the one' transient popup";
     if (popup == nullptr) {
-      Log::Debug["popup.cc"] << "inside Interface::close_popup, closing 'the one' transient popup A";
+      //Log::Debug["popup.cc"] << "inside Interface::close_popup, closing 'the one' transient popup A";
       return;
     }
-    Log::Debug["popup.cc"] << "inside Interface::close_popup, closing 'the one' transient popup B";
+    //Log::Debug["popup.cc"] << "inside Interface::close_popup, closing 'the one' transient popup B";
     popup->hide();
-    Log::Debug["popup.cc"] << "inside Interface::close_popup, closing 'the one' transient popup C";
+    //Log::Debug["popup.cc"] << "inside Interface::close_popup, closing 'the one' transient popup C";
     del_float(popup);
-    Log::Debug["popup.cc"] << "inside Interface::close_popup, closing 'the one' transient popup D";
+    //Log::Debug["popup.cc"] << "inside Interface::close_popup, closing 'the one' transient popup D";
     delete popup;
-    Log::Debug["popup.cc"] << "inside Interface::close_popup, closing 'the one' transient popup E";
+    //Log::Debug["popup.cc"] << "inside Interface::close_popup, closing 'the one' transient popup E";
     popup = nullptr;
-    Log::Debug["popup.cc"] << "inside Interface::close_popup, closing 'the one' transient popup F";
+    //Log::Debug["popup.cc"] << "inside Interface::close_popup, closing 'the one' transient popup F";
     viewport->set_focused(); // tlongstretch, to fix issue where after closing options popup viewport can't drag until clicked on
   }
-  Log::Debug["popup.cc"] << "inside Interface::close_popup, closing 'the one' transient popup G";
+  //Log::Debug["popup.cc"] << "inside Interface::close_popup, closing 'the one' transient popup G";
   update_map_cursor_pos(map_cursor_pos);
   if (panel != nullptr) {
-    Log::Debug["popup.cc"] << "inside Interface::close_popup, closing 'the one' transient popup H";
+    //Log::Debug["popup.cc"] << "inside Interface::close_popup, closing 'the one' transient popup H";
     panel->update();
   }
-  Log::Debug["popup.cc"] << "inside Interface::close_popup, closing 'the one' transient popup I";
+  //Log::Debug["popup.cc"] << "inside Interface::close_popup, closing 'the one' transient popup I";
+
+  // unset list focus in case it is
+  is_list_in_focus = false;
 }
 
 // close all popups, now that there is no longer one single popup whose index is tied to player, it becomes
 //  possible to have popups open for multiple players, which is confusing I think
 void
 Interface::close_pinned_popups() {
-  Log::Debug["popup.cc"] << "inside Interface::close_pinned_popups";
+  //Log::Debug["popup.cc"] << "inside Interface::close_pinned_popups";
   for (PopupBox *pinned_popup : get_pinned_popup_boxes()){
     close_popup(pinned_popup);
   }
@@ -277,7 +280,7 @@ Interface::close_pinned_popups() {
 
 void
 Interface::pin_popup() {
-  Log::Debug["popup.cc"] << "inside Interface::pin_popup";
+  //Log::Debug["popup.cc"] << "inside Interface::pin_popup";
   if (popup == nullptr) {
     return;
   }
@@ -1352,7 +1355,7 @@ Interface::update() {
 bool
 Interface::handle_key_pressed(char key, int modifier) {
 
-  Log::Info["interface"] << "inside Interface::handle_key_pressed, key '" << key << "' key with number '" << int(key) << "' pressed";
+  //Log::Info["interface"] << "inside Interface::handle_key_pressed, key '" << key << "' key with number '" << int(key) << "' pressed";
 
   switch (key) {
     /* Interface control */
@@ -1608,7 +1611,7 @@ Interface::handle_key_pressed(char key, int modifier) {
       break;
     }
     case 'w':
-      Log::Info["interface.cc"] << "'w' key pressed, toggling FourSeasons";
+      Log::Info["interface.cc"] << "'w' key pressed, toggling FourSeasons (NOT toggling AdvancedFarming anymore!)";
       if (option_FourSeasons){
         clear_custom_graphics_cache();  // to ensure any mutated sprites are restored
         option_FourSeasons = false;
@@ -1691,13 +1694,83 @@ Interface::handle_key_pressed(char key, int modifier) {
       }
       break;
     case 'c':
-      Log::Info["interface"] << "'c' key pressed, confirming quit";
-      // ALLOW ENTER KEY TO DO THIS!
-      if (modifier & 1) {
-        open_popup(PopupBox::TypeQuitConfirm);
+    {
+      // cycle Castle/Stocks
+      //  move the viewport and map cursor to the next one
+      //  if 'the popup' is open for one, keep it open and open for the next one
+      Log::Info["interface.cc"] << "'c' key pressed, cycling Inventory popup (starting with castle)";
+      int current_inventory_index = -1;
+      int next_inventory_index = -1;
+      int current_box_type = 0;
+      // check for a current popup
+      if (get_popup_box() != nullptr){
+        if (get_popup_box()->get_box() == PopupBox::TypeCastleRes
+         || get_popup_box()->get_box() == PopupBox::TypeCastleSerf
+         || get_popup_box()->get_box() == PopupBox::TypeResDir
+         || get_popup_box()->get_box() == PopupBox::TypeInventoryQueues
+                  ){
+          current_inventory_index = get_popup_box()->get_target_obj_index();
+          current_box_type = get_popup_box()->get_box();
+          Log::Debug["interface.cc"] << "'c' key pressed, opening next inventory popup, an existing inventory-type popup already open, with building index " << current_inventory_index;
+        }
+      }else{
+        // if an Inventory popup is not already open, check to see if the current map cursor pos is on an Inventory building
+        //  and if so, use that as the current inventory for cycling (but don't open the Inventory popup, just cycle positions)
+        MapPos current_pos = get_map_cursor_pos();
+        Building *current_building = game->get_building_at_pos(current_pos);
+        if (current_building != nullptr){
+          if (current_building->get_type() == Building::TypeCastle || current_building->get_type() == Building::TypeStock){
+            current_inventory_index = game->get_building_at_pos(current_pos)->get_index();
+          }
+        }
+      }
+      // find the next Inventory (after this one, if one already selected)
+      for (Building *building : game->get_player_buildings(player)) {
+        if (building->get_index() > current_inventory_index){
+          if ((building->get_type() == Building::TypeCastle || building->get_type() == Building::TypeStock)
+           && building->is_done() && !building->is_burning() && building->has_serf()) {
+            next_inventory_index = building->get_index();
+            break;
+          }
+        }
+      }
+      // loop back around if not starting from the beginning, if another not found yet
+      //if (current_inventory_index > -1 && next_inventory_index == -1){
+      if (next_inventory_index == -1){
+        for (Building *building : game->get_player_buildings(player)) {
+          if (building->get_index() >= current_inventory_index){
+            // no other active inventory could be found
+            break;
+          }
+          if ((building->get_type() == Building::TypeCastle || building->get_type() == Building::TypeStock)
+           && building->is_done() && !building->is_burning() && building->has_serf()) {
+            next_inventory_index = building->get_index();
+            break;
+          }
+        }
+      }
+      if (next_inventory_index > -1){
+        MapPos next_inventory_pos = bad_map_pos;
+        Building *next_inventory_building = game->get_building(next_inventory_index);
+        if (next_inventory_building != nullptr){
+          // move the map cursor and viewport to the new inventory pos
+          next_inventory_pos = next_inventory_building->get_position();
+          update_map_cursor_pos(next_inventory_pos);
+          viewport->move_to_map_pos(next_inventory_pos);
+        }
+        // if a popup open, change its target building to the next inventory also
+        if (current_box_type > 0){
+          open_popup(current_box_type);
+          get_popup_box()->set_target_obj_index(next_inventory_index);
+          // move up a bit so that the popup isn't blocking view of the Inventory building
+          viewport->move_by_pixels(0, -140);
+        }
+      }else{
+        // no [other] inventory available
+        play_sound(Audio::TypeSfxNotAccepted);
       }
       break;
-
+    }
     default:
       return false;
   }
@@ -1707,16 +1780,16 @@ Interface::handle_key_pressed(char key, int modifier) {
 
 bool
 Interface::handle_event(const Event *event) {
-  //Log::Debug["event_loop.cc"] << "inside Interface::handle_event, type " << event->type;
+  //Log::Debug["interface.cc"] << "inside Interface::handle_event, type " << event->type;
   switch (event->type) {
     case Event::TypeResize:
-    Log::Debug["event_loop.cc"] << "inside Interface::handle_event, TypeResize";
+      //Log::Debug["interface.cc"] << "inside Interface::handle_event, TypeResize";
       set_size(event->dx, event->dy);
       viewport->store_prev_viewport_size();
       //viewport->set_resize_tainted();
       break;
     case Event::TypeZoom:
-      Log::Debug["event_loop.cc"] << "inside Interface::handle_event, TypeZoom";
+      //Log::Debug["interface.cc"] << "inside Interface::handle_event, TypeZoom";
       // no longer zoom the Interface, only the Viewport
       //set_size(event->dx, event->dy);
       viewport->set_size(event->dx, event->dy);
@@ -1734,23 +1807,23 @@ Interface::handle_event(const Event *event) {
       if (init_box != nullptr && init_box->is_displayed()){
         GuiObject::handle_event(event);
       }else{
-        Log::Debug["interface.cc"] << "inside Interface::handle_event(), TypeRightClick, closing popups/notifications/canceling road";
+        //Log::Debug["interface.cc"] << "inside Interface::handle_event(), TypeRightClick, closing popups/notifications/canceling road";
         // for all other cases, trigger "close-popup/cancel-action"
         if ((notification_box != nullptr) && notification_box->is_displayed()) {
-          Log::Debug["interface.cc"] << "inside Interface::handle_event(), TypeRightClick, closing notification message";
+          //Log::Debug["interface.cc"] << "inside Interface::handle_event(), TypeRightClick, closing notification message";
           close_message();
         } else if ((popup != nullptr) && popup->is_displayed()) {
-          Log::Debug["interface.cc"] << "inside Interface::handle_event(), TypeRightClick, closing 'the one' popup";
+          //Log::Debug["interface.cc"] << "inside Interface::handle_event(), TypeRightClick, closing 'the one' popup";
           close_popup(popup);
         } else if (building_road.is_valid()) {
-          Log::Debug["interface.cc"] << "inside Interface::handle_event(), TypeRightClick, closing 'build_road' effort";
+          //Log::Debug["interface.cc"] << "inside Interface::handle_event(), TypeRightClick, closing 'build_road' effort";
           build_road_end();
         }
       }
       break;
     default:
-    Log::Debug["interface.cc"] << "inside Interface::handle_event(), default, no case matched, event type is " << event->type;
-    Log::Debug["interface.cc"] << "inside Interface::handle_event(), DEBUG unscaled_x/y is " << event->unscaled_x << "/" << event->unscaled_y;
+      //Log::Debug["interface.cc"] << "inside Interface::handle_event(), default, no case matched, event type is " << event->type;
+      //Log::Debug["interface.cc"] << "inside Interface::handle_event(), DEBUG unscaled_x/y is " << event->unscaled_x << "/" << event->unscaled_y;
       return GuiObject::handle_event(event);
       break;
   }
