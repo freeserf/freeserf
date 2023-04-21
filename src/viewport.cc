@@ -2185,7 +2185,63 @@ Viewport::draw_map_cursor_possible_build() {
 }
 
 void
+Viewport::draw_map_cursor_coverage() {
+  MapPos pos = interface->get_map_cursor_pos();
+  int radius = -1;
+
+  if (map->has_building(pos)) {
+    Building *building = interface->get_game()->get_building(
+      map->get_obj_index(pos));
+    switch (building->get_type()) {
+    case Building::TypeFisher:
+      radius = 6;
+      break;
+    case Building::TypeLumberjack:
+      radius = 7;
+      break;
+    case Building::TypeStonecutter:
+      radius = 7;
+      break;
+    case Building::TypeStoneMine:
+    case Building::TypeCoalMine:
+    case Building::TypeIronMine:
+    case Building::TypeGoldMine:
+      radius = 5;
+      break;
+    case Building::TypeForester:
+      radius = 7;
+      break;
+    case Building::TypeFarm:
+      radius = 5;
+      break;
+    case Building::TypeCastle:
+    case Building::TypeHut:
+    case Building::TypeTower:
+    case Building::TypeFortress:
+      radius = 8;  // Land ownership radius
+      break;
+    default:
+      break;
+    }
+  }
+
+  if (radius <= 0) return;
+
+  pos = map->move_right_n(pos, radius);
+  Direction d = DirectionDown;
+  for (int i = 0; i < 6; i++) {
+    for (int j = 0; j < radius; j++) {
+      draw_map_cursor_sprite(pos, 33);
+      pos = map->move(pos, d);
+    }
+    d = turn_direction(d, 1);
+  }
+}
+
+void
 Viewport::draw_map_cursor() {
+  draw_map_cursor_coverage();
+
   if (layers & LayerBuilds) {
     draw_map_cursor_possible_build();
   }
