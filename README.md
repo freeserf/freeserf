@@ -1,4 +1,4 @@
-FORKSERF DEVELOPMENT IS ON HOLD UNTIL FALL/WINTER 2023
+DEVELOPMENT HAS NOW RESUMED FOR THE 2023-2024 FALL/WINTER/SPRING SEASON
 ========
 this is a cold-weather project for me, I am busy outside until autumn
 
