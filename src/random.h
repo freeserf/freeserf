@@ -23,6 +23,7 @@
 #define SRC_RANDOM_H_
 
 #include <string>
+#include <cstdint>
 
 class Random {
  protected:
