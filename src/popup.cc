@@ -2397,7 +2397,7 @@ PopupBox::draw_sett_8_box() {
   for (Inventory *inv : interface->get_game()->get_player_inventories(player)) {
     size_t c = std::min(inv->get_count_of(Resource::TypeSword),
                         inv->get_count_of(Resource::TypeShield));
-    convertible_to_knights += std::max((size_t)0,
+    convertible_to_knights += std::max(size_t(0),
                                        std::min(c, inv->free_serf_count()));
   }
 
