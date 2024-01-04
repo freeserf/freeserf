@@ -22,9 +22,16 @@ jobs:
 
       - name: Install dependencies
         run: |
-          brew install sdl2
-          brew install sdl2_mixer
-          brew install sdl2_image
+          wget -q https://github.com/macports/macports-base/releases/download/v2.8.1/MacPorts-2.8.1-12-Monterey.pkg
+          sudo installer -pkg ./MacPorts-2.8.1-12-Monterey.pkg -target /
+          export PATH="/opt/local/bin:/opt/local/sbin:$PATH"
+          sudo port selfupdate -N
+          sudo port install libsdl2 +universal -N
+          sudo port install libsdl2_mixer +universal -N
+          sudo port install libsdl2_image +universal -N
+          mkdir ~/macports
+          sudo cp -R /opt/local ~/macports
+          sudo chown -R $USER:staff ~/macports
 
       - name: Configure FreeSerf
         run: |
@@ -37,6 +44,7 @@ jobs:
 
       - name: Build FreeSerf
         run: |
+          export PATH="/opt/local/bin:/opt/local/sbin:$PATH"
           cd build
           make
 
