@@ -70,7 +70,7 @@ Buffer::Buffer(const std::string &path, EndianessMode _endianess)
     throw ExceptionFreeserf("Failed to open file '" + path + "'");
   }
 
-  size = (size_t)file.tellg();
+  size = size_t(file.tellg());
 
   file.seekg(0, file.beg);
 

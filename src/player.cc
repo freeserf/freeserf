@@ -180,8 +180,8 @@ Player::init(unsigned int _intelligence, unsigned int _supplies,
   flags = 0;
 
   initial_supplies = _supplies;
-  reproduction_reset = (60 - (size_t)_reproduction) * 50;
-  ai_intelligence = (1300 * (size_t)_intelligence) + 13535;
+  reproduction_reset = (60 - _reproduction) * 50;
+  ai_intelligence = (1300 * _intelligence) + 13535;
   reproduction_counter = static_cast<int>(reproduction_reset);
 }
 

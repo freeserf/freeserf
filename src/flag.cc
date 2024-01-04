@@ -804,8 +804,8 @@ Flag::merge_paths(MapPos pos_) {
   flag_1->transporter &= ~BIT(dir_1);
   flag_2->transporter &= ~BIT(dir_2);
 
-  size_t len = Flag::get_road_length_value((size_t)path_1_data.path_len +
-                                           (size_t)path_2_data.path_len);
+  size_t len = Flag::get_road_length_value(path_1_data.path_len +
+                                           path_2_data.path_len);
   flag_1->length[dir_1] = len << 4;
   flag_2->length[dir_2] = len << 4;
 
