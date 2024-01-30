@@ -259,7 +259,7 @@ EventLoopSDL::run() {
       case SDL_EVENT_QUIT:
         notify_key_pressed('c', 1);
         break;
-      case SDL_WINDOWEVENT:
+      /*case SDL_WINDOWEVENT:
         if (SDL_EVENT_WINDOW_PIXEL_SIZE_CHANGED == event.window.event) {
           unsigned int width = event.window.data1;
           unsigned int height = event.window.data2;
@@ -270,7 +270,7 @@ EventLoopSDL::run() {
           notify_resize(width, height);
           zoom(factor);
         }
-        break;
+        break;*/
       case SDL_EVENT_USER:
         switch (event.user.code) {
           case EventUserTypeQuit:
