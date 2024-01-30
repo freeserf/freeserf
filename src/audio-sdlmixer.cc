@@ -25,8 +25,8 @@
 #include <memory>
 #include <string>
 
-#include <SDL.h>
-#include <SDL_mixer.h>
+#include <SDL3/SDL.h>
+#include <SDL3_mixer/SDL_mixer.h>
 
 #include "src/log.h"
 #include "src/data.h"

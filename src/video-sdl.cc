@@ -23,7 +23,7 @@
 
 #include <sstream>
 
-#include <SDL.h>
+#include <SDL3/SDL.h>
 
 ExceptionSDL::ExceptionSDL(const std::string &description) throw()
   : ExceptionVideo(description) {

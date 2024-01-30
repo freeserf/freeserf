@@ -21,7 +21,7 @@
 
 #include "src/event_loop-sdl.h"
 
-#include <SDL.h>
+#include <SDL3/SDL.h>
 
 #include "src/log.h"
 #include "src/gfx.h"
