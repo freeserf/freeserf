@@ -66,8 +66,7 @@ VideoSDL::VideoSDL() {
 
   /* Create window and renderer */
   window = SDL_CreateWindow("freeserf",
-                            SDL_WINDOWPOS_UNDEFINED,
-                            SDL_WINDOWPOS_UNDEFINED,
+                            800, 600,
                             SDL_WINDOW_RESIZABLE);
   if (window == NULL) {
     throw ExceptionSDL("Unable to create SDL window");
