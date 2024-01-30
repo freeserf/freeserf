@@ -92,7 +92,7 @@ VideoSDL::VideoSDL() {
       break;
     }
   }
-  SDL_PixelFormatEnumToMasks(pixel_format, &bpp,
+  SDL_GetMasksForPixelFormatEnum(pixel_format, &bpp,
                              &Rmask, &Gmask, &Bmask, &Amask);
 
   /* Set scaling mode */
@@ -150,7 +150,7 @@ VideoSDL::set_resolution(unsigned int width, unsigned int height, bool fs) {
   screen->texture = create_texture(width, height);
 
   /* Set logical size of screen */
-  r = SDL_RenderSetLogicalSize(renderer, width, height);
+  r = SDL_SetRenderLogicalPresentation(renderer, width, height);
   if (r < 0) {
     throw ExceptionSDL("Unable to set logical size");
   }
@@ -162,7 +162,7 @@ void
 VideoSDL::get_resolution(unsigned int *width, unsigned int *height) {
   int w = 0;
   int h = 0;
-  SDL_GetRendererOutputSize(renderer, &w, &h);
+  SDL_GetCurrentRenderOutputSize(renderer, &w, &h);
   if (width != nullptr) {
     *width = w;
   }
@@ -175,7 +175,7 @@ void
 VideoSDL::set_fullscreen(bool enable) {
   int width = 0;
   int height = 0;
-  SDL_GetRendererOutputSize(renderer, &width, &height);
+  SDL_GetCurrentRenderOutputSize(renderer, &width, &height);
   set_resolution(width, height, enable);
 }
 
@@ -239,7 +239,7 @@ VideoSDL::create_surface_from_data(void *data, int width, int height) {
     throw ExceptionSDL("Unable to convert sprite surface");
   }
 
-  SDL_FreeSurface(surf);
+  SDL_DestroySurface(surf);
 
   return surf_screen;
 }
@@ -270,7 +270,7 @@ VideoSDL::create_texture_from_data(void *data, int width, int height) {
     throw ExceptionSDL("Unable to create SDL texture from data");
   }
 
-  SDL_FreeSurface(surf);
+  SDL_DestroySurface(surf);
 
   return texture;
 }
@@ -288,7 +288,7 @@ VideoSDL::draw_image(const Video::Image *image, int x, int y, int y_offset,
   /* Blit sprite */
   SDL_SetRenderTarget(renderer, dest->texture);
   SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
-  int r = SDL_RenderCopy(renderer, image->texture, &src_rect, &dest_rect);
+  int r = SDL_RenderTexture(renderer, image->texture, &src_rect, &dest_rect);
   if (r < 0) {
     throw ExceptionSDL("RenderCopy error");
   }
@@ -302,7 +302,7 @@ VideoSDL::draw_frame(int dx, int dy, Video::Frame *dest, int sx, int sy,
 
   SDL_SetRenderTarget(renderer, dest->texture);
   SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
-  int r = SDL_RenderCopy(renderer, src->texture, &src_rect, &dest_rect);
+  int r = SDL_RenderTexture(renderer, src->texture, &src_rect, &dest_rect);
   if (r < 0) {
     throw ExceptionSDL("RenderCopy error");
   }
@@ -337,13 +337,13 @@ VideoSDL::draw_line(int x, int y, int x1, int y1, const Video::Color color,
                     Video::Frame *dest) {
   SDL_SetRenderTarget(renderer, dest->texture);
   SDL_SetRenderDrawColor(renderer, color.r, color.g, color.b, 0xff);
-  SDL_RenderDrawLine(renderer, x, y, x1, y1);
+  SDL_RenderLine(renderer, x, y, x1, y1);
 }
 
 void
 VideoSDL::swap_buffers() {
   SDL_SetRenderTarget(renderer, nullptr);
-  SDL_RenderCopy(renderer, screen->texture, nullptr, nullptr);
+  SDL_RenderTexture(renderer, screen->texture, nullptr, nullptr);
   SDL_RenderPresent(renderer);
 }
 
@@ -351,7 +351,7 @@ void
 VideoSDL::set_cursor(void *data, unsigned int width, unsigned int height) {
   if (cursor != nullptr) {
     SDL_SetCursor(nullptr);
-    SDL_FreeCursor(cursor);
+    SDL_DestroyCursor(cursor);
     cursor = nullptr;
   }
 
