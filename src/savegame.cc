@@ -41,7 +41,7 @@
 #include <Knownfolders.h>
 #include <Shlobj.h>
 #include <direct.h>
-#elif defined(SDL_PLATFORM_APPLE)
+#elif defined(__APPLE__)
 #include <dirent.h>
 #include <sys/stat.h>
 #else
@@ -485,7 +485,7 @@ GameStore::GameStore() {
                         (LPSTR)folder_path.data(), len, nullptr, nullptr);
   ::CoTaskMemFree(saved_games_path);
   folder_path += '\\';
-#elif defined(SDL_PLATFORM_APPLE)
+#elif defined(__APPLE__)
   folder_path = std::string(std::getenv("HOME"));
   folder_path += "/Library/Application Support";
   folder_path += '/';
