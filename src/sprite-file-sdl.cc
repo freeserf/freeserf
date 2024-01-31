@@ -21,7 +21,7 @@
 
 #include "src/sprite-file.h"
 
-#include <SDL_image.h>
+#include <SDL3_image/SDL_image.h>
 
 SpriteFile::SpriteFile() {
   IMG_Init(IMG_INIT_JPG | IMG_INIT_PNG | IMG_INIT_TIF);
@@ -36,7 +36,7 @@ SpriteFile::load(const std::string &path) {
   SDL_Surface *surf = SDL_ConvertSurfaceFormat(image,
                                                SDL_PIXELFORMAT_ARGB8888,
                                                0);
-  SDL_FreeSurface(image);
+  SDL_DestroySurface(image);
   SDL_LockSurface(surf);
   width = surf->w;
   height = surf->h;
@@ -47,6 +47,6 @@ SpriteFile::load(const std::string &path) {
     memcpy(data, surf->pixels, size);
   }
   SDL_UnlockSurface(surf);
-  SDL_FreeSurface(surf);
+  SDL_DestroySurface(surf);
   return res;
 }

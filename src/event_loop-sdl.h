@@ -23,7 +23,7 @@
 #define SRC_EVENT_LOOP_SDL_H_
 
 #include <list>
-#include <SDL.h>
+#include <SDL3/SDL.h>
 
 #include "src/event_loop.h"
 
