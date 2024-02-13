@@ -33,7 +33,7 @@ ExceptionAudio::ExceptionAudio(const std::string &description) :
 ExceptionAudio::~ExceptionAudio() {
 }
 
-std::string
+const std::string
 ExceptionAudio::get_description() const {
   return "[" + get_system() + ":" + get_platform() + "] " + description.c_str();
 }

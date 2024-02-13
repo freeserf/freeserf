@@ -21,8 +21,8 @@
 
 #include "src/debug.h"
 
-ExceptionFreeserf::ExceptionFreeserf(const std::string &description_) throw()
-  : description(description_) {
+ExceptionFreeserf::ExceptionFreeserf(const std::string &description_) throw() {
+  description = "[" + get_system() + "] " + description_;
 }
 
 ExceptionFreeserf::~ExceptionFreeserf() {
@@ -30,10 +30,10 @@ ExceptionFreeserf::~ExceptionFreeserf() {
 
 const char*
 ExceptionFreeserf::what() const throw() {
-  return get_description().c_str();
+  return description.c_str();
 }
 
-std::string
+const std::string
 ExceptionFreeserf::get_description() const {
-  return "[" + get_system() + "] " + description;
+  return description;
 }

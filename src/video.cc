@@ -30,7 +30,7 @@ ExceptionVideo::ExceptionVideo(const std::string &description) :
 ExceptionVideo::~ExceptionVideo() {
 }
 
-std::string
+const std::string
 ExceptionVideo::get_description() const {
   return "[" + get_system() + ":" + get_platform() + "] " + description.c_str();
 }

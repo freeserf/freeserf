@@ -53,7 +53,7 @@ class ExceptionSDL : public ExceptionVideo {
   explicit ExceptionSDL(const std::string &description) throw();
   virtual ~ExceptionSDL() {}
 
-  virtual std::string get_platform() const { return "SDL"; }
+  virtual const std::string get_platform() const { return "SDL"; }
 };
 
 class VideoSDL : public Video {

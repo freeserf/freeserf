@@ -40,7 +40,7 @@ class ExceptionSDLmixer : public ExceptionAudio {
   explicit ExceptionSDLmixer(const std::string &description);
   virtual ~ExceptionSDLmixer() {}
 
-  virtual std::string get_platform() const { return "SDL_mixer"; }
+  virtual const std::string get_platform() const { return "SDL_mixer"; }
 };
 
 class AudioSDL : public Audio, public Audio::VolumeController {

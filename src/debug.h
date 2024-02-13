@@ -35,8 +35,8 @@ class ExceptionFreeserf : public std::exception {
   virtual ~ExceptionFreeserf();
 
   virtual const char* what() const throw();
-  virtual std::string get_description() const;
-  virtual std::string get_system() const { return "Unspecified"; }
+  virtual const std::string get_description() const;
+  virtual const std::string get_system() const { return "Unspecified"; }
 };
 
 #ifndef NDEBUG

@@ -35,7 +35,7 @@ class ExceptionGFX : public ExceptionFreeserf {
   explicit ExceptionGFX(const std::string &description);
   virtual ~ExceptionGFX();
 
-  virtual std::string get_system() const { return "graphics"; }
+  virtual const std::string get_system() const { return "graphics"; }
 };
 
 class Color {
