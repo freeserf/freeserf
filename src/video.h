@@ -32,9 +32,9 @@ class ExceptionVideo : public ExceptionFreeserf {
   explicit ExceptionVideo(const std::string &description);
   virtual ~ExceptionVideo();
 
-  virtual std::string get_description() const;
-  virtual std::string get_platform() const { return "Abstract"; }
-  virtual std::string get_system() const { return "video"; }
+  virtual const std::string get_description() const;
+  virtual const std::string get_platform() const { return "Abstract"; }
+  virtual const std::string get_system() const { return "video"; }
 };
 
 class Video {

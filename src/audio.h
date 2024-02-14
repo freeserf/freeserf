@@ -34,9 +34,9 @@ class ExceptionAudio : public ExceptionFreeserf {
   explicit ExceptionAudio(const std::string &description);
   virtual ~ExceptionAudio();
 
-  virtual std::string get_description() const;
-  virtual std::string get_platform() const { return "Abstract"; }
-  virtual std::string get_system() const { return "audio"; }
+  virtual const std::string get_description() const;
+  virtual const std::string get_platform() const { return "Abstract"; }
+  virtual const std::string get_system() const { return "audio"; }
 };
 
 class Audio {
