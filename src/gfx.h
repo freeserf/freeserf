@@ -22,6 +22,7 @@
 #ifndef SRC_GFX_H_
 #define SRC_GFX_H_
 
+#include <cstdint>
 #include <map>
 #include <string>
 #include <memory>

@@ -22,6 +22,7 @@
 #ifndef SRC_DATA_SOURCE_H_
 #define SRC_DATA_SOURCE_H_
 
+#include <cstdint>
 #include <string>
 #include <memory>
 #include <tuple>
