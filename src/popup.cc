@@ -952,7 +952,8 @@ PopupBox::draw_stat_8_box() {
     if (game->get_player(GAME_MAX_PLAYER_COUNT-i-1) != nullptr) {
       Player *player = game->get_player(GAME_MAX_PLAYER_COUNT-i-1);
       Color color = interface->get_player_color(GAME_MAX_PLAYER_COUNT-i-1);
-      int mode = (aspect << 2) || scale;
+      int mode1 = (aspect << 2);
+      int mode = mode1 || scale;
       draw_player_stat_chart(player->get_player_stat_history(mode), index,
                              color);
     }
@@ -1172,7 +1173,7 @@ calculate_gauge_values(Player *player,
     int type = building->get_type();
     if (!building->is_done()) type = 0;
 
-    for (int i = 0; i < Building::kMaxStock; i++) {
+    for (unsigned int i = 0; i < Building::kMaxStock; i++) {
       if (building->get_maximum_in_stock(i) > 0) {
         int v = 2*building->get_res_count_in_stock(i) +
           building->get_requested_in_stock(i);

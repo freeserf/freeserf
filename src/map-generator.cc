@@ -580,16 +580,16 @@ void
 ClassicMapGenerator::seed_terrain_type(Map::Terrain old, Map::Terrain seed,
                                        Map::Terrain new_) {
   for (MapPos pos_ : map.geom()) {
-    // Check that the central triangle is of type old (*), and that any
+    /* Check that the central triangle is of type old (*), and that any
     // adjacent triangle is of type seed:
     //     ____
     //    /\  /\
     //   /__\/__\
     //  /\  /\  /\
-    // /__\/*_\/__\
+    // /__\/#_\/__\
     // \  /\  /\  /
     //  \/__\/__\/
-    //
+    */
     if (tiles[pos_].type_up == old &&
         (seed == tiles[map.move_up_left(pos_)].type_down ||
          seed == tiles[map.move_up_left(pos_)].type_up ||
@@ -606,16 +606,16 @@ ClassicMapGenerator::seed_terrain_type(Map::Terrain old, Map::Terrain seed,
       tiles[pos_].type_up = new_;
     }
 
-    // Check that the central triangle is of type old (*), and that any
+    /* Check that the central triangle is of type old (*), and that any
     // adjacent triangle is of type seed:
     //   ________
     //  /\  /\  /\
     // /__\/__\/__\
-    // \  /\* /\  /
+    // \  /\# /\  /
     //  \/__\/__\/
     //   \  /\  /
     //    \/__\/
-    //
+    */
     if (tiles[pos_].type_down == old &&
         (seed == tiles[map.move_up_left(pos_)].type_down ||
          seed == tiles[map.move_up_left(pos_)].type_up ||
@@ -697,7 +697,7 @@ ClassicMapGenerator::check_desert_down_triangle(MapPos pos_) {
   return true;
 }
 
-// Check whether large up-triangle is suitable for desert.
+/* Check whether large up-triangle is suitable for desert.
 //
 // The large up-triangle at position A is made up of the following
 // triangular pieces. The method returns true only if all terrain types
@@ -707,7 +707,7 @@ ClassicMapGenerator::check_desert_down_triangle(MapPos pos_) {
 //   A /__\
 //    /\  /\
 //   /__\/__\
-//
+*/
 bool
 ClassicMapGenerator::check_desert_up_triangle(MapPos pos_) {
   Map::Terrain type_d = tiles[pos_].type_down;

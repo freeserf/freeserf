@@ -45,7 +45,7 @@ Building::Building(Game *game, unsigned int index)
   u = { 0 };
   inventory = nullptr;
 
-  for (int j = 0; j < kMaxStock; j++) {
+  for (unsigned int j = 0; j < kMaxStock; j++) {
     stock[j].type = Resource::TypeNone;
     stock[j].prio = 0;
     stock[j].available = 0;
@@ -265,7 +265,7 @@ Building::military_gold_count() const {
   if (get_type() == TypeHut ||
       get_type() == TypeTower ||
       get_type() == TypeFortress) {
-    for (int j = 0; j < kMaxStock; j++) {
+    for (unsigned int j = 0; j < kMaxStock; j++) {
       if (stock[j].type == Resource::TypeGoldBar) {
         count += stock[j].available;
       }
@@ -284,7 +284,7 @@ Building::cancel_transported_resource(Resource::Type res) {
   }
 
   int in_stock = -1;
-  for (int i = 0; i < kMaxStock; i++) {
+  for (unsigned int i = 0; i < kMaxStock; i++) {
     if (stock[i].type == res) {
       in_stock = i;
       break;
@@ -302,7 +302,7 @@ Building::cancel_transported_resource(Resource::Type res) {
 
 bool
 Building::add_requested_resource(Resource::Type res, bool fix_priority) {
-  for (int j = 0; j < kMaxStock; j++) {
+  for (unsigned int j = 0; j < kMaxStock; j++) {
     if (stock[j].type == res) {
       if (fix_priority) {
         int prio = stock[j].prio;
@@ -342,7 +342,7 @@ Building::requested_resource_delivered(Resource::Type resource) {
     }
 
     /* Add to building stock */
-    for (int i = 0; i < kMaxStock; i++) {
+    for (unsigned int i = 0; i < kMaxStock; i++) {
       if (stock[i].type == resource) {
         stock[i].available += 1;
         stock[i].requested -= 1;
@@ -577,7 +577,7 @@ Building::get_max_priority_for_resource(
     Resource::Type resource, int minimum) const {
   int max_prio = -1;
 
-  for (int i = 0; i < kMaxStock; i++) {
+  for (unsigned int i = 0; i < kMaxStock; i++) {
     if (stock[i].type == resource &&
         stock[i].prio >= minimum &&
         stock[i].prio > max_prio) {
