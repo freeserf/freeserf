@@ -16,14 +16,19 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v7
         with:
           submodules: 'recursive'
 
       - name: Install dependencies
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
-          wget -q https://github.com/macports/macports-base/releases/download/v2.8.1/MacPorts-2.8.1-12-Monterey.pkg
-          sudo installer -pkg ./MacPorts-2.8.1-12-Monterey.pkg -target /
+          MACOS_MAJOR=$(sw_vers -productVersion | cut -d. -f1)
+          MACPORTS_PKG=$(gh api repos/macports/macports-base/releases/latest \
+                         --jq ".assets[] | select(.name | test(\"^MacPorts-[0-9.]+-${MACOS_MAJOR}-[A-Za-z]+\\\\.pkg$\")) | .browser_download_url")
+          wget -q "${MACPORTS_PKG}" -O MacPorts.pkg
+          sudo installer -pkg ./MacPorts.pkg -target /
           export PATH="/opt/local/bin:/opt/local/sbin:$PATH"
           sudo port selfupdate -N
           sudo port install libsdl2 +universal -N
@@ -59,7 +64,7 @@ jobs:
           make package
 
       - name: Upload artifact
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v7
         with:
           name: FreeSerf-${{ matrix.buildtype }}
           path: ./build/FreeSerf.dmg
