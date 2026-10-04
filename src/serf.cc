@@ -405,7 +405,7 @@ Serf::path_splited(unsigned int flag_1, Direction dir_1,
                    int *select) {
   if (state == StateWalking) {
     if (s.walking.dest == flag_1 && s.walking.dir1 == dir_1) {
-      select = 0;
+      *select = 0;
       return true;
     } else if (s.walking.dest == flag_2 && s.walking.dir1 == dir_2) {
       *select = 1;
@@ -414,7 +414,7 @@ Serf::path_splited(unsigned int flag_1, Direction dir_1,
   } else if (state == StateReadyToLeaveInventory) {
     if (s.ready_to_leave_inventory.dest == flag_1 &&
         s.ready_to_leave_inventory.mode == dir_1) {
-      select = 0;
+      *select = 0;
       return true;
     } else if (s.ready_to_leave_inventory.dest == flag_2 &&
                s.ready_to_leave_inventory.mode == dir_2) {
@@ -425,7 +425,7 @@ Serf::path_splited(unsigned int flag_1, Direction dir_1,
              s.leaving_building.next_state == StateWalking) {
     if (s.leaving_building.dest == flag_1 &&
         s.leaving_building.field_B == dir_1) {
-      select = 0;
+      *select = 0;
       return true;
     } else if (s.leaving_building.dest == flag_2 &&
                s.leaving_building.field_B == dir_2) {
