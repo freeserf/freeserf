@@ -4615,7 +4615,7 @@ Serf::handle_state_knight_free_walking() {
         Serf *other = game->get_serf_at_pos(pos_);
         if (get_owner() != other->get_owner()) {
           if (other->state == StateKnightFreeWalking) {
-            pos = map->move_left(pos_);
+            pos_ = map->move_left(pos_);
             if (can_pass_map_pos(pos_)) {
               int dist_col = s.free_walking.dist_col;
               int dist_row = s.free_walking.dist_row;
