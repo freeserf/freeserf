@@ -151,6 +151,8 @@ class PopupBox : public GuiObject {
   bool special_click;  // The current click is a special click
 
   int current_sett_5_item;
+  /* Game end: 0 result picture, 1 result text, 2 mission picture. */
+  int game_end_stage;
   int current_sett_6_item;
 
  public:
@@ -233,6 +235,7 @@ class PopupBox : public GuiObject {
   void draw_building_stock_box();
   void draw_player_faces_box();
   void draw_demolish_box();
+  int get_game_end_picture() const;
   void draw_game_end_box();
   void draw_save_box();
   void activate_sett_5_6_item(int index);
