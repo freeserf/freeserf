@@ -261,21 +261,21 @@ AudioSDL::PlayerMIDI::create_track(int track_id) {
 
 Audio::PTrack
 AudioSDL::PlayerMIDI::play_track(int track_id) {
+  /* Skip missing tracks; after the last one start again with the first,
+     but only once, so that it ends when no track can be played. */
   Audio::PTrack track;
-  bool have_track = false;
+  bool wrapped = false;
   while (!track) {
     if ((track_id <= TypeMidiNone) || (track_id > TypeMidiTrackLast)) {
-      if (!have_track) {
+      if (wrapped) {
         break;
       }
+      wrapped = true;
       track_id = TypeMidiTrack0;
     }
     current_track = static_cast<TypeMidi>(track_id);
     Log::Info["audio:SDL_mixer"] << "Playing MIDI track: " << current_track;
     track = Audio::Player::play_track(track_id);
-    if (track) {
-      have_track = true;
-    }
     track_id++;
   }
   return track;
@@ -286,6 +286,10 @@ AudioSDL::PlayerMIDI::enable(bool enable) {
   enabled = enable;
   if (!enabled) {
     stop();
+  } else if (!Mix_PlayingMusic()) {
+    /* Start the music again where it was stopped. */
+    play_track((current_track == TypeMidiNone) ? TypeMidiTrack0 :
+                                                 current_track);
   }
 }
 
