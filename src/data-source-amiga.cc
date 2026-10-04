@@ -465,11 +465,22 @@ DataSourceAmiga::get_sprite_parts(Data::Resource res, size_t index) {
       }
       break;
     case Data::AssetMapBorder: {
+      /* 6 lines of 5 interleaved bitplanes, then the same for the mask.
+         The original cuts them into the landscape (draw_border_sprite
+         @0xa0f4), which is copied to the screen with the third bitplane
+         inverted (blit_panel @0x19f78). */
       PBuffer data = data_pointers[8]->get_tail(index * 120);
-      PSpriteAmiga s = decode_interlased_sprite(data, 2, 6, 0, 0, palette);
+      const uint8_t *src = reinterpret_cast<const uint8_t*>(data->get_data());
+      PMutableBuffer pixels =
+                       std::make_shared<MutableBuffer>(Buffer::EndianessBig);
+      for (size_t i = 0; i < 60; i++) {
+        pixels->push<uint8_t>(((i / 2) % 5 == 2) ? ~src[i] : src[i]);
+      }
+      PSpriteAmiga s = decode_interlased_sprite(pixels, 2, 6, 0, 0, palette);
       data = data->get_tail(60);
       PSpriteAmiga m = decode_interlased_sprite(data, 2, 6, 0, 0, palette);
       m->make_transparent();
+      m->fill_masked({0xFF, 0xFF, 0xFF, 0xFF});
       sprite = s->get_masked(m);
       break;
     }
