@@ -603,9 +603,11 @@ Serf::castle_deleted(MapPos castle_pos, bool transporter) {
 
 bool
 Serf::change_transporter_state_at_pos(MapPos pos_, Serf::State _state) {
+  /* Only the transporter resting on this road may change; check the
+     current state, not the new one. */
   if (pos == pos_ &&
-      (_state == StateWakeAtFlag || _state == StateWakeOnPath ||
-       _state == StateWaitIdleOnPath || _state == StateIdleOnPath)) {
+      (state == StateWakeAtFlag || state == StateWakeOnPath ||
+       state == StateWaitIdleOnPath || state == StateIdleOnPath)) {
     set_state(_state);
     return true;
   }
