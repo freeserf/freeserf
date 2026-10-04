@@ -299,6 +299,7 @@ PopupBox::PopupBox(Interface *_interface)
 
   current_sett_5_item = 8;
   current_sett_6_item = 15;
+  game_end_stage = 0;
 
   /* Initialize minimap */
   minimap->set_displayed(false);
@@ -2581,10 +2582,48 @@ PopupBox::draw_player_faces_box() {
   draw_player_face(10, 76, 3);
 }
 
-/* End of the game: the winner and the result, with the texts of the
-   original (Amiga popup box 54 @0x1d6e8). */
+/* Picture of the current game end stage, or -1: first the result (the
+   human player won, player 2 won a two player game, lost), then after a
+   won mission the mission's picture from the table @0x1d943, by the
+   mission number (Amiga @0x1d6e8). */
+int
+PopupBox::get_game_end_picture() const {
+  PGame game = interface->get_game();
+  int winner = std::max(0, game->get_winning_player());
+  if (game_end_stage == 0) {
+    if (winner == 0) return 0;
+    if (game->get_game_type() == Game::GameTypeTwoPlayers && winner == 1) {
+      return 1;
+    }
+    return 2;
+  } else if (game_end_stage == 2) {
+    const int mission_picture[] = {
+      -1, 3, -1, -1, 4, -1, -1, 5, -1, -1, 6, -1, -1, 7, -1, -1,
+      8, -1, -1, 9, -1, -1, 10, -1, -1, 11, -1, -1, 12, -1, 13
+    };
+    int mission = game->get_mission_level() + 1;
+    if (game->get_game_type() != Game::GameTypeMission || winner != 0 ||
+        mission < 1 || mission > 30) {
+      return -1;
+    }
+    return mission_picture[mission];
+  }
+  return -1;
+}
+
+/* End of the game: the result picture, then the winner and the result
+   with the texts of the original, then the mission's picture (Amiga popup
+   box 54 @0x1d6e8). */
 void
 PopupBox::draw_game_end_box() {
+  if (game_end_stage != 1) {
+    int picture = get_game_end_picture();
+    if (picture >= 0) {
+      frame->draw_sprite(8, 9, Data::AssetArtBox, picture);
+    }
+    return;
+  }
+
   draw_box_background(PatternStripedGreen);
 
   PGame game = interface->get_game();
@@ -4158,15 +4197,26 @@ PopupBox::handle_player_faces_click(int cx, int cy) {
   handle_clickmap(cx, cy, clkmap);
 }
 
-/* Any click closes the game end box and resumes the game (Amiga
-   wait_for_mouse_click). */
+/* Every click advances to the next picture (Amiga wait_for_mouse_click).
+   At the end the game resumes and asks whether to quit (@0x1d982). */
 void
 PopupBox::handle_game_end_click(int /*cx*/, int /*cy*/) {
+  game_end_stage += 1;
+  if (game_end_stage == 2 && get_game_end_picture() < 0) {
+    game_end_stage += 1;
+  }
+  if (game_end_stage <= 2) {
+    set_redraw();
+    return;
+  }
+
   PGame game = interface->get_game();
-  interface->close_popup();
+  Interface *iface = interface;
+  iface->close_popup();
   if (game->is_paused()) {
     game->pause();
   }
+  iface->open_popup(TypeQuitConfirm);
 }
 
 void
@@ -4445,6 +4495,11 @@ PopupBox::handle_click_left(int cx, int cy) {
 }
 
 void PopupBox::show(Type box_) {
+  if (box_ == TypeGameEnd) {
+    /* No result picture in a demo game. */
+    PGame game = interface->get_game();
+    game_end_stage = (game->get_game_type() == Game::GameTypeDemo) ? 1 : 0;
+  }
   set_box(box_);
   set_displayed(true);
 }
