@@ -788,6 +788,8 @@ Viewport::draw_unharmed_building(Building *building, int lx, int ly) {
 
         int pigs_count = building->get_res_count_in_stock(1);
 
+        /* Pigs in drawing order (back to front), each with the pig count
+           from which it is shown. */
         int pigs_layout[] = {
           0,   0,   0,  0,
           6, 140,  -2,  6,
@@ -800,7 +802,7 @@ Viewport::draw_unharmed_building(Building *building, int lx, int ly) {
           4,  90, -11, 19,
         };
 
-        for (int p = 1; p <= pigs_count; p++) {
+        for (int p = 1; p <= 8; p++) {
           if (pigs_count >= pigs_layout[p * 4]) {
             int i = (pigs_layout[p * 4 + 1]
                      + (interface->get_game()->get_tick() >> 3)) & 0xfe;
