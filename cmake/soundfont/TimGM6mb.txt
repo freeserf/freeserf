@@ -1,0 +1,17 @@
+TimGM6mb.sf2 - General MIDI SoundFont used for the MIDI music
+
+Copyright (C) 2004 Tim Brechbill <https://www.timbrechbill.com>
+Copyright (C) 2010 David Bolton <davidkbolton@gmail.com>
+
+This SoundFont is free software; you can redistribute it and/or modify it
+under the terms of the GNU General Public License version 2, see GPL-2.txt.
+It is distributed in the hope that it will be useful, but WITHOUT ANY
+WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
+FOR A PARTICULAR PURPOSE.
+
+The SoundFont is a separate data file, not a part of FreeSerf. It comes
+from MuseScore:
+https://github.com/musescore/musescore-old/blob/master/mscore/share/sound/TimGM6mb.sf2
+(also packaged by Debian as timgm6mb-soundfont).
+
+To use another SoundFont, set SDL_SOUNDFONTS to its path.

@@ -186,6 +186,46 @@ if(SDL3_DIR)
 endif()
 install(TARGETS FreeSerf DESTINATION ".")
 
+# General MIDI SoundFont for the MIDI music of the DOS data: SDL3_mixer
+# plays MIDI with FluidSynth, which needs one. TimGM6mb (GPL-2) is
+# downloaded at configure time and installed next to the program (into
+# the bundle resources on macOS).
+option(ENABLE_SOUNDFONT "Download and install the TimGM6mb SoundFont" ON)
+if(ENABLE_SOUNDFONT AND ENABLE_SDL3_MIXER AND SDL3_mixer_DIR)
+  set(SOUNDFONT_URL "https://raw.githubusercontent.com/musescore/musescore-old/master/mscore/share/sound/TimGM6mb.sf2")
+  set(SOUNDFONT_SHA256 "c5378b62028c920cb11e4803327983fee2f2cdff5dc89c708e39da417e51c854")
+  set(SOUNDFONT_FILE "${CMAKE_CURRENT_BINARY_DIR}/TimGM6mb.sf2")
+  if(EXISTS "${SOUNDFONT_FILE}")
+    file(SHA256 "${SOUNDFONT_FILE}" SOUNDFONT_HASH)
+  endif()
+  if(NOT SOUNDFONT_HASH STREQUAL SOUNDFONT_SHA256)
+    message(STATUS "Downloading SoundFont TimGM6mb")
+    file(DOWNLOAD "${SOUNDFONT_URL}" "${SOUNDFONT_FILE}" STATUS SOUNDFONT_STATUS)
+    file(SHA256 "${SOUNDFONT_FILE}" SOUNDFONT_HASH)
+    if(NOT SOUNDFONT_HASH STREQUAL SOUNDFONT_SHA256)
+      message(WARNING "Could not download the SoundFont (${SOUNDFONT_STATUS}); "
+                      "MIDI music needs one, see README.md")
+      file(REMOVE "${SOUNDFONT_FILE}")
+    endif()
+  endif()
+
+  if(EXISTS "${SOUNDFONT_FILE}")
+    set(SOUNDFONT_FILES "${SOUNDFONT_FILE}"
+        "${PROJECT_SOURCE_DIR}/cmake/soundfont/TimGM6mb.txt"
+        "${PROJECT_SOURCE_DIR}/cmake/soundfont/GPL-2.txt")
+    if(APPLE)
+      target_sources(FreeSerf PRIVATE ${SOUNDFONT_FILES})
+      set_source_files_properties(${SOUNDFONT_FILES} PROPERTIES
+                                  MACOSX_PACKAGE_LOCATION Resources)
+    else()
+      add_custom_command(TARGET FreeSerf POST_BUILD
+                         COMMAND ${CMAKE_COMMAND} -E copy_if_different
+                                 "${SOUNDFONT_FILE}" "$<TARGET_FILE_DIR:FreeSerf>")
+      install(FILES ${SOUNDFONT_FILES} DESTINATION ".")
+    endif()
+  endif()
+endif()
+
 if(WIN32)
   install(CODE [[
                  include(InstallRequiredSystemLibraries)

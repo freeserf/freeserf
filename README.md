@@ -40,8 +40,11 @@ Audio
 To play back the sound track that is included in the original data files,
 SDL3_mixer has to be enabled at compile-time. The music of the Amiga data
 (MOD) needs no more setup. The MIDI music of the DOS data is played by
-FluidSynth, which needs a SoundFont: set `SDL_SOUNDFONTS` to the path of a
-`.sf2` file. See the SDL3_mixer documentation for more information.
+FluidSynth with a General MIDI SoundFont: the build downloads TimGM6mb
+(GPL-2, about 6 MB) and installs it next to the program (CMake option
+`ENABLE_SOUNDFONT`). FreeSerf also finds `TimGM6mb.sf2` next to the game
+data, and `SDL_SOUNDFONTS` selects any other `.sf2` file. See the SDL3_mixer
+documentation for more information.
 
 
 Save games

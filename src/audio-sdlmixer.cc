@@ -26,6 +26,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <list>
 #include <memory>
 #include <string>
 
@@ -45,6 +46,40 @@ ExceptionSDLmixer::ExceptionSDLmixer(const std::string &_description)
 static MIX_Mixer *mixer = nullptr;
 static MIX_Track *sfx_tracks[SFX_TRACKS];
 static MIX_Track *music_track = nullptr;
+
+/* SoundFont for the MIDI music: SDL_SOUNDFONTS, else the TimGM6mb
+   SoundFont installed with the game (next to the program, in the
+   resources of the macOS bundle) or put next to the game data. */
+static std::string
+find_soundfont() {
+  const char *env = SDL_getenv("SDL_SOUNDFONTS");
+  if (env != nullptr) {
+    return env;
+  }
+
+  std::list<std::string> dirs;
+  const char *base = SDL_GetBasePath();
+  if (base != nullptr) {
+    dirs.push_back(base);
+  }
+  Data::PSource data_source = Data::get_instance().get_data_source();
+  if (data_source) {
+    std::string data_path = data_source->get_path();
+    size_t sep = data_path.find_last_of("/\\");
+    if (sep != std::string::npos) {
+      dirs.push_back(data_path.substr(0, sep + 1));
+    }
+  }
+
+  for (const std::string &dir : dirs) {
+    std::string path = dir + "TimGM6mb.sf2";
+    if (SDL_GetPathInfo(path.c_str(), nullptr)) {
+      return path;
+    }
+  }
+
+  return std::string();
+}
 
 Audio &
 Audio::get_instance() {
@@ -279,9 +314,8 @@ AudioSDL::PlayerMIDI::create_track(int track_id) {
     return nullptr;
   }
 
-  /* MIDI (DOS data) is played by FluidSynth, which needs a SoundFont: its
-     path is taken from SDL_SOUNDFONTS as with SDL2_mixer. MOD music
-     (Amiga data) needs no setup. */
+  /* MIDI (DOS data) is played by FluidSynth, which needs a SoundFont (see
+     find_soundfont()). MOD music (Amiga data) needs no setup. */
   SDL_PropertiesID props = SDL_CreateProperties();
   SDL_SetPointerProperty(props, MIX_PROP_AUDIO_LOAD_IOSTREAM_POINTER,
                          SDL_IOFromConstMem(midi->get_data(),
@@ -289,10 +323,10 @@ AudioSDL::PlayerMIDI::create_track(int track_id) {
   SDL_SetBooleanProperty(props, MIX_PROP_AUDIO_LOAD_CLOSEIO_BOOLEAN, true);
   SDL_SetPointerProperty(props, MIX_PROP_AUDIO_LOAD_PREFERRED_MIXER_POINTER,
                          mixer);
-  const char *soundfont = SDL_getenv("SDL_SOUNDFONTS");
-  if (soundfont != nullptr) {
+  static const std::string soundfont = find_soundfont();
+  if (!soundfont.empty()) {
     SDL_SetStringProperty(props, "SDL_mixer.decoder.fluidsynth.soundfont_path",
-                          soundfont);
+                          soundfont.c_str());
   }
   MIX_Audio *music = MIX_LoadAudioWithProperties(props);
   SDL_DestroyProperties(props);
