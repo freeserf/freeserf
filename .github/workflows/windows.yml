@@ -26,11 +26,28 @@ jobs:
         with:
           arch: ${{ matrix.architecture }}
 
+      # vcpkg's binary cache in a directory kept with actions/cache. The
+      # x-gha backend run-vcpkg sets up by default was removed from vcpkg,
+      # so without this SDL2 and its dependencies are built on every run.
+      - name: Cache vcpkg packages
+        uses: actions/cache@v6
+        with:
+          path: ${{ github.workspace }}/vcpkg_cache
+          key: vcpkg-${{ matrix.architecture }}-${{ hashFiles('cmake/vcpkg.json', '.github/workflows/windows.yml') }}
+          restore-keys: |
+            vcpkg-${{ matrix.architecture }}-
+
+      - name: Create vcpkg cache directory
+        shell: bash
+        run: |
+          mkdir -p vcpkg_cache
+
       - name: Install dependencies
         uses: lukka/run-vcpkg@v11
         env:
           VCPKG_DEFAULT_TRIPLET: '${{ matrix.architecture }}-windows'
           VCPKG_INSTALLED_DIR: '${{ github.workspace }}/vcpkg/installed'
+          VCPKG_BINARY_SOURCES: 'clear;files,${{ github.workspace }}/vcpkg_cache,readwrite'
         with:
           vcpkgDirectory: '${{ github.workspace }}/vcpkg'
           vcpkgGitCommitId: '9e593bb18ea69cc5095e012465dcd675a822ed0d'
