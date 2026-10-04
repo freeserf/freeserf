@@ -252,6 +252,7 @@ class Game {
                              const int history_index[], const Values &values);
   int calculate_clear_winner(const Values &values);
   void update_winner();
+  void update_tutorial();
   void update_game_stats();
   void get_resource_estimate(MapPos pos, int weight, int estimates[5]);
   bool road_segment_in_water(MapPos pos, Direction dir) const;

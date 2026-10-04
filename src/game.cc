@@ -554,6 +554,67 @@ Game::calculate_clear_winner(const Values &values) {
   return -1;
 }
 
+/* Sum of a resource's production history (Amiga history_sum_120). */
+static unsigned int
+history_sum(Player *player, Resource::Type resource) {
+  int *history = player->get_resource_count_history(resource);
+  unsigned int sum = 0;
+  for (int i = 0; i < 120; i++) {
+    sum += history[i];
+  }
+  return sum;
+}
+
+/* The human player completes a tutorial with its goal (Amiga
+   update_game_stats @0x86ac). */
+void
+Game::update_tutorial() {
+  Player *player = get_player(0);
+  if (winning_player >= 0 || player == nullptr) {
+    return;
+  }
+
+  bool completed = false;
+  switch (tutorial_level) {
+    case 1:  // Military buildings
+      completed =
+        player->get_completed_building_count(Building::TypeHut) != 0 &&
+        player->get_completed_building_count(Building::TypeTower) != 0 &&
+        player->get_completed_building_count(Building::TypeFortress) != 0;
+      break;
+    case 2:  // Stone and planks
+      completed = history_sum(player, Resource::TypeStone) >= 5 &&
+                  history_sum(player, Resource::TypePlank) >= 5;
+      break;
+    case 3:  // Food
+      completed = history_sum(player, Resource::TypeFish) >= 5 &&
+                  history_sum(player, Resource::TypeMeat) >= 5 &&
+                  history_sum(player, Resource::TypeBread) >= 5;
+      break;
+    case 4:  // Steel and gold
+      completed = history_sum(player, Resource::TypeSteel) >= 5 &&
+                  history_sum(player, Resource::TypeGoldBar) >= 5;
+      break;
+    case 5: {  // Weapons and tools
+      unsigned int weapons = history_sum(player, Resource::TypeSword) +
+                             history_sum(player, Resource::TypeShield);
+      unsigned int tools = 0;
+      for (int r = Resource::TypeShovel; r <= Resource::TypePincer; r++) {
+        tools += history_sum(player, (Resource::Type)r);
+      }
+      completed = weapons >= 10 && tools >= 10;
+      break;
+    }
+    default:
+      break;
+  }
+
+  if (completed) {
+    winning_player = 0;
+    game_end_pending = true;
+  }
+}
+
 /* A player leading both in land and in military wins once the players
    have 50 building points in total. In a mission, the human player can
    still win after a computer player has (Amiga update_game_stats
@@ -667,7 +728,11 @@ Game::update_game_stats() {
     }
     record_player_history(update_level, 0, player_history_index, values);
 
-    update_winner();
+    if (game_type == GameTypeTutorial) {
+      update_tutorial();
+    } else {
+      update_winner();
+    }
   }
 
   if (static_cast<int>(history_counter) > tick_diff) {
@@ -1696,6 +1761,34 @@ Game::build_castle(MapPos pos, Player *player) {
   inventory->set_flag_index(flag->get_index());
   inventory->set_owner(player->get_index());
   inventory->apply_supplies_preset(player->get_initial_supplies());
+
+  /* Supplies of the tutorials (Amiga game_build_castle @0x15574). */
+  if (game_type == GameTypeTutorial) {
+    switch (tutorial_level) {
+      case 2:
+        inventory->set_count_of(Resource::TypeLumber, 0);
+        break;
+      case 3:
+        inventory->set_count_of(Resource::TypePig, 0);
+        inventory->set_count_of(Resource::TypeWheat, 0);
+        inventory->set_count_of(Resource::TypeFlour, 0);
+        break;
+      case 4:
+        inventory->set_count_of(Resource::TypeIronOre, 0);
+        inventory->set_count_of(Resource::TypeCoal, 0);
+        inventory->set_count_of(Resource::TypeGoldOre, 0);
+        break;
+      case 5:
+        inventory->set_count_of(Resource::TypeSteel, 200);
+        inventory->set_count_of(Resource::TypeCoal, 200);
+        break;
+      case 6:
+        inventory->set_count_of(Resource::TypeGoldBar, 30);
+        break;
+      default:
+        break;
+    }
+  }
 
   add_gold_total(static_cast<int>(
     inventory->get_count_of(Resource::TypeGoldBar)));

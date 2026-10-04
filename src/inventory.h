@@ -94,6 +94,8 @@ class Inventory : public GameObject {
   unsigned int get_count_of(Resource::Type resource) {
     return resources[resource]; }
   ResourceMap get_all_resources() { return resources; }
+  void set_count_of(Resource::Type resource, unsigned int count) {
+    resources[resource] = count; }
   void pop_resource(Resource::Type resource) { resources[resource]--; }
   void push_resource(Resource::Type resource);
 

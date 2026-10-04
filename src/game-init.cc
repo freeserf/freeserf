@@ -96,6 +96,7 @@ GameInitBox::GameInitBox(Interface *interface)
 
   game_type = GameCustom;
   game_mission = 0;
+  game_tutorial = 0;
 
   set_size(360, 254);
 
@@ -190,6 +191,21 @@ GameInitBox::internal_draw() {
 
       draw_box_string(10, 2, "Start mission");
       draw_box_string(10, 18, "Mission:");
+      draw_box_string(20, 18, level.str());
+
+      draw_box_icon(33, 0, 237);  // Up button
+      draw_box_icon(33, 16, 240);  // Down button
+
+      break;
+    }
+    case GameTutorial: {
+      draw_box_icon(5, 0, 261);  // Game type
+
+      std::stringstream level;
+      level << (game_tutorial+1);
+
+      draw_box_string(10, 2, "Start tutorial");
+      draw_box_string(10, 18, "Tutorial:");
       draw_box_string(20, 18, level.str());
 
       draw_box_icon(33, 0, 237);  // Up button
@@ -321,6 +337,13 @@ GameInitBox::handle_action(int action) {
           generate_map_preview();
           break;
         }
+        case GameTutorial: {
+          mission = GameInfo::get_tutorial(game_tutorial);
+          random_input->set_displayed(false);
+          file_list->set_displayed(false);
+          generate_map_preview();
+          break;
+        }
         case GameCustom: {
           mission = custom_mission;
           random_input->set_displayed(true);
@@ -349,6 +372,11 @@ GameInitBox::handle_action(int action) {
                              static_cast<int>(GameInfo::get_mission_count())-1);
           mission = GameInfo::get_mission(game_mission);
           break;
+        case GameTutorial:
+          game_tutorial = std::min(game_tutorial+1,
+                            static_cast<int>(GameInfo::get_tutorial_count())-1);
+          mission = GameInfo::get_tutorial(game_tutorial);
+          break;
         case GameCustom:
           custom_mission->set_map_size(std::min(10u,
                                            custom_mission->get_map_size() + 1));
@@ -361,6 +389,10 @@ GameInitBox::handle_action(int action) {
         case GameMission:
           game_mission = std::max(0, game_mission-1);
           mission = GameInfo::get_mission(game_mission);
+          break;
+        case GameTutorial:
+          game_tutorial = std::max(0, game_tutorial-1);
+          mission = GameInfo::get_tutorial(game_tutorial);
           break;
         case GameCustom:
           custom_mission->set_map_size(std::max(3u,
@@ -426,6 +458,7 @@ GameInitBox::handle_click_left(int cx, int cy) {
   const int *clickmap = nullptr;
   switch (game_type) {
     case GameMission:
+    case GameTutorial:
       clickmap = clickmap_mission;
       break;
     case GameCustom:
@@ -551,7 +584,7 @@ GameInitBox::handle_player_click(unsigned int player_index, int cx, int cy) {
 void
 GameInitBox::generate_map_preview() {
   map.reset(new Map(MapGeometry(mission->get_map_size())));
-  if (game_type == GameMission) {
+  if (game_type == GameMission || game_type == GameTutorial) {
     ClassicMissionMapGenerator generator(*map, mission->get_random_base());
     generator.init();
     generator.generate();

@@ -485,6 +485,26 @@ GameInfo::get_mission_count() {
   return sizeof(missions) / sizeof(missions[0]);
 }
 
+/* Tutorials 1-6 (Amiga mission_table entries 0..5): one human player,
+   castle placed by the player. */
+PGameInfo
+GameInfo::get_tutorial(size_t t) {
+  if (t >= get_tutorial_count()) {
+    return nullptr;
+  }
+
+  PGameInfo tutorial(new GameInfo(tutorials + t));
+  tutorial->game_type = Game::GameTypeTutorial;
+  tutorial->level = static_cast<unsigned int>(t + 1);
+  return tutorial;
+}
+
+size_t
+GameInfo::get_tutorial_count() {
+  /* Tutorial 6 needs its passive enemy. */
+  return 5;
+}
+
 const Character *
 GameInfo::get_character(size_t character) {
   if (character >= get_character_count()) {

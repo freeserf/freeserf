@@ -50,7 +50,8 @@ class GameInitBox : public GuiObject {
   typedef enum GameType {
     GameCustom = 0,
     GameMission = 1,
-    GameLoad = 2
+    GameTutorial = 2,
+    GameLoad = 3
   } GameType;
 
  protected:
@@ -58,6 +59,7 @@ class GameInitBox : public GuiObject {
 
   unsigned int game_type;
   int game_mission;
+  int game_tutorial;
 
   PGameInfo custom_mission;
   PGameInfo mission;
