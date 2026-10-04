@@ -45,6 +45,8 @@ class SaveReaderText;
 class SaveWriterText;
 
 class Flag : public GameObject {
+  /* The computer player reads the fields as the original does. */
+  friend class AI;
  protected:
   class ResourceSlot {
    public:

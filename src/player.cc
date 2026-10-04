@@ -89,6 +89,7 @@ Player::Player(Game* game, unsigned int index)
   lumberjack_index = 0;
   sawmill_index = 0;
   stonecutter_index = 0;
+  ai = PlayerAI();
   cont_search_after_non_optimal_find = 7;
   knights_to_spawn = 0;
   total_land_area = 0;
@@ -136,9 +137,6 @@ Player::Player(Game* game, unsigned int index)
   send_generic_delay = 0;
   serf_index = 0;
 
-  /* player->field_1b0 = 0; AI */
-  /* player->field_1b2 = 0; AI */
-
   castle_score = 0;
 
   for (int i = 0; i < 26; i++) {
@@ -166,9 +164,10 @@ Player::Player(Game* game, unsigned int index)
     serf_count[i] = 0;
   }
 
-  /* TODO AI: Set array field_402 of length 25 to -1. */
-  /* TODO AI: Set array field_434 of length 280*2 to 0 */
-  /* TODO AI: Set array field_1bc of length 8 to -1 */
+  /* Computer player state (Amiga player_init_all @0x5468). */
+  for (int i = 0; i < 25; i++) ai.build_damp[i] = 0xffff;
+  int *pending = &ai.u_1bc;
+  for (int i = 0; i < 16; i++) pending[i] = 0xffff;
 }
 
 // Initialize player values.
@@ -199,8 +198,9 @@ Player::init_view(Color _color, unsigned int _face) {
 
   if (face < 12) { /* AI player */
     flags |= BIT(7); /* Set AI bit */
-    /* TODO ... */
-    /*game.max_next_index = 49;*/
+    /* With an AI player the scheduler cycle is 49 updates
+       (Amiga player_init_all @0x54e2). */
+    game->set_max_next_index(49);
   }
 
   if (is_ai()) init_ai_values(face);
@@ -1045,8 +1045,8 @@ Player::update() {
   if (!is_in_game()) return;
 
   if (is_ai()) {
-    /*if (player->field_1B2 != 0) player->field_1B2 -= 1;*/
-    /*if (player->field_1B0 != 0) player->field_1B0 -= 1;*/
+    if (ai.u_1b2 != 0) ai.u_1b2 -= 1;
+    if (ai.u_1b0 != 0) ai.u_1b0 -= 1;
   }
 
   if (cycling_knight()) {
@@ -1150,32 +1150,10 @@ Player::update_knight_morale() {
     knight_morale = std::min(knight_morale + 1024 * castle_score, 0xffff);
   }
 
-  unsigned int military_score = total_military_score;
-  unsigned int morale = knight_morale >> 5;
-  while (military_score > 0xffff) {
-    military_score >>= 1;
-    morale <<= 1;
-  }
+  /* Military strength against the other players, used by the AI (Amiga
+     player_update_knight_morale @0xb4bc). */
+  ai.military_ratio = AI::calc_military_ratio(game, this);
 
-  /* Calculate fractional score used by AI */
-  unsigned int player_score = (military_score * morale) >> 7;
-  unsigned int enemy_score = game->get_enemy_score(this);
-
-  while (player_score > 0xffff && enemy_score > 0xffff) {
-    player_score >>= 1;
-    enemy_score >>= 1;
-  }
-/*
-  player_score >>= 1;
-  unsigned int frac_score = 0;
-  if (player_score != 0 && enemy_score != 0) {
-    if (player_score > enemy_score) {
-      frac_score = 0xffffffff;
-    } else {
-      frac_score = (player_score * 0x10000) / enemy_score;
-    }
-  }
-*/
   military_max_gold = 0;
 }
 
@@ -1510,6 +1488,32 @@ operator >> (SaveReaderText &reader, Player &player) {
   reader.value("castle_knights") >> player.castle_knights;
   reader.value("castle_knights_wanted") >> player.castle_knights_wanted;
 
+  /* Computer player state (all ints, see ai.h). */
+  if (reader.has_value("ai")) {
+    reader.value("knight_cycle_counter") >> player.knight_cycle_counter;
+    reader.value("ai_intelligence") >> player.ai_intelligence;
+    reader.value("ai_values")[0] >> player.ai_value_0;
+    reader.value("ai_values")[1] >> player.ai_value_1;
+    reader.value("ai_values")[2] >> player.ai_value_2;
+    reader.value("ai_values")[3] >> player.ai_value_3;
+    reader.value("ai_values")[4] >> player.ai_value_4;
+    reader.value("ai_values")[5] >> player.ai_value_5;
+    int *ai = reinterpret_cast<int *>(&player.ai);
+    for (size_t i = 0; i < sizeof(player.ai) / sizeof(int); i++) {
+      reader.value("ai")[i] >> ai[i];
+    }
+  } else if (player.is_ai()) {
+    /* Older saves have no computer player state: the AI starts with the
+       values of its face and the highest intelligence, past the castle
+       placement if the castle stands. */
+    player.init_ai_values(player.face);
+    player.ai_intelligence = (1300 * 40) + 13535;
+    if (player.has_castle()) {
+      player.ai.phase = 2;
+      player.ai.counter = 0xffff;
+    }
+  }
+
   return reader;
 }
 
@@ -1598,6 +1602,19 @@ operator << (SaveWriterText &writer, Player &player) {
 
   writer.value("castle_knights") << player.castle_knights;
   writer.value("castle_knights_wanted") << player.castle_knights_wanted;
+
+  writer.value("knight_cycle_counter") << player.knight_cycle_counter;
+  writer.value("ai_intelligence") << player.ai_intelligence;
+  writer.value("ai_values") << player.ai_value_0;
+  writer.value("ai_values") << player.ai_value_1;
+  writer.value("ai_values") << player.ai_value_2;
+  writer.value("ai_values") << player.ai_value_3;
+  writer.value("ai_values") << player.ai_value_4;
+  writer.value("ai_values") << player.ai_value_5;
+  const int *ai = reinterpret_cast<const int *>(&player.ai);
+  for (size_t i = 0; i < sizeof(player.ai) / sizeof(int); i++) {
+    writer.value("ai") << ai[i];
+  }
 
   return writer;
 }

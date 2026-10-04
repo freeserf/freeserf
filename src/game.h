@@ -45,6 +45,8 @@ class SaveReaderText;
 class SaveWriterText;
 
 class Game {
+  /* The computer player reads the fields as the original does. */
+  friend class AI;
  public:
   typedef std::list<Serf*> ListSerfs;
   typedef std::list<Building*> ListBuildings;
@@ -113,6 +115,9 @@ class Game {
   int winning_player;
   bool game_end_pending;
 
+  /* Work fields of the computer players. */
+  GameAI ai_game;
+
   int knight_morale_counter;
   int inventory_schedule_counter;
 
@@ -124,6 +129,8 @@ class Game {
 
   unsigned int get_tick() const { return tick; }
   bool is_paused() const { return game_speed == 0; }
+  GameAI &get_ai_game() { return ai_game; }
+  void set_max_next_index(unsigned int value) { max_next_index = value; }
 
   int get_game_type() const { return game_type; }
   int get_mission_level() const { return mission_level; }
@@ -237,7 +244,6 @@ class Game {
   ListSerfs get_serfs_at_pos(MapPos pos);
 
   Player *get_next_player(const Player *player);
-  unsigned int get_enemy_score(const Player *player) const;
   void building_captured(Building *building);
   void clear_search_id();
 

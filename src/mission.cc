@@ -21,6 +21,7 @@
 
 #include "src/mission.h"
 #include "src/game.h"
+#include "src/ai.h"
 
 Character characters[] = {
   { 0, "ERROR", "ERROR"},
@@ -538,6 +539,7 @@ GameInfo::instantiate() {
     PlayerInfo::Pos castle_pos = player_info->get_castle_pos();
     if (castle_pos.col > -1 && castle_pos.row > -1) {
       MapPos pos = game->get_map()->pos(castle_pos.col, castle_pos.row);
+      AI::castle_given(game.get(), player, pos);
       game->build_castle(pos, player);
     }
   }

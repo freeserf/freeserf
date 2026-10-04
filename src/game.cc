@@ -33,6 +33,7 @@
 #include <vector>
 
 #include "src/savegame.h"
+#include "src/ai.h"
 #include "src/debug.h"
 #include "src/log.h"
 #include "src/misc.h"
@@ -55,7 +56,8 @@ Game::Game()
   , map_preserve_bugs(0)
   , player_score_leader(0)
   , winning_player(-1)
-  , game_end_pending(false) {
+  , game_end_pending(false)
+  , ai_game() {
   players = Players(this);
   flags = Flags(this);
   inventories = Inventories(this);
@@ -765,6 +767,7 @@ Game::update() {
   last_tick = tick;
   tick += game_speed;
   tick_diff = tick - last_tick;
+  ai_game.ticks_288 = (ai_game.ticks_288 + tick_diff) & 0xffff;
 
   clear_serf_request_failure();
   map->update(tick, &init_map_rnd);
@@ -775,13 +778,42 @@ Game::update() {
   }
 
   /* Scheduler of the original (Amiga update_scheduled @0xa864): next_index
-     cycles through the slots once per update; slot 32 runs the emergency
-     programs unless the game is paused. */
+     cycles through the slots once per update. Slots 0..31 run the AI site
+     scan early in the game, slot 32 the AI build damping and the
+     emergency programs unless the game is paused, slots 33..48 the AI
+     players' updates. */
   next_index += 1;
   if (next_index >= max_next_index) next_index = 0;
-  if (next_index == 32 && game_speed != 0) {
-    for (Player *player : players) {
-      player->update_emergency_program();
+  if (next_index < 32) {
+    if (game_speed != 0 && flags.get_max_index() < 50) {
+      Player *player = get_player(next_index & 3);
+      if (player != nullptr && player->is_in_game() && player->is_ai()) {
+        AI::scan_sites(this, player);
+      }
+    }
+  } else if (next_index == 32) {
+    if (game_speed != 0) {
+      AI::update_build_damping_all(this);
+      for (Player *player : players) {
+        player->update_emergency_program();
+      }
+    }
+  } else {
+    /* A slot of a player that is not an AI player, or that loses the
+       intelligence roll, passes on to the next slot. */
+    while (true) {
+      Player *player = get_player((next_index - 33) & 3);
+      if (player != nullptr && player->is_in_game() && player->is_ai() &&
+          random_int() < static_cast<uint16_t>(player->get_ai_intelligence())) {
+        AI::update(this, player);
+        break;
+      }
+
+      next_index += 1;
+      if (next_index >= max_next_index) {
+        next_index = 0;
+        break;
+      }
     }
   }
 
@@ -798,29 +830,6 @@ Game::update() {
     update_inventories();
     inventory_schedule_counter += 64;
   }
-
-#if 0
-  /* AI related updates */
-  game.next_index = (game.next_index + 1) % game.max_next_index;
-  if (game.next_index > 32) {
-    for (int i = 0; i < game.max_next_index) {
-      int i = 33 - game.next_index;
-      player_t *player = game.player[i & 3];
-      if (PLAYER_IS_ACTIVE(player) && PLAYER_IS_AI(player)) {
-        /* AI */
-        /* TODO */
-      }
-      game.next_index += 1;
-    }
-  } else if (game.game_speed > 0 &&
-       game.max_flag_index < 50) {
-    player_t *player = game.player[game.next_index & 3];
-    if (PLAYER_IS_ACTIVE(player) && PLAYER_IS_AI(player)) {
-      /* AI */
-      /* TODO */
-    }
-  }
-#endif
 
   update_flags();
   update_buildings();
@@ -2258,6 +2267,8 @@ Game::occupy_enemy_building(Building *building, int player_num) {
     }
 
     update_land_ownership(building->get_position());
+
+    AI::building_conquered(this, player, flag->get_position());
   }
 }
 
@@ -2404,7 +2415,8 @@ Game::init(unsigned int map_size, const Random &random) {
   map->init_tiles(generator);
   gold_total = map->get_gold_deposit();
 
-  /* Slots of the scheduler (Amiga game_init). */
+  /* Slots of the scheduler (Amiga game_init); 49 once an AI player is
+     added. */
   max_next_index = 33;
 
   return true;
@@ -2699,19 +2711,6 @@ Game::get_next_player(const Player *player) {
   }
 
   return (*p);
-}
-
-unsigned int
-Game::get_enemy_score(const Player *player) const {
-  unsigned int enemy_score = 0;
-
-  for (const Player* p : players) {
-    if (player->get_index() != p->get_index()) {
-      enemy_score += p->get_total_military_score();
-    }
-  }
-
-  return enemy_score;
 }
 
 void
@@ -3064,6 +3063,9 @@ operator >> (SaveReaderText &reader, Game &game) {
   game_reader->value("player_score_leader") >> game.player_score_leader;
 
   game_reader->value("gold_deposit") >> game.gold_total;
+  if (game_reader->has_value("ai_ticks")) {
+    game_reader->value("ai_ticks") >> game.ai_game.ticks_288;
+  }
 
   Map::UpdateState update_state;
   int x, y;
@@ -3079,6 +3081,8 @@ operator >> (SaveReaderText &reader, Game &game) {
   for (SaveReaderText* subreader : reader.get_sections("player")) {
     Player *p = game.players.get_or_insert(subreader->get_number());
     *subreader >> *p;
+    /* Older saves did not use the AI slots. */
+    if (p->is_ai() && game.max_next_index < 49) game.max_next_index = 49;
   }
 
   for (SaveReaderText* subreader : reader.get_sections("flag")) {
@@ -3174,6 +3178,7 @@ operator << (SaveWriterText &writer, Game &game) {
   writer.value("resource_history_index") << game.resource_history_index;
 
   writer.value("max_next_index") << game.max_next_index;
+  writer.value("ai_ticks") << game.ai_game.ticks_288;
   writer.value("map.gold_morale_factor") << game.map_gold_morale_factor;
   writer.value("player_score_leader") << game.player_score_leader;
 

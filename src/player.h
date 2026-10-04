@@ -28,6 +28,7 @@
 #include "src/map.h"
 #include "src/serf.h"
 #include "src/objects.h"
+#include "src/ai.h"
 
 class Serf;
 class Inventory;
@@ -79,6 +80,8 @@ typedef std::vector<PosTimer> PosTimers;
 
 /* Player object. Holds the game state of a player. */
 class Player : public GameObject {
+  /* The computer player reads the fields as the original does. */
+  friend class AI;
  public:
   typedef struct Color {
     unsigned char red;
@@ -118,6 +121,9 @@ class Player : public GameObject {
   unsigned int lumberjack_index;
   unsigned int sawmill_index;
   unsigned int stonecutter_index;
+
+  /* Computer player (Amiga ptr+0xfc..0x1013). */
+  PlayerAI ai;
   int cont_search_after_non_optimal_find;
   int knights_to_spawn;
   unsigned int total_land_area;
@@ -196,6 +202,9 @@ class Player : public GameObject {
 
   /* Whether player has built the initial castle. */
   bool has_castle() const { return (flags & 1); }
+  /* Chance of an AI step per scheduler slot, out of 0x10000. */
+  unsigned int get_ai_intelligence() const {
+    return static_cast<unsigned int>(ai_intelligence); }
   /* Whether the strongest knight should be sent to fight. */
   bool send_strongest() const { return ((flags >> 1) & 1); }
   void drop_send_strongest() { flags &= ~BIT(1); }
