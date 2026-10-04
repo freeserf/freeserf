@@ -33,9 +33,7 @@
 #include "src/game-manager.h"
 #include "src/command_line.h"
 
-#ifdef WIN32
-# include <SDL.h>
-#endif  // WIN32
+#include <SDL.h>
 
 int
 main(int argc, char *argv[]) {
@@ -90,6 +88,13 @@ main(int argc, char *argv[]) {
   Data &data = Data::get_instance();
   if (!data.load(data_dir)) {
     Log::Error["main"] << "Could not load game data.";
+    /* Without the data there is no font to show it in the game. */
+    SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "FreeSerf",
+                             "Could not find the game data.\n\n"
+                             "Copy the data file of the original game "
+                             "(SPAE.PA, SPAD.PA, SPAF.PA or SPAU.PA) into "
+                             "the FreeSerf data directory, or give its "
+                             "directory with -g DATA-PATH.", nullptr);
     return EXIT_FAILURE;
   }
 
