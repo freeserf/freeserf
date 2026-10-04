@@ -8,7 +8,7 @@ on:
 
 jobs:
   build:
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
 
     strategy:
       matrix:
@@ -20,16 +20,47 @@ jobs:
         with:
           submodules: 'recursive'
 
-      - name: Install dependencies
+      # SDL3_mixer is not packaged in Ubuntu yet, so SDL3 and its libraries
+      # are built with vcpkg (cmake/vcpkg.json); the packages are kept in
+      # vcpkg's binary cache.
+      - name: Install build tools and system libraries
         run: |
           sudo apt-get update
-          sudo apt-get install -y libsdl2-dev
-          sudo apt-get install -y libsdl2-mixer-dev
-          sudo apt-get install -y libsdl2-image-dev
+          sudo apt-get install -y autoconf autoconf-archive automake libtool \
+            libltdl-dev bison flex gettext \
+            pkg-config ninja-build libx11-dev libxext-dev libxrandr-dev \
+            libxcursor-dev libxfixes-dev libxi-dev libxss-dev libxtst-dev \
+            libxkbcommon-dev libwayland-dev wayland-protocols libegl1-mesa-dev \
+            libgl1-mesa-dev libdrm-dev libgbm-dev libasound2-dev libpulse-dev \
+            libpipewire-0.3-dev libdbus-1-dev libudev-dev libibus-1.0-dev
+
+      - name: Cache vcpkg packages
+        uses: actions/cache@v6
+        with:
+          path: ${{ github.workspace }}/vcpkg_cache
+          key: vcpkg-linux-${{ hashFiles('cmake/vcpkg.json', '.github/workflows/linux.yml') }}
+          restore-keys: |
+            vcpkg-linux-
+
+      - name: Create vcpkg cache directory
+        run: |
+          mkdir -p vcpkg_cache
+
+      - name: Install dependencies
+        uses: lukka/run-vcpkg@v11
+        env:
+          VCPKG_DEFAULT_TRIPLET: 'x64-linux'
+          VCPKG_INSTALLED_DIR: '${{ github.workspace }}/vcpkg/installed'
+          VCPKG_BINARY_SOURCES: 'clear;files,${{ github.workspace }}/vcpkg_cache,readwrite'
+        with:
+          vcpkgDirectory: '${{ github.workspace }}/vcpkg'
+          vcpkgGitCommitId: '9e593bb18ea69cc5095e012465dcd675a822ed0d'
+          runVcpkgInstall: true
+          vcpkgJsonGlob: '**/cmake/vcpkg.json'
 
       - name: Configure FreeSerf
         run: |
-          cmake -B build -G "Unix Makefiles"
+          cmake -B build -G "Unix Makefiles" -DCMAKE_BUILD_TYPE=${{ matrix.buildtype }}
 
       - name: Build FreeSerf
         run: |

@@ -21,6 +21,9 @@
 
 #include "src/freeserf.h"
 
+#include <SDL3/SDL.h>
+#include <SDL3/SDL_main.h>
+
 #include <string>
 #include <iostream>
 
@@ -32,8 +35,6 @@
 #include "src/interface.h"
 #include "src/game-manager.h"
 #include "src/command_line.h"
-
-#include <SDL.h>
 
 int
 main(int argc, char *argv[]) {

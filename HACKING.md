@@ -14,16 +14,18 @@ or select platform dependent [generator](https://cmake.org/cmake/help/v3.0/manua
 
 Some useful configure variables (set as environment variable or with `-D` command line option):
 
-* `SDL2_DIR` - path to SDL2 root directory
-* `SDL2_mixer_DIR` - path to SDL2_mixer root directory (optional)
-* `SDL2_image_DIR` - path to SDL2_image root directory (optional)
+* `SDL3_DIR` - path to the SDL3 CMake config directory
+* `SDL3_mixer_DIR` - path to the SDL3_mixer CMake config directory (optional)
+* `SDL3_image_DIR` - path to the SDL3_image CMake config directory (optional)
+* `VCPKG_ROOT` - path to vcpkg, which then installs the dependencies listed
+  in `cmake/vcpkg.json`
 
 Dependencies
 ------------
 
-* [SDL2](https://github.com/libsdl-org/SDL/releases) (Development Libraries)
-* [SDL2_mixer](https://github.com/libsdl-org/SDL_mixer/releases) (Optional; for audio playback) (Development Libraries)
-* [SDL2_image](https://github.com/libsdl-org/SDL_image/releases) (Optional; for custom resources) (Development Libraries)
+* [SDL3](https://github.com/libsdl-org/SDL/releases) (Development Libraries)
+* [SDL3_mixer](https://github.com/libsdl-org/SDL_mixer/releases) 3.x (Optional; for audio playback) (Development Libraries)
+* [SDL3_image](https://github.com/libsdl-org/SDL_image/releases) (Optional; for custom resources) (Development Libraries)
 
 Coding style
 ------------

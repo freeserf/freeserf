@@ -28,7 +28,7 @@ jobs:
 
       # vcpkg's binary cache in a directory kept with actions/cache. The
       # x-gha backend run-vcpkg sets up by default was removed from vcpkg,
-      # so without this SDL2 and its dependencies are built on every run.
+      # so without this SDL3 and its dependencies are built on every run.
       - name: Cache vcpkg packages
         uses: actions/cache@v6
         with:
