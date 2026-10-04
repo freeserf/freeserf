@@ -126,6 +126,7 @@ class GameInfo {
                   unsigned int _reproduction);
   void remove_player(unsigned int index);
   void remove_all_players();
+  void set_default_colors();
 
   static PGameInfo get_mission(size_t mission);
   static size_t get_mission_count();

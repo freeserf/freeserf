@@ -509,12 +509,14 @@ GameInitBox::handle_player_click(unsigned int player_index, int cx, int cy) {
   } else if ((cx > 16 + 32) && (cy < 24)) {
     if (player_index >= mission->get_player_count()) {
       mission->add_player(0, {0, 0, 0}, 20, 20, 20);
+      mission->set_default_colors();
       player_index = static_cast<unsigned int>(mission->get_player_count() - 1);
       PPlayerInfo player = mission->get_player(player_index);
       player->set_character(get_next_character(player_index));
     } else {
       if (player_index > 0) {
         mission->remove_player(player_index);
+        mission->set_default_colors();
       }
     }
   } else {

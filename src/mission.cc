@@ -426,11 +426,15 @@ GameInfo::set_random_base(const Random &base) {
     }
   }
 
-  int i = 0;
-  for (PPlayerInfo info : players) {
-    if (i < 4) {
-      info->set_color(def_color[i++]);
-    }
+  set_default_colors();
+}
+
+/* Give each player the color of its position (blue, red, violet,
+   yellow). */
+void
+GameInfo::set_default_colors() {
+  for (size_t i = 0; i < players.size() && i < 4; i++) {
+    players[i]->set_color(def_color[i]);
   }
 }
 
