@@ -332,7 +332,11 @@ Inventory::specialize_serf(Serf *serf, Serf::Type type) {
     return false;
   }
 
-  if (serfs[type] != 0) {
+  /* Don't make another specialist while one is waiting in the stock.
+     Knights are the exception: new knights must be made even when some are
+     in the stock (the slot only refers to one idle serf of the type). */
+  if (serfs[type] != 0 &&
+      (type < Serf::TypeKnight0 || type > Serf::TypeKnight4)) {
     return false;
   }
 
