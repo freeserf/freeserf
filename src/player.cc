@@ -178,7 +178,7 @@ Player::Player(Game* game, unsigned int index)
 void
 Player::init(unsigned int _intelligence, unsigned int _supplies,
              unsigned int _reproduction) {
-  flags = 0;
+  flags = BIT(6); /* In game (Amiga player_init_all @0x54c4) */
 
   initial_supplies = _supplies;
   reproduction_reset = (60 - _reproduction) * 50;
@@ -199,6 +199,19 @@ Player::init_view(Color _color, unsigned int _face) {
   if (is_ai()) init_ai_values(face);
 
   color = _color;
+}
+
+/* Tutorial 6's enemy: without a face, with a castle but not in the game,
+   its military buildings fully occupied (Amiga game_init_start_castles
+   @0x4a78). */
+void
+Player::init_passive(Color _color) {
+  face = 0;
+  color = _color;
+  flags = BIT(0);
+  for (int i = 0; i < 4; i++) {
+    knight_occupation[i] = 0x44;
+  }
 }
 
 /* Initialize AI parameters. */
@@ -876,6 +889,8 @@ Player::update() {
   if (total_military_score > 0xffff0000) total_military_score = 0;
   if (total_building_score > 0xffff0000) total_building_score = 0;
 
+  if (!is_in_game()) return;
+
   if (is_ai()) {
     /*if (player->field_1B2 != 0) player->field_1B2 -= 1;*/
     /*if (player->field_1B0 != 0) player->field_1B0 -= 1;*/
@@ -1275,6 +1290,9 @@ operator >> (SaveReaderText &reader, Player &player) {
   reader.value("color")[1] >> val; player.color.green = val;
   reader.value("color")[2] >> val; player.color.blue = val;
   reader.value("face") >> player.face;
+  /* Saves from before the in-game bit: every player with a face takes
+     part in the game. */
+  if (player.face != 0) player.flags |= BIT(6);
   for (int i = 0; i < 9; i++) {
     reader.value("tool_prio")[i] >> player.tool_prio[i];
   }

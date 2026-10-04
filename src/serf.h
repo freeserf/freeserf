@@ -29,6 +29,7 @@
 #include "src/resource.h"
 #include "src/objects.h"
 
+class Building;
 class Flag;
 class Inventory;
 class SaveReaderBinary;
@@ -399,6 +400,7 @@ class Serf : public GameObject {
   void set_lost_state();
 
   void add_to_defending_queue(unsigned int next_knight_index, bool pause);
+  void init_defending_knight(Building *building);
   void init_generic(Inventory *inventory);
   void init_inventory_transporter(Inventory *inventory);
   void reset_transport(Flag *flag);
