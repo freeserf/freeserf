@@ -16,7 +16,7 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v7
         with:
           submodules: 'recursive'
 
@@ -47,7 +47,7 @@ jobs:
           make package
 
       - name: Upload artifact
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v7
         with:
           name: FreeSerf-${{ matrix.buildtype }}
           path: ./build/FreeSerf-0.1.1-Linux.tar.*

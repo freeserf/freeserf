@@ -17,7 +17,7 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v7
         with:
           submodules: 'recursive'
 
@@ -33,10 +33,9 @@ jobs:
           VCPKG_INSTALLED_DIR: '${{ github.workspace }}/vcpkg/installed'
         with:
           vcpkgDirectory: '${{ github.workspace }}/vcpkg'
-          vcpkgGitCommitId: 'c8696863d371ab7f46e213d8f5ca923c4aef2a00'
+          vcpkgGitCommitId: '9e593bb18ea69cc5095e012465dcd675a822ed0d'
           runVcpkgInstall: true
           vcpkgJsonGlob: '**/cmake/vcpkg.json'
-          appendedCacheKey: 'vcpkginstall-${{ matrix.architecture }}'
 
       - name: Configure FreeSerf
         run: |
@@ -54,6 +53,10 @@ jobs:
           cd build
           nmake test
 
+      - name: Install NSIS
+        run: |
+          choco install nsis -y
+
       - name: Pack FreeSerf
         shell: bash
         run: |
@@ -61,7 +64,7 @@ jobs:
           nmake package
 
       - name: Upload artifact
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v7
         with:
           name: FreeSerf-${{ matrix.architecture }}-${{ matrix.buildtype }}
           path: ./build/FreeSerf-${{ matrix.architecture }}-${{ matrix.buildtype }}.exe
