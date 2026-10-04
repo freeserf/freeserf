@@ -352,6 +352,13 @@ DataSourceBase::get_sprite(Data::Resource res, size_t index,
   return image;
 }
 
+Data::PSprite
+DataSourceBase::apply_mask(Data::Resource /*res*/, Data::PSprite sprite,
+                           Data::Resource /*mask_res*/, size_t /*mask_index*/,
+                           Data::PSprite mask) {
+  return sprite->get_masked(mask);
+}
+
 Data::MaskImage
 DataSourceBase::separate_sprites(Data::PSprite s1, Data::PSprite s2) {
   if (!s1 || !s2) {

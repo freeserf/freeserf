@@ -246,7 +246,8 @@ Frame::draw_masked_sprite(int x, int y, Data::Resource mask_res,
       return;
     }
 
-    Data::PSprite masked = s->get_masked(m);
+    Data::PSprite masked = data_source->apply_mask(res, s, mask_res,
+                                                   mask_index, m);
     if (!masked) {
       Log::Warn["graphics"] << "Failed to apply mask #"
                             << Data::get_resource_name(mask_res)

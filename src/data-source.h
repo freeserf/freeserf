@@ -102,6 +102,9 @@ class DataSourceBase : public Data::Source {
 
   virtual Data::MaskImage get_sprite_parts(Data::Resource res,
                                            size_t index) = 0;
+  virtual Data::PSprite apply_mask(Data::Resource res, Data::PSprite sprite,
+                                   Data::Resource mask_res, size_t mask_index,
+                                   Data::PSprite mask);
 
   virtual size_t get_animation_phase_count(size_t animation);
   virtual Data::Animation get_animation(size_t animation, size_t phase);

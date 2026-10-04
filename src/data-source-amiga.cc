@@ -450,8 +450,11 @@ DataSourceAmiga::get_sprite_parts(Data::Resource res, size_t index) {
         sprite = decode_amiga_sprite(data_pointers[22]->get_tail(1864*index),
                                      2, 233, palette);
       } else if (index == 2) {
-        sprite = decode_planned_sprite(data_pointers[21], 39, 8, 24, 24,
-                                       palette);
+        /* A band of 3 interleaved bitplanes, 320 pixels wide, shown with
+           the copper list's first colours before it switches colours 1..6
+           to the game view's (Amiga copper list at 0x39fa). */
+        sprite = decode_interlased_sprite(data_pointers[21], 40, 8, 24, 0,
+                                          palette_intro);
       } else if (index == 3) {
         PSpriteAmiga left = decode_interlased_sprite(data_pointers[7], 2, 216,
                                                      0, 0, palette);
@@ -462,11 +465,22 @@ DataSourceAmiga::get_sprite_parts(Data::Resource res, size_t index) {
       }
       break;
     case Data::AssetMapBorder: {
+      /* 6 lines of 5 interleaved bitplanes, then the same for the mask.
+         The original cuts them into the landscape (draw_border_sprite
+         @0xa0f4), which is copied to the screen with the third bitplane
+         inverted (blit_panel @0x19f78). */
       PBuffer data = data_pointers[8]->get_tail(index * 120);
-      PSpriteAmiga s = decode_interlased_sprite(data, 2, 6, 0, 0, palette);
+      const uint8_t *src = reinterpret_cast<const uint8_t*>(data->get_data());
+      PMutableBuffer pixels =
+                       std::make_shared<MutableBuffer>(Buffer::EndianessBig);
+      for (size_t i = 0; i < 60; i++) {
+        pixels->push<uint8_t>(((i / 2) % 5 == 2) ? ~src[i] : src[i]);
+      }
+      PSpriteAmiga s = decode_interlased_sprite(pixels, 2, 6, 0, 0, palette);
       data = data->get_tail(60);
       PSpriteAmiga m = decode_interlased_sprite(data, 2, 6, 0, 0, palette);
       m->make_transparent();
+      m->fill_masked({0xFF, 0xFF, 0xFF, 0xFF});
       sprite = s->get_masked(m);
       break;
     }
@@ -859,6 +873,10 @@ DataSourceAmiga::get_data_from_catalog(size_t catalog_index, size_t index,
   return base->get_tail(offset);
 }
 
+/* Ground texture bitplane size and height (Amiga gfxchip). */
+static const size_t ground_plane_size = 84;
+static const size_t ground_rows = ground_plane_size / 2 - 1;
+
 DataSourceAmiga::PSpriteAmiga
 DataSourceAmiga::get_ground_sprite(size_t index) {
   PBuffer data = get_data_from_catalog(4, index, gfxchip);
@@ -869,7 +887,28 @@ DataSourceAmiga::get_ground_sprite(size_t index) {
   uint8_t filled = data->pop<uint8_t>();
   uint8_t compressed = data->pop<uint8_t>();
 
-  PSpriteAmiga sprite = decode_planned_sprite(data->pop_tail(), 4, 21,
+  /* Every stored bitplane holds 42 words. The original blits the texture
+     with a source modulo of -2 (Amiga draw_landscape_cols @0x931e), so row
+     r is made of words r and r+1, which gives 41 rows of 32 pixels. The
+     landscape is drawn off screen and copied to the screen with the third
+     bitplane inverted (blit_panel @0x19f78). */
+  const uint8_t *planes = reinterpret_cast<const uint8_t*>(data->get_data());
+  PMutableBuffer rows = std::make_shared<MutableBuffer>(Buffer::EndianessBig);
+  for (size_t b = 0; b < 5; b++) {
+    if ((compressed >> b) & 0x01) {
+      continue;
+    }
+    for (size_t r = 0; r < ground_rows; r++) {
+      for (size_t i = 0; i < 4; i++) {
+        uint8_t byte = planes[r * 2 + i];
+        rows->push<uint8_t>((b == 2) ? ~byte : byte);
+      }
+    }
+    planes += ground_plane_size;
+  }
+  filled ^= 0x04;
+
+  PSpriteAmiga sprite = decode_planned_sprite(rows, 4, ground_rows,
                                               compressed, filled, palette);
 
   if (sprite) {
@@ -878,6 +917,28 @@ DataSourceAmiga::get_ground_sprite(size_t index) {
   }
 
   return sprite;
+}
+
+/* The original blits a down pointing ground triangle from the bottom up,
+   with the up triangle's mask and the texture rows in the same order
+   (Amiga draw_triangle_2 @0x9930): the masked up triangle turned upside
+   down. */
+Data::PSprite
+DataSourceAmiga::apply_mask(Data::Resource res, Data::PSprite sprite,
+                            Data::Resource mask_res, size_t mask_index,
+                            Data::PSprite mask) {
+  if (res != Data::AssetMapGround || mask_res != Data::AssetMapMaskDown) {
+    return DataSourceBase::apply_mask(res, sprite, mask_res, mask_index, mask);
+  }
+
+  Data::PSprite up_mask = get_ground_mask_sprite(mask_index);
+  if (!up_mask) {
+    return nullptr;
+  }
+  PSpriteAmiga masked = get_mirrored_horizontaly_sprite(
+                                                 sprite->get_masked(up_mask));
+  masked->set_offset(mask->get_offset_x(), mask->get_offset_y());
+  return masked;
 }
 
 Data::PSprite
