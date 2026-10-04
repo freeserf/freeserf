@@ -23,8 +23,9 @@
 
 #include <memory>
 
-ConvertorSFX2WAV::ConvertorSFX2WAV(PBuffer _buffer, int _level, bool _invert)
-  : ConvertorPCM2WAV(_buffer, 1, 8000)
+ConvertorSFX2WAV::ConvertorSFX2WAV(PBuffer _buffer, int _level, bool _invert,
+                                   size_t _rate)
+  : ConvertorPCM2WAV(_buffer, 1, _rate)
   , level(_level)
   , invert(_invert) {
 }
