@@ -22,6 +22,7 @@
 #include "src/data-source-dos.h"
 
 #include <algorithm>
+#include <cctype>
 #include <fstream>
 #include <memory>
 #include <sstream>
@@ -107,11 +108,18 @@ DataSourceDOS::check() {
   }
 
   for (std::string file_name : default_file_names) {
-    std::string file_path = path + '/' + file_name;
-    Log::Info["data"] << "Looking for game data in '" << file_path << "'...";
-    if (check_file(file_path)) {
-      path = std::move(file_path);
-      return true;
+    /* On case sensitive file systems the file may also be in lower case
+       (spae.pa). */
+    std::string lower_name = file_name;
+    std::transform(lower_name.begin(), lower_name.end(), lower_name.begin(),
+                   ::tolower);
+    for (const std::string &name : {file_name, lower_name}) {
+      std::string file_path = path + '/' + name;
+      Log::Info["data"] << "Looking for game data in '" << file_path << "'...";
+      if (check_file(file_path)) {
+        path = std::move(file_path);
+        return true;
+      }
     }
   }
 
