@@ -1179,7 +1179,7 @@ Viewport::draw_water_waves_row(MapPos pos, int y_base, int cols,
        pos = map->move_right(pos)) {
     if (map->type_up(pos) <= Map::TerrainWater3 ||
         map->type_down(pos) <= Map::TerrainWater3) {
-      /*player->water_in_view += 1;*/
+      water_in_view += 1;
       draw_water_waves(pos, x_base, y_base);
     }
   }
@@ -1236,7 +1236,7 @@ Viewport::draw_map_objects_row(MapPos pos, int y_base, int cols, int x_base) {
       int sprite = map->get_obj(pos) - Map::ObjectTree0;
       if (sprite < 24) {
         /* Trees */
-        /*player->trees_in_view += 1;*/
+        trees_in_view += 1;
 
         /* Adding sprite number to animation ensures
            that the tree animation won't be synchronized
@@ -2060,8 +2060,8 @@ Viewport::draw_serf_row_behind(MapPos pos, int y_base, int cols, int x_base) {
 
 void
 Viewport::draw_game_objects(int layers_) {
-  /*player->water_in_view = 0;
-  player->trees_in_view = 0;*/
+  water_in_view = 0;
+  trees_in_view = 0;
 
   int draw_landscape = layers_ & LayerLandscape;
   int draw_objects = layers_ & LayerObjects;
@@ -2564,6 +2564,8 @@ Viewport::Viewport(Interface *_interface, PMap _map)
   offset_y = 0;
 
   last_tick = 0;
+  water_in_view = 0;
+  trees_in_view = 0;
 
   data_source = Data::get_instance().get_data_source();
 }

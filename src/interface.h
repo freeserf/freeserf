@@ -105,8 +105,6 @@ class Interface : public GuiObject, public GameManager::Handler {
   Road building_road;
   int building_road_valid_dir;
 
-  int sfx_queue[4];
-
   Player *player;
   int config;
   int msg_flags;
@@ -116,9 +114,6 @@ class Interface : public GuiObject, public GameManager::Handler {
   StatScale selected_stat_scale;
   StatAspect selected_stat_aspect;
   Resource::Type selected_stat_resource;
-
-  int water_in_view;
-  int trees_in_view;
 
   int return_timeout;
   int return_pos;
@@ -202,6 +197,7 @@ class Interface : public GuiObject, public GameManager::Handler {
   void build_road();
 
   void update();
+  void play_ambient_sounds();
 
   virtual bool handle_event(const Event *event);
 

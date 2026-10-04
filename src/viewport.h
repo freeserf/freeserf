@@ -62,6 +62,10 @@ class Viewport : public GuiObject, public Map::Handler {
 
   PMap map;
 
+  /* Water and trees seen by the last draw, for the ambient sounds. */
+  int water_in_view;
+  int trees_in_view;
+
  public:
   Viewport(Interface *interface, PMap map);
   virtual ~Viewport();
@@ -80,6 +84,9 @@ class Viewport : public GuiObject, public Map::Handler {
   void redraw_map_pos(MapPos pos);
 
   void update();
+
+  int get_water_in_view() const { return water_in_view; }
+  int get_trees_in_view() const { return trees_in_view; }
 
  protected:
   void draw_triangle_up(int x, int y, int m, int left, int right, MapPos pos,
