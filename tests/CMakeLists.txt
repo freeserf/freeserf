@@ -69,3 +69,14 @@ gtest_add_tests(TARGET test_map_geometry
 foreach(test IN LISTS test_list)
   set_tests_properties(${test} PROPERTIES ENVIRONMENT "GTEST_OUTPUT=xml:${PROJECT_BINARY_DIR}/${test}.xml")
 endforeach(test)
+
+set(TEST_SFX2WAV_SOURCES test_sfx2wav.cc)
+add_executable(test_sfx2wav ${TEST_SFX2WAV_SOURCES})
+target_check_style(test_sfx2wav)
+set_property(TARGET test_sfx2wav PROPERTY FOLDER "Tests")
+target_link_libraries(test_sfx2wav data tools gtest gtest_main ${CMAKE_THREAD_LIBS_INIT})
+gtest_add_tests(TARGET test_sfx2wav
+                TEST_LIST test_list)
+foreach(test IN LISTS test_list)
+  set_tests_properties(${test} PROPERTIES ENVIRONMENT "GTEST_OUTPUT=xml:${PROJECT_BINARY_DIR}/${test}.xml")
+endforeach(test)

@@ -21,27 +21,31 @@
 
 #include "src/sfx2wav.h"
 
+#include <algorithm>
 #include <memory>
 
 ConvertorSFX2WAV::ConvertorSFX2WAV(PBuffer _buffer, int _level, bool _invert,
-                                   size_t _rate)
+                                   size_t _rate, bool _is_signed)
   : ConvertorPCM2WAV(_buffer, 1, _rate)
   , level(_level)
-  , invert(_invert) {
+  , invert(_invert)
+  , is_signed(_is_signed) {
 }
 
 PBuffer
 ConvertorSFX2WAV::create_data(PBuffer data) {
-  PMutableBuffer res = std::make_shared<MutableBuffer>(Buffer::EndianessBig);
+  /* WAV holds 16-bit little-endian samples. */
+  PMutableBuffer res =
+                   std::make_shared<MutableBuffer>(Buffer::EndianessLittle);
 
   while (data->readable()) {
-    int value = data->pop<uint8_t>();
+    int value = is_signed ? data->pop<int8_t>() : data->pop<uint8_t>();
     value = value + level;
     if (invert) {
       value = 0xFF - value;
     }
-    value *= 0xFF;
-    res->push<int16_t>(value);
+    value = std::max(-0x8000, std::min(value * 0x100, 0x7fff));
+    res->push<int16_t>(static_cast<int16_t>(value));
   }
 
   return res;
