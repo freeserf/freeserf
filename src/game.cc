@@ -2030,9 +2030,11 @@ Game::cancel_transported_resource(Resource::Type res, unsigned int dest) {
     return;
   }
 
+  /* The destination building may be gone already (demolished while the
+     resource was on its way); then nothing is requested any more. */
   Flag *flag = flags[dest];
   if (!flag->has_building()) {
-    throw ExceptionFreeserf("Failed to cancel transported resource.");
+    return;
   }
   Building *building = flag->get_building();
   building->cancel_transported_resource(res);
