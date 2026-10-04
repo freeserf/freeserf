@@ -149,6 +149,8 @@ class Flag : public GameObject {
   bool pick_up_resource(unsigned int slot, Resource::Type *res,
                         unsigned int *dest);
   bool drop_resource(Resource::Type res, unsigned int dest);
+  void switch_resource(unsigned int slot, Resource::Type *res,
+                       unsigned int *dest);
   bool has_empty_slot() const;
   void remove_all_resources();
   Resource::Type get_resource_at_slot(int slot) const;

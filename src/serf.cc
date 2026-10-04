@@ -1073,13 +1073,8 @@ Serf::transporter_move_to_flag(Flag *flag) {
                              &s.transporting.dest);
     } else {
       /* Switch resources and destination. */
-      Resource::Type temp_res = s.transporting.res;
-      int temp_dest = s.transporting.dest;
-
-      flag->pick_up_resource(res_index, &s.transporting.res,
-                             &s.transporting.dest);
-
-      flag->drop_resource(temp_res, temp_dest);
+      flag->switch_resource(res_index, &s.transporting.res,
+                            &s.transporting.dest);
     }
 
     /* Find next resource to be picked up */

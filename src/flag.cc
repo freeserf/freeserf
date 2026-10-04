@@ -156,6 +156,27 @@ Flag::pick_up_resource(unsigned int from_slot, Resource::Type *res,
   return true;
 }
 
+/* Switch the resource of a transporter with the one in slot, in place
+   (Amiga transporter_move_to_flag). An empty slot takes the transporter's
+   resource and leaves it empty-handed. */
+void
+Flag::switch_resource(unsigned int from_slot, Resource::Type *res,
+                      unsigned int *dest) {
+  if (from_slot >= FLAG_MAX_RES_COUNT) {
+    throw ExceptionFreeserf("Wrong flag slot index.");
+  }
+
+  endpoint |= BIT(7);
+
+  Resource::Type temp_res = *res;
+  unsigned int temp_dest = *dest;
+  *res = slot[from_slot].type;
+  *dest = slot[from_slot].dest;
+  slot[from_slot].type = temp_res;
+  slot[from_slot].dest = temp_dest;
+  slot[from_slot].dir = DirectionNone;
+}
+
 bool
 Flag::drop_resource(Resource::Type res, unsigned int dest) {
   if (res < Resource::TypeNone || res > Resource::GroupFood) {
