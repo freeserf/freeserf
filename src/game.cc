@@ -53,7 +53,9 @@ Game::Game()
   , tutorial_level(0)
   , mission_level(0)
   , map_preserve_bugs(0)
-  , player_score_leader(0) {
+  , player_score_leader(0)
+  , winning_player(-1)
+  , game_end_pending(false) {
   players = Players(this);
   flags = Flags(this);
   inventories = Inventories(this);
@@ -89,7 +91,7 @@ Game::Game()
   tick_diff = 0;
 
   max_next_index = 0;
-  game_type = 0;
+  game_type = GameTypeOnePlayer;
   flag_search_counter = 0;
   game_stats_counter = 0;
   history_counter = 0;
@@ -516,23 +518,76 @@ Game::record_player_history(int max_level, int aspect,
   }
 }
 
+void
+Game::set_game_type(int type, int level) {
+  game_type = type;
+  tutorial_level = (type == GameTypeTutorial) ? level : 0;
+  mission_level = (type == GameTypeMission) ? level : 0;
+}
+
 /* Calculate whether one player has enough advantage to be
-   considered a clear winner regarding one aspect.
+   considered a clear winner regarding one aspect: more than 74 percent,
+   counted as (100 * value - 1) / total with the total scaled down to at
+   most 0xfffe (Amiga record_player_history @0x895e).
    Return -1 if there is no clear winner. */
 int
 Game::calculate_clear_winner(const Values &values) {
-  int total = 0;
-  for (auto value : values) {
+  Values scaled = values;
+  uint64_t total = 0;
+  for (auto value : scaled) {
     total += value.second;
   }
-  total = std::max(1, total);
+  while (total > 0xfffe) {
+    total >>= 1;
+    for (auto &value : scaled) {
+      value.second >>= 1;
+    }
+  }
+  total = std::max<uint64_t>(1, total);
 
-  for (auto value : values) {
-    uint64_t val = value.second;
-    if ((100*val)/total >= 75) return value.first;
+  for (auto value : scaled) {
+    uint64_t val = 100 * static_cast<uint64_t>(value.second);
+    if (val != 0) val -= 1;
+    if (val / total > 74) return value.first;
   }
 
   return -1;
+}
+
+/* A player leading both in land and in military wins once the players
+   have 50 building points in total. In a mission, the human player can
+   still win after a computer player has (Amiga update_game_stats
+   @0x87fc). */
+void
+Game::update_winner() {
+  int building_total = 0;
+  for (Player *player : players) {
+    building_total += player->get_building_score();
+  }
+  if (building_total < 50) {
+    return;
+  }
+
+  int leader = -1;
+  for (Player *player : players) {
+    int index = static_cast<int>(player->get_index());
+    int mask = BIT(index) | BIT(index + 4);
+    if ((player_score_leader & mask) == mask) {
+      leader = index;
+      break;
+    }
+  }
+
+  if (winning_player < 0) {
+    if (leader >= 0) {
+      winning_player = leader;
+      game_end_pending = true;
+    }
+  } else if (winning_player > 0 && game_type == GameTypeMission &&
+             leader == 0) {
+    winning_player = 0;
+    game_end_pending = true;
+  }
 }
 
 /* Update statistics of the game. */
@@ -589,8 +644,8 @@ Game::update_game_stats() {
       values[player->get_index()] = player->get_land_area();
     }
     record_player_history(update_level, 1, player_history_index, values);
-    // ToDo (Digger): What is this? BIT(-1)?
-    player_score_leader |= BIT(calculate_clear_winner(values));
+    int land_leader = calculate_clear_winner(values);
+    if (land_leader >= 0) player_score_leader |= BIT(land_leader);
 
     /* Store building stats in history. */
     for (Player *player : players) {
@@ -603,7 +658,8 @@ Game::update_game_stats() {
       values[player->get_index()] = player->get_military_score();
     }
     record_player_history(update_level, 3, player_history_index, values);
-    player_score_leader |= BIT(calculate_clear_winner(values)) << 4;
+    int military_leader = calculate_clear_winner(values);
+    if (military_leader >= 0) player_score_leader |= BIT(military_leader + 4);
 
     /* Store condensed score of all aspects in history. */
     for (Player *player : players) {
@@ -611,7 +667,7 @@ Game::update_game_stats() {
     }
     record_player_history(update_level, 0, player_history_index, values);
 
-    /* TODO Determine winner based on game.player_score_leader */
+    update_winner();
   }
 
   if (static_cast<int>(history_counter) > tick_diff) {
@@ -2540,13 +2596,16 @@ operator >> (SaveReaderBinary &reader, Game &game) {
   reader >> v16;  // 118
   game.resource_history_index = v16;
 
-//  if (0/*game.Gameype == GameYPE_TUTORIAL*/) {
-//    game.tutorial_level = *reinterpret_cast<uint16_t*>(&data[122]);
-//  } else if (0/*game.Gameype == GameYPE_MISSION*/) {
-//    game.mission_level = *reinterpret_cast<uint16_t*>(&data[124]);
-//  }
+  reader.skip(2);
+  reader >> v16;  // 122
+  int tutorial_level = v16;
+  reader >> v16;  // 124
+  int mission_level = v16;
+  game.set_game_type(game.game_type,
+                     (game.game_type == Game::GameTypeTutorial) ?
+                     tutorial_level : mission_level);
 
-  reader.skip(54);
+  reader.skip(50);
 
   reader >> v16;  // 174
   int max_inventory_index = v16;
@@ -2761,6 +2820,14 @@ operator >> (SaveReaderText &reader, Game &game) {
 //  LOGV("savegame", "Loading save game from version %s.", version.c_str());
 
   game_reader->value("game_type") >> game.game_type;
+  if (game_reader->has_value("mission_level")) {
+    game_reader->value("tutorial_level") >> game.tutorial_level;
+    game_reader->value("mission_level") >> game.mission_level;
+    game_reader->value("winning_player") >> game.winning_player;
+  } else {
+    /* Older saves have no game type of their own. */
+    game.set_game_type(Game::GameTypeOnePlayer, 0);
+  }
   game_reader->value("tick") >> game.tick;
   game_reader->value("game_stats_counter") >> game.game_stats_counter;
   game_reader->value("history_counter") >> game.history_counter;
@@ -2883,6 +2950,9 @@ SaveWriterText&
 operator << (SaveWriterText &writer, Game &game) {
   writer.value("map.size") << game.map->get_size();
   writer.value("game_type") << game.game_type;
+  writer.value("tutorial_level") << game.tutorial_level;
+  writer.value("mission_level") << game.mission_level;
+  writer.value("winning_player") << game.winning_player;
   writer.value("tick") << game.tick;
   writer.value("game_stats_counter") << game.game_stats_counter;
   writer.value("history_counter") << game.history_counter;

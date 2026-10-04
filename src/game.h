@@ -60,6 +60,18 @@ class Game {
   PMap map;
 
   typedef std::map<unsigned int, unsigned int> Values;
+
+ public:
+  /* Game types of the original (Amiga game+0x352). */
+  typedef enum GameType {
+    GameTypeMission = 0,
+    GameTypeTutorial = 1,
+    GameTypeOnePlayer = 2,
+    GameTypeTwoPlayers = 3,
+    GameTypeDemo = 4,
+  } GameType;
+
+ protected:
   int map_gold_morale_factor;
   unsigned int gold_total;
 
@@ -98,6 +110,8 @@ class Game {
   int mission_level;
   int map_preserve_bugs;
   int player_score_leader;
+  int winning_player;
+  bool game_end_pending;
 
   int knight_morale_counter;
   int inventory_schedule_counter;
@@ -109,6 +123,15 @@ class Game {
   PMap get_map() { return map; }
 
   unsigned int get_tick() const { return tick; }
+  bool is_paused() const { return game_speed == 0; }
+
+  int get_game_type() const { return game_type; }
+  int get_mission_level() const { return mission_level; }
+  void set_game_type(int type, int level);
+  /* The winner once the game is decided, -1 before. */
+  int get_winning_player() const { return winning_player; }
+  bool is_game_end_pending() const { return game_end_pending; }
+  void clear_game_end_pending() { game_end_pending = false; }
   unsigned int get_const_tick() const { return const_tick; }
   unsigned int get_gold_morale_factor() const { return map_gold_morale_factor; }
   unsigned int get_gold_total() const { return gold_total; }
@@ -228,6 +251,7 @@ class Game {
   void record_player_history(int max_level, int aspect,
                              const int history_index[], const Values &values);
   int calculate_clear_winner(const Values &values);
+  void update_winner();
   void update_game_stats();
   void get_resource_estimate(MapPos pos, int weight, int estimates[5]);
   bool road_segment_in_water(MapPos pos, Direction dir) const;
