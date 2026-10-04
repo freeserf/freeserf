@@ -456,6 +456,23 @@ Interface::set_game(PGame new_game) {
   set_player(0);
 }
 
+/* Move the view and the map cursor to the player's castle (special click
+   on the map button, as viewport_move_to_castle of the original). */
+void
+Interface::move_to_castle() {
+  if (!game || (player == nullptr)) {
+    return;
+  }
+
+  for (Building *building : game->get_player_buildings(player)) {
+    if (building->get_type() == Building::TypeCastle) {
+      update_map_cursor_pos(building->get_position());
+      viewport->move_to_map_pos(map_cursor_pos);
+      return;
+    }
+  }
+}
+
 void
 Interface::set_player(unsigned int player_index) {
   /* Nothing to do for the current player (checked before the panel is

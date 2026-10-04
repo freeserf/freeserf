@@ -128,6 +128,8 @@ GuiObject::handle_event(const Event *event) {
     case Event::TypeClick:
       if (event->button == Event::ButtonLeft) {
         result = handle_click_left(event_x, event_y);
+      } else if (event->button == Event::ButtonRight) {
+        result = handle_click_right(event_x, event_y);
       }
       break;
     case Event::TypeDrag:

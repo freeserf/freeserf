@@ -181,6 +181,7 @@ class Interface : public GuiObject, public GameManager::Handler {
   Player *get_player() const { return player; }
   void set_player(unsigned int player);
   void update_map_cursor_pos(MapPos pos);
+  void move_to_castle();
 
   bool is_building_road() const { return building_road.is_valid(); }
   const Road &get_building_road() const { return building_road; }
