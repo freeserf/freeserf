@@ -142,6 +142,7 @@ class Game {
                           const Player *player) const;
   bool can_build_castle(MapPos pos, const Player *player) const;
   bool can_build_flag(MapPos pos, const Player *player) const;
+  bool can_join_road(MapPos pos, Direction dir, const Player *player) const;
   bool can_player_build(MapPos pos, const Player *player) const;
 
   int can_build_road(const Road &road, const Player *player,

@@ -188,7 +188,7 @@ class Interface : public GuiObject, public GameManager::Handler {
   void build_road_begin();
   void build_road_end();
   void build_road_reset() { build_road_end(); build_road_begin(); }
-  int build_road_segment(Direction dir);
+  int build_road_segment(Direction dir, bool special = false);
   int remove_road_segment();
   int extend_road(const Road &road);
   bool build_road_is_valid_dir(Direction dir) {

@@ -1083,6 +1083,22 @@ Game::build_flag_split_path(MapPos pos) {
   flag->restore_path_serf_info(path_2_dir, &path_2_data);
 }
 
+/* Whether a road being built may step from pos in dir onto an existing
+   road by placing a flag there, which splits that road (special click of
+   the original game): the tile has paths but no flag, and a flag can be
+   built on it. */
+bool
+Game::can_join_road(MapPos pos, Direction dir, const Player *player) const {
+  MapPos other_pos = map->move(pos, dir);
+  if (map->paths(other_pos) == 0 || map->has_flag(other_pos)) {
+    return false;
+  }
+  if (!map->is_road_segment_valid(pos, dir, true)) {
+    return false;
+  }
+  return can_build_flag(other_pos, player);
+}
+
 /* Check whether player can build flag at pos. */
 bool
 Game::can_build_flag(MapPos pos, const Player *player) const {

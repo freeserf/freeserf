@@ -2296,6 +2296,67 @@ Viewport::internal_draw() {
   }
 }
 
+/* Click on a neighbour of the cursor while a road is being built; a
+   special click can join an existing road or end the road with a new
+   flag (see Interface::build_road_segment()). */
+void
+Viewport::road_click(MapPos clk_pos, bool special) {
+  int dx = -map->dist_x(interface->get_map_cursor_pos(), clk_pos) + 1;
+  int dy = -map->dist_y(interface->get_map_cursor_pos(), clk_pos) + 1;
+  Direction dir = DirectionNone;
+
+  if (dx == 0) {
+    if (dy == 1) {
+      dir = DirectionLeft;
+    } else if (dy == 0) {
+      dir = DirectionUpLeft;
+    } else {
+      return;
+    }
+  } else if (dx == 1) {
+    if (dy == 2) {
+      dir = DirectionDown;
+    } else if (dy == 0) {
+      dir = DirectionUp;
+    } else {
+      return;
+    }
+  } else if (dx == 2) {
+    if (dy == 1) {
+      dir = DirectionRight;
+    } else if (dy == 2) {
+      dir = DirectionDownRight;
+    } else {
+      return;
+    }
+  } else {
+    return;
+  }
+
+  if (interface->build_road_is_valid_dir(dir)) {
+    Road road = interface->get_building_road();
+    if (road.is_undo(dir)) {
+      /* Delete existing path */
+      int r = interface->remove_road_segment();
+      if (r < 0) {
+        play_sound(Audio::TypeSfxNotAccepted);
+      } else {
+        play_sound(Audio::TypeSfxClick);
+      }
+    } else {
+      /* Build new road segment */
+      int r = interface->build_road_segment(dir, special);
+      if (r < 0) {
+        play_sound(Audio::TypeSfxNotAccepted);
+      } else if (r == 0) {
+        play_sound(Audio::TypeSfxClick);
+      } else {
+        play_sound(Audio::TypeSfxAccepted);
+      }
+    }
+  }
+}
+
 bool
 Viewport::handle_click_left(int lx, int ly) {
   set_redraw();
@@ -2303,63 +2364,29 @@ Viewport::handle_click_left(int lx, int ly) {
   MapPos clk_pos = map_pos_from_screen_pix(lx, ly);
 
   if (interface->is_building_road()) {
-    int dx = -map->dist_x(interface->get_map_cursor_pos(), clk_pos) + 1;
-    int dy = -map->dist_y(interface->get_map_cursor_pos(), clk_pos) + 1;
-    Direction dir = DirectionNone;
-
-    if (dx == 0) {
-      if (dy == 1) {
-        dir = DirectionLeft;
-      } else if (dy == 0) {
-        dir = DirectionUpLeft;
-      } else {
-        return false;
-      }
-    } else if (dx == 1) {
-      if (dy == 2) {
-        dir = DirectionDown;
-      } else if (dy == 0) {
-        dir = DirectionUp;
-      } else {
-        return false;
-      }
-    } else if (dx == 2) {
-      if (dy == 1) {
-        dir = DirectionRight;
-      } else if (dy == 2) {
-        dir = DirectionDownRight;
-      } else {
-        return false;
-      }
-    } else {
-      return false;
-    }
-
-    if (interface->build_road_is_valid_dir(dir)) {
-      Road road = interface->get_building_road();
-      if (road.is_undo(dir)) {
-        /* Delete existing path */
-        int r = interface->remove_road_segment();
-        if (r < 0) {
-          play_sound(Audio::TypeSfxNotAccepted);
-        } else {
-          play_sound(Audio::TypeSfxClick);
-        }
-      } else {
-        /* Build new road segment */
-        int r = interface->build_road_segment(dir);
-        if (r < 0) {
-          play_sound(Audio::TypeSfxNotAccepted);
-        } else if (r == 0) {
-          play_sound(Audio::TypeSfxClick);
-        } else {
-          play_sound(Audio::TypeSfxAccepted);
-        }
-      }
-    }
+    road_click(clk_pos, false);
   } else {
     interface->update_map_cursor_pos(clk_pos);
     play_sound(Audio::TypeSfxClick);
+  }
+
+  return true;
+}
+
+/* The original's special click (right button held). */
+bool
+Viewport::handle_click_right(int lx, int ly) {
+  set_redraw();
+
+  MapPos clk_pos = map_pos_from_screen_pix(lx, ly);
+
+  if (interface->is_building_road()) {
+    road_click(clk_pos, true);
+  } else {
+    /* Move the cursor and open the window of a flag or building there,
+       as a click does in the original. */
+    interface->update_map_cursor_pos(clk_pos);
+    open_object_box(clk_pos);
   }
 
   return true;
@@ -2376,7 +2403,18 @@ Viewport::handle_dbl_click(int lx, int ly, Event::Button button) {
   MapPos clk_pos = map_pos_from_screen_pix(lx, ly);
 
   if (interface->is_building_road()) {
-    if (clk_pos != interface->get_map_cursor_pos()) {
+    MapPos cursor = interface->get_map_cursor_pos();
+    bool adjacent = false;
+    for (Direction d : cycle_directions_cw()) {
+      if (map->move(cursor, d) == clk_pos) {
+        adjacent = true;
+      }
+    }
+    if (adjacent && map->paths(clk_pos) != 0 && !map->has_flag(clk_pos)) {
+      /* A double click on the next road tile joins that road, like a
+         special click. */
+      road_click(clk_pos, true);
+    } else if (clk_pos != interface->get_map_cursor_pos()) {
       MapPos pos = interface->get_building_road().get_end(map.get());
       Road road = pathfinder_map(map.get(), pos, clk_pos,
                                  &interface->get_building_road());
@@ -2403,92 +2441,103 @@ Viewport::handle_dbl_click(int lx, int ly, Event::Button button) {
       }
     }
   } else {
-    if (map->get_obj(clk_pos) == Map::ObjectNone ||
-        map->get_obj(clk_pos) > Map::ObjectCastle) {
-      return false;
+    return open_object_box(clk_pos);
+  }
+
+  return false;
+}
+
+/* Open the window of the flag or building at clk_pos: own flags and
+   buildings show their box, an enemy military building the attack box. */
+bool
+Viewport::open_object_box(MapPos clk_pos) {
+  Player *player = interface->get_player();
+
+  if (map->get_obj(clk_pos) == Map::ObjectNone ||
+      map->get_obj(clk_pos) > Map::ObjectCastle) {
+    return false;
+  }
+
+  if (map->get_obj(clk_pos) == Map::ObjectFlag) {
+    if (map->get_owner(clk_pos) == player->get_index()) {
+      interface->open_popup(PopupBox::TypeTransportInfo);
     }
 
-    if (map->get_obj(clk_pos) == Map::ObjectFlag) {
-      if (map->get_owner(clk_pos) == player->get_index()) {
-        interface->open_popup(PopupBox::TypeTransportInfo);
+    player->temp_index = map->get_obj_index(clk_pos);
+  } else { /* Building */
+    Building *building = interface->get_game()->get_building_at_pos(clk_pos);
+    if ((building == nullptr) || building->is_burning()) {
+      return false;
+    }
+    if (map->get_owner(clk_pos) == player->get_index()) {
+      if (!building->is_done()) {
+        interface->open_popup(PopupBox::TypeOrderedBld);
+      } else if (building->get_type() == Building::TypeCastle) {
+        interface->open_popup(PopupBox::TypeCastleRes);
+      } else if (building->get_type() == Building::TypeStock) {
+        if (!building->is_active()) return 0;
+        interface->open_popup(PopupBox::TypeCastleRes);
+      } else if (building->get_type() == Building::TypeHut ||
+                 building->get_type() == Building::TypeTower ||
+                 building->get_type() == Building::TypeFortress) {
+        interface->open_popup(PopupBox::TypeDefenders);
+      } else if (building->get_type() == Building::TypeStoneMine ||
+                 building->get_type() == Building::TypeCoalMine ||
+                 building->get_type() == Building::TypeIronMine ||
+                 building->get_type() == Building::TypeGoldMine) {
+        interface->open_popup(PopupBox::TypeMineOutput);
+      } else {
+        interface->open_popup(PopupBox::TypeBldStock);
       }
 
       player->temp_index = map->get_obj_index(clk_pos);
-    } else { /* Building */
-      Building *building = interface->get_game()->get_building_at_pos(clk_pos);
-      if ((building == nullptr) || building->is_burning()) {
-        return false;
-      }
-      if (map->get_owner(clk_pos) == player->get_index()) {
-        if (!building->is_done()) {
-          interface->open_popup(PopupBox::TypeOrderedBld);
-        } else if (building->get_type() == Building::TypeCastle) {
-          interface->open_popup(PopupBox::TypeCastleRes);
-        } else if (building->get_type() == Building::TypeStock) {
-          if (!building->is_active()) return 0;
-          interface->open_popup(PopupBox::TypeCastleRes);
-        } else if (building->get_type() == Building::TypeHut ||
-                   building->get_type() == Building::TypeTower ||
-                   building->get_type() == Building::TypeFortress) {
-          interface->open_popup(PopupBox::TypeDefenders);
-        } else if (building->get_type() == Building::TypeStoneMine ||
-                   building->get_type() == Building::TypeCoalMine ||
-                   building->get_type() == Building::TypeIronMine ||
-                   building->get_type() == Building::TypeGoldMine) {
-          interface->open_popup(PopupBox::TypeMineOutput);
-        } else {
-          interface->open_popup(PopupBox::TypeBldStock);
+    } else { /* Foreign building */
+      /* TODO handle coop mode*/
+      player->building_attacked = building->get_index();
+
+      if (building->is_done() &&
+          building->is_military()) {
+        if (!building->is_active() ||
+            building->get_threat_level() != 3) {
+          /* It is not allowed to attack
+             if currently not occupied or
+             is too far from the border. */
+          play_sound(Audio::TypeSfxNotAccepted);
+          return false;
         }
 
-        player->temp_index = map->get_obj_index(clk_pos);
-      } else { /* Foreign building */
-        /* TODO handle coop mode*/
-        player->building_attacked = building->get_index();
-
-        if (building->is_done() &&
-            building->is_military()) {
-          if (!building->is_active() ||
-              building->get_threat_level() != 3) {
-            /* It is not allowed to attack
-               if currently not occupied or
-               is too far from the border. */
-            play_sound(Audio::TypeSfxNotAccepted);
-            return false;
+        int found = 0;
+        for (int i = 257; i >= 0; i--) {
+          MapPos pos = map->pos_add_spirally(building->get_position(),
+                                                     7+257-i);
+          if (map->has_owner(pos)
+              && map->get_owner(pos) == player->get_index()) {
+            found = 1;
+            break;
           }
-
-          int found = 0;
-          for (int i = 257; i >= 0; i--) {
-            MapPos pos = map->pos_add_spirally(building->get_position(),
-                                                       7+257-i);
-            if (map->has_owner(pos)
-                && map->get_owner(pos) == player->get_index()) {
-              found = 1;
-              break;
-            }
-          }
-
-          if (!found) {
-            play_sound(Audio::TypeSfxNotAccepted);
-            return false;
-          }
-
-          /* Action accepted */
-          play_sound(Audio::TypeSfxClick);
-
-          int max_knights = 0;
-          switch (building->get_type()) {
-            case Building::TypeHut: max_knights = 3; break;
-            case Building::TypeTower: max_knights = 6; break;
-            case Building::TypeFortress: max_knights = 12; break;
-            case Building::TypeCastle: max_knights = 20; break;
-            default: NOT_REACHED(); break;
-          }
-
-          int knights =
-                 player->knights_available_for_attack(building->get_position());
-          player->knights_attacking = std::min(knights, max_knights);
-          interface->open_popup(PopupBox::TypeStartAttack);
         }
+
+        if (!found) {
+          play_sound(Audio::TypeSfxNotAccepted);
+          return false;
+        }
+
+        /* Action accepted */
+        play_sound(Audio::TypeSfxClick);
+
+        int max_knights = 0;
+        switch (building->get_type()) {
+          case Building::TypeHut: max_knights = 3; break;
+          case Building::TypeTower: max_knights = 6; break;
+          case Building::TypeFortress: max_knights = 12; break;
+          case Building::TypeCastle: max_knights = 20; break;
+          default: NOT_REACHED(); break;
+        }
+
+        int knights =
+               player->knights_available_for_attack(building->get_position());
+        player->knights_attacking = std::min(knights, max_knights);
+        interface->open_popup(PopupBox::TypeStartAttack);
       }
     }
   }
