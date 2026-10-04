@@ -885,7 +885,7 @@ Flag::update() {
       if (serf_requested(j)) {
         if (BIT_TEST(res_waiting[2], j)) {
           if (waiting_count >= 7) {
-            transporter &= BIT(j);
+            transporter &= ~BIT(j);
           }
         } else if (free_transporter_count(j) != 0) {
           transporter |= BIT(j);
@@ -899,7 +899,7 @@ Flag::update() {
           if (!r) transporter |= BIT(7);
         }
         if (waiting_count >= 7) {
-          transporter &= BIT(j);
+          transporter &= ~BIT(j);
         }
       } else {
         transporter |= BIT(j);
