@@ -706,7 +706,9 @@ Viewport::draw_ocupation_flag(Building *building, int lx, int ly, float mul) {
 
 void
 Viewport::draw_unharmed_building(Building *building, int lx, int ly) {
-  Random random;
+  /* Use the persistent generator of the interface: a new Random is seeded
+     from time() and gives the same values for a whole second. */
+  Random *random = interface->get_random();
 
   static const int pigfarm_anim[] = {
     0xa2, 0, 0xa2, 0, 0xa2, 0, 0xa2, 0, 0xa2, 0, 0xa3, 0,
@@ -768,7 +770,7 @@ Viewport::draw_unharmed_building(Building *building, int lx, int ly) {
         MapPos pos = building->get_position();
         if ((((interface->get_game()->get_tick() +
                reinterpret_cast<uint8_t*>(&pos)[1]) >> 3) & 7) == 0
-            && random.random() < 40000) {
+            && random->random() < 40000) {
           play_sound(Audio::TypeSfxElevator);
         }
       }
@@ -781,7 +783,7 @@ Viewport::draw_unharmed_building(Building *building, int lx, int ly) {
     case Building::TypePigFarm:
       draw_shadow_and_building_sprite(lx, ly, map_building_sprite[type]);
       if (building->get_res_count_in_stock(1) > 0) {
-        if ((random.random() & 0x7f) <
+        if ((random->random() & 0x7f) <
             static_cast<int>(building->get_res_count_in_stock(1))) {
           play_sound(Audio::TypeSfxPigOink);
         }
