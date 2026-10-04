@@ -28,6 +28,7 @@
 #include <string>
 
 #include "src/debug.h"
+#include "src/random.h"
 
 class ExceptionAudio : public ExceptionFreeserf {
  public:
@@ -79,9 +80,14 @@ class Audio {
     TypeSfxBirdChirp2 = 78,
     TypeSfxBirdChirp3 = 82,
     TypeSfxBurning = 84,
-    TypeSfxUnknown28 = 86,
-    TypeSfxUnknown29 = 88,
+    TypeSfxWaves = 86,
+    TypeSfxWind = 88,
   } TypeSfx;
+
+  /* Number of sound effects of the original (Amiga sfx_table). */
+  static const int kSfxCount = 96;
+  /* Number of channels playing sound effects (Amiga Paula). */
+  static const int kSfxChannels = 4;
 
   typedef enum TypeMidi {
     TypeMidiNone = -1,
@@ -107,6 +113,10 @@ class Audio {
     virtual ~Track() {}
 
     virtual void play() = 0;
+    /* Play on a channel replacing what plays there, at a volume (0..1)
+       and a frequency ratio. */
+    virtual void play_on_channel(int /*channel*/, float /*volume*/,
+                                 float /*ratio*/) { play(); }
   };
   typedef std::shared_ptr<Track> PTrack;
 
@@ -121,11 +131,14 @@ class Audio {
     virtual ~Player();
 
     virtual PTrack play_track(int track_id);
+    virtual PTrack play_track_on_channel(int track_id, int channel,
+                                         float volume, float ratio);
     virtual void enable(bool enable) = 0;
     virtual bool is_enabled() const { return enabled; }
     virtual PVolumeController get_volume_controller() = 0;
 
    protected:
+    PTrack get_track(int track_id);
     virtual PTrack create_track(int track_id) = 0;
     virtual void stop() = 0;
   };
@@ -136,13 +149,25 @@ class Audio {
 
   float volume;
 
-  Audio() : volume(0.75f) {}
+  /* Sound effects as the original schedules them (Amiga
+     enqueue_sfx_clip @0x1beb0, audio_vbl_update @0x2dd6). */
+  int sfx_queue[4];
+  int sfx_channel[kSfxChannels];
+  int sfx_timer[kSfxChannels];
+  int sfx_volume[kSfxCount];
+  Random sfx_random;
+
+  Audio();
 
  public:
   /* Common audio. */
   virtual ~Audio() {}
 
   static Audio &get_instance();
+
+  void enqueue_sfx(int sfx);
+  void set_sfx_volume(int sfx, int volume);
+  void update_sfx();
 
   virtual VolumeController *get_volume_controller() = 0;
   virtual PPlayer get_sound_player() = 0;

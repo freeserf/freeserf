@@ -54,6 +54,7 @@ class AudioSDL : public Audio, public Audio::VolumeController {
     virtual ~TrackSFX();
 
     virtual void play();
+    virtual void play_on_channel(int channel, float volume, float ratio);
   };
 
   class PlayerSFX : public Audio::Player,

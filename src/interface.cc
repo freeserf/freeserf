@@ -21,6 +21,7 @@
 
 #include "src/interface.h"
 
+#include <algorithm>
 #include <iostream>
 #include <fstream>
 #include <utility>
@@ -43,9 +44,6 @@
 
 Interface::Interface()
   : building_road_valid_dir(0)
-  , sfx_queue{0}
-  , water_in_view(false)
-  , trees_in_view(false)
   , return_pos(0) {
   displayed = true;
 
@@ -830,14 +828,46 @@ Interface::layout() {
   set_redraw();
 }
 
+/* Random ambient sounds: birds by the trees in view, waves louder with
+   more water in view and a faint wind (Amiga play_ambient_sounds
+   @0xa494). */
+void
+Interface::play_ambient_sounds() {
+  if (viewport == nullptr) {
+    return;
+  }
+
+  Audio &audio = Audio::get_instance();
+  int r = random.random();
+
+  int trees = viewport->get_trees_in_view();
+  if (trees != 0 && (r & 0x3ff) <= trees) {
+    audio.enqueue_sfx(Audio::TypeSfxBirdChirp0 + (r & 0xc));
+  }
+
+  int water = viewport->get_water_in_view();
+  if (water != 0 && (r & 0xf00) == 0) {
+    audio.set_sfx_volume(Audio::TypeSfxWaves, std::min(water >> 2, 30) + 2);
+    audio.enqueue_sfx(Audio::TypeSfxWaves);
+  }
+
+  if ((r & 0x3000) == 0) {
+    audio.set_sfx_volume(Audio::TypeSfxWind, (r & 1) + 1);
+    audio.enqueue_sfx(Audio::TypeSfxWind);
+  }
+}
+
 /* Called periodically when the game progresses. */
 void
 Interface::update() {
+  Audio::get_instance().update_sfx();
+
   if (!game) {
     return;
   }
 
   game->update();
+  play_ambient_sounds();
 
   int tick_diff = game->get_const_tick() - last_const_tick;
   last_const_tick = game->get_const_tick();
