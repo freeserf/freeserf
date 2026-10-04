@@ -134,7 +134,7 @@ class Game {
 
   int get_leveling_height(MapPos pos) const;
 
-  bool can_build_military(MapPos pos) const;
+  bool can_build_military(MapPos pos, bool ignore_pos = false) const;
   bool can_build_small(MapPos pos) const;
   bool can_build_mine(MapPos pos) const;
   bool can_build_large(MapPos pos) const;
@@ -159,6 +159,9 @@ class Game {
   bool demolish_road(MapPos pos, Player *player);
   bool demolish_flag(MapPos pos, Player *player);
   bool demolish_building(MapPos pos, Player *player);
+  int get_replace_site_class(MapPos pos, const Player *player) const;
+  bool replace_building(MapPos pos, Building::Type type, Player *player);
+  void building_burned_down(Building *building);
 
   void set_inventory_resource_mode(Inventory *inventory, int mode);
   void set_inventory_serf_mode(Inventory *inventory, int mode);

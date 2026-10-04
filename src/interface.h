@@ -197,7 +197,7 @@ class Interface : public GuiObject, public GameManager::Handler {
   void demolish_object();
 
   void build_flag();
-  void build_building(Building::Type type);
+  void build_building(Building::Type type, bool special = false);
   void build_castle();
   void build_road();
 

@@ -1139,9 +1139,10 @@ Game::build_flag(MapPos pos, Player *player) {
 
 /* Check whether military buildings are allowed at pos. */
 bool
-Game::can_build_military(MapPos pos) const {
-  /* Check that no military buildings are nearby */
-  for (int i = 0; i < 1+6+12; i++) {
+Game::can_build_military(MapPos pos, bool ignore_pos) const {
+  /* Check that no military buildings are nearby (ignore_pos: other than
+     the one at pos, which is replaced). */
+  for (int i = ignore_pos ? 1 : 0; i < 1+6+12; i++) {
     MapPos p = map->pos_add_spirally(pos, i);
     if (map->get_obj(p) >= Map::ObjectSmallBuilding &&
         map->get_obj(p) <= Map::ObjectCastle) {
@@ -2125,6 +2126,103 @@ void
 Game::delete_building(Building *building) {
   map->set_object(building->get_position(), Map::ObjectNone, 0);
   buildings.erase(building->get_index());
+}
+
+/* A burned down building is removed; a building queued by replacing it
+   is built on the site, if the site still allows it (as in the original
+   game). */
+void
+Game::building_burned_down(Building *building) {
+  MapPos pos = building->get_position();
+  Building::Type type = building->get_queued_type();
+  Player *player = get_player(building->get_owner());
+
+  delete_building(building);
+
+  if ((type != Building::TypeNone) && (player != nullptr)) {
+    build_building(pos, type, player);
+  }
+}
+
+/* Size class of the site of the player's own building at pos, as the
+   build buttons offer it for replacing the building: 0 mine, 1 small,
+   2 large, -1 none. The building on the site and its path to the flag
+   are not in the way. */
+int
+Game::get_replace_site_class(MapPos pos, const Player *player) const {
+  if (!player->has_castle()) return -1;
+  if (map->get_obj(pos) != Map::ObjectSmallBuilding &&
+      map->get_obj(pos) != Map::ObjectLargeBuilding) {
+    return -1;
+  }
+
+  const Building *building = buildings[map->get_obj_index(pos)];
+  if ((building == nullptr) || building->is_burning() ||
+      building->get_owner() != player->get_index() ||
+      building->get_type() == Building::TypeCastle) {
+    return -1;
+  }
+
+  /* Own land around the site. */
+  for (int i = 0; i < 7; i++) {
+    MapPos p = map->pos_add_spirally(pos, i);
+    if (!map->has_owner(p) || map->get_owner(p) != player->get_index()) {
+      return -1;
+    }
+  }
+
+  if (can_build_mine(pos)) return 0;
+  if (can_build_large(pos)) return 2;
+  if (can_build_small(pos)) return 1;
+  return -1;
+}
+
+/* Replace the player's own building at pos (special click on a build
+   button, as in the original game): it is demolished, and the new type
+   is built on the site once it has burned down. A mine needs a mine
+   site, other buildings a site of at least their size. */
+bool
+Game::replace_building(MapPos pos, Building::Type type, Player *player) {
+  int site = get_replace_site_class(pos, player);
+  if (site < 0) return false;
+
+  int need = 1;
+  switch (type) {
+    case Building::TypeStoneMine:
+    case Building::TypeCoalMine:
+    case Building::TypeIronMine:
+    case Building::TypeGoldMine:
+      need = 0;
+      break;
+    case Building::TypeFisher:
+    case Building::TypeLumberjack:
+    case Building::TypeBoatbuilder:
+    case Building::TypeStonecutter:
+    case Building::TypeForester:
+    case Building::TypeHut:
+    case Building::TypeMill:
+      need = 1;
+      break;
+    default:
+      need = 2;
+      break;
+  }
+  if ((need == 0) ? (site != 0) : (site == 0 || site < need)) {
+    return false;
+  }
+
+  if ((type == Building::TypeHut || type == Building::TypeTower ||
+       type == Building::TypeFortress) && !can_build_military(pos, true)) {
+    return false;
+  }
+
+  Building *building = buildings[map->get_obj_index(pos)];
+  if (!demolish_building(pos, player)) {
+    return false;
+  }
+
+  building->set_queued_type(type);
+  return true;
 }
 
 Game::ListSerfs

@@ -308,6 +308,14 @@ Interface::get_map_cursor_type(const Player *player_, MapPos pos,
     Building *bld = game->get_building_at_pos(pos);
     if (!bld->is_burning()) {
       *cursor_type = CursorTypeBuilding;
+      /* The build button offers the site's size for replacing the
+         building by a special click (as in the original game). */
+      switch (game->get_replace_site_class(pos, player_)) {
+        case 0: *bld_possibility = BuildPossibilityMine; break;
+        case 1: *bld_possibility = BuildPossibilitySmall; break;
+        case 2: *bld_possibility = BuildPossibilityLarge; break;
+        default: break;
+      }
     } else {
       *cursor_type = CursorTypeNone;
     }
@@ -683,7 +691,22 @@ Interface::build_flag() {
 
 /* Build a new building. */
 void
-Interface::build_building(Building::Type type) {
+Interface::build_building(Building::Type type, bool special) {
+  if (map_cursor_type == CursorTypeBuilding) {
+    /* Only a special click replaces the building at the cursor. */
+    if (!special) {
+      return;
+    }
+    if (!game->replace_building(map_cursor_pos, type, player)) {
+      play_sound(Audio::TypeSfxNotAccepted);
+      return;
+    }
+    play_sound(Audio::TypeSfxAccepted);
+    close_popup();
+    determine_map_cursor_type();
+    return;
+  }
+
   if (!game->build_building(map_cursor_pos, type, player)) {
     play_sound(Audio::TypeSfxNotAccepted);
     return;
