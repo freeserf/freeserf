@@ -2903,74 +2903,74 @@ PopupBox::handle_action(int action, int x_, int /*y_*/) {
     set_box(TypeMap);
     break;
   case ACTION_BUILD_STONEMINE:
-    interface->build_building(Building::TypeStoneMine);
+    interface->build_building(Building::TypeStoneMine, special_click);
     break;
   case ACTION_BUILD_COALMINE:
-    interface->build_building(Building::TypeCoalMine);
+    interface->build_building(Building::TypeCoalMine, special_click);
     break;
   case ACTION_BUILD_IRONMINE:
-    interface->build_building(Building::TypeIronMine);
+    interface->build_building(Building::TypeIronMine, special_click);
     break;
   case ACTION_BUILD_GOLDMINE:
-    interface->build_building(Building::TypeGoldMine);
+    interface->build_building(Building::TypeGoldMine, special_click);
     break;
   case ACTION_BUILD_FLAG:
     interface->build_flag();
     interface->close_popup();
     break;
   case ACTION_BUILD_STONECUTTER:
-    interface->build_building(Building::TypeStonecutter);
+    interface->build_building(Building::TypeStonecutter, special_click);
     break;
   case ACTION_BUILD_HUT:
-    interface->build_building(Building::TypeHut);
+    interface->build_building(Building::TypeHut, special_click);
     break;
   case ACTION_BUILD_LUMBERJACK:
-    interface->build_building(Building::TypeLumberjack);
+    interface->build_building(Building::TypeLumberjack, special_click);
     break;
   case ACTION_BUILD_FORESTER:
-    interface->build_building(Building::TypeForester);
+    interface->build_building(Building::TypeForester, special_click);
     break;
   case ACTION_BUILD_FISHER:
-    interface->build_building(Building::TypeFisher);
+    interface->build_building(Building::TypeFisher, special_click);
     break;
   case ACTION_BUILD_MILL:
-    interface->build_building(Building::TypeMill);
+    interface->build_building(Building::TypeMill, special_click);
     break;
   case ACTION_BUILD_BOATBUILDER:
-    interface->build_building(Building::TypeBoatbuilder);
+    interface->build_building(Building::TypeBoatbuilder, special_click);
     break;
   case ACTION_BUILD_BUTCHER:
-    interface->build_building(Building::TypeButcher);
+    interface->build_building(Building::TypeButcher, special_click);
     break;
   case ACTION_BUILD_WEAPONSMITH:
-    interface->build_building(Building::TypeWeaponSmith);
+    interface->build_building(Building::TypeWeaponSmith, special_click);
     break;
   case ACTION_BUILD_STEELSMELTER:
-    interface->build_building(Building::TypeSteelSmelter);
+    interface->build_building(Building::TypeSteelSmelter, special_click);
     break;
   case ACTION_BUILD_SAWMILL:
-    interface->build_building(Building::TypeSawmill);
+    interface->build_building(Building::TypeSawmill, special_click);
     break;
   case ACTION_BUILD_BAKER:
-    interface->build_building(Building::TypeBaker);
+    interface->build_building(Building::TypeBaker, special_click);
     break;
   case ACTION_BUILD_GOLDSMELTER:
-    interface->build_building(Building::TypeGoldSmelter);
+    interface->build_building(Building::TypeGoldSmelter, special_click);
     break;
   case ACTION_BUILD_FORTRESS:
-    interface->build_building(Building::TypeFortress);
+    interface->build_building(Building::TypeFortress, special_click);
     break;
   case ACTION_BUILD_TOWER:
-    interface->build_building(Building::TypeTower);
+    interface->build_building(Building::TypeTower, special_click);
     break;
   case ACTION_BUILD_TOOLMAKER:
-    interface->build_building(Building::TypeToolMaker);
+    interface->build_building(Building::TypeToolMaker, special_click);
     break;
   case ACTION_BUILD_FARM:
-    interface->build_building(Building::TypeFarm);
+    interface->build_building(Building::TypeFarm, special_click);
     break;
   case ACTION_BUILD_PIGFARM:
-    interface->build_building(Building::TypePigFarm);
+    interface->build_building(Building::TypePigFarm, special_click);
     break;
   case ACTION_BLD_FLIP_PAGE:
     set_box((box + 1 <= TypeAdv2Bld) ? (Type)(box + 1) : TypeBasicBldFlip);
@@ -3372,7 +3372,7 @@ PopupBox::handle_action(int action, int x_, int /*y_*/) {
     }
     break;
   case ACTION_BUILD_STOCK:
-    interface->build_building(Building::TypeStock);
+    interface->build_building(Building::TypeStock, special_click);
     break;
   case ACTION_SHOW_CASTLE_SERF:
     set_box(TypeCastleSerf);
@@ -4213,6 +4213,11 @@ PopupBox::handle_click_right(int cx, int cy) {
   switch (box) {
     case TypeMap:
     case TypeResDir:
+    case TypeMineBuilding:
+    case TypeBasicBld:
+    case TypeBasicBldFlip:
+    case TypeAdv1Bld:
+    case TypeAdv2Bld:
       special_click = true;
       handle_click_left(cx, cy);
       special_click = false;

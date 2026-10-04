@@ -101,6 +101,9 @@ class Building : public GameObject {
   unsigned int first_knight;
   int burning_counter;
   int progress;
+  /* Type to build on the site once this burning building is gone
+     (replace building by a special click). */
+  Type queued_type;
   union u {
     unsigned int tick; /* Used for burning building. */
     unsigned int level;
@@ -120,6 +123,9 @@ class Building : public GameObject {
   bool has_knight() const { return (first_knight != 0); }
   unsigned int get_first_knight() const { return first_knight; }
   void set_first_knight(unsigned int serf);
+
+  Type get_queued_type() const { return queued_type; }
+  void set_queued_type(Type _type) { queued_type = _type; }
 
   int get_burning_counter() const { return burning_counter; }
   void set_burning_counter(int counter) { burning_counter = counter; }

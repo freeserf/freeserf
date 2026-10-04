@@ -55,6 +55,7 @@ Building::Building(Game *game, unsigned int index)
 
   first_knight = 0;
   burning_counter = 0;
+  queued_type = TypeNone;
 }
 
 typedef struct ConstructionInfo {
@@ -533,7 +534,7 @@ Building::update(unsigned int tick) {
     if (burning_counter >= delta) {
       burning_counter -= delta;
     } else {
-      game->delete_building(this);
+      game->building_burned_down(this);
     }
   } else {
     update();
@@ -1301,7 +1302,11 @@ operator >> (SaveReaderBinary &reader, Building &building) {
     building.u.level = v16;
   }
 
-  if (!building.is_done()) {
+  if (building.burning) {
+    /* A burning building keeps the type that replaces it here. */
+    reader >> v8;  // 16
+    building.queued_type = (Building::Type)(v8 & 0x1f);
+  } else if (!building.is_done()) {
     building.stock[0].type = Resource::TypePlank;
     reader >> v8;  // 16
     building.stock[0].maximum = v8;
@@ -1446,6 +1451,11 @@ operator >> (SaveReaderText &reader, Building &building) {
 
   reader.value("serf_index") >> building.first_knight;
   reader.value("progress") >> building.progress;
+  if (reader.has_value("queued_type")) {
+    unsigned int queued_type;
+    reader.value("queued_type") >> queued_type;
+    building.queued_type = (Building::Type)queued_type;
+  }
 
   if (reader.has_value("inventory")) {
     unsigned int inventory_index;
@@ -1492,6 +1502,9 @@ operator << (SaveWriterText &writer, Building &building) {
 
   writer.value("serf_index") << building.first_knight;
   writer.value("progress") << building.progress;
+  if (building.queued_type != Building::TypeNone) {
+    writer.value("queued_type") << building.queued_type;
+  }
 
   if (building.inventory != nullptr) {
     writer.value("inventory") << building.inventory->get_index();
