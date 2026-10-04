@@ -774,6 +774,17 @@ Game::update() {
     player->update();
   }
 
+  /* Scheduler of the original (Amiga update_scheduled @0xa864): next_index
+     cycles through the slots once per update; slot 32 runs the emergency
+     programs unless the game is paused. */
+  next_index += 1;
+  if (next_index >= max_next_index) next_index = 0;
+  if (next_index == 32 && game_speed != 0) {
+    for (Player *player : players) {
+      player->update_emergency_program();
+    }
+  }
+
   /* Update knight morale */
   knight_morale_counter -= tick_diff;
   if (knight_morale_counter < 0) {
@@ -1714,6 +1725,7 @@ Game::place_building(MapPos pos, Building::Type type, Player *player) {
   bld->set_position(pos);
   Map::Object map_obj = bld->start_building(type);
   player->building_founded(bld);
+  player->designate_emergency_building(bld);
 
   bool split_path = false;
   if (map->get_obj(map->move_down_right(pos)) != Map::ObjectFlag) {
@@ -1805,6 +1817,20 @@ Game::build_castle(MapPos pos, Player *player) {
         break;
     }
   }
+
+  /* Reserve of the emergency program: 7 planks and 2 stones are kept back
+     from the castle (Amiga game_build_castle @0x155de). */
+  unsigned int planks = std::min(7u,
+                                 inventory->get_count_of(Resource::TypePlank));
+  unsigned int stone = std::min(2u,
+                                inventory->get_count_of(Resource::TypeStone));
+  inventory->set_count_of(Resource::TypePlank,
+                          inventory->get_count_of(Resource::TypePlank) -
+                          planks);
+  inventory->set_count_of(Resource::TypeStone,
+                          inventory->get_count_of(Resource::TypeStone) -
+                          stone);
+  player->start_emergency_program(planks, stone);
 
   add_gold_total(static_cast<int>(
     inventory->get_count_of(Resource::TypeGoldBar)));
@@ -2378,6 +2404,9 @@ Game::init(unsigned int map_size, const Random &random) {
   map->init_tiles(generator);
   gold_total = map->get_gold_deposit();
 
+  /* Slots of the scheduler (Amiga game_init). */
+  max_next_index = 33;
+
   return true;
 }
 
@@ -2475,6 +2504,9 @@ Game::create_building(int index) {
 
 void
 Game::delete_building(Building *building) {
+  for (Player *player : players) {
+    player->building_deleted(building->get_index());
+  }
   map->set_object(building->get_position(), Map::ObjectNone, 0);
   buildings.erase(building->get_index());
 }
@@ -3026,6 +3058,8 @@ operator >> (SaveReaderText &reader, Game &game) {
   }
   game_reader->value("resource_history_index") >> game.resource_history_index;
   game_reader->value("max_next_index") >> game.max_next_index;
+  /* Older saves did not use the scheduler slots. */
+  if (game.max_next_index < 33) game.max_next_index = 33;
   game_reader->value("map.gold_morale_factor") >> game.map_gold_morale_factor;
   game_reader->value("player_score_leader") >> game.player_score_leader;
 
