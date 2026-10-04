@@ -321,8 +321,14 @@ GameInitBox::handle_action(int action) {
         }
       }
 
-      interface->close_game_init();
-      break;
+      /* Closing deletes this box. */
+      Interface *iface = interface;
+      bool tutorial = (game_type == GameTutorial);
+      iface->close_game_init();
+      if (tutorial) {
+        iface->open_popup(PopupBox::TypeTutorialOrders);
+      }
+      return;
     }
     case ActionToggleGameType:
       game_type++;
