@@ -450,8 +450,11 @@ DataSourceAmiga::get_sprite_parts(Data::Resource res, size_t index) {
         sprite = decode_amiga_sprite(data_pointers[22]->get_tail(1864*index),
                                      2, 233, palette);
       } else if (index == 2) {
-        sprite = decode_planned_sprite(data_pointers[21], 39, 8, 24, 24,
-                                       palette);
+        /* A band of 3 interleaved bitplanes, 320 pixels wide, shown with
+           the copper list's first colours before it switches colours 1..6
+           to the game view's (Amiga copper list at 0x39fa). */
+        sprite = decode_interlased_sprite(data_pointers[21], 40, 8, 24, 0,
+                                          palette_intro);
       } else if (index == 3) {
         PSpriteAmiga left = decode_interlased_sprite(data_pointers[7], 2, 216,
                                                      0, 0, palette);
