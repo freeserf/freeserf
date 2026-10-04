@@ -136,6 +136,8 @@ class GameInfo {
 
   static PGameInfo get_mission(size_t mission);
   static size_t get_mission_count();
+  static PGameInfo get_tutorial(size_t tutorial);
+  static size_t get_tutorial_count();
 
   static const Character *get_character(size_t character);
   static size_t get_character_count();
