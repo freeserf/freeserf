@@ -20,11 +20,27 @@ jobs:
         with:
           submodules: 'recursive'
 
+      - name: Get macOS version
+        id: macos
+        run: |
+          echo "major=$(sw_vers -productVersion | cut -d. -f1)" >> "$GITHUB_OUTPUT"
+
+      # MacPorts with the SDL2 ports takes about 10 minutes to install, so
+      # /opt/local is cached. The key changes with the macOS version, the
+      # runner architecture and this workflow (e.g. the list of ports).
+      - name: Cache MacPorts
+        id: cache-macports
+        uses: actions/cache@v6
+        with:
+          path: ~/macports
+          key: macports-${{ steps.macos.outputs.major }}-${{ runner.arch }}-${{ hashFiles('.github/workflows/macos.yml') }}
+
       - name: Install dependencies
+        if: steps.cache-macports.outputs.cache-hit != 'true'
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          MACOS_MAJOR=$(sw_vers -productVersion | cut -d. -f1)
+          MACOS_MAJOR=${{ steps.macos.outputs.major }}
           MACPORTS_PKG=$(gh api repos/macports/macports-base/releases/latest \
                          --jq ".assets[] | select(.name | test(\"^MacPorts-[0-9.]+-${MACOS_MAJOR}-[A-Za-z]+\\\\.pkg$\")) | .browser_download_url")
           wget -q "${MACPORTS_PKG}" -O MacPorts.pkg
@@ -34,9 +50,20 @@ jobs:
           sudo port install libsdl2 +universal -N
           sudo port install libsdl2_mixer +universal -N
           sudo port install libsdl2_image +universal -N
-          mkdir ~/macports
-          sudo cp -R /opt/local ~/macports
+          # Copy for the cache, without the ports tree, downloads and archives.
+          mkdir -p ~/macports/local
+          sudo rsync -a --exclude var/macports/sources \
+                        --exclude var/macports/distfiles \
+                        --exclude var/macports/build \
+                        --exclude var/macports/software \
+                        /opt/local/ ~/macports/local/
           sudo chown -R $USER:staff ~/macports
+
+      - name: Restore dependencies
+        if: steps.cache-macports.outputs.cache-hit == 'true'
+        run: |
+          sudo mkdir -p /opt/local
+          sudo rsync -a ~/macports/local/ /opt/local/
 
       - name: Configure FreeSerf
         run: |
