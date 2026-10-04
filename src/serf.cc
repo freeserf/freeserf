@@ -348,6 +348,32 @@ Serf::add_to_defending_queue(unsigned int next_knight_index, bool pause) {
   }
 }
 
+/* A knight of the building's owner, defending it from the start (Amiga
+   tutorial_build_military_building @0x4b58). */
+void
+Serf::init_defending_knight(Building *building) {
+  set_owner(building->get_owner());
+  set_type(TypeKnight0);
+  pos = building->get_position();
+  tick = game->get_tick();
+  counter = 6000;
+  switch (building->get_type()) {
+    case Building::TypeHut:
+      set_state(StateDefendingHut);
+      break;
+    case Building::TypeTower:
+      set_state(StateDefendingTower);
+      break;
+    case Building::TypeFortress:
+      set_state(StateDefendingFortress);
+      break;
+    default:
+      NOT_REACHED();
+      break;
+  }
+  s.defending.next_knight = building->get_first_knight();
+}
+
 void
 Serf::init_generic(Inventory *inventory) {
   set_type(TypeGeneric);

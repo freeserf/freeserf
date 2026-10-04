@@ -501,8 +501,7 @@ GameInfo::get_tutorial(size_t t) {
 
 size_t
 GameInfo::get_tutorial_count() {
-  /* Tutorial 6 needs its passive enemy. */
-  return 5;
+  return sizeof(tutorials) / sizeof(tutorials[0]);
 }
 
 const Character *
@@ -541,6 +540,10 @@ GameInfo::instantiate() {
       MapPos pos = game->get_map()->pos(castle_pos.col, castle_pos.row);
       game->build_castle(pos, player);
     }
+  }
+
+  if (game_type == Game::GameTypeTutorial && level == 6) {
+    game->init_tutorial_enemy(def_color[1]);
   }
 
   return game;

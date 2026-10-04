@@ -123,6 +123,11 @@ class Building : public GameObject {
   bool has_knight() const { return (first_knight != 0); }
   unsigned int get_first_knight() const { return first_knight; }
   void set_first_knight(unsigned int serf);
+  /* Set up as occupied, then put knights in without the first knight's
+     arrival (tutorial 6's enemy). */
+  void set_occupied() { active = true; }
+  void place_knight(unsigned int serf) {
+    first_knight = serf; stock[0].available += 1; }
 
   Type get_queued_type() const { return queued_type; }
   void set_queued_type(Type _type) { queued_type = _type; }

@@ -605,8 +605,11 @@ Game::update_tutorial() {
       completed = weapons >= 10 && tools >= 10;
       break;
     }
-    default:
+    default: {  // Conquer the enemy's land
+      Player *enemy = get_player(1);
+      completed = (enemy == nullptr) || (enemy->get_land_area() == 0);
       break;
+    }
   }
 
   if (completed) {
@@ -1369,6 +1372,12 @@ Game::build_flag(MapPos pos, Player *player) {
     return false;
   }
 
+  return place_flag(pos, player);
+}
+
+/* Build a flag without checking the site. */
+bool
+Game::place_flag(MapPos pos, Player *player) {
   Flag *flag = flags.allocate();
   if (flag == NULL) return false;
 
@@ -1679,16 +1688,23 @@ Game::build_building(MapPos pos, Building::Type type, Player *player) {
     /* TODO Check that more stocks are allowed to be built */
   }
 
+  return place_building(pos, type, player) != nullptr;
+}
+
+/* Build a building and its flag without checking the site, as the
+   original's game_build_building, which relies on the map cursor type. */
+Building *
+Game::place_building(MapPos pos, Building::Type type, Player *player) {
   Building *bld = buildings.allocate();
   if (bld == NULL) {
-    return false;
+    return nullptr;
   }
 
   Flag *flag = get_flag_at_pos(map->move_down_right(pos));
   if (flag == NULL) {
-    if (!build_flag(map->move_down_right(pos), player)) {
+    if (!place_flag(map->move_down_right(pos), player)) {
       buildings.erase(bld->get_index());
-      return false;
+      return nullptr;
     }
     flag = get_flag_at_pos(map->move_down_right(pos));
   }
@@ -1727,7 +1743,7 @@ Game::build_building(MapPos pos, Building::Type type, Player *player) {
 
   if (split_path) build_flag_split_path(map->move_down_right(pos));
 
-  return true;
+  return bld;
 }
 
 /* Build castle at position. */
@@ -2288,6 +2304,67 @@ Game::add_player(unsigned int intelligence, unsigned int supplies,
   map_gold_morale_factor = 10 * 1024 * static_cast<int>(players.size());
 
   return player->get_index();
+}
+
+/* Tutorial 6: a passive enemy, player 1, with a finished hut, fortress,
+   tower and hut manned by level 0 knights (Amiga game_init_start_castles
+   @0x49ca). The original's enemy is not an added player, so the gold
+   morale factor stays the one of a single player. */
+void
+Game::init_tutorial_enemy(const Player::Color &color) {
+  Player *human = get_player(0);
+  for (size_t i = 0; i < 4; i++) {
+    human->set_knight_occupation(i, 0x40);
+  }
+
+  int gold_morale_factor = map_gold_morale_factor;
+  Player *enemy = get_player(add_player(0, 0, 0));
+  map_gold_morale_factor = gold_morale_factor;
+  enemy->init_passive(color);
+
+  const struct {
+    unsigned int col, row;
+    Building::Type type;
+  } sites[] = {
+    { 20, 26, Building::TypeHut },
+    { 21, 33, Building::TypeFortress },
+    { 25, 34, Building::TypeTower },
+    { 30, 38, Building::TypeHut }
+  };
+  for (const auto &site : sites) {
+    build_occupied_military(map->pos(site.col, site.row), site.type, enemy);
+  }
+}
+
+/* A finished military building with its knights (Amiga
+   tutorial_build_military_building @0x4b58). */
+void
+Game::build_occupied_military(MapPos pos, Building::Type type,
+                              Player *player) {
+  Building *building = place_building(pos, type, player);
+  if (building == nullptr) {
+    return;
+  }
+
+  while (!building->build_progress()) {}
+  building->set_occupied();
+
+  int knights = 12;
+  if (type == Building::TypeHut) {
+    knights = 3;
+  } else if (type == Building::TypeTower) {
+    knights = 6;
+  }
+  for (int i = 0; i < knights; i++) {
+    Serf *knight = create_serf();
+    if (knight == nullptr) {
+      break;
+    }
+    knight->init_defending_knight(building);
+    building->place_knight(knight->get_index());
+  }
+
+  update_land_ownership(pos);
 }
 
 bool

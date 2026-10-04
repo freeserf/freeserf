@@ -145,6 +145,7 @@ class Game {
   unsigned int add_player(unsigned int intelligence, unsigned int supplies,
                           unsigned int reproduction);
   bool init(unsigned int map_size, const Random &random);
+  void init_tutorial_enemy(const Player::Color &color);
 
   void update();
   void pause();
@@ -252,6 +253,10 @@ class Game {
                              const int history_index[], const Values &values);
   int calculate_clear_winner(const Values &values);
   void update_winner();
+  bool place_flag(MapPos pos, Player *player);
+  Building *place_building(MapPos pos, Building::Type type, Player *player);
+  void build_occupied_military(MapPos pos, Building::Type type,
+                               Player *player);
   void update_tutorial();
   void update_game_stats();
   void get_resource_estimate(MapPos pos, int weight, int estimates[5]);

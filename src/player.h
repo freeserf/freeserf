@@ -178,6 +178,7 @@ class Player : public GameObject {
   void init(unsigned int intelligence, unsigned int supplies,
             unsigned int reproduction);
   void init_view(Color color, unsigned int face);
+  void init_passive(Color color);
 
   Color get_color() const { return color; }
   size_t get_face() const { return face; }
@@ -199,6 +200,9 @@ class Player : public GameObject {
   /* Whether the cycling of knights is in the second phase. */
   bool cycling_second() const { return ((flags >> 5) & 1); }
   /* Whether this player is a computer controlled opponent. */
+  /* Only the players in the game take turns; tutorial 6's enemy does not
+     (Amiga player flag bit 6). */
+  bool is_in_game() const { return ((flags >> 6) & 1); }
   bool is_ai() const { return ((flags >> 7) & 1); }
 
   /* Whether player is prohibited from building military
@@ -233,6 +237,8 @@ class Player : public GameObject {
   int get_knight_occupation(size_t threat_level) const {
     return knight_occupation[threat_level]; }
   void change_knight_occupation(int index, int adjust_max, int delta);
+  void set_knight_occupation(size_t threat_level, int value) {
+    knight_occupation[threat_level] = value; }
   void increase_castle_knights() { castle_knights++; }
   void decrease_castle_knights() { castle_knights--; }
   int get_castle_knights() const { return castle_knights; }
