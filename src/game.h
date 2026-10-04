@@ -127,6 +127,7 @@ class Game {
 
   int get_game_type() const { return game_type; }
   int get_mission_level() const { return mission_level; }
+  int get_tutorial_level() const { return tutorial_level; }
   void set_game_type(int type, int level);
   /* The winner once the game is decided, -1 before. */
   int get_winning_player() const { return winning_player; }

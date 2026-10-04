@@ -23,6 +23,7 @@
 
 #include <algorithm>
 #include <sstream>
+#include <string>
 
 #include "src/misc.h"
 #include "src/game.h"
@@ -2672,6 +2673,49 @@ PopupBox::draw_game_end_box() {
   }
 }
 
+/* The task of the tutorial, shown when it starts. The original only
+   gives it in the manual; these are the goals the game checks. */
+void
+PopupBox::draw_tutorial_orders_box() {
+  draw_box_background(PatternStripedGreen);
+
+  /* The font has no comma. */
+  const char *const orders[] = {
+    "Build a guard hut and a guard tower and a fortress.",
+    "Produce five planks and five stones.",
+    "Produce five fish and five meat and five bread.",
+    "Smelt five steel bars and five gold bars.",
+    "Make ten weapons and ten tools.",
+    "Conquer all the land of the enemy."
+  };
+
+  PGame game = interface->get_game();
+  int level = game->get_tutorial_level();
+  if (level < 1 || level > 6) {
+    return;
+  }
+
+  draw_green_string(0, 6, "   TUTORIAL " + std::to_string(level));
+  draw_green_string(0, 26, "    ORDERS:");
+
+  /* Word wrap to the 16 characters of a line. */
+  std::istringstream words(orders[level - 1]);
+  std::string word;
+  std::string line;
+  int y = 46;
+  while (words >> word) {
+    if (!line.empty() && line.length() + 1 + word.length() > 16) {
+      draw_green_string(0, y, line);
+      y += 10;
+      line.clear();
+    }
+    line += (line.empty() ? "" : " ") + word;
+  }
+  if (!line.empty()) {
+    draw_green_string(0, y, line);
+  }
+}
+
 void
 PopupBox::draw_demolish_box() {
   draw_box_background(PatternSquaresGreen);
@@ -2850,6 +2894,9 @@ PopupBox::internal_draw() {
     break;
   case TypeGameEnd:
     draw_game_end_box();
+    break;
+  case TypeTutorialOrders:
+    draw_tutorial_orders_box();
     break;
   case TypeLoadSave:
     draw_save_box();
@@ -4220,6 +4267,11 @@ PopupBox::handle_game_end_click(int /*cx*/, int /*cy*/) {
 }
 
 void
+PopupBox::handle_tutorial_orders_click(int /*cx*/, int /*cy*/) {
+  interface->close_popup();
+}
+
+void
 PopupBox::handle_box_demolish_clk(int cx, int cy) {
   const int clkmap[] = {
     ACTION_CLOSE_BOX, 112, 128, 16, 16,
@@ -4482,6 +4534,9 @@ PopupBox::handle_click_left(int cx, int cy) {
     break;
   case TypeGameEnd:
     handle_game_end_click(cx, cy);
+    break;
+  case TypeTutorialOrders:
+    handle_tutorial_orders_click(cx, cy);
     break;
   case TypeLoadSave:
     handle_save_clk(cx, cy);
