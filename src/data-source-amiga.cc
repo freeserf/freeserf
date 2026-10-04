@@ -720,10 +720,11 @@ DataSourceAmiga::get_sound(size_t index) {
   }
 
   try {
-    /* Paula plays a sample at the PAL clock divided by the period. */
+    /* Paula plays signed 8-bit samples at the PAL clock divided by the
+       sample's period. */
     size_t rate = (3546895 + sound_info[index].period / 2) /
                   sound_info[index].period;
-    ConvertorSFX2WAV convertor(data, 0, false, rate);
+    ConvertorSFX2WAV convertor(data, 0, false, rate, true);
     return convertor.convert();
   } catch (...) {
     Log::Error["data"] << "Could not convert SFX clip to WAV: #" << index;
