@@ -8,6 +8,9 @@ on:
 
 jobs:
   build:
+    # Attaches the packages to a published release.
+    permissions:
+      contents: write
     runs-on: ubuntu-24.04
 
     strategy:
@@ -19,6 +22,8 @@ jobs:
         uses: actions/checkout@v7
         with:
           submodules: 'recursive'
+          # The version comes from the latest tag (git describe).
+          fetch-depth: 0
 
       # SDL3_mixer is not packaged in Ubuntu yet, so SDL3 and its libraries
       # are built with vcpkg (cmake/vcpkg.json); the packages are kept in
@@ -81,4 +86,12 @@ jobs:
         uses: actions/upload-artifact@v7
         with:
           name: FreeSerf-${{ matrix.buildtype }}
-          path: ./build/FreeSerf-0.1.1-Linux.tar.*
+          path: ./build/FreeSerf-*-Linux.tar.*
+
+      - name: Attach to release
+        if: github.event_name == 'release' && matrix.buildtype == 'Release'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release upload "${{ github.event.release.tag_name }}" \
+            ./build/FreeSerf-*-Linux.tar.* --clobber

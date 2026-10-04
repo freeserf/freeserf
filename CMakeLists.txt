@@ -4,8 +4,7 @@ endif()
 
 cmake_minimum_required(VERSION 3.14 FATAL_ERROR)
 
-project(FreeSerf)
-set(PROJECT_VERSION "0.3.0")
+project(FreeSerf VERSION 0.4.0)
 set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 
 list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
