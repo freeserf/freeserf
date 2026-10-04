@@ -1172,10 +1172,11 @@ Serf::handle_serf_walking_state_waiting() {
   Direction dir = (Direction)(s.walking.dir + 6);
 
   PMap map = game->get_map();
-  /* Only check for loops once in a while. */
+  /* Only check for loops once in a while: after 10 waits at a flag,
+     50 elsewhere. */
   s.walking.wait_counter += 1;
-  if ((!map->has_flag(pos) && s.walking.wait_counter >= 10) ||
-      s.walking.wait_counter >= 50) {
+  if ((map->has_flag(pos) && s.walking.wait_counter >= 10) ||
+      (!map->has_flag(pos) && s.walking.wait_counter >= 50)) {
     MapPos pos_ = pos;
 
     /* Follow the chain of serfs waiting for each other and
@@ -1192,7 +1193,7 @@ Serf::handle_serf_walking_state_waiting() {
       }
 
       /* Get next serf and follow the chain */
-      Serf *other_serf = game->get_serf_at_pos(pos);
+      Serf *other_serf = game->get_serf_at_pos(pos_);
       if (other_serf->state != StateWalking &&
           other_serf->state != StateTransporting) {
         break;
@@ -1205,10 +1206,12 @@ Serf::handle_serf_walking_state_waiting() {
 
       dir = (Direction)(other_serf->s.walking.dir + 6);
     }
+
+    /* The counter is only reset after a check. */
+    s.walking.wait_counter = 0;
   }
 
   /* Stick to the same direction */
-  s.walking.wait_counter = 0;
   change_direction((Direction)(s.walking.dir + 6), 0);
 }
 
