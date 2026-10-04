@@ -127,7 +127,10 @@ class Viewport : public GuiObject, public Map::Handler {
   virtual void internal_draw();
   virtual void layout();
   virtual bool handle_click_left(int x, int y);
+  virtual bool handle_click_right(int x, int y);
   virtual bool handle_dbl_click(int x, int y, Event::Button button);
+  void road_click(MapPos clk_pos, bool special);
+  bool open_object_box(MapPos clk_pos);
   virtual bool handle_drag(int x, int y);
 
   Frame *get_tile_frame(unsigned int tid, int tc, int tr);

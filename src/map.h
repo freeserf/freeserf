@@ -449,7 +449,8 @@ class Map {
   bool remove_road_backrefs(MapPos pos);
   Direction remove_road_segment(MapPos *pos, Direction dir);
   bool road_segment_in_water(MapPos pos, Direction dir);
-  bool is_road_segment_valid(MapPos pos, Direction dir) const;
+  bool is_road_segment_valid(MapPos pos, Direction dir,
+                             bool join = false) const;
 
   bool operator == (const Map& rhs) const;
   bool operator != (const Map& rhs) const;

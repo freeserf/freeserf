@@ -348,6 +348,12 @@ Interface::determine_map_cursor_type_road() {
       } else {
         sprite = 44;
       }
+    } else if (game->can_join_road(pos, d, player) &&
+               building_road.is_valid_extension(map.get(), d)) {
+      /* An existing road can be joined by a special click. */
+      int h_diff = map->get_height(map->move(pos, d)) - h;
+      sprite = 39 + h_diff;
+      valid_dir |= BIT(d);
     } else {
       sprite = 44; /* striped */
     }
@@ -570,10 +576,24 @@ Interface::build_road_end() {
 /* Build a single road segment. Return -1 on fail, 0 on successful
    construction, and 1 if this segment completed the path. */
 int
-Interface::build_road_segment(Direction dir) {
+Interface::build_road_segment(Direction dir, bool special) {
   if (!building_road.is_extendable()) {
     /* Max length reached */
     return -1;
+  }
+
+  /* A step onto an existing road (paths, no flag) joins it with a special
+     click, as in the original game: a flag is built there, which splits
+     that road, and the new road ends at it. A normal click is refused. */
+  PMap map = game->get_map();
+  MapPos target = map->move(map_cursor_pos, dir);
+  if (map->paths(target) != 0 && !map->has_flag(target)) {
+    if (!special || !game->can_join_road(map_cursor_pos, dir, player)) {
+      return -1;
+    }
+    if (!game->build_flag(target, player)) {
+      return -1;
+    }
   }
 
   building_road.extend(dir);
@@ -596,12 +616,20 @@ Interface::build_road_segment(Direction dir) {
       return 1;
     }
   } else if (game->get_map()->paths(dest) == 0) {
-    /* No existing paths at destination, build segment. */
+    /* No existing paths at destination, build segment. A special click
+       also builds a flag there and finishes the road. */
+    if (special && game->can_build_flag(dest, player) &&
+        game->build_flag(dest, player)) {
+      bool built = game->build_road(building_road, player);
+      build_road_end();
+      update_map_cursor_pos(dest);
+      return built ? 1 : -1;
+    }
+
     update_map_cursor_pos(dest);
 
     /* TODO Pathway scrolling */
   } else {
-    /* TODO fast split path and connect on double click */
     return -1;
   }
 

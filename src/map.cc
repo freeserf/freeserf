@@ -569,11 +569,13 @@ Map::update(unsigned int tick, Random *rnd) {
 /* Return non-zero if the road segment from pos in direction dir
  can be successfully constructed at the current time. */
 bool
-Map::is_road_segment_valid(MapPos pos, Direction dir) const {
+Map::is_road_segment_valid(MapPos pos, Direction dir, bool join) const {
   MapPos other_pos = move(pos, dir);
 
+  /* With join, the segment may end on an existing road (see
+     Game::can_join_road()). */
   Object obj = get_obj(other_pos);
-  if ((paths(other_pos) != 0 && obj != ObjectFlag) ||
+  if ((paths(other_pos) != 0 && obj != ObjectFlag && !join) ||
       Map::map_space_from_obj[obj] >= SpaceSemipassable) {
     return false;
   }
