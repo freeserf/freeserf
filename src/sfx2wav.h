@@ -30,7 +30,8 @@ class ConvertorSFX2WAV : public ConvertorPCM2WAV {
   bool invert;
 
  public:
-  explicit ConvertorSFX2WAV(PBuffer buffer, int level = 0, bool invert = false);
+  explicit ConvertorSFX2WAV(PBuffer buffer, int level = 0, bool invert = false,
+                            size_t rate = 8000);
 
  protected:
   virtual PBuffer create_data(PBuffer data);
