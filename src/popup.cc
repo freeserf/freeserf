@@ -2165,9 +2165,6 @@ PopupBox::draw_transport_info_box() {
 
   draw_box_background(PatternPlaidAlongGreen);
 
-  /* TODO show path merge button. */
-  /* if (r == 0) draw_popup_icon(7, 51, 0x135); */
-
   if (interface->get_player()->temp_index == 0) {
     interface->close_popup();
     return;
@@ -2207,6 +2204,13 @@ PopupBox::draw_transport_info_box() {
       }
       draw_popup_icon(lx, ly, sprite);
     }
+  }
+
+  /* Road merge button: a road passes the flag around a corner and can be
+     led through it (as in the original game). */
+  if (!interface->get_player()->is_ai() &&
+      interface->get_game()->flag_has_road_corner(flag->get_position())) {
+    draw_popup_icon(7, 51, 0x135);
   }
 
   draw_green_string(0, 4, "Transport Info:");
@@ -3382,6 +3386,20 @@ PopupBox::handle_action(int action, int x_, int /*y_*/) {
   case ACTION_SEND_GEOLOGIST:
     handle_send_geologist();
     break;
+  case ACTION_UNKNOWN_TP_INFO_FLAG: {
+    /* Road merge button: lead the roads around the flag through it. */
+    Flag *flag =
+           interface->get_game()->get_flag(interface->get_player()->temp_index);
+    if ((flag != nullptr) &&
+        interface->get_game()->pull_roads_through_flag(flag->get_position(),
+                                                    interface->get_player())) {
+      play_sound(Audio::TypeSfxAccepted);
+    } else {
+      play_sound(Audio::TypeSfxNotAccepted);
+    }
+    interface->close_popup();
+    break;
+  }
   case ACTION_RES_MODE_IN:
   case ACTION_RES_MODE_STOP:
   case ACTION_RES_MODE_OUT:

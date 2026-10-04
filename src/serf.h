@@ -408,6 +408,7 @@ class Serf : public GameObject {
   bool is_related_to(unsigned int dest, Direction dir);
   void path_deleted(unsigned int dest, Direction dir);
   void path_merged(Flag *flag);
+  void path_rerouted(int old_dir, int new_dir);
   void path_merged2(unsigned int flag_1, Direction dir_1,
                     unsigned int flag_2, Direction dir_2);
   void flag_deleted(MapPos flag_pos);

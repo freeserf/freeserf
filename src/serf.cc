@@ -517,6 +517,21 @@ Serf::path_merged(Flag *flag) {
   }
 }
 
+/* The road under the serf now leaves in new_dir instead of old_dir. */
+void
+Serf::path_rerouted(int old_dir, int new_dir) {
+  if (state != StateWalking && state != StateTransporting) {
+    return;
+  }
+
+  if (s.walking.dir == old_dir) {
+    s.walking.dir = new_dir;
+  } else if (s.walking.dir == old_dir - 6) {
+    /* Waiting to move in old_dir. */
+    s.walking.dir = new_dir - 6;
+  }
+}
+
 void
 Serf::path_merged2(unsigned int flag_1, Direction dir_1,
                    unsigned int flag_2, Direction dir_2) {
