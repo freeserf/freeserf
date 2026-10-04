@@ -22,6 +22,7 @@
 #ifndef SRC_XMI2MID_H_
 #define SRC_XMI2MID_H_
 
+#include <cstdint>
 #include <vector>
 #include <string>
 
