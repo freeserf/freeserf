@@ -4371,19 +4371,16 @@ Serf::set_fight_outcome(Serf *attacker, Serf *defender) {
 
   int player = -1;
   int value = -1;
-  Type ktype = TypeNone;
   int r = ((morale + def_morale)*game->random_int()) >> 16;
   if (r < morale) {
     player = defender->get_owner();
     value = def_exp_factor;
-    ktype = defender->get_type();
     attacker->s.attacking.attacker_won = 1;
     Log::Debug["serf"] << "Fight: " << morale << " vs " << def_morale
     << " (" << r << "). Attacker winning.";
   } else {
     player = attacker->get_owner();
     value = exp_factor;
-    ktype = attacker->get_type();
     attacker->s.attacking.attacker_won = 0;
     Log::Debug["serf"] << "Fight: " << morale << " vs " << def_morale
                        << " (" << r << "). Defender winning.";
