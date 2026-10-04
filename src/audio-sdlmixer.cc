@@ -21,12 +21,14 @@
 
 #include "src/audio-sdlmixer.h"
 
+#include <SDL3/SDL.h>
+#include <SDL3_mixer/SDL_mixer.h>
+
 #include <algorithm>
+#include <cmath>
+#include <list>
 #include <memory>
 #include <string>
-
-#include <SDL.h>
-#include <SDL_mixer.h>
 
 #include "src/log.h"
 #include "src/data.h"
@@ -35,6 +37,48 @@ ExceptionSDLmixer::ExceptionSDLmixer(const std::string &_description)
   : ExceptionAudio(_description) {
   sdl_error = SDL_GetError();
   description += " (" + sdl_error + ")";
+}
+
+/* Number of sound effects playing at the same time (the channels of
+   SDL2_mixer). */
+#define SFX_TRACKS  128
+
+static MIX_Mixer *mixer = nullptr;
+static MIX_Track *sfx_tracks[SFX_TRACKS];
+static MIX_Track *music_track = nullptr;
+
+/* SoundFont for the MIDI music: SDL_SOUNDFONTS, else the TimGM6mb
+   SoundFont installed with the game (next to the program, in the
+   resources of the macOS bundle) or put next to the game data. */
+static std::string
+find_soundfont() {
+  const char *env = SDL_getenv("SDL_SOUNDFONTS");
+  if (env != nullptr) {
+    return env;
+  }
+
+  std::list<std::string> dirs;
+  const char *base = SDL_GetBasePath();
+  if (base != nullptr) {
+    dirs.push_back(base);
+  }
+  Data::PSource data_source = Data::get_instance().get_data_source();
+  if (data_source) {
+    std::string data_path = data_source->get_path();
+    size_t sep = data_path.find_last_of("/\\");
+    if (sep != std::string::npos) {
+      dirs.push_back(data_path.substr(0, sep + 1));
+    }
+  }
+
+  for (const std::string &dir : dirs) {
+    std::string path = dir + "TimGM6mb.sf2";
+    if (SDL_GetPathInfo(path.c_str(), nullptr)) {
+      return path;
+    }
+  }
+
+  return std::string();
 }
 
 Audio &
@@ -52,37 +96,46 @@ AudioSDL::AudioSDL() {
     Log::Info["audio"] << "\t" << SDL_GetAudioDriver(i);
   }
 
-  if (SDL_AudioInit(NULL) != 0) {
+  if (!SDL_InitSubSystem(SDL_INIT_AUDIO)) {
     throw ExceptionSDLmixer("Could not init SDL audio");
   }
 
-  SDL_version version;
-  SDL_GetVersion(&version);
+  int version = SDL_GetVersion();
   Log::Info["audio"] << "Initialized with SDL "
-                     << static_cast<int>(version.major) << '.'
-                     << static_cast<int>(version.minor) << '.'
-                     << static_cast<int>(version.patch)
+                     << SDL_VERSIONNUM_MAJOR(version) << '.'
+                     << SDL_VERSIONNUM_MINOR(version) << '.'
+                     << SDL_VERSIONNUM_MICRO(version)
                      << " (driver: " << SDL_GetCurrentAudioDriver() << ")";
 
-  const SDL_version *mversion = Mix_Linked_Version();
+  int mversion = MIX_Version();
   Log::Info["audio:SDL_mixer"] << "Initializing SDL_mixer "
-                               << static_cast<int>(mversion->major) << '.'
-                               << static_cast<int>(mversion->minor) << '.'
-                               << static_cast<int>(mversion->patch);
+                               << SDL_VERSIONNUM_MAJOR(mversion) << '.'
+                               << SDL_VERSIONNUM_MINOR(mversion) << '.'
+                               << SDL_VERSIONNUM_MICRO(mversion);
 
-  int r = Mix_Init(0);
-  if (r != 0) {
+  if (!MIX_Init()) {
     throw ExceptionSDLmixer("Could not init SDL_mixer");
   }
 
-  r = Mix_OpenAudio(44100, MIX_DEFAULT_FORMAT, MIX_DEFAULT_CHANNELS, 512);
-  if (r < 0) {
+  SDL_AudioSpec spec;
+  spec.format = SDL_AUDIO_S16;
+  spec.channels = 2;
+  spec.freq = 44100;
+  mixer = MIX_CreateMixerDevice(SDL_AUDIO_DEVICE_DEFAULT_PLAYBACK, &spec);
+  if (mixer == nullptr) {
     throw ExceptionSDLmixer("Could not open audio device");
   }
 
-  r = Mix_AllocateChannels(128);
-  if (r != 128) {
-    throw ExceptionSDLmixer("Failed to allocate channels");
+  for (int i = 0; i < SFX_TRACKS; i++) {
+    sfx_tracks[i] = MIX_CreateTrack(mixer);
+    if (sfx_tracks[i] == nullptr) {
+      throw ExceptionSDLmixer("Failed to allocate tracks");
+    }
+  }
+
+  music_track = MIX_CreateTrack(mixer);
+  if (music_track == nullptr) {
+    throw ExceptionSDLmixer("Failed to allocate tracks");
   }
 
   volume = 1.f;
@@ -97,9 +150,12 @@ AudioSDL::~AudioSDL() {
   sfx_player = nullptr;
   midi_player = nullptr;
 
-  Mix_CloseAudio();
-  Mix_Quit();
-  SDL_AudioQuit();
+  /* Destroys the tracks too. */
+  MIX_DestroyMixer(mixer);
+  mixer = nullptr;
+  music_track = nullptr;
+  MIX_Quit();
+  SDL_QuitSubSystem(SDL_INIT_AUDIO);
 }
 
 float
@@ -144,6 +200,10 @@ AudioSDL::volume_down() {
   set_volume(vol - 0.1f);
 }
 
+AudioSDL::PlayerSFX::PlayerSFX()
+  : volume(1.f) {
+}
+
 Audio::PTrack
 AudioSDL::PlayerSFX::create_track(int track_id) {
   Data &data = Data::get_instance();
@@ -154,11 +214,10 @@ AudioSDL::PlayerSFX::create_track(int track_id) {
     return nullptr;
   }
 
-  SDL_RWops *rw = SDL_RWFromMem(wav->get_data(),
-                                static_cast<int>(wav->get_size()));
-  Mix_Chunk *chunk = Mix_LoadWAV_RW(rw, 0);
+  SDL_IOStream *io = SDL_IOFromConstMem(wav->get_data(), wav->get_size());
+  MIX_Audio *chunk = MIX_LoadAudio_IO(mixer, io, true, true);
   if (chunk == nullptr) {
-    Log::Error["audio:SDL_mixer"] << "Mix_LoadWAV_RW: " << Mix_GetError();
+    Log::Error["audio:SDL_mixer"] << "MIX_LoadAudio_IO: " << SDL_GetError();
     return nullptr;
   }
 
@@ -175,20 +234,22 @@ AudioSDL::PlayerSFX::enable(bool enable) {
 
 void
 AudioSDL::PlayerSFX::stop() {
-  Mix_HaltChannel(-1);
+  for (int i = 0; i < SFX_TRACKS; i++) {
+    MIX_StopTrack(sfx_tracks[i], 0);
+  }
 }
 
 float
 AudioSDL::PlayerSFX::get_volume() {
-  return static_cast<float>(Mix_Volume(-1, -1)) /
-         static_cast<float>(MIX_MAX_VOLUME);
+  return volume;
 }
 
 void
-AudioSDL::PlayerSFX::set_volume(float volume) {
-  volume = std::max(0.f, std::min(volume, 1.f));
-  float mix_volume = static_cast<float>(MIX_MAX_VOLUME) * volume;
-  Mix_Volume(-1, static_cast<int>(mix_volume));
+AudioSDL::PlayerSFX::set_volume(float _volume) {
+  volume = std::max(0.f, std::min(_volume, 1.f));
+  for (int i = 0; i < SFX_TRACKS; i++) {
+    MIX_SetTrackGain(sfx_tracks[i], volume);
+  }
 }
 
 void
@@ -201,21 +262,30 @@ AudioSDL::PlayerSFX::volume_down() {
   set_volume(get_volume() - 0.1f);
 }
 
-AudioSDL::TrackSFX::TrackSFX(Mix_Chunk *_chunk) {
+AudioSDL::TrackSFX::TrackSFX(MIX_Audio *_chunk) {
   chunk = _chunk;
 }
 
 AudioSDL::TrackSFX::~TrackSFX() {
-  Mix_FreeChunk(chunk);
+  MIX_DestroyAudio(chunk);
 }
 
 void
 AudioSDL::TrackSFX::play() {
-  int r = Mix_PlayChannel(-1, chunk, 0);
-  if (r < 0) {
-    Log::Error["audio:SDL_mixer"] << "Could not play SFX clip: "
-                                  << Mix_GetError();
+  /* Play on the first free track. */
+  for (int i = 0; i < SFX_TRACKS; i++) {
+    MIX_Track *track = sfx_tracks[i];
+    if (MIX_TrackPlaying(track)) {
+      continue;
+    }
+    if (!MIX_SetTrackAudio(track, chunk) || !MIX_PlayTrack(track, 0)) {
+      Log::Error["audio:SDL_mixer"] << "Could not play SFX clip: "
+                                    << SDL_GetError();
+    }
+    return;
   }
+
+  Log::Warn["audio:SDL_mixer"] << "Could not play SFX clip: no free track";
 }
 
 AudioSDL::PlayerMIDI::PlayerMIDI() {
@@ -224,12 +294,14 @@ AudioSDL::PlayerMIDI::PlayerMIDI() {
   }
   current_track = TypeMidiNone;
   current_midi_player = this;
-  Mix_HookMusicFinished(music_finished_hook);
+  MIX_SetTrackStoppedCallback(music_track, music_finished_hook, nullptr);
 }
 
 AudioSDL::PlayerMIDI::~PlayerMIDI() {
   current_midi_player = nullptr;
-  Mix_HookMusicFinished(nullptr);
+  if (music_track != nullptr) {
+    MIX_SetTrackStoppedCallback(music_track, nullptr, nullptr);
+  }
 }
 
 Audio::PTrack
@@ -237,22 +309,30 @@ AudioSDL::PlayerMIDI::create_track(int track_id) {
   Data &data = Data::get_instance();
   Data::PSource data_source = data.get_data_source();
 
-  if (data_source->get_music_format() == Data::MusicFormatMod) {
-    if (MIX_INIT_MOD != Mix_Init(MIX_INIT_MOD)) {
-      Log::Error["audio:SDL_mixer"] << "Failed to initialize MOD music decoder";
-      return nullptr;
-    }
-  }
-
   PBuffer midi = data_source->get_music(track_id);
   if (!midi) {
     return nullptr;
   }
 
-  SDL_RWops *rw = SDL_RWFromMem(midi->get_data(),
-                                static_cast<int>(midi->get_size()));
-  Mix_Music *music = Mix_LoadMUS_RW(rw, 0);
+  /* MIDI (DOS data) is played by FluidSynth, which needs a SoundFont (see
+     find_soundfont()). MOD music (Amiga data) needs no setup. */
+  SDL_PropertiesID props = SDL_CreateProperties();
+  SDL_SetPointerProperty(props, MIX_PROP_AUDIO_LOAD_IOSTREAM_POINTER,
+                         SDL_IOFromConstMem(midi->get_data(),
+                                            midi->get_size()));
+  SDL_SetBooleanProperty(props, MIX_PROP_AUDIO_LOAD_CLOSEIO_BOOLEAN, true);
+  SDL_SetPointerProperty(props, MIX_PROP_AUDIO_LOAD_PREFERRED_MIXER_POINTER,
+                         mixer);
+  static const std::string soundfont = find_soundfont();
+  if (!soundfont.empty()) {
+    SDL_SetStringProperty(props, "SDL_mixer.decoder.fluidsynth.soundfont_path",
+                          soundfont.c_str());
+  }
+  MIX_Audio *music = MIX_LoadAudioWithProperties(props);
+  SDL_DestroyProperties(props);
   if (music == nullptr) {
+    Log::Warn["audio:SDL_mixer"] << "Could not load music track: "
+                                 << SDL_GetError();
     return nullptr;
   }
 
@@ -286,7 +366,7 @@ AudioSDL::PlayerMIDI::enable(bool enable) {
   enabled = enable;
   if (!enabled) {
     stop();
-  } else if (!Mix_PlayingMusic()) {
+  } else if (!MIX_TrackPlaying(music_track)) {
     /* Start the music again where it was stopped. */
     play_track((current_track == TypeMidiNone) ? TypeMidiTrack0 :
                                                  current_track);
@@ -295,20 +375,18 @@ AudioSDL::PlayerMIDI::enable(bool enable) {
 
 void
 AudioSDL::PlayerMIDI::stop() {
-  Mix_HaltMusic();
+  MIX_StopTrack(music_track, 0);
 }
 
 float
 AudioSDL::PlayerMIDI::get_volume() {
-  return static_cast<float>(Mix_VolumeMusic(-1)) /
-         static_cast<float>(MIX_MAX_VOLUME);
+  return MIX_GetTrackGain(music_track);
 }
 
 void
 AudioSDL::PlayerMIDI::set_volume(float volume) {
   volume = std::max(0.f, std::min(volume, 1.f));
-  float mix_volume = static_cast<float>(MIX_MAX_VOLUME) * volume;
-  Mix_VolumeMusic(static_cast<int>(mix_volume));
+  MIX_SetTrackGain(music_track, volume);
 }
 
 void
@@ -325,7 +403,8 @@ AudioSDL::PlayerMIDI *
 AudioSDL::PlayerMIDI::current_midi_player = nullptr;
 
 void
-AudioSDL::PlayerMIDI::music_finished_hook() {
+AudioSDL::PlayerMIDI::music_finished_hook(void * /*userdata*/,
+                                          MIX_Track * /*track*/) {
   if (current_midi_player != nullptr) {
     EventLoop &event_loop = EventLoop::get_instance();
     event_loop.deferred_call([](void*){
@@ -341,21 +420,29 @@ AudioSDL::PlayerMIDI::music_finished() {
   }
 }
 
-AudioSDL::TrackMIDI::TrackMIDI(PBuffer _data, Mix_Music *_chunk)
+AudioSDL::TrackMIDI::TrackMIDI(PBuffer _data, MIX_Audio *_chunk)
   : data(_data)
   , chunk(_chunk) {
 }
 
 AudioSDL::TrackMIDI::~TrackMIDI() {
-  Mix_FreeMusic(chunk);
+  MIX_DestroyAudio(chunk);
 }
 
 void
 AudioSDL::TrackMIDI::play() {
-  int r = Mix_PlayMusic(chunk, 0);
-  if (r < 0) {
+  /* Replacing the playing track must not run the finished hook. */
+  MIX_LockMixer(mixer);
+  MIX_SetTrackStoppedCallback(music_track, nullptr, nullptr);
+  MIX_StopTrack(music_track, 0);
+  bool r = MIX_SetTrackAudio(music_track, chunk) &&
+           MIX_PlayTrack(music_track, 0);
+  MIX_SetTrackStoppedCallback(music_track, PlayerMIDI::music_finished_hook,
+                              nullptr);
+  MIX_UnlockMixer(mixer);
+  if (!r) {
     Log::Warn["audio:SDL_mixer"] << "Could not play MIDI track: "
-                                 << Mix_GetError();
-    PlayerMIDI::music_finished_hook();
+                                 << SDL_GetError();
+    PlayerMIDI::music_finished_hook(nullptr, nullptr);
   }
 }

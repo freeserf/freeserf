@@ -23,11 +23,11 @@
 #ifndef SRC_AUDIO_SDLMIXER_H_
 #define SRC_AUDIO_SDLMIXER_H_
 
-#include "src/audio.h"
+#include <SDL3_mixer/SDL_mixer.h>
 
 #include <string>
 
-#include <SDL_mixer.h>
+#include "src/audio.h"
 
 #include "src/event_loop.h"
 #include "src/buffer.h"
@@ -47,10 +47,10 @@ class AudioSDL : public Audio, public Audio::VolumeController {
  protected:
   class TrackSFX : public Audio::Track {
    protected:
-    Mix_Chunk *chunk;
+    MIX_Audio *chunk;
 
    public:
-    explicit TrackSFX(Mix_Chunk *chunk);
+    explicit TrackSFX(MIX_Audio *chunk);
     virtual ~TrackSFX();
 
     virtual void play();
@@ -59,7 +59,12 @@ class AudioSDL : public Audio, public Audio::VolumeController {
   class PlayerSFX : public Audio::Player,
                     public Audio::VolumeController,
                     public std::enable_shared_from_this<PlayerSFX> {
+   protected:
+    float volume;
+
    public:
+    PlayerSFX();
+
     virtual void enable(bool enable);
     virtual Audio::PVolumeController get_volume_controller() {
       return shared_from_this();
@@ -79,10 +84,10 @@ class AudioSDL : public Audio, public Audio::VolumeController {
   class TrackMIDI : public Audio::Track {
    protected:
     PBuffer data;
-    Mix_Music *chunk;
+    MIX_Audio *chunk;
 
    public:
-    explicit TrackMIDI(PBuffer data, Mix_Music *chunk);
+    explicit TrackMIDI(PBuffer data, MIX_Audio *chunk);
     virtual ~TrackMIDI();
 
     virtual void play();
@@ -116,7 +121,7 @@ class AudioSDL : public Audio, public Audio::VolumeController {
 
    protected:
     static PlayerMIDI *current_midi_player;
-    static void music_finished_hook();
+    static void SDLCALL music_finished_hook(void *userdata, MIX_Track *track);
     void music_finished();
 
     friend class TrackMIDI;

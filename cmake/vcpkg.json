@@ -2,11 +2,11 @@
   "name": "freeserf",
   "version-string": "0.3.0",
   "dependencies": [
-    "sdl2",
-    "sdl2-image",
+    "sdl3",
+    "sdl3-image",
     {
-      "name": "sdl2-mixer",
-      "features": [ "libmodplug" ]
+      "name": "sdl3-mixer",
+      "features": [ "libxmp", "fluidsynth" ]
     }
   ]
 }

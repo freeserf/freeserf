@@ -22,10 +22,10 @@
 #ifndef SRC_VIDEO_SDL_H_
 #define SRC_VIDEO_SDL_H_
 
+#include <SDL3/SDL.h>
+
 #include <exception>
 #include <string>
-
-#include <SDL.h>
 
 #include "src/video.h"
 
@@ -63,7 +63,7 @@ class VideoSDL : public Video {
   static Uint32 Gmask;
   static Uint32 Bmask;
   static Uint32 Amask;
-  static Uint32 pixel_format;
+  static SDL_PixelFormat pixel_format;
 
   SDL_Window *window;
   SDL_Renderer *renderer;
