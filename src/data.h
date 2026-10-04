@@ -144,6 +144,10 @@ class Data {
                                const Sprite::Color &color) = 0;
 
     virtual MaskImage get_sprite_parts(Resource res, size_t index) = 0;
+    /* Sprite of resource res cut out by mask mask_index of mask_res. */
+    virtual PSprite apply_mask(Resource res, PSprite sprite,
+                               Resource mask_res, size_t mask_index,
+                               PSprite mask) = 0;
 
     virtual size_t get_animation_phase_count(size_t animation) = 0;
     virtual Animation get_animation(size_t animation, size_t phase) = 0;

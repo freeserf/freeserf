@@ -858,6 +858,10 @@ DataSourceAmiga::get_data_from_catalog(size_t catalog_index, size_t index,
   return base->get_tail(offset);
 }
 
+/* Ground texture bitplane size and height (Amiga gfxchip). */
+static const size_t ground_plane_size = 84;
+static const size_t ground_rows = ground_plane_size / 2 - 1;
+
 DataSourceAmiga::PSpriteAmiga
 DataSourceAmiga::get_ground_sprite(size_t index) {
   PBuffer data = get_data_from_catalog(4, index, gfxchip);
@@ -868,7 +872,22 @@ DataSourceAmiga::get_ground_sprite(size_t index) {
   uint8_t filled = data->pop<uint8_t>();
   uint8_t compressed = data->pop<uint8_t>();
 
-  PSpriteAmiga sprite = decode_planned_sprite(data->pop_tail(), 4, 21,
+  /* Every stored bitplane holds 42 words. The original blits the texture
+     with a source modulo of -2 (Amiga draw_landscape_cols @0x931e), so row
+     r is made of words r and r+1, which gives 41 rows of 32 pixels. */
+  const uint8_t *planes = reinterpret_cast<const uint8_t*>(data->get_data());
+  PMutableBuffer rows = std::make_shared<MutableBuffer>(Buffer::EndianessBig);
+  for (size_t b = 0; b < 5; b++) {
+    if ((compressed >> b) & 0x01) {
+      continue;
+    }
+    for (size_t r = 0; r < ground_rows; r++) {
+      rows->push(static_cast<const void*>(planes + r * 2), 4);
+    }
+    planes += ground_plane_size;
+  }
+
+  PSpriteAmiga sprite = decode_planned_sprite(rows, 4, ground_rows,
                                               compressed, filled, palette);
 
   if (sprite) {
@@ -877,6 +896,28 @@ DataSourceAmiga::get_ground_sprite(size_t index) {
   }
 
   return sprite;
+}
+
+/* The original blits a down pointing ground triangle from the bottom up,
+   with the up triangle's mask and the texture rows in the same order
+   (Amiga draw_triangle_2 @0x9930): the masked up triangle turned upside
+   down. */
+Data::PSprite
+DataSourceAmiga::apply_mask(Data::Resource res, Data::PSprite sprite,
+                            Data::Resource mask_res, size_t mask_index,
+                            Data::PSprite mask) {
+  if (res != Data::AssetMapGround || mask_res != Data::AssetMapMaskDown) {
+    return DataSourceBase::apply_mask(res, sprite, mask_res, mask_index, mask);
+  }
+
+  Data::PSprite up_mask = get_ground_mask_sprite(mask_index);
+  if (!up_mask) {
+    return nullptr;
+  }
+  PSpriteAmiga masked = get_mirrored_horizontaly_sprite(
+                                                 sprite->get_masked(up_mask));
+  masked->set_offset(mask->get_offset_x(), mask->get_offset_y());
+  return masked;
 }
 
 Data::PSprite
