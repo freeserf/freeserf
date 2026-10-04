@@ -148,6 +148,8 @@ class PopupBox : public GuiObject {
 
   Type box;
 
+  bool special_click;  // The current click is a special click
+
   int current_sett_5_item;
   int current_sett_6_item;
 
@@ -283,6 +285,7 @@ class PopupBox : public GuiObject {
 
   virtual void internal_draw();
   virtual bool handle_click_left(int x, int y);
+  virtual bool handle_click_right(int x, int y);
 };
 
 #endif  // SRC_POPUP_H_
