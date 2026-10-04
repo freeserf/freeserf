@@ -458,6 +458,13 @@ Interface::set_game(PGame new_game) {
 
 void
 Interface::set_player(unsigned int player_index) {
+  /* Nothing to do for the current player (checked before the panel is
+     removed, or it would not be created again). */
+  if (game && (player != nullptr) && (panel != nullptr) &&
+      (player_index == player->get_index())) {
+    return;
+  }
+
   if (panel != nullptr) {
     del_float(panel);
     delete panel;
@@ -466,10 +473,6 @@ Interface::set_player(unsigned int player_index) {
 
   if (!game) {
     player = nullptr;
-    return;
-  }
-
-  if ((player != nullptr) && (player_index == player->get_index())) {
     return;
   }
 
