@@ -30,7 +30,8 @@ ExceptionFreeserf::~ExceptionFreeserf() {
 
 const char*
 ExceptionFreeserf::what() const throw() {
-  return get_description().c_str();
+  message = get_description();
+  return message.c_str();
 }
 
 std::string
