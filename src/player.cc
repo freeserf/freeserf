@@ -22,6 +22,7 @@
 #include "src/player.h"
 
 #include <algorithm>
+#include <cstdint>
 
 #include "src/game.h"
 #include "src/log.h"
@@ -1010,10 +1011,17 @@ Player::update_knight_morale() {
   military_max_gold = 0;
 }
 
-/* Calculate condensed score from military score and knight morale. */
+/* Calculate condensed score from military score and knight morale:
+   ((military << 6) * (0x800 + (morale >> 1))) >> 16, at least 1 when there
+   is any military score (as the original game). */
 int
 Player::get_military_score() const {
-  return (2048 + (knight_morale >> 1)) * (total_military_score << 6);
+  uint64_t military = static_cast<uint32_t>(total_military_score << 6);
+  uint64_t score = (military * (2048 + (knight_morale >> 1))) >> 16;
+  if (score == 0 && total_military_score != 0) {
+    score = 1;
+  }
+  return static_cast<int>(score);
 }
 
 int
