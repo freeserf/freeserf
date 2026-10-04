@@ -292,7 +292,8 @@ PopupBox::PopupBox(Interface *_interface)
   : minimap(new MinimapGame(_interface, _interface->get_game()))
   , file_list(new ListSavedFiles())
   , file_field(new TextInput())
-  , box(TypeNone) {
+  , box(TypeNone)
+  , special_click(false) {
   interface = _interface;
 
   current_sett_5_item = 8;
@@ -2880,6 +2881,11 @@ PopupBox::handle_action(int action, int x_, int /*y_*/) {
     set_box(TypeMap);
     break;
   case ACTION_MINIMAP_BUILDINGS:
+    /* A special click opens the building filter (as the original). */
+    if (special_click) {
+      set_box(TypeBld1);
+      break;
+    }
     if (minimap->get_advanced() >= 0) {
       minimap->set_advanced(-1);
       minimap->set_draw_buildings(true);
@@ -2887,15 +2893,6 @@ PopupBox::handle_action(int action, int x_, int /*y_*/) {
       minimap->set_draw_buildings(!minimap->get_draw_buildings());
     }
     set_box(TypeMap);
-
-    /* TODO on double click */
-#if 0
-    if (minimap.advanced >= 0) {
-      minimap.advanced = -1;
-    } else {
-      set_box(BOX_BLD_1);
-    }
-#endif
     break;
   case ACTION_MINIMAP_GRID:
     minimap->set_draw_grid(!minimap->get_draw_grid());
@@ -3388,11 +3385,18 @@ PopupBox::handle_action(int action, int x_, int /*y_*/) {
   case ACTION_RES_MODE_IN:
   case ACTION_RES_MODE_STOP:
   case ACTION_RES_MODE_OUT:
+    /* Stop and out need a special click (as the original). */
+    if (action != ACTION_RES_MODE_IN && !special_click) {
+      break;
+    }
     set_inventory_resource_mode(action - ACTION_RES_MODE_IN);
     break;
   case ACTION_SERF_MODE_IN:
   case ACTION_SERF_MODE_STOP:
   case ACTION_SERF_MODE_OUT:
+    if (action != ACTION_SERF_MODE_IN && !special_click) {
+      break;
+    }
     set_inventory_serf_mode(action - ACTION_SERF_MODE_IN);
     break;
   case ACTION_SHOW_SETT_8:
@@ -4182,6 +4186,22 @@ PopupBox::handle_save_clk(int cx, int cy) {
   };
 
   handle_clickmap(cx, cy, clkmap);
+}
+
+/* A special click (right button) is handled like a click with the
+   special click flag set, where the original has a special action. */
+bool
+PopupBox::handle_click_right(int cx, int cy) {
+  switch (box) {
+    case TypeMap:
+    case TypeResDir:
+      special_click = true;
+      handle_click_left(cx, cy);
+      special_click = false;
+      return true;
+    default:
+      return false;
+  }
 }
 
 bool
