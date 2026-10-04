@@ -157,6 +157,8 @@ class Game {
   bool build_castle(MapPos pos, Player *player);
 
   bool demolish_road(MapPos pos, Player *player);
+  bool flag_has_road_corner(MapPos pos) const;
+  bool pull_roads_through_flag(MapPos pos, Player *player);
   bool demolish_flag(MapPos pos, Player *player);
   bool demolish_building(MapPos pos, Player *player);
 
@@ -231,6 +233,9 @@ class Game {
   void remove_road_forwards(MapPos pos, Direction dir);
   bool demolish_road_(MapPos pos);
   void build_flag_split_path(MapPos pos);
+  void split_path_at_flag(MapPos pos, Direction path_1_dir,
+                          Direction path_2_dir);
+  void reroute_path_corner(MapPos pos, Direction dir);
   bool map_types_within(MapPos pos, Map::Terrain low, Map::Terrain high) const;
   void flag_remove_player_refs(Flag *flag);
   bool demolish_flag_(MapPos pos);

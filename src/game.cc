@@ -1022,6 +1022,107 @@ Game::demolish_road(MapPos pos, Player *player) {
   return demolish_road_(pos);
 }
 
+/* For each corner of a flag (between the directions d and d + 1, where
+   the flag has no paths): the neighbour and the direction of the path
+   segment there that passes the corner. */
+static const Direction corner_neighbour[] = {
+  DirectionRight, DirectionDown, DirectionLeft,
+  DirectionLeft, DirectionUp, DirectionRight
+};
+static const Direction corner_path[] = {
+  DirectionDown, DirectionRight, DirectionDownRight,
+  DirectionUp, DirectionLeft, DirectionUpLeft
+};
+
+/* Whether a road passes the flag at pos around a corner, so that it can
+   be led through the flag (the road merge button of the transport info
+   box, as in the original game). */
+bool
+Game::flag_has_road_corner(MapPos pos) const {
+  if (!map->has_flag(pos)) {
+    return false;
+  }
+
+  for (Direction d : cycle_directions_cw()) {
+    Direction next = turn_direction(d, 1);
+    if (map->has_path(pos, d) || map->has_path(pos, next)) {
+      continue;
+    }
+    if (map->has_path(map->move(pos, corner_neighbour[d]), corner_path[d])) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
+/* Lead the roads passing the flag at pos around a corner through the
+   flag; roads that then start and end at this flag are removed. */
+bool
+Game::pull_roads_through_flag(MapPos pos, Player *player) {
+  if (!map->has_flag(pos)) {
+    return false;
+  }
+
+  bool rerouted = false;
+  for (Direction d : cycle_directions_cw()) {
+    Direction next = turn_direction(d, 1);
+    if (map->has_path(pos, d) || map->has_path(pos, next)) {
+      continue;
+    }
+    if (map->has_path(map->move(pos, corner_neighbour[d]), corner_path[d])) {
+      reroute_path_corner(pos, d);
+      rerouted = true;
+    }
+  }
+
+  if (!rerouted) {
+    return false;
+  }
+
+  Flag *flag = flags[map->get_obj_index(pos)];
+  for (Direction d : cycle_directions_ccw()) {
+    if (flag->has_path(d) && flag->get_other_end_flag(d) == flag) {
+      demolish_road(map->move(pos, d), player);
+    }
+  }
+
+  return true;
+}
+
+/* A road passes the flag at pos between its neighbours in direction dir
+   and dir + 1. Lead it through the flag and split it there. */
+void
+Game::reroute_path_corner(MapPos pos, Direction dir) {
+  Direction dir_1 = dir;
+  Direction dir_2 = turn_direction(dir, 1);
+
+  map->add_path(pos, dir_1);
+  map->add_path(pos, dir_2);
+
+  /* First neighbour: its segment turns from dir + 2 to dir + 3. */
+  MapPos pos_1 = map->move(pos, dir_1);
+  Direction old_dir = turn_direction(dir_1, 2);
+  Direction new_dir = turn_direction(old_dir, 1);
+  map->del_path(pos_1, old_dir);
+  map->add_path(pos_1, new_dir);
+  if (map->has_serf(pos_1)) {
+    get_serf_at_pos(pos_1)->path_rerouted(old_dir, new_dir);
+  }
+
+  /* Second neighbour: its segment turns from dir + 5 to dir + 4. */
+  MapPos pos_2 = map->move(pos, dir_2);
+  old_dir = turn_direction(dir_2, 4);
+  new_dir = turn_direction(old_dir, -1);
+  map->del_path(pos_2, old_dir);
+  map->add_path(pos_2, new_dir);
+  if (map->has_serf(pos_2)) {
+    get_serf_at_pos(pos_2)->path_rerouted(old_dir, new_dir);
+  }
+
+  split_path_at_flag(pos, dir_1, dir_2);
+}
+
 /* Build flag on existing path. Path must be split in two segments. */
 void
 Game::build_flag_split_path(MapPos pos) {
@@ -1051,6 +1152,14 @@ Game::build_flag_split_path(MapPos pos) {
     path_2_dir = DirectionUp;
   }
 
+  split_path_at_flag(pos, path_1_dir, path_2_dir);
+}
+
+/* Split the path through the flag at pos into the two paths that leave
+   the flag in path_1_dir and path_2_dir. */
+void
+Game::split_path_at_flag(MapPos pos, Direction path_1_dir,
+                         Direction path_2_dir) {
   SerfPathInfo path_1_data;
   SerfPathInfo path_2_data;
 
