@@ -930,17 +930,26 @@ Game::remove_road_forwards(MapPos pos, Direction dir) {
       path_serf_idle_to_wait_state(pos);
     }
 
+    /* Only serfs moving along the removed road become lost: on the road
+       walking or transporting serfs, at the flags only those heading onto
+       the removed road (and a delivering serf at the far flag). Other
+       serfs, e.g. a lumberjack passing by, are not affected. */
     if (map->has_serf(pos)) {
       Serf *serf = get_serf_at_pos(pos);
+      bool walking = (serf->get_state() == Serf::StateWalking ||
+                      serf->get_state() == Serf::StateTransporting);
       if (!map->has_flag(pos)) {
-        serf->set_lost_state();
-      } else {
-        /* Handle serf close to flag, where
-           it should only be lost if walking
-           in the wrong direction. */
+        if (walking) {
+          serf->set_lost_state();
+        }
+      } else if (walking || (in_dir != DirectionNone &&
+                             serf->get_state() == Serf::StateDelivering)) {
+        /* Direction of the removed road at this flag. */
+        Direction road_dir = (in_dir == DirectionNone) ?
+                             dir : reverse_direction(in_dir);
         int d = serf->get_walking_dir();
         if (d < 0) d += 6;
-        if (d == reverse_direction(dir)) {
+        if (d == road_dir) {
           serf->set_lost_state();
         }
       }
