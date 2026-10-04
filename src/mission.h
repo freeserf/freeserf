@@ -105,6 +105,8 @@ class GameInfo {
   Random random_base;
   PlayerInfos players;
   std::string name;
+  int game_type;  /* Game::GameType */
+  unsigned int level;
 
   static Mission mission[];
 
@@ -127,6 +129,10 @@ class GameInfo {
   void remove_player(unsigned int index);
   void remove_all_players();
   void set_default_colors();
+
+  int get_game_type() const { return game_type; }
+  unsigned int get_level() const { return level; }
+  const std::string &get_name() const { return name; }
 
   static PGameInfo get_mission(size_t mission);
   static size_t get_mission_count();

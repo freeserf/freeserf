@@ -379,11 +379,15 @@ GameInfo::Mission missions[] = {
 
 GameInfo::GameInfo(const Random &_random_base)
   : map_size(3)
-  , name(_random_base) {
+  , name(_random_base)
+  , game_type(Game::GameTypeOnePlayer)
+  , level(0) {
   set_random_base(_random_base);
 }
 
-GameInfo::GameInfo(const GameInfo::Mission *mission_preset) {
+GameInfo::GameInfo(const GameInfo::Mission *mission_preset)
+  : game_type(Game::GameTypeMission)
+  , level(0) {
   map_size = 3;
   name = mission_preset->name;
   random_base = mission_preset->rnd;
@@ -471,7 +475,9 @@ GameInfo::get_mission(size_t m) {
     return nullptr;
   }
 
-  return PGameInfo(new GameInfo(missions + m));
+  PGameInfo mission(new GameInfo(missions + m));
+  mission->level = static_cast<unsigned int>(m);
+  return mission;
 }
 
 size_t
@@ -500,6 +506,7 @@ GameInfo::instantiate() {
   if (!game->init(map_size, random_base)) {
     return nullptr;
   }
+  game->set_game_type(game_type, level);
 
   /* Initialize player and build initial castle */
   for (PPlayerInfo player_info : players) {

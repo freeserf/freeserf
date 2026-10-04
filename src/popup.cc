@@ -33,6 +33,7 @@
 #include "src/interface.h"
 #include "src/event_loop.h"
 #include "src/minimap.h"
+#include "src/mission.h"
 #include "src/viewport.h"
 #include "src/inventory.h"
 #include "src/list.h"
@@ -2580,6 +2581,58 @@ PopupBox::draw_player_faces_box() {
   draw_player_face(10, 76, 3);
 }
 
+/* End of the game: the winner and the result, with the texts of the
+   original (Amiga popup box 54 @0x1d6e8). */
+void
+PopupBox::draw_game_end_box() {
+  draw_box_background(PatternStripedGreen);
+
+  PGame game = interface->get_game();
+  int winner = std::max(0, game->get_winning_player());
+  draw_player_face(6, 60, winner);
+
+  switch (game->get_game_type()) {
+    case Game::GameTypeMission:
+      if (winner == 0) {
+        draw_green_string(0, 4, "CONGRATULATIONS.");
+        draw_green_string(0, 16, "  YOUR ENEMIES");
+        draw_green_string(0, 26, "  RESIGN. YOU");
+        draw_green_string(0, 36, " HAVE WON THIS");
+        draw_green_string(0, 46, "    MISSION.");
+
+        /* The password is the name of the next mission. */
+        PGameInfo next = GameInfo::get_mission(game->get_mission_level() + 1);
+        if (next) {
+          draw_green_string(0, 126, "  NEW PASSWORD:");
+          draw_green_string(4, 135, next->get_name());
+        }
+      } else {
+        draw_green_string(0, 6, "SORRY, ONLY ONE");
+        draw_green_string(0, 16, "OF YOUR ENEMIES");
+        draw_green_string(0, 26, "HAS GAINED THE");
+        draw_green_string(0, 36, " SUPERIORITY IN");
+        draw_green_string(0, 46, "  THIS MISSION");
+      }
+      break;
+    case Game::GameTypeTutorial:
+      draw_green_string(0, 4, "   WELL DONE.");
+      draw_green_string(0, 16, " YOU COMPLETED");
+      draw_green_string(0, 26, " THIS TUTORIAL");
+      draw_green_string(0, 36, "     GAME.");
+      break;
+    default: {
+      const char *const color[] = {
+        "    THE BLUE", "    THE RED", "   THE VIOLET", "   THE YELLOW"
+      };
+      draw_green_string(0, 6, color[winner & 3]);
+      draw_green_string(0, 16, " SETTLERS HAVE");
+      draw_green_string(0, 26, "   GAINED THE");
+      draw_green_string(0, 36, "  SUPERIORITY");
+      break;
+    }
+  }
+}
+
 void
 PopupBox::draw_demolish_box() {
   draw_box_background(PatternSquaresGreen);
@@ -2755,6 +2808,9 @@ PopupBox::internal_draw() {
     break;
   case TypeDemolish:
     draw_demolish_box();
+    break;
+  case TypeGameEnd:
+    draw_game_end_box();
     break;
   case TypeLoadSave:
     draw_save_box();
@@ -4102,6 +4158,17 @@ PopupBox::handle_player_faces_click(int cx, int cy) {
   handle_clickmap(cx, cy, clkmap);
 }
 
+/* Any click closes the game end box and resumes the game (Amiga
+   wait_for_mouse_click). */
+void
+PopupBox::handle_game_end_click(int /*cx*/, int /*cy*/) {
+  PGame game = interface->get_game();
+  interface->close_popup();
+  if (game->is_paused()) {
+    game->pause();
+  }
+}
+
 void
 PopupBox::handle_box_demolish_clk(int cx, int cy) {
   const int clkmap[] = {
@@ -4362,6 +4429,9 @@ PopupBox::handle_click_left(int cx, int cy) {
     break;
   case TypeDemolish:
     handle_box_demolish_clk(cx, cy);
+    break;
+  case TypeGameEnd:
+    handle_game_end_click(cx, cy);
     break;
   case TypeLoadSave:
     handle_save_clk(cx, cy);

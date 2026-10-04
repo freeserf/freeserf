@@ -869,6 +869,26 @@ Interface::update() {
   game->update();
   play_ambient_sounds();
 
+  /* Show the end of the game, unless a file, quit or options box is open
+     (Amiga clear_serf_request_failure @0xa3aa). */
+  if (game->is_game_end_pending()) {
+    int box = 0;
+    if ((popup != nullptr) && popup->is_displayed()) {
+      box = popup->get_box();
+    }
+    if (!((box >= PopupBox::TypeLoadArchive &&
+           box <= PopupBox::TypeDiskMsg) ||
+          box == PopupBox::TypeQuitConfirm ||
+          box == PopupBox::TypeNoSaveQuitConfirm ||
+          box == PopupBox::TypeOptions)) {
+      game->clear_game_end_pending();
+      if (!game->is_paused()) {
+        game->pause();
+      }
+      open_popup(PopupBox::TypeGameEnd);
+    }
+  }
+
   int tick_diff = game->get_const_tick() - last_const_tick;
   last_const_tick = game->get_const_tick();
 
