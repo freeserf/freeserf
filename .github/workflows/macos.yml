@@ -8,6 +8,9 @@ on:
 
 jobs:
   build:
+    # Attaches the packages to a published release.
+    permissions:
+      contents: write
     runs-on: macos-latest
 
     strategy:
@@ -19,6 +22,8 @@ jobs:
         uses: actions/checkout@v7
         with:
           submodules: 'recursive'
+          # The version comes from the latest tag (git describe).
+          fetch-depth: 0
 
       - name: Get macOS version
         id: macos
@@ -95,3 +100,11 @@ jobs:
         with:
           name: FreeSerf-${{ matrix.buildtype }}
           path: ./build/FreeSerf.dmg
+
+      - name: Attach to release
+        if: github.event_name == 'release' && matrix.buildtype == 'Release'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release upload "${{ github.event.release.tag_name }}" \
+            ./build/FreeSerf.dmg --clobber
