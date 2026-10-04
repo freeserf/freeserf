@@ -30,6 +30,7 @@
 #include <map>
 #include <memory>
 #include <sstream>
+#include <vector>
 
 #include "src/savegame.h"
 #include "src/debug.h"
@@ -477,11 +478,17 @@ Game::update_buildings() {
 /* Update serfs as part of the game progression. */
 void
 Game::update_serfs() {
-  Serfs::Iterator i = serfs.begin();
-  while (i != serfs.end()) {
-    Serf *serf = *i;
-    ++i;
-    if (serf->get_index() != 0) {
+  /* Updating a serf can delete other serfs (e.g. a lost fight) or create
+     new ones, which invalidates iterators of the collection. Go through
+     the indexes taken before and skip serfs deleted in the meantime. */
+  std::vector<unsigned int> indexes;
+  for (Serf *serf : serfs) {
+    indexes.push_back(serf->get_index());
+  }
+
+  for (unsigned int index : indexes) {
+    Serf *serf = serfs[index];
+    if (serf != nullptr && serf->get_index() != 0) {
       serf->update();
     }
   }
