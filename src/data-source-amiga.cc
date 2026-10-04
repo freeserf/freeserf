@@ -877,7 +877,9 @@ DataSourceAmiga::get_ground_sprite(size_t index) {
 
   /* Every stored bitplane holds 42 words. The original blits the texture
      with a source modulo of -2 (Amiga draw_landscape_cols @0x931e), so row
-     r is made of words r and r+1, which gives 41 rows of 32 pixels. */
+     r is made of words r and r+1, which gives 41 rows of 32 pixels. The
+     landscape is drawn off screen and copied to the screen with the third
+     bitplane inverted (blit_panel @0x19f78). */
   const uint8_t *planes = reinterpret_cast<const uint8_t*>(data->get_data());
   PMutableBuffer rows = std::make_shared<MutableBuffer>(Buffer::EndianessBig);
   for (size_t b = 0; b < 5; b++) {
@@ -885,10 +887,14 @@ DataSourceAmiga::get_ground_sprite(size_t index) {
       continue;
     }
     for (size_t r = 0; r < ground_rows; r++) {
-      rows->push(static_cast<const void*>(planes + r * 2), 4);
+      for (size_t i = 0; i < 4; i++) {
+        uint8_t byte = planes[r * 2 + i];
+        rows->push<uint8_t>((b == 2) ? ~byte : byte);
+      }
     }
     planes += ground_plane_size;
   }
+  filled ^= 0x04;
 
   PSpriteAmiga sprite = decode_planned_sprite(rows, 4, ground_rows,
                                               compressed, filled, palette);
