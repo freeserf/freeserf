@@ -24,6 +24,7 @@
 #include <SDL3/SDL.h>
 #include <SDL3/SDL_main.h>
 
+#include <list>
 #include <string>
 #include <iostream>
 
@@ -39,7 +40,7 @@
 
 int
 main(int argc, char *argv[]) {
-  std::string data_dir;
+  std::list<std::string> data_dirs;
   std::string save_file;
 
   unsigned int screen_width = 0;
@@ -58,9 +59,12 @@ main(int argc, char *argv[]) {
                 });
   command_line.add_option('f', "Run in Fullscreen mode",
                           [&fullscreen](){ fullscreen = true; });
-  command_line.add_option('g', "Use specified data directory")
-                .add_parameter("DATA-PATH", [&data_dir](std::istream& s) {
-                  s >> data_dir;
+  command_line.add_option('g', "Use specified data directory (may be "
+                               "given more than once)")
+                .add_parameter("DATA-PATH", [&data_dirs](std::istream& s) {
+                  std::string data_dir;
+                  std::getline(s, data_dir);
+                  data_dirs.push_back(data_dir);
                   return true;
                 });
   command_line.add_option('h', "Show this help text", [&command_line](){
@@ -88,7 +92,7 @@ main(int argc, char *argv[]) {
   Log::Info["main"] << "freeserf " << FREESERF_VERSION;
 
   Data &data = Data::get_instance();
-  if (!data.load(data_dir)) {
+  if (!data.load(data_dirs)) {
     Log::Error["main"] << "Could not load game data.";
     /* Without the data there is no font to show it in the game. */
     SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "FreeSerf",

@@ -59,6 +59,17 @@ foreach(test IN LISTS test_list)
   set_tests_properties(${test} PROPERTIES ENVIRONMENT "GTEST_OUTPUT=xml:${PROJECT_BINARY_DIR}/${test}.xml")
 endforeach(test)
 
+set(TEST_DATA_MIXED_SOURCES test_data_mixed.cc)
+add_executable(test_data_mixed ${TEST_DATA_MIXED_SOURCES})
+target_check_style(test_data_mixed)
+set_property(TARGET test_data_mixed PROPERTY FOLDER "Tests")
+target_link_libraries(test_data_mixed data tools gtest gtest_main ${CMAKE_THREAD_LIBS_INIT})
+gtest_add_tests(TARGET test_data_mixed
+                TEST_LIST test_list)
+foreach(test IN LISTS test_list)
+  set_tests_properties(${test} PROPERTIES ENVIRONMENT "GTEST_OUTPUT=xml:${PROJECT_BINARY_DIR}/${test}.xml")
+endforeach(test)
+
 set(TEST_INTEGRITY_SOURCES test_integrity.cc)
 add_executable(test_integrity ${TEST_INTEGRITY_SOURCES})
 target_check_style(test_integrity)
