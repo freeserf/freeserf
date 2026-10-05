@@ -47,6 +47,8 @@ class SaveWriterText;
 class Flag : public GameObject {
   /* The computer player reads the fields as the original does. */
   friend class AI;
+  /* The consistency check after loading reads them too. */
+  friend class IntegrityCheck;
  protected:
   class ResourceSlot {
    public:

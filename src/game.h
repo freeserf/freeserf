@@ -47,6 +47,8 @@ class SaveWriterText;
 class Game {
   /* The computer player reads the fields as the original does. */
   friend class AI;
+  /* The consistency check after loading reads them too. */
+  friend class IntegrityCheck;
  public:
   typedef std::list<Serf*> ListSerfs;
   typedef std::list<Building*> ListBuildings;

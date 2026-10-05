@@ -39,6 +39,8 @@ class SaveWriterText;
 class Serf : public GameObject {
   /* The computer player reads the fields as the original does. */
   friend class AI;
+  /* The consistency check after loading reads them too. */
+  friend class IntegrityCheck;
  public:
   typedef enum Type {
     TypeNone = -1,

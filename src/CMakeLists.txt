@@ -44,6 +44,7 @@ set(GAME_SOURCES ai.cc
                  building.cc
                  flag.cc
                  game.cc
+                 integrity.cc
                  inventory.cc
                  map.cc
                  map-generator.cc
@@ -64,6 +65,7 @@ set(GAME_HEADERS ai.h
                  building.h
                  flag.h
                  game.h
+                 integrity.h
                  inventory.h
                  map.h
                  map-generator.h

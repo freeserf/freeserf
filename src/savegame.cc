@@ -32,6 +32,7 @@
 #include <algorithm>
 
 #include "src/game.h"
+#include "src/integrity.h"
 #include "src/log.h"
 #include "src/debug.h"
 #include "src/configfile.h"
@@ -756,6 +757,8 @@ GameStore::load(const std::string &path, Game *game) {
     }
   }
 
+  IntegrityCheck::run(game, true);
+
   return true;
 }
 
@@ -821,6 +824,7 @@ GameStore::read(std::istream *is, Game *game) {
   } catch (...) {
     return false;
   }
+  IntegrityCheck::run(game, true);
   return true;
 }
 
