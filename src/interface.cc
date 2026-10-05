@@ -43,7 +43,6 @@
 #include "src/savegame.h"
 
 // Interval between automatic save games
-#define AUTOSAVE_INTERVAL  (10*60*TICKS_PER_SEC)
 
 Interface::Interface()
   : building_road_valid_dir(0)
@@ -63,6 +62,9 @@ Interface::Interface()
   msg_flags = 0;
   invert_scrolling = false;
   large_numbers = false;
+  autosave_minutes = 0;
+  autosave_last_ticks = 0;
+  autosave_last_game_tick = 0;
   return_timeout = 0;
 
   selected_stat_scale = StatScale30Min;
@@ -198,6 +200,7 @@ Interface::apply_settings() {
 
   invert_scrolling = settings.get("advanced", "invert_scrolling", false);
   large_numbers = settings.get("advanced", "large_numbers", false);
+  autosave_minutes = settings.get("advanced", "autosave", 0u);
 }
 
 void
@@ -222,6 +225,7 @@ Interface::store_settings() {
 
   settings.set("advanced", "invert_scrolling", invert_scrolling);
   settings.set("advanced", "large_numbers", large_numbers);
+  settings.set("advanced", "autosave", autosave_minutes);
 
   settings.save();
 }
@@ -558,6 +562,8 @@ Interface::set_game(PGame new_game) {
   }
 
   game = std::move(new_game);
+  autosave_last_ticks = EventLoop::get_instance().get_ticks();
+  autosave_last_game_tick = 0;
 
   if (game) {
     viewport = new Viewport(this, game->get_map());
@@ -969,6 +975,39 @@ Interface::play_ambient_sounds() {
   }
 }
 
+/* Advanced option: off, then every 10, 20, 30 or 60 minutes. */
+void
+Interface::next_autosave_interval() {
+  static const unsigned int intervals[] = { 0, 10, 20, 30, 60 };
+  const size_t count = sizeof(intervals) / sizeof(intervals[0]);
+  size_t i = 0;
+  while (i < count && intervals[i] != autosave_minutes) i++;
+  autosave_minutes = intervals[(i + 1) % count];
+  autosave_last_ticks = EventLoop::get_instance().get_ticks();
+}
+
+/* Save the game into autosave.save of the save folder when the interval
+   has passed (in real time), unless nothing happened since the last
+   save: the game was paused or the game init box is open. */
+void
+Interface::autosave() {
+  if (autosave_minutes == 0) return;
+  unsigned int now = EventLoop::get_instance().get_ticks();
+  if (now - autosave_last_ticks < autosave_minutes * 60 * 1000) return;
+  autosave_last_ticks = now;
+
+  if (init_box != nullptr || game->get_tick() == autosave_last_game_tick) {
+    return;
+  }
+  autosave_last_game_tick = game->get_tick();
+
+  GameStore &store = GameStore::get_instance();
+  std::string path = store.get_folder_path() + "/autosave.save";
+  if (store.save(path, game.get())) {
+    Log::Info["interface"] << "Game saved to " << path;
+  }
+}
+
 /* Count the drawn frames and show the rate of the last second in the top
    left corner of the screen. */
 void
@@ -1000,6 +1039,7 @@ Interface::update() {
 
   game->update();
   play_ambient_sounds();
+  autosave();
 
   /* Show the end of the game, unless a file, quit or options box is open
      (Amiga clear_serf_request_failure @0xa3aa). */
