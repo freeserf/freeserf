@@ -36,6 +36,7 @@
 #include "src/popup.h"
 #include "src/game-init.h"
 #include "src/advanced-box.h"
+#include "src/settings.h"
 #include "src/viewport.h"
 #include "src/notification.h"
 #include "src/panel.h"
@@ -167,6 +168,62 @@ Interface::open_game_init() {
 }
 
 void
+Interface::apply_settings() {
+  Settings &settings = Settings::get_instance();
+
+  Audio &audio = Audio::get_instance();
+  Audio::PPlayer music = audio.get_music_player();
+  /* Without a setting the current state stays. */
+  if (music) {
+    music->enable(settings.get("options", "music", music->is_enabled()));
+  }
+  Audio::PPlayer sound = audio.get_sound_player();
+  if (sound) {
+    sound->enable(settings.get("options", "sound", sound->is_enabled()));
+  }
+  Audio::VolumeController *volume = audio.get_volume_controller();
+  if (volume != nullptr) {
+    int current = static_cast<int>(volume->get_volume() * 100.f + 0.5f);
+    volume->set_volume(settings.get("options", "volume", current) / 100.f);
+  }
+
+  /* Messages: 3 all, 2 most, 1 few, 0 none (config bits 3, 4, 5). */
+  int current_messages = get_config(3) ? 3 : get_config(4) ? 2 :
+                         get_config(5) ? 1 : 0;
+  int messages = settings.get("options", "messages", current_messages);
+  for (int i = 3; i <= 5; i++) {
+    if (get_config(i) != (messages >= 6 - i)) switch_config(i);
+  }
+
+  invert_scrolling = settings.get("advanced", "invert_scrolling", false);
+}
+
+void
+Interface::store_settings() {
+  Settings &settings = Settings::get_instance();
+
+  Audio &audio = Audio::get_instance();
+  Audio::PPlayer music = audio.get_music_player();
+  if (music) settings.set("options", "music", music->is_enabled());
+  Audio::PPlayer sound = audio.get_sound_player();
+  if (sound) settings.set("options", "sound", sound->is_enabled());
+  Audio::VolumeController *volume = audio.get_volume_controller();
+  if (volume != nullptr) {
+    settings.set("options", "volume",
+                 static_cast<int>(volume->get_volume() * 100.f + 0.5f));
+  }
+  settings.set("options", "fullscreen",
+               Graphics::get_instance().is_fullscreen());
+
+  int messages = get_config(3) ? 3 : get_config(4) ? 2 : get_config(5) ? 1 : 0;
+  settings.set("options", "messages", messages);
+
+  settings.set("advanced", "invert_scrolling", invert_scrolling);
+
+  settings.save();
+}
+
+void
 Interface::open_advanced() {
   if (advanced_box == nullptr) {
     advanced_box = new AdvancedBox(this);
@@ -195,6 +252,7 @@ Interface::close_advanced() {
   viewport->set_enabled(true);
   close_popup();
   layout();
+  store_settings();
 }
 
 void
