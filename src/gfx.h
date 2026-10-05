@@ -160,6 +160,8 @@ class Frame {
 
   /* Frame functions */
   void draw_frame(int dx, int dy, int sx, int sy, Frame *src, int w, int h);
+  /* Draw an image of the game's resources folder (not original data). */
+  void draw_resource_image(int x, int y, const std::string &name);
   void draw_frame_scaled(int dx, int dy, int dw, int dh, Frame *src,
                          int w, int h);
 

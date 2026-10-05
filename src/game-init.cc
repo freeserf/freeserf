@@ -31,6 +31,7 @@
 #include "src/interface.h"
 #include "src/version.h"
 #include "src/text-input.h"
+#include "src/box-frame.h"
 #include "src/minimap.h"
 #include "src/map-generator.h"
 #include "src/map-geometry.h"
@@ -168,6 +169,7 @@ GameInitBox::get_player_face_sprite(size_t face) {
 void
 GameInitBox::internal_draw() {
   draw_background();
+  draw_box_frame(frame, width, height);
 
   const int layout[] = {
     266, 0, 0,    // Start button

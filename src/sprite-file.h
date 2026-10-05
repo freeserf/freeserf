@@ -33,6 +33,9 @@ class SpriteFile : public SpriteBase {
   virtual ~SpriteFile() {}
 
   bool load(const std::string &path);
+  /* Load an image of the game's own resources (the resources folder next
+     to the program, in the bundle resources on macOS). */
+  bool load_resource(const std::string &name);
 
   void set_delta(int x, int y) { delta_x = x; delta_y = y; }
   void set_offset(int x, int y) { offset_x = x; offset_y = y; }

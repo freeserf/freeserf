@@ -144,6 +144,10 @@ else()
 endif()
 
 add_library(data STATIC ${DATA_SOURCES} ${DATA_HEADERS})
+# Images of the game's own (resources/), found next to the program; from
+# the build tree they are read from the sources.
+target_compile_definitions(data PRIVATE
+                           FREESERF_RESOURCES_DIR="${PROJECT_SOURCE_DIR}/resources")
 if(ENABLE_SDL3_IMAGE AND SDL3_image_DIR)
   target_link_libraries(data SDL3::SDL3 SDL3_image::SDL3_image)
 endif()
@@ -152,6 +156,7 @@ target_check_style(data)
 # FreeSerf executable
 
 set(OTHER_SOURCES pathfinder.cc
+                  box-frame.cc
                   gfx.cc
                   viewport.cc
                   minimap.cc
@@ -167,6 +172,7 @@ set(OTHER_SOURCES pathfinder.cc
                   command_line.cc)
 
 set(OTHER_HEADERS pathfinder.h
+                  box-frame.h
                   gfx.h
                   viewport.h
                   minimap.h
@@ -200,6 +206,23 @@ if(SDL3_DIR)
   endif()
 endif()
 install(TARGETS FreeSerf DESTINATION ".")
+
+# Images of the game's own, next to the program (in the bundle resources
+# on macOS).
+file(GLOB RESOURCE_FILES "${PROJECT_SOURCE_DIR}/resources/*.png")
+if(APPLE)
+  target_sources(FreeSerf PRIVATE ${RESOURCE_FILES})
+  set_source_files_properties(${RESOURCE_FILES} PROPERTIES
+                              MACOSX_PACKAGE_LOCATION Resources/resources)
+else()
+  add_custom_command(TARGET FreeSerf POST_BUILD
+                     COMMAND ${CMAKE_COMMAND} -E make_directory
+                             "$<TARGET_FILE_DIR:FreeSerf>/resources"
+                     COMMAND ${CMAKE_COMMAND} -E copy_if_different
+                             ${RESOURCE_FILES}
+                             "$<TARGET_FILE_DIR:FreeSerf>/resources")
+  install(FILES ${RESOURCE_FILES} DESTINATION "resources")
+endif()
 
 # General MIDI SoundFont for the MIDI music of the DOS data: SDL3_mixer
 # plays MIDI with FluidSynth, which needs one. TimGM6mb (GPL-2) is

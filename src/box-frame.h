@@ -1,7 +1,7 @@
 /*
- * sprite-file-dummy.cc - Dummy sprite loading from file implementation
+ * box-frame.h - Frame of the boxes in the style of the popups
  *
- * Copyright (C) 2017  Wicked_Digger <wicked_digger@mail.ru>
+ * Copyright (C) 2026  Wicked_Digger <wicked_digger@mail.ru>
  *
  * This file is part of freeserf.
  *
@@ -19,17 +19,13 @@
  * along with freeserf.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "src/sprite-file.h"
+#ifndef SRC_BOX_FRAME_H_
+#define SRC_BOX_FRAME_H_
 
-SpriteFile::SpriteFile() {
-}
+class Frame;
 
-bool
-SpriteFile::load(const std::string &path) {
-  return false;
-}
+/* Draw the frame of the popup boxes along the edges of a box of any size
+   (at least the 144x160 of a popup). */
+void draw_box_frame(Frame *frame, int width, int height);
 
-bool
-SpriteFile::load_resource(const std::string &name) {
-  return false;
-}
+#endif  // SRC_BOX_FRAME_H_
