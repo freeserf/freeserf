@@ -41,7 +41,6 @@ SDL_PixelFormat VideoSDL::pixel_format = SDL_PIXELFORMAT_RGBA8888;
 VideoSDL::VideoSDL() {
   screen = nullptr;
   cursor = nullptr;
-  fullscreen = false;
   zoom_factor = 1.f;
 
   Log::Info["video"] << "Initializing \"sdl\".";
@@ -92,12 +91,10 @@ VideoSDL::VideoSDL() {
   SDL_GetMasksForPixelFormat(pixel_format, &bpp,
                              &Rmask, &Gmask, &Bmask, &Amask);
 
-  /* Textures are scaled linearly, the default of SDL3. */
-
   int w = 0;
   int h = 0;
   SDL_GetWindowSizeInPixels(window, &w, &h);
-  set_resolution(w, h, fullscreen);
+  set_resolution(w, h, false);
 }
 
 VideoSDL::~VideoSDL() {
@@ -127,10 +124,14 @@ VideoSDL::create_surface(int width, int height) {
 
 void
 VideoSDL::set_resolution(unsigned int width, unsigned int height, bool fs) {
-  /* Set fullscreen mode */
-  /* Fullscreen without a display mode is desktop fullscreen. */
-  if (!SDL_SetWindowFullscreen(window, fs)) {
-    throw ExceptionSDL("Unable to set window fullscreen");
+  /* Set fullscreen mode only when it changes: the window may have entered
+     or left fullscreen by itself (the maximize button of macOS), and
+     setting the old state again would undo that. Fullscreen without a
+     display mode is desktop fullscreen. */
+  if (fs != is_fullscreen()) {
+    if (!SDL_SetWindowFullscreen(window, fs)) {
+      throw ExceptionSDL("Unable to set window fullscreen");
+    }
   }
 
   if (screen == nullptr) {
@@ -150,8 +151,6 @@ VideoSDL::set_resolution(unsigned int width, unsigned int height, bool fs) {
                                         SDL_LOGICAL_PRESENTATION_LETTERBOX)) {
     throw ExceptionSDL("Unable to set logical size");
   }
-
-  fullscreen = fs;
 }
 
 void
@@ -177,7 +176,7 @@ VideoSDL::set_fullscreen(bool enable) {
 
 bool
 VideoSDL::is_fullscreen() {
-  return fullscreen;
+  return (SDL_GetWindowFlags(window) & SDL_WINDOW_FULLSCREEN) != 0;
 }
 
 Video::Frame *
@@ -250,6 +249,14 @@ VideoSDL::create_texture(int width, int height) {
     throw ExceptionSDL("Unable to create SDL texture");
   }
 
+  /* Keep the pixels sharp when a frame is scaled (zoom, high-DPI
+     displays); SDL3 filters textures linearly by default. */
+#if SDL_VERSION_ATLEAST(3, 4, 0)
+  SDL_SetTextureScaleMode(texture, SDL_SCALEMODE_PIXELART);
+#else
+  SDL_SetTextureScaleMode(texture, SDL_SCALEMODE_NEAREST);
+#endif
+
   SDL_SetRenderTarget(renderer, texture);
   SDL_SetTextureBlendMode(texture, SDL_BLENDMODE_BLEND);
   SDL_SetRenderDrawColor(renderer, 0x00, 0x00, 0x00, 0x00);
@@ -296,6 +303,22 @@ VideoSDL::draw_frame(int dx, int dy, Video::Frame *dest, int sx, int sy,
   SDL_FRect dest_rect = { static_cast<float>(dx), static_cast<float>(dy),
                           static_cast<float>(w), static_cast<float>(h) };
   SDL_FRect src_rect = { static_cast<float>(sx), static_cast<float>(sy),
+                         static_cast<float>(w), static_cast<float>(h) };
+
+  SDL_SetRenderTarget(renderer, dest->texture);
+  SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
+  if (!SDL_RenderTexture(renderer, src->texture, &src_rect, &dest_rect)) {
+    throw ExceptionSDL("RenderTexture error");
+  }
+}
+
+void
+VideoSDL::draw_frame_scaled(int dx, int dy, int dw, int dh,
+                            Video::Frame *dest, Video::Frame *src,
+                            int w, int h) {
+  SDL_FRect dest_rect = { static_cast<float>(dx), static_cast<float>(dy),
+                          static_cast<float>(dw), static_cast<float>(dh) };
+  SDL_FRect src_rect = { 0.f, 0.f,
                          static_cast<float>(w), static_cast<float>(h) };
 
   SDL_SetRenderTarget(renderer, dest->texture);

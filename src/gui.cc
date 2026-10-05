@@ -43,6 +43,9 @@ GuiObject::GuiObject() {
   y = 0;
   width = 0;
   height = 0;
+  zoom = 1.f;
+  drag_rest_x = 0.f;
+  drag_rest_y = 0.f;
   displayed = false;
   enabled = true;
   redraw = true;
@@ -85,7 +88,12 @@ GuiObject::draw(Frame *_frame) {
 
     redraw = false;
   }
-  _frame->draw_frame(x, y, 0, 0, frame, width, height);
+  if (zoom == 1.f) {
+    _frame->draw_frame(x, y, 0, 0, frame, width, height);
+  } else {
+    _frame->draw_frame_scaled(x, y, outer_width(), outer_height(), frame,
+                              width, height);
+  }
 }
 
 bool
@@ -101,9 +109,12 @@ GuiObject::handle_event(const Event *event) {
       event->type == Event::TypeDrag) {
     event_x = event->x - x;
     event_y = event->y - y;
-    if (event_x < 0 || event_y < 0 || event_x > width || event_y > height) {
+    if (event_x < 0 || event_y < 0 ||
+        event_x > outer_width() || event_y > outer_height()) {
       return false;
     }
+    event_x = static_cast<int>(static_cast<float>(event_x) / zoom);
+    event_y = static_cast<int>(static_cast<float>(event_y) / zoom);
   }
 
   Event internal_event;
@@ -132,11 +143,19 @@ GuiObject::handle_event(const Event *event) {
         result = handle_click_right(event_x, event_y);
       }
       break;
-    case Event::TypeDrag:
-      result = handle_drag(event->dx, event->dy);
+    case Event::TypeDrag: {
+      /* Keep the fraction lost by the zoom for the next drag step. */
+      drag_rest_x += static_cast<float>(event->dx) / zoom;
+      drag_rest_y += static_cast<float>(event->dy) / zoom;
+      int dx = static_cast<int>(drag_rest_x);
+      int dy = static_cast<int>(drag_rest_y);
+      drag_rest_x -= static_cast<float>(dx);
+      drag_rest_y -= static_cast<float>(dy);
+      result = handle_drag(dx, dy);
       break;
+    }
     case Event::TypeDoubleClick:
-      result = handle_dbl_click(event->x, event->y, event->button);
+      result = handle_dbl_click(event_x, event_y, event->button);
       break;
     case Event::TypeKeyPressed:
       result = handle_key_pressed(event->dx, event->dy);
@@ -198,6 +217,12 @@ GuiObject::set_size(int new_width, int new_height) {
 }
 
 void
+GuiObject::set_zoom(float new_zoom) {
+  zoom = new_zoom;
+  set_redraw();
+}
+
+void
 GuiObject::get_size(int *pwidth, int *pheight) {
   if (pwidth != nullptr) {
     *pwidth = width;
@@ -229,7 +254,7 @@ GuiObject::set_redraw() {
 bool
 GuiObject::point_inside(int point_x, int point_y) {
   return (point_x >= x && point_y >= y &&
-          point_x < x + width && point_y < y + height);
+          point_x < x + outer_width() && point_y < y + outer_height());
 }
 
 void

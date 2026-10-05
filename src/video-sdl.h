@@ -68,7 +68,6 @@ class VideoSDL : public Video {
   SDL_Window *window;
   SDL_Renderer *renderer;
   Video::Frame *screen;
-  bool fullscreen;
   SDL_Cursor *cursor;
   float zoom_factor;
 
@@ -94,6 +93,9 @@ class VideoSDL : public Video {
 
   virtual void draw_image(const Video::Image *image, int x, int y,
                            int y_offset, Video::Frame *dest);
+  virtual void draw_frame_scaled(int dx, int dy, int dw, int dh,
+                                 Video::Frame *dest, Video::Frame *src,
+                                 int w, int h);
   virtual void draw_frame(int dx, int dy, Video::Frame *dest, int sx, int sy,
                           Video::Frame *src, int w, int h);
   virtual void draw_rect(int x, int y, unsigned int width, unsigned int height,

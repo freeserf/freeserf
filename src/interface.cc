@@ -822,7 +822,12 @@ Interface::layout() {
   }
 
   if (viewport != nullptr) {
-    viewport->set_size(width, height);
+    /* The map view is magnified further than the panel and the boxes. */
+    float map_zoom = Graphics::get_instance().get_map_zoom();
+    viewport->set_zoom(map_zoom);
+    viewport->set_size(
+      static_cast<int>(static_cast<float>(width) / map_zoom + 0.5f),
+      static_cast<int>(static_cast<float>(height) / map_zoom + 0.5f));
   }
 
   set_redraw();

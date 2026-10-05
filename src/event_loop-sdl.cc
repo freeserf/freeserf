@@ -23,6 +23,9 @@
 
 #include <SDL3/SDL.h>
 
+#include <algorithm>
+#include <cmath>
+
 #include "src/log.h"
 #include "src/gfx.h"
 #include "src/freeserf.h"
@@ -43,6 +46,7 @@ EventLoop::get_instance() {
 
 EventLoopSDL::EventLoopSDL()
   : zoom_factor(1.f)
+  , zoom_level(1.f)
   , screen_factor_x(1.f)
   , screen_factor_y(1.f) {
   SDL_InitSubSystem(SDL_INIT_EVENTS);
@@ -188,7 +192,18 @@ EventLoopSDL::run() {
       case SDL_EVENT_MOUSE_WHEEL: {
         SDL_Keymod mod = SDL_GetModState();
         if ((mod & SDL_KMOD_CTRL) != 0) {
-          zoom(0.2f * static_cast<float>(event.wheel.y));
+          /* Whole wheel steps only: trackpads send many fractional ones. */
+#if SDL_VERSION_ATLEAST(3, 2, 12)
+          int steps = event.wheel.integer_y;
+#else
+          int steps = static_cast<int>(event.wheel.y);
+#endif
+          if (event.wheel.direction == SDL_MOUSEWHEEL_FLIPPED) {
+            steps = -steps;
+          }
+          if (steps != 0) {
+            zoom(0.2f * static_cast<float>(steps));
+          }
         }
         break;
       }
@@ -279,10 +294,7 @@ EventLoopSDL::run() {
         unsigned int height = event.window.data2;
         gfx.set_resolution(width, height, gfx.is_fullscreen());
         gfx.get_screen_factor(&screen_factor_x, &screen_factor_y);
-        float factor = (gfx.get_zoom_factor() - 1);
-        zoom(-factor);
-        notify_resize(width, height);
-        zoom(factor);
+        apply_zoom();
         break;
       }
       case SDL_EVENT_USER:
@@ -330,17 +342,35 @@ EventLoopSDL::run() {
   }
 }
 
+/* Zoom levels are screen pixels per map pixel from 1 (no zoom) down to
+   0.2 (5 times), in steps of 0.2. */
 void
 EventLoopSDL::zoom(float delta) {
-  Graphics &gfx = Graphics::get_instance();
-  float factor = gfx.get_zoom_factor();
-  if (gfx.set_zoom_factor(factor + delta)) {
-    zoom_factor = gfx.get_zoom_factor();
-    unsigned int width = 0;
-    unsigned int height = 0;
-    gfx.get_resolution(&width, &height);
-    notify_resize(width, height);
+  float level = std::round((zoom_level + delta) * 10.f) / 10.f;
+  if (level < 0.2f || level > 1.f) {
+    return;
   }
+  zoom_level = level;
+  apply_zoom();
+}
+
+/* The panel and the boxes are magnified up to 2 times by zooming the
+   whole screen; the map view gets the rest of the zoom on its own, so
+   that the panel stays usable. */
+void
+EventLoopSDL::apply_zoom() {
+  Graphics &gfx = Graphics::get_instance();
+  float screen_level = std::max(zoom_level, 0.5f);
+  gfx.set_zoom_factor(screen_level);
+  zoom_factor = gfx.get_zoom_factor();
+  gfx.set_map_zoom(zoom_factor / zoom_level);
+
+  unsigned int width = 0;
+  unsigned int height = 0;
+  gfx.get_resolution(&width, &height);
+  notify_resize(
+    static_cast<unsigned int>(static_cast<float>(width) * zoom_factor),
+    static_cast<unsigned int>(static_cast<float>(height) * zoom_factor));
 }
 
 class TimerSDL : public Timer {

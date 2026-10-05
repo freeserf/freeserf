@@ -38,7 +38,8 @@ class EventLoopSDL : public EventLoop {
 
  protected:
   std::list<DeferredCall> deferred_calls;
-  float zoom_factor;
+  float zoom_factor;   // Zoom of the whole screen (panel and boxes)
+  float zoom_level;    // Zoom of the map view, 1 = none
   float screen_factor_x;
   float screen_factor_y;
   Uint32 eventUserTypeStep;
@@ -52,6 +53,7 @@ class EventLoopSDL : public EventLoop {
 
  protected:
   void zoom(float delta);
+  void apply_zoom();
   static Uint32 timer_callback(void *param, SDL_TimerID timer_id,
                                Uint32 interval);
 };
