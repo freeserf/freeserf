@@ -128,15 +128,27 @@ Graphics::Graphics()
     throw ExceptionGFX(e.what());
   }
 
-  Data &data = Data::get_instance();
-  Data::PSource data_source = data.get_data_source();
-  Data::PSprite sprite = data_source->get_sprite(Data::AssetCursor, 0,
-                                                 {0, 0, 0, 0});
-  video->set_cursor(sprite->get_data(),
-                    static_cast<unsigned int>(sprite->get_width()),
-                    static_cast<unsigned int>(sprite->get_height()));
+  set_cursor_from_data();
 
   Graphics::instance = this;
+}
+
+void
+Graphics::set_cursor_from_data() {
+  Data::PSource data_source = Data::get_instance().get_data_source();
+  Data::PSprite sprite = data_source->get_sprite(Data::AssetCursor, 0,
+                                                 {0, 0, 0, 0});
+  if (sprite) {
+    video->set_cursor(sprite->get_data(),
+                      static_cast<unsigned int>(sprite->get_width()),
+                      static_cast<unsigned int>(sprite->get_height()));
+  }
+}
+
+void
+Graphics::data_changed() {
+  Image::clear_cache();
+  set_cursor_from_data();
 }
 
 Graphics::~Graphics() {

@@ -135,6 +135,8 @@ class Audio {
                                          float volume, float ratio);
     virtual void enable(bool enable) = 0;
     virtual bool is_enabled() const { return enabled; }
+    /* Forget the loaded tracks (the data source changed). */
+    virtual void clear_cache() { track_cache.clear(); }
     virtual PVolumeController get_volume_controller() = 0;
 
    protected:
@@ -172,6 +174,8 @@ class Audio {
   virtual VolumeController *get_volume_controller() = 0;
   virtual PPlayer get_sound_player() = 0;
   virtual PPlayer get_music_player() = 0;
+  /* The sounds or the music now come from another data source. */
+  virtual void data_changed(bool sounds, bool music) {}
 };
 
 #endif  // SRC_AUDIO_H_

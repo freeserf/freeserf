@@ -369,7 +369,8 @@ AudioSDL::PlayerMIDI::create_track(int track_id) {
   SDL_SetBooleanProperty(props, MIX_PROP_AUDIO_LOAD_CLOSEIO_BOOLEAN, true);
   SDL_SetPointerProperty(props, MIX_PROP_AUDIO_LOAD_PREFERRED_MIXER_POINTER,
                          mixer);
-  static const std::string soundfont = find_soundfont();
+  /* Looked for each time: the music may come from another data now. */
+  const std::string soundfont = find_soundfont();
   if (!soundfont.empty()) {
     SDL_SetStringProperty(props, "SDL_mixer.decoder.fluidsynth.soundfont_path",
                           soundfont.c_str());
@@ -417,6 +418,34 @@ AudioSDL::PlayerMIDI::enable(bool enable) {
     play_track((current_track == TypeMidiNone) ? TypeMidiTrack0 :
                                                  current_track);
   }
+}
+
+void
+AudioSDL::PlayerMIDI::clear_cache() {
+  /* The old tracks are kept until the new one plays: the track playing
+     reads from its data. */
+  TrackCache old_tracks;
+  old_tracks.swap(track_cache);
+  if (enabled) {
+    play_track((current_track == TypeMidiNone) ? TypeMidiTrack0 :
+                                                 current_track);
+  } else {
+    MIX_LockMixer(mixer);
+    MIX_SetTrackStoppedCallback(music_track, nullptr, nullptr);
+    MIX_StopTrack(music_track, 0);
+    MIX_SetTrackAudio(music_track, nullptr);
+    MIX_SetTrackStoppedCallback(music_track, PlayerMIDI::music_finished_hook,
+                                nullptr);
+    MIX_UnlockMixer(mixer);
+  }
+}
+
+void
+AudioSDL::data_changed(bool sounds, bool music) {
+  /* Sound effects are decoded when loaded, the playing ones keep their
+     audio (MIX_Audio is reference counted). */
+  if (sounds && sfx_player) sfx_player->clear_cache();
+  if (music && midi_player) midi_player->clear_cache();
 }
 
 void

@@ -24,6 +24,7 @@
 #include <algorithm>
 #include <iostream>
 #include <fstream>
+#include <memory>
 #include <string>
 #include <utility>
 
@@ -37,6 +38,7 @@
 #include "src/game-init.h"
 #include "src/advanced-box.h"
 #include "src/settings.h"
+#include "src/data-source-mixed.h"
 #include "src/viewport.h"
 #include "src/notification.h"
 #include "src/panel.h"
@@ -203,6 +205,18 @@ Interface::apply_settings() {
   large_numbers = settings.get("advanced", "large_numbers", false);
   stock_box_occupied = settings.get("advanced", "stock_box_occupied", false);
   autosave_minutes = settings.get("advanced", "autosave", 0u);
+
+  /* Data source of each category, by name (DOS, Amiga, Custom). */
+  static const char *data_keys[] = { "graphics", "sound", "music" };
+  for (int cat = 0; cat < DataSourceMixed::CategoryCount; cat++) {
+    std::string name = settings.get("data", data_keys[cat], std::string());
+    for (int kind = 0; kind < DataSourceMixed::KindCount; kind++) {
+      if (name == DataSourceMixed::get_kind_name(
+                                   static_cast<DataSourceMixed::Kind>(kind))) {
+        select_data_source(cat, kind);
+      }
+    }
+  }
 }
 
 void
@@ -229,6 +243,11 @@ Interface::store_settings() {
   settings.set("advanced", "large_numbers", large_numbers);
   settings.set("advanced", "stock_box_occupied", stock_box_occupied);
   settings.set("advanced", "autosave", autosave_minutes);
+  if (Data::get_instance().get_mixed_source()) {
+    settings.set("data", "graphics", get_data_source_name(0));
+    settings.set("data", "sound", get_data_source_name(1));
+    settings.set("data", "music", get_data_source_name(2));
+  }
 
   settings.save();
 }
@@ -975,6 +994,81 @@ Interface::play_ambient_sounds() {
   if ((r & 0x3000) == 0) {
     audio.set_sfx_volume(Audio::TypeSfxWind, (r & 1) + 1);
     audio.enqueue_sfx(Audio::TypeSfxWind);
+  }
+}
+
+/* Whether a source has data of the category: custom data often has no
+   sounds and no music. */
+static bool
+source_has(const DataSourceMixed &mixed, DataSourceMixed::Category category,
+           DataSourceMixed::Kind kind) {
+  Data::PSource source = mixed.get_source(kind);
+  if (!source) return false;
+  switch (category) {
+    case DataSourceMixed::CategorySound:
+      return source->get_sound(Audio::TypeSfxClick) != nullptr;
+    case DataSourceMixed::CategoryMusic:
+      return source->get_music_format() != Data::MusicFormatNone;
+    default:
+      return true;
+  }
+}
+
+std::string
+Interface::get_data_source_name(int category) const {
+  std::shared_ptr<DataSourceMixed> mixed =
+                                     Data::get_instance().get_mixed_source();
+  if (!mixed) return std::string();
+  return DataSourceMixed::get_kind_name(
+    mixed->get_selected(static_cast<DataSourceMixed::Category>(category)));
+}
+
+/* Use another source for a category at once: the images and sounds of the
+   old one are forgotten and everything is drawn again. */
+void
+Interface::select_data_source(int category, int kind) {
+  std::shared_ptr<DataSourceMixed> mixed =
+                                     Data::get_instance().get_mixed_source();
+  DataSourceMixed::Category cat = static_cast<DataSourceMixed::Category>(
+                                                                    category);
+  DataSourceMixed::Kind k = static_cast<DataSourceMixed::Kind>(kind);
+  if (!mixed || mixed->get_selected(cat) == k || !source_has(*mixed, cat, k) ||
+      !mixed->select(cat, k)) {
+    return;
+  }
+  Log::Info["interface"] << "Using the " << DataSourceMixed::get_kind_name(k)
+                         << " data for category " << category;
+  switch (cat) {
+    case DataSourceMixed::CategoryGraphics:
+      Graphics::get_instance().data_changed();
+      invalidate();
+      break;
+    case DataSourceMixed::CategorySound:
+      Audio::get_instance().data_changed(true, false);
+      break;
+    case DataSourceMixed::CategoryMusic:
+      Audio::get_instance().data_changed(false, true);
+      break;
+    default:
+      break;
+  }
+}
+
+/* The next source that has data of the category. */
+void
+Interface::next_data_source(int category) {
+  std::shared_ptr<DataSourceMixed> mixed =
+                                     Data::get_instance().get_mixed_source();
+  if (!mixed) return;
+  DataSourceMixed::Category cat = static_cast<DataSourceMixed::Category>(
+                                                                    category);
+  int current = mixed->get_selected(cat);
+  for (int i = 1; i < DataSourceMixed::KindCount; i++) {
+    int kind = (current + i) % DataSourceMixed::KindCount;
+    if (source_has(*mixed, cat, static_cast<DataSourceMixed::Kind>(kind))) {
+      select_data_source(category, kind);
+      return;
+    }
   }
 }
 

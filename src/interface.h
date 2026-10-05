@@ -22,6 +22,8 @@
 #ifndef SRC_INTERFACE_H_
 #define SRC_INTERFACE_H_
 
+#include <string>
+
 #include "src/misc.h"
 #include "src/random.h"
 #include "src/map.h"
@@ -164,6 +166,15 @@ class Interface : public GuiObject, public GameManager::Handler {
   bool get_stock_box_occupied() const { return stock_box_occupied; }
   void switch_stock_box_occupied() {
     stock_box_occupied = !stock_box_occupied; }
+  /* Data source of the graphics, the sounds and the music (when the data
+     of several versions is installed, see DataSourceMixed). */
+  std::string get_data_source_name(int category) const;
+  void next_graphics_source() { next_data_source(0); }
+  void next_sound_source() { next_data_source(1); }
+  void next_music_source() { next_data_source(2); }
+  void select_data_source(int category, int kind);
+  void next_data_source(int category);
+
   /* Save the game every few minutes into one file (0: off). */
   unsigned int get_autosave_minutes() const { return autosave_minutes; }
   void next_autosave_interval();
