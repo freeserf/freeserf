@@ -13,9 +13,13 @@ if(SDL3_DIR)
     find_package(SDL3_image CONFIG)
   endif()
   if(ENABLE_SDL3_TTF)
-    # The static FreeType of vcpkg links ZLIB::ZLIB, but its config does
-    # not look for zlib.
+    # The static FreeType and libpng of vcpkg link ZLIB::ZLIB, but a static
+    # zlib (1.3.2) exports only ZLIB::ZLIBSTATIC.
     find_package(ZLIB QUIET)
+    if(TARGET ZLIB::ZLIBSTATIC AND NOT TARGET ZLIB::ZLIB)
+      add_library(ZLIB::ZLIB INTERFACE IMPORTED)
+      target_link_libraries(ZLIB::ZLIB INTERFACE ZLIB::ZLIBSTATIC)
+    endif()
     find_package(SDL3_ttf CONFIG)
   endif()
 endif()
