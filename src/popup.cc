@@ -296,7 +296,8 @@ PopupBox::PopupBox(Interface *_interface)
   , file_list(new ListSavedFiles())
   , file_field(new TextInput())
   , box(TypeNone)
-  , special_click(false) {
+  , special_click(false)
+  , text_shadow(false) {
   interface = _interface;
 
   current_sett_5_item = 8;
@@ -353,6 +354,11 @@ PopupBox::draw_popup_building(int x_, int y_, int sprite) {
 /* Fill the background of a popup frame. */
 void
 PopupBox::draw_box_background(BackgroundPattern sprite) {
+  text_shadow = (sprite == PatternStripedGreen ||
+                 sprite == PatternDiagonalGreen ||
+                 sprite == PatternPlaidAlongGreen ||
+                 sprite == PatternStaresGreen ||
+                 sprite == PatternSquaresGreen);
   for (int iy = 0; iy < 144; iy += 16) {
     for (int ix = 0; ix < 16; ix += 2) {
       draw_popup_icon(ix, iy, sprite);
@@ -371,7 +377,8 @@ PopupBox::draw_box_row(int sprite, int iy) {
 /* Draw a green string in a popup frame. */
 void
 PopupBox::draw_green_string(int sx, int sy, const std::string &str) {
-  frame->draw_string(8 * sx + 8, sy + 9, str, Color::green);
+  frame->draw_string(8 * sx + 8, sy + 9, str, Color::green,
+                     text_shadow ? Color::black : Color::transparent);
 }
 
 /* Draw a green number in a popup frame.
@@ -380,13 +387,15 @@ void
 PopupBox::draw_green_number(int sx, int sy, int n) {
   if (n >= 1000 && interface->get_large_numbers()) {
     /* Advanced option: shortened to the three characters of the field. */
-    frame->draw_string(8 * sx + 8, 9 + sy, format_count(n), Color::green);
+    frame->draw_string(8 * sx + 8, 9 + sy, format_count(n), Color::green,
+                       text_shadow ? Color::black : Color::transparent);
   } else if (n >= 1000) {
     draw_popup_icon(sx, sy, 0xd5); /* Draw >999 */
     draw_popup_icon(sx+1, sy, 0xd6);
     draw_popup_icon(sx+2, sy, 0xd7);
   } else {
-    frame->draw_number(8 * sx + 8, 9 + sy, n, Color::green);
+    frame->draw_number(8 * sx + 8, 9 + sy, n, Color::green,
+                       text_shadow ? Color::black : Color::transparent);
   }
 }
 
@@ -407,7 +416,8 @@ PopupBox::format_count(int n) {
    No limits on n. */
 void
 PopupBox::draw_green_large_number(int sx, int sy, int n) {
-  frame->draw_number(8 * sx + 8, 9 + sy, n, Color::green);
+  frame->draw_number(8 * sx + 8, 9 + sy, n, Color::green,
+                     text_shadow ? Color::black : Color::transparent);
 }
 
 /* Draw small green number. */
@@ -2766,6 +2776,7 @@ PopupBox::draw_save_box() {
 void
 PopupBox::internal_draw() {
   draw_popup_box_frame();
+  text_shadow = false;
 
   /* Dispatch to one of the popup box functions above. */
   switch (box) {

@@ -150,6 +150,9 @@ class PopupBox : public GuiObject {
   Type box;
 
   bool special_click;  // The current click is a special click
+  /* The texts have a black shadow, on the green backgrounds as in the
+     advanced box. */
+  bool text_shadow;
 
   int current_sett_5_item;
   /* Game end: 0 result picture, 1 result text, 2 mission picture. */

@@ -31,6 +31,8 @@
 #include "src/debug.h"
 #include "src/video.h"
 
+class Font;
+
 class ExceptionGFX : public ExceptionFreeserf {
  public:
   explicit ExceptionGFX(const std::string &description);
@@ -152,11 +154,16 @@ class Frame {
   void fill_rect(int x, int y, int width, int height, const Color &color);
   void draw_line(int x, int y, int x1, int y1, const Color &color);
 
-  /* Text functions */
+  /* Text functions. The texts are UTF-8, a line of 8 pixels high per
+     '\n'. The letters are proportional: a part of a line after spaces is
+     centred where it was with the 8 pixels wide letters of the original
+     font, as the texts are laid out for them. */
   void draw_string(int x, int y, const std::string &str, const Color &color,
                    const Color &shadow = Color::transparent);
   void draw_number(int x, int y, int value, const Color &color,
                    const Color &shadow = Color::transparent);
+  /* Width of the longest line of str. */
+  int get_string_width(const std::string &str);
 
   /* Frame functions */
   void draw_frame(int dx, int dy, int sx, int sy, Frame *src, int w, int h);
@@ -168,6 +175,9 @@ class Frame {
  protected:
   void draw_char_sprite(int x, int y, unsigned char c, const Color &color,
                         const Color &shadow);
+  /* Draw a glyph of the font, returns its advance. */
+  int draw_glyph(int x, int y, uint32_t ch, const Color &color,
+                 const Color &shadow);
   void draw_sprite(int x, int y, Data::Resource res, unsigned int index,
                    bool use_off, const Color &color, float progress);
 };
@@ -178,6 +188,8 @@ class Graphics {
   Video *video;
   /* Magnification of the map view on top of the screen zoom. */
   float map_zoom;
+  /* The font of the texts; the font sprites of the game data without it. */
+  std::unique_ptr<Font> font;
 
   Graphics();
   void set_cursor_from_data();
@@ -204,6 +216,7 @@ class Graphics {
   /* The graphics now come from another data source: forget the images
      and take the cursor from it. */
   void data_changed();
+  Font *get_font() const { return font.get(); }
   float get_map_zoom() const { return map_zoom; }
   void set_map_zoom(float zoom) { map_zoom = zoom; }
   void get_screen_factor(float *fx, float *fy);

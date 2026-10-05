@@ -55,6 +55,7 @@ jobs:
           sudo port install SDL3 +universal -N
           sudo port install SDL3_mixer +universal -N
           sudo port install SDL3_image +universal -N
+          sudo port install SDL3_ttf +universal -N
           # Copy for the cache, without the ports tree, downloads and archives.
           mkdir -p ~/macports/local
           sudo rsync -a --exclude var/macports/sources \

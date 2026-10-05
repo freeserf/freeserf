@@ -24,10 +24,12 @@
 #include <functional>
 
 #include <utility>
+#include <vector>
 #include <algorithm>
 
 #include "src/log.h"
 #include "src/data.h"
+#include "src/font.h"
 #include "src/sprite-file.h"
 #include "src/video.h"
 
@@ -129,6 +131,13 @@ Graphics::Graphics()
   }
 
   set_cursor_from_data();
+
+  font.reset(new Font());
+  if (!font->load_resource("settlers.ttf")) {
+    Log::Warn["graphics"] << "Failed to load the font settlers.ttf, the "
+                          << "texts are drawn with the font of the game data";
+    font.reset();
+  }
 
   Graphics::instance = this;
 }
@@ -382,47 +391,183 @@ Frame::draw_char_sprite(int x, int y, unsigned char c, const Color &color,
   draw_sprite(x, y, Data::AssetFont, s, false, color);
 }
 
+/* A glyph of the font in one color, or its shadow: the glyph moved by a
+   pixel left, right, up and down, as the shadow sprites of the font. */
+class SpriteGlyph : public SpriteBase {
+ public:
+  SpriteGlyph(const Font::Glyph &glyph, Data::Sprite::Color color,
+              bool shadow) {
+    unsigned int border = shadow ? 1 : 0;
+    create(glyph.width + 2 * border, glyph.height + 2 * border);
+    fill({0, 0, 0, 0});
+    offset_x = glyph.left - static_cast<int>(border);
+    offset_y = glyph.top - static_cast<int>(border);
+    Data::Sprite::Color *pixels = reinterpret_cast<Data::Sprite::Color*>(data);
+    for (unsigned int y = 0; y < glyph.height; y++) {
+      for (unsigned int x = 0; x < glyph.width; x++) {
+        if (!glyph.get(x, y)) continue;
+        if (shadow) {
+          pixels[(y + 1) * width + x] = color;
+          pixels[(y + 1) * width + x + 2] = color;
+          pixels[y * width + x + 1] = color;
+          pixels[(y + 2) * width + x + 1] = color;
+        } else {
+          pixels[y * width + x] = color;
+        }
+      }
+    }
+  }
+};
+
+/* The glyph of a character, a question mark for one the font has not. */
+static const Font::Glyph *
+get_glyph(Font *font, uint32_t ch) {
+  const Font::Glyph *glyph = font->get_glyph(ch);
+  return (glyph != nullptr) ? glyph : font->get_glyph('?');
+}
+
+int
+Frame::draw_glyph(int x, int y, uint32_t ch, const Color &color,
+                  const Color &shadow) {
+  const Font::Glyph *glyph = get_glyph(Graphics::get_instance().get_font(),
+                                       ch);
+  if (glyph == nullptr) return 0;
+  if (glyph->width == 0) return glyph->advance;  /* A space. */
+
+  for (int pass = (shadow != Color::transparent) ? 0 : 1; pass < 2; pass++) {
+    const Color &c = (pass == 0) ? shadow : color;
+    Data::Sprite::Color pc = {c.get_blue(), c.get_green(), c.get_red(),
+                              c.get_alpha()};
+    /* Cached apart from the sprites of the game data (bit 62), the
+       shadows apart from the glyphs (bit 61). */
+    uint64_t id = (static_cast<uint64_t>(1) << 62) |
+                  (static_cast<uint64_t>(pass == 0) << 61) |
+                  (static_cast<uint64_t>(ch & 0x1fffff) << 24) |
+                  (static_cast<uint64_t>(pc.red) << 16) |
+                  (static_cast<uint64_t>(pc.green) << 8) | pc.blue;
+    Image *image = Image::get_cached_image(id);
+    if (image == nullptr) {
+      image = new Image(video, std::make_shared<SpriteGlyph>(*glyph, pc,
+                                                             pass == 0));
+      Image::cache_image(id, image);
+    }
+    video->draw_image(image->get_video_image(), x + image->get_offset_x(),
+                      y + image->get_offset_y(), 0, video_frame);
+  }
+  return glyph->advance;
+}
+
+/* The Unicode characters of a line of UTF-8; a byte that is not UTF-8 is
+   the character of its value (Latin-1). A tab is two spaces. */
+static std::vector<std::vector<uint32_t>>
+split_lines(const std::string &str) {
+  std::vector<std::vector<uint32_t>> lines(1);
+  for (size_t i = 0; i < str.size();) {
+    uint8_t c = static_cast<uint8_t>(str[i]);
+    int length = (c >= 0xf0) ? 4 : (c >= 0xe0) ? 3 : (c >= 0xc0) ? 2 : 1;
+    uint32_t ch = c;
+    if (length > 1 && i + length <= str.size()) {
+      ch = c & (0x3f >> (length - 1));
+      for (int k = 1; k < length; k++) {
+        uint8_t next = static_cast<uint8_t>(str[i + k]);
+        if ((next & 0xc0) != 0x80) {
+          length = 1;
+          ch = c;
+          break;
+        }
+        ch = (ch << 6) | (next & 0x3f);
+      }
+    } else {
+      length = 1;
+    }
+    i += length;
+
+    if (ch == '\n') {
+      lines.emplace_back();
+    } else if (ch == '\t') {
+      lines.back().insert(lines.back().end(), 2, ' ');
+    } else {
+      lines.back().push_back(ch);
+    }
+  }
+  return lines;
+}
+
 /* Draw the string str at x, y in the dest frame. */
 void
 Frame::draw_string(int x, int y, const std::string &str, const Color &color,
                    const Color &shadow) {
-  int cx = x;
-
-  for (char c : str) {
-    if (c == '\t') {
-      cx += 8 * 2;
-    } else if (c == '\n') {
+  Font *font = Graphics::get_instance().get_font();
+  for (const std::vector<uint32_t> &line : split_lines(str)) {
+    if (font == nullptr) {
+      /* The font sprites of the game data, 8 pixels wide. */
+      for (size_t i = 0; i < line.size(); i++) {
+        if (line[i] < 0x100) {
+          draw_char_sprite(x + 8 * static_cast<int>(i), y,
+                           static_cast<unsigned char>(line[i]), color, shadow);
+        }
+      }
       y += 8;
-      cx = x;
-    } else {
-      draw_char_sprite(cx, y, c, color, shadow);
-      cx += 8;
+      continue;
     }
+
+    /* Parts of the line: words with one space between them. */
+    size_t start = 0;
+    while (start < line.size()) {
+      if (line[start] == ' ') {
+        start++;
+        continue;
+      }
+      size_t end = start;
+      while (end < line.size() &&
+             (line[end] != ' ' ||
+              (end + 1 < line.size() && line[end + 1] != ' '))) {
+        end++;
+      }
+
+      int width = 0;
+      for (size_t i = start; i < end; i++) {
+        const Font::Glyph *glyph = get_glyph(font, line[i]);
+        width += (glyph != nullptr) ? glyph->advance : 0;
+      }
+      /* The first part at x, the others centred where they were. */
+      int cx = x;
+      if (start > 0) {
+        cx += 4 * static_cast<int>(start + end) - width / 2;
+      }
+      for (size_t i = start; i < end; i++) {
+        cx += draw_glyph(cx, y, line[i], color, shadow);
+      }
+      start = end;
+    }
+    y += 8;
   }
+}
+
+int
+Frame::get_string_width(const std::string &str) {
+  Font *font = Graphics::get_instance().get_font();
+  int result = 0;
+  for (const std::vector<uint32_t> &line : split_lines(str)) {
+    int width = 0;
+    for (uint32_t ch : line) {
+      if (font == nullptr) {
+        width += 8;
+      } else {
+        const Font::Glyph *glyph = get_glyph(font, ch);
+        width += (glyph != nullptr) ? glyph->advance : 0;
+      }
+    }
+    result = std::max(result, width);
+  }
+  return result;
 }
 
 /* Draw the number n at x, y in the dest frame. */
 void
 Frame::draw_number(int x, int y, int value, const Color &color,
                    const Color &shadow) {
-  if (value < 0) {
-    draw_char_sprite(x, y, '-', color, shadow);
-    x += 8;
-    value *= -1;
-  }
-
-  if (value == 0) {
-    draw_char_sprite(x, y, '0', color, shadow);
-    return;
-  }
-
-  int digits = 0;
-  for (int i = value; i > 0; i /= 10) digits += 1;
-
-  for (int i = digits-1; i >= 0; i--) {
-    draw_char_sprite(x+8*i, y, '0'+(value % 10), color, shadow);
-    value /= 10;
-  }
+  draw_string(x, y, std::to_string(value), color, shadow);
 }
 
 /* Draw a rectangle with color at x, y in the dest frame. */
