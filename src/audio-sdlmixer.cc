@@ -32,6 +32,7 @@
 
 #include "src/log.h"
 #include "src/data.h"
+#include "src/audio-dummy.h"
 
 ExceptionSDLmixer::ExceptionSDLmixer(const std::string &_description)
   : ExceptionAudio(_description) {
@@ -82,10 +83,21 @@ find_soundfont() {
   return std::string();
 }
 
+/* Without a usable audio device the game runs without sound. */
+static std::unique_ptr<Audio>
+create_audio() {
+  try {
+    return std::unique_ptr<Audio>(new AudioSDL());
+  } catch (ExceptionAudio &e) {
+    Log::Error["audio"] << e.what() << "; continuing without sound.";
+    return std::unique_ptr<Audio>(new AudioDummy());
+  }
+}
+
 Audio &
 Audio::get_instance() {
-  static AudioSDL audio_sdl;
-  return audio_sdl;
+  static std::unique_ptr<Audio> audio = create_audio();
+  return *audio;
 }
 
 AudioSDL::AudioSDL() {
@@ -97,10 +109,28 @@ AudioSDL::AudioSDL() {
     Log::Info["audio"] << "\t" << SDL_GetAudioDriver(i);
   }
 
+  mixer = nullptr;
+  music_track = nullptr;
   if (!SDL_InitSubSystem(SDL_INIT_AUDIO)) {
     throw ExceptionSDLmixer("Could not init SDL audio");
   }
 
+  try {
+    init_mixer();
+  } catch (...) {
+    /* The destructor does not run for a failed constructor. */
+    if (mixer != nullptr) {
+      MIX_DestroyMixer(mixer);
+      mixer = nullptr;
+    }
+    MIX_Quit();
+    SDL_QuitSubSystem(SDL_INIT_AUDIO);
+    throw;
+  }
+}
+
+void
+AudioSDL::init_mixer() {
   int version = SDL_GetVersion();
   Log::Info["audio"] << "Initialized with SDL "
                      << SDL_VERSIONNUM_MAJOR(version) << '.'

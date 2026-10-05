@@ -132,6 +132,8 @@ class AudioSDL : public Audio, public Audio::VolumeController {
   Audio::PPlayer sfx_player;
   Audio::PPlayer midi_player;
 
+  void init_mixer();
+
  public:
   /* Common audio. */
   AudioSDL();
