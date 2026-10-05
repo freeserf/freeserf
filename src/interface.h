@@ -113,6 +113,9 @@ class Interface : public GuiObject, public GameManager::Handler {
   /* Advanced options (not in the original game). */
   bool invert_scrolling;
   bool large_numbers;
+  unsigned int autosave_minutes;  // 0: off
+  unsigned int autosave_last_ticks;
+  unsigned int autosave_last_game_tick;
 
   SpriteLoc map_cursor_sprites[7];
 
@@ -134,6 +137,7 @@ class Interface : public GuiObject, public GameManager::Handler {
   virtual ~Interface();
 
   void draw_fps(Frame *frame);
+  void autosave();
 
   PGame get_game() { return game; }
   void set_game(PGame game);
@@ -154,6 +158,9 @@ class Interface : public GuiObject, public GameManager::Handler {
   /* Counts over 999 in the boxes shortened (15K, .2M) instead of >999. */
   bool get_large_numbers() const { return large_numbers; }
   void switch_large_numbers() { large_numbers = !large_numbers; }
+  /* Save the game every few minutes into one file (0: off). */
+  unsigned int get_autosave_minutes() const { return autosave_minutes; }
+  void next_autosave_interval();
 
   /* Settings kept between the runs (Settings): the options of the options
      and advanced boxes. */

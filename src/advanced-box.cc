@@ -21,6 +21,8 @@
 
 #include "src/advanced-box.h"
 
+#include <string>
+
 #include "src/interface.h"
 #include "src/popup.h"
 #include "src/box-frame.h"
@@ -38,18 +40,32 @@ static const int kCheckSize = 16;
 static const int kRowHeight = 20;
 static const int kFirstRowY = 19;
 
+/* An option is a check box (get) or a value shown as text (text); a click
+   on either calls change. */
 typedef struct Option {
   const char *label;
   bool (Interface::*get)() const;
-  void (Interface::*toggle)();
+  std::string (*text)(const Interface *interface);
+  void (Interface::*change)();
 } Option;
 
+static std::string
+autosave_text(const Interface *interface) {
+  unsigned int minutes = interface->get_autosave_minutes();
+  return (minutes == 0) ? "Off" : std::to_string(minutes) + " min";
+}
+
 static const Option options[] = {
-  { "Invert scrolling", &Interface::get_invert_scrolling,
+  { "Invert scrolling", &Interface::get_invert_scrolling, nullptr,
     &Interface::switch_invert_scrolling },
-  { "Large numbers", &Interface::get_large_numbers,
+  { "Large numbers", &Interface::get_large_numbers, nullptr,
     &Interface::switch_large_numbers },
+  { "Autosave", nullptr, autosave_text,
+    &Interface::next_autosave_interval },
 };
+
+/* Width of the value texts, right aligned to the check boxes. */
+static const int kValueWidth = 48;
 static const int kOptionCount = sizeof(options) / sizeof(options[0]);
 
 AdvancedBox::AdvancedBox(Interface *_interface)
@@ -73,8 +89,14 @@ AdvancedBox::internal_draw() {
     int y = kFirstRowY + i * kRowHeight;
     frame->draw_string(kLabelX, y + 4, options[i].label, Color::green,
                        Color::black);
-    bool on = (interface->*options[i].get)();
-    frame->draw_sprite(check_x, y, Data::AssetIcon, on ? 288 : 220);
+    if (options[i].get != nullptr) {
+      bool on = (interface->*options[i].get)();
+      frame->draw_sprite(check_x, y, Data::AssetIcon, on ? 288 : 220);
+    } else {
+      std::string value = options[i].text(interface);
+      int value_x = check_x + kCheckSize - 8 * static_cast<int>(value.size());
+      frame->draw_string(value_x, y + 4, value, Color::green, Color::black);
+    }
   }
 
   frame->draw_sprite(width - 8 - kExitWidth, height - 7 - kExitHeight,
@@ -86,10 +108,12 @@ AdvancedBox::handle_click_left(int x, int y) {
   int check_x = width - 24 - kCheckSize;
   for (int i = 0; i < kOptionCount; i++) {
     int row_y = kFirstRowY + i * kRowHeight;
-    if (x >= check_x && x < check_x + kCheckSize &&
+    int left = (options[i].get != nullptr) ? check_x :
+                                             check_x + kCheckSize - kValueWidth;
+    if (x >= left && x < check_x + kCheckSize &&
         y >= row_y && y < row_y + kCheckSize) {
       play_sound(Audio::TypeSfxClick);
-      (interface->*options[i].toggle)();
+      (interface->*options[i].change)();
       set_redraw();
       return true;
     }
