@@ -13,6 +13,9 @@ if(SDL3_DIR)
     find_package(SDL3_image CONFIG)
   endif()
   if(ENABLE_SDL3_TTF)
+    # The static FreeType of vcpkg links ZLIB::ZLIB, but its config does
+    # not look for zlib.
+    find_package(ZLIB QUIET)
     find_package(SDL3_ttf CONFIG)
   endif()
 endif()
