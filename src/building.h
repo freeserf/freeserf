@@ -38,6 +38,8 @@ class SaveWriterText;
 class Building : public GameObject {
   /* The computer player reads the fields as the original does. */
   friend class AI;
+  /* The consistency check after loading reads them too. */
+  friend class IntegrityCheck;
  public:
   // Max number of different types of resources accepted by buildings.
   static const unsigned int kMaxStock = 3;
