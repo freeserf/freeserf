@@ -112,6 +112,7 @@ class Interface : public GuiObject, public GameManager::Handler {
   int msg_flags;
   /* Advanced options (not in the original game). */
   bool invert_scrolling;
+  bool large_numbers;
 
   SpriteLoc map_cursor_sprites[7];
 
@@ -150,6 +151,9 @@ class Interface : public GuiObject, public GameManager::Handler {
   /* Mouse dragging moves the map vertically the other way. */
   bool get_invert_scrolling() const { return invert_scrolling; }
   void switch_invert_scrolling() { invert_scrolling = !invert_scrolling; }
+  /* Counts over 999 in the boxes shortened (15K, .2M) instead of >999. */
+  bool get_large_numbers() const { return large_numbers; }
+  void switch_large_numbers() { large_numbers = !large_numbers; }
 
   /* Settings kept between the runs (Settings): the options of the options
      and advanced boxes. */

@@ -35,12 +35,22 @@ static const int kExitHeight = 16;
    right. */
 static const int kLabelX = 16;
 static const int kCheckSize = 16;
-static const int kRowHeight = 16;
+static const int kRowHeight = 20;
 static const int kFirstRowY = 19;
 
-typedef enum Option {
-  OptionInvertScrolling = 0,
+typedef struct Option {
+  const char *label;
+  bool (Interface::*get)() const;
+  void (Interface::*toggle)();
 } Option;
+
+static const Option options[] = {
+  { "Invert scrolling", &Interface::get_invert_scrolling,
+    &Interface::switch_invert_scrolling },
+  { "Large numbers", &Interface::get_large_numbers,
+    &Interface::switch_large_numbers },
+};
+static const int kOptionCount = sizeof(options) / sizeof(options[0]);
 
 AdvancedBox::AdvancedBox(Interface *_interface)
   : interface(_interface) {
@@ -59,11 +69,13 @@ AdvancedBox::internal_draw() {
   draw_box_frame(frame, width, height);
 
   int check_x = width - 24 - kCheckSize;
-  int y = kFirstRowY + OptionInvertScrolling * kRowHeight;
-  frame->draw_string(kLabelX, y + 4, "Invert scrolling", Color::green,
-                     Color::black);
-  frame->draw_sprite(check_x, y, Data::AssetIcon,
-                     interface->get_invert_scrolling() ? 288 : 220);
+  for (int i = 0; i < kOptionCount; i++) {
+    int y = kFirstRowY + i * kRowHeight;
+    frame->draw_string(kLabelX, y + 4, options[i].label, Color::green,
+                       Color::black);
+    bool on = (interface->*options[i].get)();
+    frame->draw_sprite(check_x, y, Data::AssetIcon, on ? 288 : 220);
+  }
 
   frame->draw_sprite(width - 8 - kExitWidth, height - 7 - kExitHeight,
                      Data::AssetIcon, 60);  // Exit
@@ -72,13 +84,15 @@ AdvancedBox::internal_draw() {
 bool
 AdvancedBox::handle_click_left(int x, int y) {
   int check_x = width - 24 - kCheckSize;
-  int row_y = kFirstRowY + OptionInvertScrolling * kRowHeight;
-  if (x >= check_x && x < check_x + kCheckSize &&
-      y >= row_y && y < row_y + kCheckSize) {
-    play_sound(Audio::TypeSfxClick);
-    interface->switch_invert_scrolling();
-    set_redraw();
-    return true;
+  for (int i = 0; i < kOptionCount; i++) {
+    int row_y = kFirstRowY + i * kRowHeight;
+    if (x >= check_x && x < check_x + kCheckSize &&
+        y >= row_y && y < row_y + kCheckSize) {
+      play_sound(Audio::TypeSfxClick);
+      (interface->*options[i].toggle)();
+      set_redraw();
+      return true;
+    }
   }
 
   int exit_x = width - 8 - kExitWidth;
