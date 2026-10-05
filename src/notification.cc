@@ -50,7 +50,8 @@ NotificationBox::draw_string(int sx, int sy, const std::string &str) {
   std::string line;
   int cy = sy;
   while (std::getline(sin, line)) {
-    frame->draw_string(sx*8, cy, line, Color::green);
+    /* On the green background, with a shadow as in the advanced box. */
+    frame->draw_string(sx*8, cy, line, Color::green, Color::black);
     cy += 10;
   }
 }

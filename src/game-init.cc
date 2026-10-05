@@ -72,6 +72,23 @@ class RandomInput : public TextInput {
     return true;
   }
 
+  /* The 16 digits in 4 rows of 4, each centred in its cell of 8 pixels,
+     as with the 8 pixels wide digits of the original font. */
+  virtual void internal_draw() {
+    frame->fill_rect(0, 0, width, height, color_background);
+    if (draw_focus && focused) {
+      frame->draw_rect(0, 0, width, height, color_focus);
+    }
+    int origin = draw_focus ? 1 : 0;
+    for (size_t i = 0; i < text.length() && i < 16; i++) {
+      std::string digit = text.substr(i, 1);
+      int cx = origin + 8 * static_cast<int>(i % 4) +
+               (8 - frame->get_string_width(digit)) / 2;
+      int cy = origin + 8 * static_cast<int>(i / 4);
+      frame->draw_string(cx, cy, digit, color_text);
+    }
+  }
+
   virtual bool handle_click_left(int cx, int cy) {
     TextInput::handle_click_left(cx, cy);
     saved_text = text;

@@ -47,7 +47,6 @@ TextInput::internal_draw() {
   if (draw_focus && focused) {
     frame->draw_rect(0, 0, width, height, color_focus);
   }
-  int ch_width = width/8;
   std::string str = text;
   int cx = 0;
   int cy = 0;
@@ -55,10 +54,15 @@ TextInput::internal_draw() {
     cx = 1;
     cy = 1;
   }
+  /* As many characters on a line as fit in the width. */
   while (str.length()) {
-    std::string substr = str.substr(0, ch_width);
-    str.erase(0, ch_width);
-    frame->draw_string(cx, cy, substr, color_text);
+    size_t length = 1;
+    while (length < str.length() &&
+           frame->get_string_width(str.substr(0, length + 1)) <= width - cx) {
+      length++;
+    }
+    frame->draw_string(cx, cy, str.substr(0, length), color_text);
+    str.erase(0, length);
     cy += 8;
   }
 }

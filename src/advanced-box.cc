@@ -115,7 +115,7 @@ AdvancedBox::internal_draw() {
       frame->draw_sprite(check_x, y, Data::AssetIcon, on ? 288 : 220);
     } else {
       std::string value = options[i].text(interface);
-      int value_x = check_x + kCheckSize - 8 * static_cast<int>(value.size());
+      int value_x = check_x + kCheckSize - frame->get_string_width(value);
       frame->draw_string(value_x, y + 4, value, Color::green, Color::black);
     }
   }

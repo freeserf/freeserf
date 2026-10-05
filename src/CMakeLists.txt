@@ -2,6 +2,7 @@ cmake_minimum_required(VERSION 3.14 FATAL_ERROR)
 
 option(ENABLE_SDL3_MIXER "Enable audio support using SDL3_mixer" ON)
 option(ENABLE_SDL3_IMAGE "Enable image loading using SDL3_image" ON)
+option(ENABLE_SDL3_TTF "Enable the TrueType font of the texts using SDL3_ttf" ON)
 
 find_package(SDL3 REQUIRED CONFIG)
 if(SDL3_DIR)
@@ -10,6 +11,9 @@ if(SDL3_DIR)
   endif()
   if(ENABLE_SDL3_IMAGE)
     find_package(SDL3_image CONFIG)
+  endif()
+  if(ENABLE_SDL3_TTF)
+    find_package(SDL3_ttf CONFIG)
   endif()
 endif()
 
@@ -137,7 +141,8 @@ set(DATA_HEADERS data.h
                  xmi2mid.h
                  pcm2wav.h
                  data-source.h
-                 sprite-file.h)
+                 sprite-file.h
+                 font.h)
 
 if(ENABLE_SDL3_IMAGE AND SDL3_image_DIR)
   list(APPEND DATA_SOURCES sprite-file-sdl.cc)
@@ -145,13 +150,22 @@ else()
   list(APPEND DATA_SOURCES sprite-file-dummy.cc)
 endif()
 
+if(ENABLE_SDL3_TTF AND SDL3_ttf_DIR)
+  list(APPEND DATA_SOURCES font-sdl.cc)
+else()
+  list(APPEND DATA_SOURCES font-dummy.cc)
+endif()
+
 add_library(data STATIC ${DATA_SOURCES} ${DATA_HEADERS})
-# Images of the game's own (resources/), found next to the program; from
-# the build tree they are read from the sources.
+# Images and the font of the game's own (resources/), found next to the
+# program; from the build tree they are read from the sources.
 target_compile_definitions(data PRIVATE
                            FREESERF_RESOURCES_DIR="${PROJECT_SOURCE_DIR}/resources")
 if(ENABLE_SDL3_IMAGE AND SDL3_image_DIR)
   target_link_libraries(data SDL3::SDL3 SDL3_image::SDL3_image)
+endif()
+if(ENABLE_SDL3_TTF AND SDL3_ttf_DIR)
+  target_link_libraries(data SDL3::SDL3 SDL3_ttf::SDL3_ttf)
 endif()
 target_check_style(data)
 
@@ -210,12 +224,16 @@ if(SDL3_DIR)
   if(SDL3_image_DIR)
     target_link_libraries(FreeSerf SDL3_image::SDL3_image)
   endif()
+  if(SDL3_ttf_DIR)
+    target_link_libraries(FreeSerf SDL3_ttf::SDL3_ttf)
+  endif()
 endif()
 install(TARGETS FreeSerf DESTINATION ".")
 
-# Images of the game's own, next to the program (in the bundle resources
-# on macOS).
-file(GLOB RESOURCE_FILES "${PROJECT_SOURCE_DIR}/resources/*.png")
+# Images and the font of the game's own, next to the program (in the
+# bundle resources on macOS).
+file(GLOB RESOURCE_FILES "${PROJECT_SOURCE_DIR}/resources/*.png"
+                         "${PROJECT_SOURCE_DIR}/resources/*.ttf")
 if(APPLE)
   target_sources(FreeSerf PRIVATE ${RESOURCE_FILES})
   set_source_files_properties(${RESOURCE_FILES} PROPERTIES
