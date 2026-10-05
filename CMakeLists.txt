@@ -25,6 +25,7 @@ configure_file(${CMAKE_CURRENT_SOURCE_DIR}/src/version-vcs.h.in
 add_definitions(-DPACKAGE_BUGREPORT="https://github.com/freeserf/freeserf/issues")
 
 include(CppLint)
+include(Translations)
 enable_check_style()
 
 add_subdirectory(src)

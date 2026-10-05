@@ -1,0 +1,533 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
+# This file is distributed under the same license as the FreeSerf package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: FreeSerf 0.5.0\n"
+"Report-Msgid-Bugs-To: https://github.com/freeserf/freeserf/issues\n"
+"POT-Creation-Date: 2026-10-05 21:57+0300\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"Language: \n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=CHARSET\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#: src/advanced-box.cc:56
+msgid "Off"
+msgstr ""
+
+#. TRANSLATORS: %d is a number of minutes.
+#: src/advanced-box.cc:58
+#, c-format
+msgid "%d min"
+msgstr ""
+
+#: src/advanced-box.cc:88
+msgid "Invert scrolling"
+msgstr ""
+
+#: src/advanced-box.cc:90
+msgid "Large numbers"
+msgstr ""
+
+#: src/advanced-box.cc:92
+msgid "Autosave"
+msgstr ""
+
+#: src/advanced-box.cc:94
+msgid "Stock box until occupied"
+msgstr ""
+
+#: src/advanced-box.cc:97
+msgid "Graphics"
+msgstr ""
+
+#: src/advanced-box.cc:99
+msgid "Sounds"
+msgstr ""
+
+#: src/advanced-box.cc:100 src/popup.cc:1948
+msgid "Music"
+msgstr ""
+
+#: src/advanced-box.cc:102
+msgid "Language"
+msgstr ""
+
+#: src/freeserf.cc:105
+msgid ""
+"Could not find the game data.\n"
+"\n"
+"Copy the data file of the original game (SPAE.PA, SPAD.PA, SPAF.PA or "
+"SPAU.PA) into the FreeSerf data directory, or give its directory with -g "
+"DATA-PATH."
+msgstr ""
+
+#: src/game-init.cc:212
+msgid "Start mission"
+msgstr ""
+
+#: src/game-init.cc:213
+msgid "Mission:"
+msgstr ""
+
+#: src/game-init.cc:227
+msgid "Start tutorial"
+msgstr ""
+
+#: src/game-init.cc:228
+msgid "Tutorial:"
+msgstr ""
+
+#: src/game-init.cc:242
+msgid "New game"
+msgstr ""
+
+#: src/game-init.cc:243
+msgid "Mapsize:"
+msgstr ""
+
+#: src/game-init.cc:253
+msgid "Load game"
+msgstr ""
+
+#: src/notification.cc:92
+msgid ""
+"Your settlement\n"
+"is under attack"
+msgstr ""
+
+#: src/notification.cc:96
+msgid ""
+"Your knights\n"
+"just lost the\n"
+"fight"
+msgstr ""
+
+#: src/notification.cc:100
+msgid ""
+"You gained\n"
+"a victory here"
+msgstr ""
+
+#: src/notification.cc:104
+msgid ""
+"This mine hauls\n"
+"no more raw\n"
+"materials"
+msgstr ""
+
+#: src/notification.cc:108
+msgid ""
+"You wanted me\n"
+"to call you to\n"
+"this location"
+msgstr ""
+
+#: src/notification.cc:112
+msgid ""
+"A knight has\n"
+"occupied this\n"
+"new building"
+msgstr ""
+
+#: src/notification.cc:116
+msgid ""
+"A new stock\n"
+"has been built"
+msgstr ""
+
+#: src/notification.cc:120
+msgid ""
+"Because of this\n"
+"enemy building\n"
+"you lost some\n"
+"land"
+msgstr ""
+
+#: src/notification.cc:124
+msgid ""
+"Because of this\n"
+"enemy building\n"
+"you lost some\n"
+"land and\n"
+"some buildings"
+msgstr ""
+
+#: src/notification.cc:129
+msgid ""
+"Emergency\n"
+"program\n"
+"activated"
+msgstr ""
+
+#: src/notification.cc:133
+msgid ""
+"Emergency\n"
+"program\n"
+"neutralized"
+msgstr ""
+
+#: src/notification.cc:137
+msgid ""
+"A geologist\n"
+"has found gold"
+msgstr ""
+
+#: src/notification.cc:141
+msgid ""
+"A geologist\n"
+"has found iron"
+msgstr ""
+
+#: src/notification.cc:145
+msgid ""
+"A geologist\n"
+"has found coal"
+msgstr ""
+
+#: src/notification.cc:149
+msgid ""
+"A geologist\n"
+"has found stone"
+msgstr ""
+
+#: src/notification.cc:153
+msgid ""
+"You wanted me\n"
+"to call you\n"
+"to this menu"
+msgstr ""
+
+#: src/notification.cc:157
+msgid ""
+"30 min. passed\n"
+"since the last\n"
+"saving"
+msgstr ""
+
+#: src/notification.cc:161
+msgid ""
+"One hour passed\n"
+"since the last\n"
+"saving"
+msgstr ""
+
+#: src/notification.cc:165
+msgid ""
+"You wanted me\n"
+"to call you\n"
+"to this stock"
+msgstr ""
+
+#: src/popup.cc:443
+msgctxt "thousands"
+msgid "K"
+msgstr ""
+
+#: src/popup.cc:447 src/popup.cc:450
+msgctxt "millions"
+msgid "M"
+msgstr ""
+
+#: src/popup.cc:517
+msgctxt "ground analysis"
+msgid "Not Present"
+msgstr ""
+
+#: src/popup.cc:518
+msgctxt "ground analysis"
+msgid "Minimum"
+msgstr ""
+
+#: src/popup.cc:519
+msgctxt "ground analysis"
+msgid "Very Few"
+msgstr ""
+
+#: src/popup.cc:520
+msgctxt "ground analysis"
+msgid "Few"
+msgstr ""
+
+#: src/popup.cc:521
+msgctxt "ground analysis"
+msgid "Below Average"
+msgstr ""
+
+#: src/popup.cc:522
+msgctxt "ground analysis"
+msgid "Average"
+msgstr ""
+
+#: src/popup.cc:523
+msgctxt "ground analysis"
+msgid "Above Average"
+msgstr ""
+
+#: src/popup.cc:524
+msgctxt "ground analysis"
+msgid "Much"
+msgstr ""
+
+#: src/popup.cc:525
+msgctxt "ground analysis"
+msgid "Very Much"
+msgstr ""
+
+#: src/popup.cc:526
+msgctxt "ground analysis"
+msgid "Perfect"
+msgstr ""
+
+#: src/popup.cc:1631
+msgid "GROUND-ANALYSIS:"
+msgstr ""
+
+#: src/popup.cc:1789
+msgctxt "knight occupation"
+msgid "Minimum"
+msgstr ""
+
+#: src/popup.cc:1789
+msgctxt "knight occupation"
+msgid "Weak"
+msgstr ""
+
+#: src/popup.cc:1790
+msgctxt "knight occupation"
+msgid "Good"
+msgstr ""
+
+#: src/popup.cc:1790
+msgctxt "knight occupation"
+msgid "Medium"
+msgstr ""
+
+#: src/popup.cc:1791
+msgctxt "knight occupation"
+msgid "Full"
+msgstr ""
+
+#: src/popup.cc:1930
+msgid ""
+"Do you want\n"
+"to quit\n"
+"this game?"
+msgstr ""
+
+#: src/popup.cc:1932 src/popup.cc:1940
+msgid "Yes"
+msgstr ""
+
+#: src/popup.cc:1933 src/popup.cc:1941
+msgid "No"
+msgstr ""
+
+#: src/popup.cc:1938
+msgid ""
+"The game has not\n"
+"been saved\n"
+"recently.\n"
+"Are you\n"
+"sure?"
+msgstr ""
+
+#: src/popup.cc:1949
+msgid ""
+"Sound\n"
+"effects"
+msgstr ""
+
+#: src/popup.cc:1950
+msgid "Volume"
+msgstr ""
+
+#: src/popup.cc:1971
+msgid ""
+"Fullscreen\n"
+"video"
+msgstr ""
+
+#: src/popup.cc:1976
+msgctxt "messages"
+msgid "All"
+msgstr ""
+
+#: src/popup.cc:1978
+msgctxt "messages"
+msgid "Most"
+msgstr ""
+
+#: src/popup.cc:1980
+msgctxt "messages"
+msgid "Few"
+msgstr ""
+
+#: src/popup.cc:1982
+msgctxt "messages"
+msgid "None"
+msgstr ""
+
+#: src/popup.cc:1986
+msgid "Messages"
+msgstr ""
+
+#: src/popup.cc:2095
+msgid ""
+"MINING\n"
+"OUTPUT:"
+msgstr ""
+
+#: src/popup.cc:2124
+msgid ""
+"Ordered\n"
+"Building"
+msgstr ""
+
+#: src/popup.cc:2204
+msgid "Defenders:"
+msgstr ""
+
+#: src/popup.cc:2214
+msgid "State:"
+msgstr ""
+
+#: src/popup.cc:2281
+msgid "Transport Info:"
+msgstr ""
+
+#: src/popup.cc:2293
+msgid "Index:"
+msgstr ""
+
+#: src/popup.cc:2632
+msgid ""
+"Stock of\n"
+"this building:"
+msgstr ""
+
+#: src/popup.cc:2698
+msgid "CONGRATULATIONS."
+msgstr ""
+
+#: src/popup.cc:2699
+msgid ""
+"YOUR ENEMIES\n"
+"RESIGN. YOU\n"
+"HAVE WON THIS\n"
+"MISSION."
+msgstr ""
+
+#: src/popup.cc:2705
+msgid "NEW PASSWORD:"
+msgstr ""
+
+#: src/popup.cc:2709
+msgid ""
+"SORRY, ONLY ONE\n"
+"OF YOUR ENEMIES\n"
+"HAS GAINED THE\n"
+"SUPERIORITY IN\n"
+"THIS MISSION"
+msgstr ""
+
+#: src/popup.cc:2715
+msgid "WELL DONE."
+msgstr ""
+
+#: src/popup.cc:2716
+msgid ""
+"YOU COMPLETED\n"
+"THIS TUTORIAL\n"
+"GAME."
+msgstr ""
+
+#: src/popup.cc:2722
+msgid ""
+"THE BLUE\n"
+"SETTLERS HAVE\n"
+"GAINED THE\n"
+"SUPERIORITY"
+msgstr ""
+
+#: src/popup.cc:2723
+msgid ""
+"THE RED\n"
+"SETTLERS HAVE\n"
+"GAINED THE\n"
+"SUPERIORITY"
+msgstr ""
+
+#: src/popup.cc:2724
+msgid ""
+"THE VIOLET\n"
+"SETTLERS HAVE\n"
+"GAINED THE\n"
+"SUPERIORITY"
+msgstr ""
+
+#: src/popup.cc:2725
+msgid ""
+"THE YELLOW\n"
+"SETTLERS HAVE\n"
+"GAINED THE\n"
+"SUPERIORITY"
+msgstr ""
+
+#: src/popup.cc:2740
+msgid "Build a guard hut and a guard tower and a fortress."
+msgstr ""
+
+#: src/popup.cc:2741
+msgid "Produce five planks and five stones."
+msgstr ""
+
+#: src/popup.cc:2742
+msgid "Produce five fish and five meat and five bread."
+msgstr ""
+
+#: src/popup.cc:2743
+msgid "Smelt five steel bars and five gold bars."
+msgstr ""
+
+#: src/popup.cc:2744
+msgid "Make ten weapons and ten tools."
+msgstr ""
+
+#: src/popup.cc:2745
+msgid "Conquer all the land of the enemy."
+msgstr ""
+
+#. TRANSLATORS: %d is the number of the tutorial.
+#: src/popup.cc:2755
+#, c-format
+msgid "TUTORIAL %d"
+msgstr ""
+
+#: src/popup.cc:2761
+msgid "ORDERS:"
+msgstr ""
+
+#: src/popup.cc:2790
+msgid "Demolish:"
+msgstr ""
+
+#: src/popup.cc:2791
+msgid "Click here"
+msgstr ""
+
+#: src/popup.cc:2792
+msgid ""
+"if you are\n"
+"sure"
+msgstr ""
+
+#: src/popup.cc:2805
+msgid "Save Game"
+msgstr ""

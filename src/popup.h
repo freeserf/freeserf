@@ -176,6 +176,14 @@ class PopupBox : public GuiObject {
   void draw_box_background(BackgroundPattern sprite);
   void draw_box_row(int sprite, int y);
   void draw_green_string(int x, int y, const std::string &str);
+  /* The lines of a text (split at '\n'), line_height pixels apart: from
+     the column sx, or each centred in the box, or centred at the pixel cx
+     of the box. */
+  void draw_green_lines(int sx, int sy, const std::string &text,
+                        int line_height = 10);
+  void draw_green_centered(int sy, const std::string &text,
+                           int line_height = 10);
+  void draw_green_centered_at(int cx, int sy, const std::string &str);
   void draw_green_number(int x, int y, int n);
   static std::string format_count(int n);
   void draw_green_large_number(int x, int y, int n);

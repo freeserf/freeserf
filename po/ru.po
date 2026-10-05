@@ -1,0 +1,636 @@
+# Russian translation of FreeSerf.
+# This file is distributed under the same license as FreeSerf.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: FreeSerf 0.5.0\n"
+"Report-Msgid-Bugs-To: https://github.com/freeserf/freeserf/issues\n"
+"POT-Creation-Date: 2026-10-05 21:54+0300\n"
+"PO-Revision-Date: 2026-10-05 21:54+0300\n"
+"Last-Translator: \n"
+"Language-Team: Russian\n"
+"Language: ru\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=3; plural=(n%10==1 && n%100!=11 ? 0 : n%10>=2 && "
+"n%10<=4 && (n%100<10 || n%100>=20) ? 1 : 2);\n"
+
+#: src/advanced-box.cc:56
+msgid "Off"
+msgstr "Выкл"
+
+#. TRANSLATORS: %d is a number of minutes.
+#: src/advanced-box.cc:58
+#, c-format
+msgid "%d min"
+msgstr "%d мин"
+
+#: src/advanced-box.cc:88
+msgid "Invert scrolling"
+msgstr "Обратная прокрутка"
+
+#: src/advanced-box.cc:90
+msgid "Large numbers"
+msgstr "Большие числа"
+
+#: src/advanced-box.cc:92
+msgid "Autosave"
+msgstr "Автосохранение"
+
+#: src/advanced-box.cc:94
+msgid "Stock box until occupied"
+msgstr "Окно склада до заселения"
+
+#: src/advanced-box.cc:97
+msgid "Graphics"
+msgstr "Графика"
+
+#: src/advanced-box.cc:99
+msgid "Sounds"
+msgstr "Звуки"
+
+#: src/advanced-box.cc:100 src/popup.cc:1948
+msgid "Music"
+msgstr "Музыка"
+
+#: src/advanced-box.cc:102
+msgid "Language"
+msgstr "Язык"
+
+#: src/freeserf.cc:105
+msgid ""
+"Could not find the game data.\n"
+"\n"
+"Copy the data file of the original game (SPAE.PA, SPAD.PA, SPAF.PA or "
+"SPAU.PA) into the FreeSerf data directory, or give its directory with -g "
+"DATA-PATH."
+msgstr ""
+"Не найдены данные игры.\n"
+"\n"
+"Скопируйте файл данных оригинальной игры (SPAE.PA, SPAD.PA, SPAF.PA или SPAU.PA) в папку данных FreeSerf или укажите его папку параметром -g DATA-PATH."
+
+#: src/game-init.cc:212
+msgid "Start mission"
+msgstr "Начать миссию"
+
+#: src/game-init.cc:213
+msgid "Mission:"
+msgstr "Миссия:"
+
+#: src/game-init.cc:227
+msgid "Start tutorial"
+msgstr "Начать обучение"
+
+#: src/game-init.cc:228
+msgid "Tutorial:"
+msgstr "Урок:"
+
+#: src/game-init.cc:242
+msgid "New game"
+msgstr "Новая игра"
+
+#: src/game-init.cc:243
+msgid "Mapsize:"
+msgstr "Карта:"
+
+#: src/game-init.cc:253
+msgid "Load game"
+msgstr "Загрузить игру"
+
+#: src/notification.cc:92
+msgid ""
+"Your settlement\n"
+"is under attack"
+msgstr ""
+"Ваше поселение\n"
+"атаковано"
+
+#: src/notification.cc:96
+msgid ""
+"Your knights\n"
+"just lost the\n"
+"fight"
+msgstr ""
+"Ваши рыцари\n"
+"проиграли\n"
+"бой"
+
+#: src/notification.cc:100
+msgid ""
+"You gained\n"
+"a victory here"
+msgstr ""
+"Здесь вы\n"
+"одержали победу"
+
+#: src/notification.cc:104
+msgid ""
+"This mine hauls\n"
+"no more raw\n"
+"materials"
+msgstr ""
+"Эта шахта\n"
+"больше не даёт\n"
+"сырья"
+
+#: src/notification.cc:108
+msgid ""
+"You wanted me\n"
+"to call you to\n"
+"this location"
+msgstr ""
+"Вы просили\n"
+"позвать вас\n"
+"к этому месту"
+
+#: src/notification.cc:112
+msgid ""
+"A knight has\n"
+"occupied this\n"
+"new building"
+msgstr ""
+"Рыцарь занял\n"
+"это новое\n"
+"здание"
+
+#: src/notification.cc:116
+msgid ""
+"A new stock\n"
+"has been built"
+msgstr ""
+"Построен\n"
+"новый склад"
+
+#: src/notification.cc:120
+msgid ""
+"Because of this\n"
+"enemy building\n"
+"you lost some\n"
+"land"
+msgstr ""
+"Из-за этого\n"
+"вражеского\n"
+"здания вы\n"
+"потеряли землю"
+
+#: src/notification.cc:124
+msgid ""
+"Because of this\n"
+"enemy building\n"
+"you lost some\n"
+"land and\n"
+"some buildings"
+msgstr ""
+"Из-за этого\n"
+"вражеского\n"
+"здания вы\n"
+"потеряли землю\n"
+"и здания"
+
+#: src/notification.cc:129
+msgid ""
+"Emergency\n"
+"program\n"
+"activated"
+msgstr ""
+"Аварийная\n"
+"программа\n"
+"включена"
+
+#: src/notification.cc:133
+msgid ""
+"Emergency\n"
+"program\n"
+"neutralized"
+msgstr ""
+"Аварийная\n"
+"программа\n"
+"отключена"
+
+#: src/notification.cc:137
+msgid ""
+"A geologist\n"
+"has found gold"
+msgstr ""
+"Геолог\n"
+"нашёл золото"
+
+#: src/notification.cc:141
+msgid ""
+"A geologist\n"
+"has found iron"
+msgstr ""
+"Геолог\n"
+"нашёл железо"
+
+#: src/notification.cc:145
+msgid ""
+"A geologist\n"
+"has found coal"
+msgstr ""
+"Геолог\n"
+"нашёл уголь"
+
+#: src/notification.cc:149
+msgid ""
+"A geologist\n"
+"has found stone"
+msgstr ""
+"Геолог\n"
+"нашёл камень"
+
+#: src/notification.cc:153
+msgid ""
+"You wanted me\n"
+"to call you\n"
+"to this menu"
+msgstr ""
+"Вы просили\n"
+"позвать вас\n"
+"к этому меню"
+
+#: src/notification.cc:157
+msgid ""
+"30 min. passed\n"
+"since the last\n"
+"saving"
+msgstr ""
+"Прошло 30 минут\n"
+"с последнего\n"
+"сохранения"
+
+#: src/notification.cc:161
+msgid ""
+"One hour passed\n"
+"since the last\n"
+"saving"
+msgstr ""
+"Прошёл час\n"
+"с последнего\n"
+"сохранения"
+
+#: src/notification.cc:165
+msgid ""
+"You wanted me\n"
+"to call you\n"
+"to this stock"
+msgstr ""
+"Вы просили\n"
+"позвать вас\n"
+"к этому складу"
+
+#: src/popup.cc:443
+msgctxt "thousands"
+msgid "K"
+msgstr "К"
+
+#: src/popup.cc:447 src/popup.cc:450
+msgctxt "millions"
+msgid "M"
+msgstr "М"
+
+#: src/popup.cc:517
+msgctxt "ground analysis"
+msgid "Not Present"
+msgstr "Нет"
+
+#: src/popup.cc:518
+msgctxt "ground analysis"
+msgid "Minimum"
+msgstr "Минимум"
+
+#: src/popup.cc:519
+msgctxt "ground analysis"
+msgid "Very Few"
+msgstr "Очень мало"
+
+#: src/popup.cc:520
+msgctxt "ground analysis"
+msgid "Few"
+msgstr "Мало"
+
+#: src/popup.cc:521
+msgctxt "ground analysis"
+msgid "Below Average"
+msgstr "Ниже среднего"
+
+#: src/popup.cc:522
+msgctxt "ground analysis"
+msgid "Average"
+msgstr "Средне"
+
+#: src/popup.cc:523
+msgctxt "ground analysis"
+msgid "Above Average"
+msgstr "Выше среднего"
+
+#: src/popup.cc:524
+msgctxt "ground analysis"
+msgid "Much"
+msgstr "Много"
+
+#: src/popup.cc:525
+msgctxt "ground analysis"
+msgid "Very Much"
+msgstr "Очень много"
+
+#: src/popup.cc:526
+msgctxt "ground analysis"
+msgid "Perfect"
+msgstr "Отлично"
+
+#: src/popup.cc:1631
+msgid "GROUND-ANALYSIS:"
+msgstr "АНАЛИЗ ГРУНТА:"
+
+#: src/popup.cc:1789
+msgctxt "knight occupation"
+msgid "Minimum"
+msgstr "Минимум"
+
+#: src/popup.cc:1789
+msgctxt "knight occupation"
+msgid "Weak"
+msgstr "Слабо"
+
+#: src/popup.cc:1790
+msgctxt "knight occupation"
+msgid "Good"
+msgstr "Хорошо"
+
+#: src/popup.cc:1790
+msgctxt "knight occupation"
+msgid "Medium"
+msgstr "Средне"
+
+#: src/popup.cc:1791
+msgctxt "knight occupation"
+msgid "Full"
+msgstr "Полно"
+
+#: src/popup.cc:1930
+msgid ""
+"Do you want\n"
+"to quit\n"
+"this game?"
+msgstr ""
+"Вы хотите\n"
+"выйти\n"
+"из игры?"
+
+#: src/popup.cc:1932 src/popup.cc:1940
+msgid "Yes"
+msgstr "Да"
+
+#: src/popup.cc:1933 src/popup.cc:1941
+msgid "No"
+msgstr "Нет"
+
+#: src/popup.cc:1938
+msgid ""
+"The game has not\n"
+"been saved\n"
+"recently.\n"
+"Are you\n"
+"sure?"
+msgstr ""
+"Игра давно\n"
+"не сохранялась.\n"
+"\n"
+"Вы уверены?"
+
+#: src/popup.cc:1949
+msgid ""
+"Sound\n"
+"effects"
+msgstr ""
+"Звуковые\n"
+"эффекты"
+
+#: src/popup.cc:1950
+msgid "Volume"
+msgstr "Громкость"
+
+#: src/popup.cc:1971
+msgid ""
+"Fullscreen\n"
+"video"
+msgstr ""
+"Полный\n"
+"экран"
+
+#: src/popup.cc:1976
+msgctxt "messages"
+msgid "All"
+msgstr "Все"
+
+#: src/popup.cc:1978
+msgctxt "messages"
+msgid "Most"
+msgstr "Много"
+
+#: src/popup.cc:1980
+msgctxt "messages"
+msgid "Few"
+msgstr "Мало"
+
+#: src/popup.cc:1982
+msgctxt "messages"
+msgid "None"
+msgstr "Нет"
+
+#: src/popup.cc:1986
+msgid "Messages"
+msgstr "Сообщения"
+
+#: src/popup.cc:2095
+msgid ""
+"MINING\n"
+"OUTPUT:"
+msgstr ""
+"ДОБЫЧА\n"
+"ШАХТЫ:"
+
+#: src/popup.cc:2124
+msgid ""
+"Ordered\n"
+"Building"
+msgstr ""
+"Заказано\n"
+"зданием"
+
+#: src/popup.cc:2204
+msgid "Defenders:"
+msgstr "Защитники:"
+
+#: src/popup.cc:2214
+msgid "State:"
+msgstr "Состояние:"
+
+#: src/popup.cc:2281
+msgid "Transport Info:"
+msgstr "Транспорт:"
+
+#: src/popup.cc:2293
+msgid "Index:"
+msgstr "Номер:"
+
+#: src/popup.cc:2632
+msgid ""
+"Stock of\n"
+"this building:"
+msgstr ""
+"Запасы\n"
+"этого здания:"
+
+#: src/popup.cc:2698
+msgid "CONGRATULATIONS."
+msgstr "ПОЗДРАВЛЯЕМ."
+
+#: src/popup.cc:2699
+msgid ""
+"YOUR ENEMIES\n"
+"RESIGN. YOU\n"
+"HAVE WON THIS\n"
+"MISSION."
+msgstr ""
+"ВАШИ ВРАГИ\n"
+"СДАЛИСЬ. ВЫ\n"
+"ВЫИГРАЛИ ЭТУ\n"
+"МИССИЮ."
+
+#: src/popup.cc:2705
+msgid "NEW PASSWORD:"
+msgstr "НОВЫЙ ПАРОЛЬ:"
+
+#: src/popup.cc:2709
+msgid ""
+"SORRY, ONLY ONE\n"
+"OF YOUR ENEMIES\n"
+"HAS GAINED THE\n"
+"SUPERIORITY IN\n"
+"THIS MISSION"
+msgstr ""
+"УВЫ, ОДИН\n"
+"ИЗ ВАШИХ ВРАГОВ\n"
+"ДОБИЛСЯ\n"
+"ПРЕВОСХОДСТВА\n"
+"В ЭТОЙ МИССИИ"
+
+#: src/popup.cc:2715
+msgid "WELL DONE."
+msgstr "ОТЛИЧНО."
+
+#: src/popup.cc:2716
+msgid ""
+"YOU COMPLETED\n"
+"THIS TUTORIAL\n"
+"GAME."
+msgstr ""
+"ВЫ ПРОШЛИ\n"
+"ЭТУ ОБУЧАЮЩУЮ\n"
+"ИГРУ."
+
+#: src/popup.cc:2722
+msgid ""
+"THE BLUE\n"
+"SETTLERS HAVE\n"
+"GAINED THE\n"
+"SUPERIORITY"
+msgstr ""
+"СИНИЕ\n"
+"ПОСЕЛЕНЦЫ\n"
+"ДОБИЛИСЬ\n"
+"ПРЕВОСХОДСТВА"
+
+#: src/popup.cc:2723
+msgid ""
+"THE RED\n"
+"SETTLERS HAVE\n"
+"GAINED THE\n"
+"SUPERIORITY"
+msgstr ""
+"КРАСНЫЕ\n"
+"ПОСЕЛЕНЦЫ\n"
+"ДОБИЛИСЬ\n"
+"ПРЕВОСХОДСТВА"
+
+#: src/popup.cc:2724
+msgid ""
+"THE VIOLET\n"
+"SETTLERS HAVE\n"
+"GAINED THE\n"
+"SUPERIORITY"
+msgstr ""
+"ФИОЛЕТОВЫЕ\n"
+"ПОСЕЛЕНЦЫ\n"
+"ДОБИЛИСЬ\n"
+"ПРЕВОСХОДСТВА"
+
+#: src/popup.cc:2725
+msgid ""
+"THE YELLOW\n"
+"SETTLERS HAVE\n"
+"GAINED THE\n"
+"SUPERIORITY"
+msgstr ""
+"ЖЁЛТЫЕ\n"
+"ПОСЕЛЕНЦЫ\n"
+"ДОБИЛИСЬ\n"
+"ПРЕВОСХОДСТВА"
+
+#: src/popup.cc:2740
+msgid "Build a guard hut and a guard tower and a fortress."
+msgstr "Постройте сторожку, сторожевую башню и крепость."
+
+#: src/popup.cc:2741
+msgid "Produce five planks and five stones."
+msgstr "Произведите пять досок и пять камней."
+
+#: src/popup.cc:2742
+msgid "Produce five fish and five meat and five bread."
+msgstr "Добудьте пять рыбы, пять мяса и пять хлеба."
+
+#: src/popup.cc:2743
+msgid "Smelt five steel bars and five gold bars."
+msgstr "Выплавьте пять слитков стали и пять слитков золота."
+
+#: src/popup.cc:2744
+msgid "Make ten weapons and ten tools."
+msgstr "Изготовьте десять единиц оружия и десять инструментов."
+
+#: src/popup.cc:2745
+msgid "Conquer all the land of the enemy."
+msgstr "Захватите все земли врага."
+
+#. TRANSLATORS: %d is the number of the tutorial.
+#: src/popup.cc:2755
+#, c-format
+msgid "TUTORIAL %d"
+msgstr "ОБУЧЕНИЕ %d"
+
+#: src/popup.cc:2761
+msgid "ORDERS:"
+msgstr "ЗАДАНИЕ:"
+
+#: src/popup.cc:2790
+msgid "Demolish:"
+msgstr "Снести:"
+
+#: src/popup.cc:2791
+msgid "Click here"
+msgstr "Нажмите здесь"
+
+#: src/popup.cc:2792
+msgid ""
+"if you are\n"
+"sure"
+msgstr ""
+"если вы\n"
+"уверены"
+
+#: src/popup.cc:2805
+msgid "Save Game"
+
+msgstr "Сохранить игру"
