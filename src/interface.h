@@ -41,6 +41,7 @@ class Viewport;
 class PanelBar;
 class PopupBox;
 class GameInitBox;
+class AdvancedBox;
 class NotificationBox;
 
 class Interface : public GuiObject, public GameManager::Handler {
@@ -94,6 +95,7 @@ class Interface : public GuiObject, public GameManager::Handler {
   PanelBar *panel;
   PopupBox *popup;
   GameInitBox *init_box;
+  AdvancedBox *advanced_box;
   NotificationBox *notification_box;
 
   MapPos map_cursor_pos;
@@ -108,6 +110,8 @@ class Interface : public GuiObject, public GameManager::Handler {
   Player *player;
   int config;
   int msg_flags;
+  /* Advanced options (not in the original game). */
+  bool invert_scrolling;
 
   SpriteLoc map_cursor_sprites[7];
 
@@ -143,6 +147,9 @@ class Interface : public GuiObject, public GameManager::Handler {
   bool get_config(int i) const { return (BIT_TEST(config, i) != 0); }
   void set_config(int i) { config |= BIT(i); }
   void switch_config(int i) { BIT_INVERT(config, i); }
+  /* Mouse dragging moves the map vertically the other way. */
+  bool get_invert_scrolling() const { return invert_scrolling; }
+  void switch_invert_scrolling() { invert_scrolling = !invert_scrolling; }
 
   MapPos get_map_cursor_pos() const { return map_cursor_pos; }
   CursorType get_map_cursor_type() const { return map_cursor_type; }
@@ -176,6 +183,9 @@ class Interface : public GuiObject, public GameManager::Handler {
 
   void open_game_init();
   void close_game_init();
+  /* Box of the advanced options; closing it closes the options too. */
+  void open_advanced();
+  void close_advanced();
 
   void open_message();
   void return_from_message();

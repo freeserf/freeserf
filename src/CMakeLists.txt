@@ -156,6 +156,7 @@ target_check_style(data)
 # FreeSerf executable
 
 set(OTHER_SOURCES pathfinder.cc
+                  advanced-box.cc
                   box-frame.cc
                   gfx.cc
                   viewport.cc
@@ -172,6 +173,7 @@ set(OTHER_SOURCES pathfinder.cc
                   command_line.cc)
 
 set(OTHER_HEADERS pathfinder.h
+                  advanced-box.h
                   box-frame.h
                   gfx.h
                   viewport.h
