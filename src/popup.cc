@@ -378,13 +378,29 @@ PopupBox::draw_green_string(int sx, int sy, const std::string &str) {
    n must be non-negative. If > 999 simply draw ">999" (three characters). */
 void
 PopupBox::draw_green_number(int sx, int sy, int n) {
-  if (n >= 1000) {
+  if (n >= 1000 && interface->get_large_numbers()) {
+    /* Advanced option: shortened to the three characters of the field. */
+    frame->draw_string(8 * sx + 8, 9 + sy, format_count(n), Color::green);
+  } else if (n >= 1000) {
     draw_popup_icon(sx, sy, 0xd5); /* Draw >999 */
     draw_popup_icon(sx+1, sy, 0xd6);
     draw_popup_icon(sx+2, sy, 0xd7);
   } else {
     frame->draw_number(8 * sx + 8, 9 + sy, n, Color::green);
   }
+}
+
+/* A count of 1000 or more in at most three characters: thousands (1K to
+   99K), tenths of a million (.1M to .9M), millions (1M to 99M), rounded. */
+std::string
+PopupBox::format_count(int n) {
+  if (n < 1000) return std::to_string(n);
+  int thousands = (n + 500) / 1000;
+  if (thousands < 100) return std::to_string(thousands) + "K";
+  int tenths = (n + 50000) / 100000;
+  if (tenths < 10) return "." + std::to_string(tenths) + "M";
+  int millions = std::min((n + 500000) / 1000000, 99);
+  return std::to_string(millions) + "M";
 }
 
 /* Draw a green number in a popup frame.

@@ -62,6 +62,7 @@ Interface::Interface()
   config = 0x39;
   msg_flags = 0;
   invert_scrolling = false;
+  large_numbers = false;
   return_timeout = 0;
 
   selected_stat_scale = StatScale30Min;
@@ -196,6 +197,7 @@ Interface::apply_settings() {
   }
 
   invert_scrolling = settings.get("advanced", "invert_scrolling", false);
+  large_numbers = settings.get("advanced", "large_numbers", false);
 }
 
 void
@@ -219,6 +221,7 @@ Interface::store_settings() {
   settings.set("options", "messages", messages);
 
   settings.set("advanced", "invert_scrolling", invert_scrolling);
+  settings.set("advanced", "large_numbers", large_numbers);
 
   settings.save();
 }
