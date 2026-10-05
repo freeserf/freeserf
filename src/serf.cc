@@ -1599,6 +1599,12 @@ Serf::handle_serf_entering_building_state() {
           Building *building = game->get_building_at_pos(pos);
           Building::Type bld_type = building->get_type();
 
+          /* A working stone mine ends the stone part of the emergency
+             program (Amiga entering_building @0x12bf0). */
+          if (bld_type == Building::TypeStoneMine) {
+            game->get_player(get_owner())->stone_mine_working();
+          }
+
           if (s.entering_building.field_B != 0) {
             building->start_activity();
             building->stop_playing_sfx();

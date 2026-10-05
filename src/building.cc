@@ -664,7 +664,8 @@ Building::update() {
           Player *player = game->get_player(get_owner());
           int total_tree = stock[0].requested + stock[0].available;
           if (total_tree < stock[0].maximum) {
-            stock[0].prio =
+            /* No planks during a planks emergency (Amiga @0xc6c0). */
+            stock[0].prio = player->is_out_of_planks() ? 0 :
               player->get_planks_boatbuilder() >> (8 + total_tree);
           } else {
             stock[0].prio = 0;
@@ -851,7 +852,9 @@ Building::update() {
           Player *player = game->get_player(get_owner());
           int total_tree = stock[0].requested + stock[0].available;
           if (total_tree < stock[0].maximum) {
-            stock[0].prio = player->get_planks_toolmaker() >> (8 + total_tree);
+            /* No planks during a planks emergency (Amiga @0xc72c). */
+            stock[0].prio = player->is_out_of_planks() ? 0 :
+              player->get_planks_toolmaker() >> (8 + total_tree);
           } else {
             stock[0].prio = 0;
           }
@@ -956,17 +959,45 @@ void
 Building::update_unfinished() {
   Player *player = game->get_player(get_owner());
 
+  /* During an emergency only the designated buildings get a builder and
+     planks or stone (Amiga update_unfinished_building @0xc01e). */
+  bool designated = player->is_emergency_designated(get_index());
+
   /* Request builder serf */
   if (!serf_request_failed && !holder && !serf_requested) {
     progress = 1;
+    if (player->is_emergency_active() && !designated) {
+      serf_request_failed = true;
+      return;
+    }
     serf_request_failed = !send_serf_to_building(Serf::TypeBuilder,
                                                  Resource::TypeHammer,
                                                  Resource::TypeNone);
   }
 
+  /* During a planks or stone emergency computer players demolish
+     construction sites at random, the less progress the more likely
+     (Amiga @0xc07a / 0xc10e). In the stone branch the original tests the
+     designated stonecutter the wrong way round (bne @0xc10c); not
+     reproduced. */
+  if ((player->is_out_of_planks() || player->is_out_of_stone()) &&
+      !designated && player->is_ai()) {
+    int rolls = (player->is_out_of_planks() ? 1 : 0) +
+                (player->is_out_of_stone() ? 1 : 0);
+    unsigned int limit = static_cast<uint16_t>(~progress) >> 5;
+    for (int i = 0; i < rolls; i++) {
+      if (game->random_int() < limit) {
+        game->demolish_building(pos, player);
+        return;
+      }
+    }
+  }
+
   /* Request planks */
   int total_planks = stock[0].requested + stock[0].available;
-  if (total_planks < stock[0].maximum) {
+  if (player->is_out_of_planks() && !designated) {
+    stock[0].prio = 0;
+  } else if (total_planks < stock[0].maximum) {
     int planks_prio = player->get_planks_construction() >> (8 + total_planks);
     if (!holder) planks_prio >>= 2;
     stock[0].prio = planks_prio & ~BIT(0);
@@ -976,7 +1007,9 @@ Building::update_unfinished() {
 
   /* Request stone */
   int total_stone = stock[1].requested + stock[1].available;
-  if (total_stone < stock[1].maximum) {
+  if (player->is_out_of_stone() && !designated) {
+    stock[1].prio = 0;
+  } else if (total_stone < stock[1].maximum) {
     int stone_prio = 0xff >> total_stone;
     if (!holder) stone_prio >>= 2;
     stock[1].prio = stone_prio & ~BIT(0);
@@ -1014,8 +1047,15 @@ Building::update_unfinished_adv() {
     return;
   }
 
-  /* Request digger */
+  /* Request digger; during an emergency only for the lumberjack,
+     stonecutter and sawmill sites (Amiga @0xbfc0). */
   if (!serf_request_failed) {
+    Player *player = game->get_player(get_owner());
+    if (player->is_emergency_active() && type != TypeLumberjack &&
+        type != TypeStonecutter && type != TypeSawmill) {
+      serf_request_failed = true;
+      return;
+    }
     serf_request_failed = !send_serf_to_building(Serf::TypeDigger,
                                                  Resource::TypeShovel,
                                                  Resource::TypeNone);

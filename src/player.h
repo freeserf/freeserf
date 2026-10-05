@@ -107,6 +107,17 @@ class Player : public GameObject {
 
   int building;
   int castle_inventory;
+
+  /* Emergency program (Amiga player_update_emergency_program @0xb23c):
+     0 over, 1 out of planks, 2 out of stone, 3/4/5 lumberjack, sawmill,
+     stonecutter ready, 6 active. */
+  int emergency_flags;
+  int emergency_counter;
+  unsigned int extra_planks;
+  unsigned int extra_stone;
+  unsigned int lumberjack_index;
+  unsigned int sawmill_index;
+  unsigned int stonecutter_index;
   int cont_search_after_non_optimal_find;
   int knights_to_spawn;
   unsigned int total_land_area;
@@ -204,6 +215,19 @@ class Player : public GameObject {
      (Amiga player flag bit 6). */
   bool is_in_game() const { return ((flags >> 6) & 1); }
   bool is_ai() const { return ((flags >> 7) & 1); }
+
+  bool is_emergency_active() const { return ((emergency_flags >> 6) & 1); }
+  bool is_out_of_planks() const { return ((emergency_flags >> 1) & 1); }
+  bool is_out_of_stone() const { return ((emergency_flags >> 2) & 1); }
+  bool is_emergency_designated(unsigned int index) const {
+    return (index != 0) && (index == lumberjack_index ||
+                            index == sawmill_index ||
+                            index == stonecutter_index); }
+  void start_emergency_program(unsigned int planks, unsigned int stone);
+  void designate_emergency_building(const Building *building);
+  void building_deleted(unsigned int index);
+  void stone_mine_working() { emergency_flags |= BIT(5); }
+  void update_emergency_program();
 
   /* Whether player is prohibited from building military
    buildings at current position. */

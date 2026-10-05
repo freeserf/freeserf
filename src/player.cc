@@ -82,6 +82,13 @@ Player::Player(Game* game, unsigned int index)
   temp_index = 0;
 
   building = 0;
+  emergency_flags = BIT(0);
+  emergency_counter = 0;
+  extra_planks = 0;
+  extra_stone = 0;
+  lumberjack_index = 0;
+  sawmill_index = 0;
+  stonecutter_index = 0;
   cont_search_after_non_optimal_find = 7;
   knights_to_spawn = 0;
   total_land_area = 0;
@@ -879,6 +886,152 @@ Player::create_initial_castle_serfs(Building *castle) {
   }
 }
 
+/* The castle keeps a reserve of planks and stone back (Amiga
+   game_build_castle @0x155de). */
+void
+Player::start_emergency_program(unsigned int planks, unsigned int stone) {
+  extra_planks = planks;
+  extra_stone = stone;
+  emergency_flags &= ~0x3f;
+  emergency_counter = 0;
+  lumberjack_index = 0;
+  sawmill_index = 0;
+  stonecutter_index = 0;
+}
+
+/* Until the program is over the first lumberjack, sawmill and stonecutter
+   are designated (Amiga game_build_building @0x18752). */
+void
+Player::designate_emergency_building(const Building *bld) {
+  if (BIT_TEST(emergency_flags, 0)) {
+    return;
+  }
+
+  switch (bld->get_type()) {
+    case Building::TypeLumberjack:
+      if (lumberjack_index == 0) lumberjack_index = bld->get_index();
+      break;
+    case Building::TypeSawmill:
+      if (sawmill_index == 0) sawmill_index = bld->get_index();
+      break;
+    case Building::TypeStonecutter:
+      if (stonecutter_index == 0) stonecutter_index = bld->get_index();
+      break;
+    default:
+      break;
+  }
+}
+
+/* A deleted building is no longer designated (the original keeps
+   reading the stale record). */
+void
+Player::building_deleted(unsigned int index) {
+  if (lumberjack_index == index) lumberjack_index = 0;
+  if (sawmill_index == index) sawmill_index = 0;
+  if (stonecutter_index == index) stonecutter_index = 0;
+}
+
+/* A designated building counts as ready when it is finished or has all
+   its construction material (Amiga @0xb31a). */
+static bool
+emergency_building_ready(Game *game, unsigned int index) {
+  Building *building = game->get_building(index);
+  if (building == nullptr) return true;
+  if (building->is_done()) return true;
+  return building->get_res_count_in_stock(0) +
+         building->get_res_count_in_stock(1) ==
+         static_cast<unsigned int>(building->get_maximum_in_stock(0) +
+                                   building->get_maximum_in_stock(1));
+}
+
+/* Emergency program: when the castle runs out of planks or stone, only
+   the designated lumberjack, sawmill and stonecutter are built, until
+   they are ready (Amiga player_update_emergency_program @0xb23c). */
+void
+Player::update_emergency_program() {
+  if (!is_in_game() || BIT_TEST(emergency_flags, 0) || !has_castle()) {
+    return;
+  }
+  Inventory *inventory = game->get_inventory(castle_inventory);
+  /* After the castle is lost the original keeps reading its freed
+     inventory record. */
+  if (inventory == nullptr || inventory->get_owner() != index) {
+    return;
+  }
+
+  if (!BIT_TEST(emergency_flags, 1) &&
+      inventory->get_count_of(Resource::TypePlank) == 0) {
+    emergency_flags |= BIT(1);
+    if (!BIT_TEST(emergency_flags, 2)) {
+      emergency_flags |= BIT(6);
+      add_notification(Message::TypeEmergencyActive, 0, 0);
+    }
+    emergency_counter = 2;
+  }
+
+  if (!BIT_TEST(emergency_flags, 2) &&
+      inventory->get_count_of(Resource::TypeStone) == 0) {
+    emergency_flags |= BIT(2);
+    if (!BIT_TEST(emergency_flags, 1)) {
+      emergency_flags |= BIT(6);
+      add_notification(Message::TypeEmergencyActive, 0, 0);
+    }
+    emergency_counter = 2;
+  }
+
+  /* After two cycles the reserve of the missing material is released. */
+  if (emergency_counter != 0) {
+    emergency_counter -= 1;
+    if (emergency_counter == 0) {
+      if (BIT_TEST(emergency_flags, 1) && extra_planks != 0) {
+        inventory->set_count_of(Resource::TypePlank,
+                                inventory->get_count_of(Resource::TypePlank) +
+                                extra_planks);
+        extra_planks = 0;
+      }
+      if (BIT_TEST(emergency_flags, 2) && extra_stone != 0) {
+        inventory->set_count_of(Resource::TypeStone,
+                                inventory->get_count_of(Resource::TypeStone) +
+                                extra_stone);
+        extra_stone = 0;
+      }
+    }
+  }
+
+  if (!BIT_TEST(emergency_flags, 3) && lumberjack_index != 0 &&
+      emergency_building_ready(game, lumberjack_index)) {
+    emergency_flags |= BIT(3);
+    lumberjack_index = 0;
+  }
+  if (!BIT_TEST(emergency_flags, 4) && sawmill_index != 0 &&
+      emergency_building_ready(game, sawmill_index)) {
+    emergency_flags |= BIT(4);
+    sawmill_index = 0;
+  }
+  if (!BIT_TEST(emergency_flags, 5) && stonecutter_index != 0 &&
+      emergency_building_ready(game, stonecutter_index)) {
+    emergency_flags |= BIT(5);
+    stonecutter_index = 0;
+  }
+
+  if ((emergency_flags & 0x38) == 0x38) {
+    emergency_flags |= BIT(0);
+    if (emergency_flags & 0x06) {
+      emergency_flags &= ~BIT(6);
+      add_notification(Message::TypeEmergencyNeutral, 0, 0);
+    }
+    emergency_flags &= ~0x06;
+    inventory->set_count_of(Resource::TypePlank,
+                            inventory->get_count_of(Resource::TypePlank) +
+                            extra_planks);
+    extra_planks = 0;
+    inventory->set_count_of(Resource::TypeStone,
+                            inventory->get_count_of(Resource::TypeStone) +
+                            extra_stone);
+    extra_stone = 0;
+  }
+}
+
 /* Update player game state as part of the game progression. */
 void
 Player::update() {
@@ -1290,6 +1443,16 @@ operator >> (SaveReaderText &reader, Player &player) {
   reader.value("color")[1] >> val; player.color.green = val;
   reader.value("color")[2] >> val; player.color.blue = val;
   reader.value("face") >> player.face;
+  /* Older saves have no emergency program; it counts as over. */
+  if (reader.has_value("emergency_flags")) {
+    reader.value("emergency_flags") >> player.emergency_flags;
+    reader.value("emergency_counter") >> player.emergency_counter;
+    reader.value("extra_planks") >> player.extra_planks;
+    reader.value("extra_stone") >> player.extra_stone;
+    reader.value("lumberjack_index") >> player.lumberjack_index;
+    reader.value("sawmill_index") >> player.sawmill_index;
+    reader.value("stonecutter_index") >> player.stonecutter_index;
+  }
   /* Saves from before the in-game bit: every player with a face takes
      part in the game. */
   if (player.face != 0) player.flags |= BIT(6);
@@ -1358,6 +1521,13 @@ operator << (SaveWriterText &writer, Player &player) {
   writer.value("color") << player.color.green;
   writer.value("color") << player.color.blue;
   writer.value("face") << player.face;
+  writer.value("emergency_flags") << player.emergency_flags;
+  writer.value("emergency_counter") << player.emergency_counter;
+  writer.value("extra_planks") << player.extra_planks;
+  writer.value("extra_stone") << player.extra_stone;
+  writer.value("lumberjack_index") << player.lumberjack_index;
+  writer.value("sawmill_index") << player.sawmill_index;
+  writer.value("stonecutter_index") << player.stonecutter_index;
 
   for (int i = 0; i < 9; i++) {
     writer.value("tool_prio") << player.tool_prio[i];
