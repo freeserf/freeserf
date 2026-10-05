@@ -24,6 +24,7 @@
 #include <algorithm>
 #include <iostream>
 #include <fstream>
+#include <string>
 #include <utility>
 
 #include "src/misc.h"
@@ -73,6 +74,11 @@ Interface::Interface()
   map_cursor_sprites[6].sprite = 33;
 
   last_const_tick = 0;
+
+  show_fps = false;
+  fps = 0;
+  fps_frames = 0;
+  fps_start = 0;
 
   viewport = nullptr;
   panel = nullptr;
@@ -862,6 +868,26 @@ Interface::play_ambient_sounds() {
   }
 }
 
+/* Count the drawn frames and show the rate of the last second in the top
+   left corner of the screen. */
+void
+Interface::draw_fps(Frame *frame) {
+  if (!show_fps) {
+    return;
+  }
+
+  fps_frames++;
+  unsigned int now = EventLoop::get_instance().get_ticks();
+  unsigned int elapsed = now - fps_start;
+  if (elapsed >= 1000) {
+    fps = static_cast<unsigned int>(fps_frames * 1000 / elapsed);
+    fps_frames = 0;
+    fps_start = now;
+  }
+
+  frame->draw_string(4, 4, "FPS " + std::to_string(fps), Color::black);
+}
+
 /* Called periodically when the game progresses. */
 void
 Interface::update() {
@@ -966,6 +992,15 @@ Interface::handle_key_pressed(char key, int modifier) {
       break;
     }
 
+    case 'f': {
+      if ((modifier & 3) == 3) {  /* Ctrl+Shift+F */
+        show_fps = !show_fps;
+        fps_frames = 0;
+        fps_start = EventLoop::get_instance().get_ticks();
+      }
+      break;
+    }
+
     /* Game speed */
     case '+': {
       game->speed_increase();
@@ -1053,6 +1088,7 @@ Interface::handle_event(const Event *event) {
       break;
     case Event::TypeDraw:
       draw(reinterpret_cast<Frame*>(event->object));
+      draw_fps(reinterpret_cast<Frame*>(event->object));
       break;
 
     default:

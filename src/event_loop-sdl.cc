@@ -48,30 +48,15 @@ EventLoopSDL::EventLoopSDL()
   : zoom_factor(1.f)
   , zoom_level(1.f)
   , screen_factor_x(1.f)
-  , screen_factor_y(1.f) {
+  , screen_factor_y(1.f)
+  , drag_button(0)
+  , drag_x(0)
+  , drag_y(0)
+  , last_click_x(0)
+  , last_click_y(0)
+  , screen(nullptr) {
+  for (unsigned int &click : last_click) click = 0;
   SDL_InitSubSystem(SDL_INIT_EVENTS);
-
-  eventUserTypeStep = SDL_RegisterEvents(2);
-  if (eventUserTypeStep == 0) {
-    throw ExceptionFreeserf("Failed to register SDL event");
-  }
-  eventUserTypeStep++;
-}
-
-Uint32
-EventLoopSDL::timer_callback(void *param, SDL_TimerID /*timer_id*/,
-                             Uint32 interval) {
-  EventLoopSDL *eventLoop = static_cast<EventLoopSDL*>(param);
-  SDL_Event event;
-  SDL_zero(event);
-  event.type = eventLoop->eventUserTypeStep;
-  event.user.type = eventLoop->eventUserTypeStep;
-  event.user.code = 0;
-  event.user.data1 = 0;
-  event.user.data2 = 0;
-  SDL_PushEvent(&event);
-
-  return interval;
 }
 
 void
@@ -100,242 +85,258 @@ EventLoopSDL::deferred_call(DeferredCall call, void *data) {
 
 // event_loop() has been turned into a SDL based loop.
 // The code for one iteration of the original game_loop is in game_loop_iter.
-void
-EventLoopSDL::run() {
-  SDL_TimerID timer_id = SDL_AddTimer(TICK_LENGTH, timer_callback, this);
-  if (timer_id == 0) {
-    return;
-  }
-
-  int drag_button = 0;
-  int drag_x = 0;
-  int drag_y = 0;
-
-  unsigned int last_click[6] = {0};
-  int last_click_x = 0;
-  int last_click_y = 0;
-
-  SDL_Event event;
-
+/* Handle one SDL event; false when the loop has to end. */
+bool
+EventLoopSDL::handle_sdl_event(const SDL_Event &event) {
   Graphics &gfx = Graphics::get_instance();
-  Frame *screen = nullptr;
-  gfx.get_screen_factor(&screen_factor_x, &screen_factor_y);
+  unsigned int current_ticks = static_cast<unsigned int>(SDL_GetTicks());
 
-  while (SDL_WaitEvent(&event)) {
-    unsigned int current_ticks = static_cast<unsigned int>(SDL_GetTicks());
-
-    switch (event.type) {
-      case SDL_EVENT_MOUSE_BUTTON_UP: {
-        if (drag_button == event.button.button) {
-          drag_button = 0;
-        }
-
-        if (event.button.button <= 3) {
-          int x = static_cast<int>(static_cast<float>(event.button.x) *
-                                   zoom_factor * screen_factor_x);
-          int y = static_cast<int>(static_cast<float>(event.button.y) *
-                                   zoom_factor * screen_factor_y);
-          notify_click(x, y, (Event::Button)event.button.button);
-
-          int bx = static_cast<int>(event.button.x);
-          int by = static_cast<int>(event.button.y);
-          if (current_ticks - last_click[event.button.button] <
-                MOUSE_TIME_SENSITIVITY &&
-              bx >= (last_click_x - MOUSE_MOVE_SENSITIVITY) &&
-              bx <= (last_click_x + MOUSE_MOVE_SENSITIVITY) &&
-              by >= (last_click_y - MOUSE_MOVE_SENSITIVITY) &&
-              by <= (last_click_y + MOUSE_MOVE_SENSITIVITY)) {
-            notify_dbl_click(x, y, (Event::Button)event.button.button);
-          }
-
-          last_click[event.button.button] = current_ticks;
-          last_click_x = bx;
-          last_click_y = by;
-        }
-        break;
+  switch (event.type) {
+    case SDL_EVENT_MOUSE_BUTTON_UP: {
+      if (drag_button == event.button.button) {
+        drag_button = 0;
       }
-      case SDL_EVENT_MOUSE_BUTTON_DOWN:
-        break;
-      case SDL_EVENT_MOUSE_MOTION: {
-        int mx = static_cast<int>(event.motion.x);
-        int my = static_cast<int>(event.motion.y);
-        for (int button = 1; button <= 3; button++) {
-          if (event.motion.state & SDL_BUTTON_MASK(button)) {
-            if (drag_button == 0) {
-              drag_button = button;
-              drag_x = mx;
-              drag_y = my;
-              break;
-            }
 
-            int x = static_cast<int>(static_cast<float>(drag_x) *
-                                     zoom_factor * screen_factor_x);
-            int y = static_cast<int>(static_cast<float>(drag_y) *
-                                     zoom_factor * screen_factor_y);
-            int dx = mx - drag_x;
-            int dy = my - drag_y;
-            if ((dx == 0) && (dy == 0)) {
-                break;
-            }
+      if (event.button.button <= 3) {
+        int x = static_cast<int>(static_cast<float>(event.button.x) *
+                                 zoom_factor * screen_factor_x);
+        int y = static_cast<int>(static_cast<float>(event.button.y) *
+                                 zoom_factor * screen_factor_y);
+        notify_click(x, y, (Event::Button)event.button.button);
 
-            notify_drag(x, y, dx, dy, (Event::Button)drag_button);
+        int bx = static_cast<int>(event.button.x);
+        int by = static_cast<int>(event.button.y);
+        if (current_ticks - last_click[event.button.button] <
+              MOUSE_TIME_SENSITIVITY &&
+            bx >= (last_click_x - MOUSE_MOVE_SENSITIVITY) &&
+            bx <= (last_click_x + MOUSE_MOVE_SENSITIVITY) &&
+            by >= (last_click_y - MOUSE_MOVE_SENSITIVITY) &&
+            by <= (last_click_y + MOUSE_MOVE_SENSITIVITY)) {
+          notify_dbl_click(x, y, (Event::Button)event.button.button);
+        }
 
-            SDL_WarpMouseInWindow(SDL_GetWindowFromID(event.motion.windowID),
-                                  static_cast<float>(drag_x),
-                                  static_cast<float>(drag_y));
-
+        last_click[event.button.button] = current_ticks;
+        last_click_x = bx;
+        last_click_y = by;
+      }
+      break;
+    }
+    case SDL_EVENT_MOUSE_BUTTON_DOWN:
+      break;
+    case SDL_EVENT_MOUSE_MOTION: {
+      int mx = static_cast<int>(event.motion.x);
+      int my = static_cast<int>(event.motion.y);
+      for (int button = 1; button <= 3; button++) {
+        if (event.motion.state & SDL_BUTTON_MASK(button)) {
+          if (drag_button == 0) {
+            drag_button = button;
+            drag_x = mx;
+            drag_y = my;
             break;
           }
+
+          int x = static_cast<int>(static_cast<float>(drag_x) *
+                                   zoom_factor * screen_factor_x);
+          int y = static_cast<int>(static_cast<float>(drag_y) *
+                                   zoom_factor * screen_factor_y);
+          int dx = mx - drag_x;
+          int dy = my - drag_y;
+          if ((dx == 0) && (dy == 0)) {
+              break;
+          }
+
+          notify_drag(x, y, dx, dy, (Event::Button)drag_button);
+
+          SDL_WarpMouseInWindow(SDL_GetWindowFromID(event.motion.windowID),
+                                static_cast<float>(drag_x),
+                                static_cast<float>(drag_y));
+
+          break;
         }
-        break;
       }
-      case SDL_EVENT_MOUSE_WHEEL: {
-        SDL_Keymod mod = SDL_GetModState();
-        if ((mod & SDL_KMOD_CTRL) != 0) {
-          /* Whole wheel steps only: trackpads send many fractional ones. */
+      break;
+    }
+    case SDL_EVENT_MOUSE_WHEEL: {
+      SDL_Keymod mod = SDL_GetModState();
+      if ((mod & SDL_KMOD_CTRL) != 0) {
+        /* Whole wheel steps only: trackpads send many fractional ones. */
 #if SDL_VERSION_ATLEAST(3, 2, 12)
-          int steps = event.wheel.integer_y;
+        int steps = event.wheel.integer_y;
 #else
-          int steps = static_cast<int>(event.wheel.y);
+        int steps = static_cast<int>(event.wheel.y);
 #endif
-          if (event.wheel.direction == SDL_MOUSEWHEEL_FLIPPED) {
-            steps = -steps;
-          }
-          if (steps != 0) {
-            zoom(0.2f * static_cast<float>(steps));
-          }
+        if (event.wheel.direction == SDL_MOUSEWHEEL_FLIPPED) {
+          steps = -steps;
         }
+        if (steps != 0) {
+          zoom(0.2f * static_cast<float>(steps));
+        }
+      }
+      break;
+    }
+    case SDL_EVENT_KEY_DOWN: {
+      /* Key symbols without the modifiers, as with SDL2. */
+      SDL_Keycode sym = SDL_GetKeyFromScancode(event.key.scancode,
+                                               SDL_KMOD_NONE, false);
+      if (sym == SDLK_Q &&
+          (event.key.mod & SDL_KMOD_CTRL)) {
+        quit();
         break;
       }
-      case SDL_EVENT_KEY_DOWN: {
-        /* Key symbols without the modifiers, as with SDL2. */
-        SDL_Keycode sym = SDL_GetKeyFromScancode(event.key.scancode,
-                                                 SDL_KMOD_NONE, false);
-        if (sym == SDLK_Q &&
-            (event.key.mod & SDL_KMOD_CTRL)) {
-          quit();
+
+      unsigned char modifier = 0;
+      if (event.key.mod & SDL_KMOD_CTRL) {
+        modifier |= 1;
+      }
+      if (event.key.mod & SDL_KMOD_SHIFT) {
+        modifier |= 2;
+      }
+      if (event.key.mod & SDL_KMOD_ALT) {
+        modifier |= 4;
+      }
+
+      switch (sym) {
+        // Map scroll
+        case SDLK_UP: {
+          notify_drag(0, 0, 0, -32, Event::ButtonLeft);
+          break;
+        }
+        case SDLK_DOWN: {
+          notify_drag(0, 0, 0, 32, Event::ButtonLeft);
+          break;
+        }
+        case SDLK_LEFT: {
+          notify_drag(0, 0, -32, 0, Event::ButtonLeft);
+          break;
+        }
+        case SDLK_RIGHT: {
+          notify_drag(0, 0, 32, 0, Event::ButtonLeft);
           break;
         }
 
-        unsigned char modifier = 0;
-        if (event.key.mod & SDL_KMOD_CTRL) {
-          modifier |= 1;
-        }
-        if (event.key.mod & SDL_KMOD_SHIFT) {
-          modifier |= 2;
-        }
-        if (event.key.mod & SDL_KMOD_ALT) {
-          modifier |= 4;
-        }
+        case SDLK_PLUS:
+        case SDLK_KP_PLUS:
+        case SDLK_EQUALS:
+          notify_key_pressed('+', 0);
+          break;
+        case SDLK_MINUS:
+        case SDLK_KP_MINUS:
+          notify_key_pressed('-', 0);
+          break;
 
-        switch (sym) {
-          // Map scroll
-          case SDLK_UP: {
-            notify_drag(0, 0, 0, -32, Event::ButtonLeft);
-            break;
+        // Video
+        case SDLK_F:
+          if ((event.key.mod & SDL_KMOD_CTRL) &&
+              !(event.key.mod & SDL_KMOD_SHIFT)) {
+            gfx.set_fullscreen(!gfx.is_fullscreen());
+          } else {
+              // if this isn't handled the 'f' key
+              // doesn't work for savegame names
+              notify_key_pressed(sym, modifier);
           }
-          case SDLK_DOWN: {
-            notify_drag(0, 0, 0, 32, Event::ButtonLeft);
-            break;
-          }
-          case SDLK_LEFT: {
-            notify_drag(0, 0, -32, 0, Event::ButtonLeft);
-            break;
-          }
-          case SDLK_RIGHT: {
-            notify_drag(0, 0, 32, 0, Event::ButtonLeft);
-            break;
-          }
+          break;
+        case SDLK_RIGHTBRACKET:
+          zoom(-0.2f);
+          break;
+        case SDLK_LEFTBRACKET:
+          zoom(0.2f);
+          break;
 
-          case SDLK_PLUS:
-          case SDLK_KP_PLUS:
-          case SDLK_EQUALS:
-            notify_key_pressed('+', 0);
-            break;
-          case SDLK_MINUS:
-          case SDLK_KP_MINUS:
-            notify_key_pressed('-', 0);
-            break;
+        // Misc
+        case SDLK_F10:
+          notify_key_pressed('n', 1);
+          break;
 
-          // Video
-          case SDLK_F:
-            if (event.key.mod & SDL_KMOD_CTRL) {
-              gfx.set_fullscreen(!gfx.is_fullscreen());
-            } else {
-                // if this isn't handled the 'f' key
-                // doesn't work for savegame names
-                notify_key_pressed(sym, modifier);
-            }
-            break;
-          case SDLK_RIGHTBRACKET:
-            zoom(-0.2f);
-            break;
-          case SDLK_LEFTBRACKET:
-            zoom(0.2f);
-            break;
-
-          // Misc
-          case SDLK_F10:
-            notify_key_pressed('n', 1);
-            break;
-
-          default:
-            notify_key_pressed(sym, modifier);
-            break;
-        }
-
-        break;
+        default:
+          notify_key_pressed(sym, modifier);
+          break;
       }
-      case SDL_EVENT_QUIT:
-        notify_key_pressed('c', 1);
-        break;
-      case SDL_EVENT_WINDOW_PIXEL_SIZE_CHANGED: {
-        unsigned int width = event.window.data1;
-        unsigned int height = event.window.data2;
-        gfx.set_resolution(width, height, gfx.is_fullscreen());
-        gfx.get_screen_factor(&screen_factor_x, &screen_factor_y);
-        apply_zoom();
-        break;
-      }
-      case SDL_EVENT_USER:
-        switch (event.user.code) {
-          case EventUserTypeQuit:
-            SDL_RemoveTimer(timer_id);
-            if (screen != nullptr) {
-              delete screen;
-              screen = nullptr;
-            }
-            return;
-          case EventUserTypeCall: {
-            while (!deferred_calls.empty()) {
-              deferred_calls.front()(nullptr);
-              deferred_calls.pop_front();
-            }
-            break;
-          }
-          default:
-            break;
-        }
-        break;
-      default:
-        if (event.type == eventUserTypeStep) {
-          // Update and draw interface
-          notify_update();
 
-          if (screen == nullptr) {
-            screen = gfx.get_screen_frame();
-          }
-          notify_draw(screen);
-
-          // Swap video buffers
-          gfx.swap_buffers();
-
-          SDL_FlushEvent(eventUserTypeStep);
-        }
+      break;
     }
+    case SDL_EVENT_QUIT:
+      notify_key_pressed('c', 1);
+      break;
+    case SDL_EVENT_WINDOW_PIXEL_SIZE_CHANGED: {
+      unsigned int width = event.window.data1;
+      unsigned int height = event.window.data2;
+      gfx.set_resolution(width, height, gfx.is_fullscreen());
+      gfx.get_screen_factor(&screen_factor_x, &screen_factor_y);
+      apply_zoom();
+      break;
+    }
+    case SDL_EVENT_USER:
+      switch (event.user.code) {
+        case EventUserTypeQuit:
+          return false;
+        case EventUserTypeCall: {
+          while (!deferred_calls.empty()) {
+            deferred_calls.front()(nullptr);
+            deferred_calls.pop_front();
+          }
+          break;
+        }
+        default:
+          break;
+      }
+      break;
+    default:
+      break;
   }
 
-  SDL_RemoveTimer(timer_id);
+  return true;
+}
+
+/* The game advances in fixed steps of TICK_LENGTH ms, as the original on
+   the vertical blank. The steps follow the clock: when a frame took too
+   long, the missed steps are made up before the next drawing, up to
+   kMaxCatchUpSteps; beyond that the game slows down instead of freezing
+   the screen. Between the steps the loop waits for events. */
+void
+EventLoopSDL::run() {
+  static const int kMaxCatchUpSteps = 5;
+
+  Graphics &gfx = Graphics::get_instance();
+  gfx.get_screen_factor(&screen_factor_x, &screen_factor_y);
+
+  Uint64 next_step = SDL_GetTicks() + TICK_LENGTH;
+  bool running = true;
+  while (running) {
+    Uint64 now = SDL_GetTicks();
+    Sint32 timeout = (now < next_step) ? static_cast<Sint32>(next_step - now)
+                                       : 0;
+    SDL_Event event;
+    bool have_event = SDL_WaitEventTimeout(&event, timeout);
+    while (have_event && running) {
+      running = handle_sdl_event(event);
+      have_event = SDL_PollEvent(&event);
+    }
+    if (!running) {
+      break;
+    }
+
+    now = SDL_GetTicks();
+    if (now < next_step) {
+      continue;
+    }
+
+    int steps = 0;
+    while (now >= next_step && steps < kMaxCatchUpSteps) {
+      notify_update();
+      next_step += TICK_LENGTH;
+      steps++;
+    }
+    if (now >= next_step) {
+      next_step = now + TICK_LENGTH;
+    }
+
+    if (screen == nullptr) {
+      screen = gfx.get_screen_frame();
+    }
+    notify_draw(screen);
+    gfx.swap_buffers();
+  }
+
   if (screen != nullptr) {
     delete screen;
     screen = nullptr;
@@ -371,6 +372,11 @@ EventLoopSDL::apply_zoom() {
   notify_resize(
     static_cast<unsigned int>(static_cast<float>(width) * zoom_factor),
     static_cast<unsigned int>(static_cast<float>(height) * zoom_factor));
+}
+
+unsigned int
+EventLoopSDL::get_ticks() {
+  return static_cast<unsigned int>(SDL_GetTicks());
 }
 
 class TimerSDL : public Timer {

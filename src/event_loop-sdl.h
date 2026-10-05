@@ -31,7 +31,6 @@
 class EventLoopSDL : public EventLoop {
  public:
   typedef enum EventUserType {
-    EventUserTypeStep,
     EventUserTypeQuit,
     EventUserTypeCall,
   } EventUserType;
@@ -42,7 +41,16 @@ class EventLoopSDL : public EventLoop {
   float zoom_level;    // Zoom of the map view, 1 = none
   float screen_factor_x;
   float screen_factor_y;
-  Uint32 eventUserTypeStep;
+
+  /* Mouse state between events. */
+  int drag_button;
+  int drag_x;
+  int drag_y;
+  unsigned int last_click[6];
+  int last_click_x;
+  int last_click_y;
+
+  Frame *screen;
 
  public:
   EventLoopSDL();
@@ -50,12 +58,12 @@ class EventLoopSDL : public EventLoop {
   virtual void quit();
   virtual void run();
   virtual void deferred_call(DeferredCall call, void *data);
+  virtual unsigned int get_ticks();
 
  protected:
   void zoom(float delta);
   void apply_zoom();
-  static Uint32 timer_callback(void *param, SDL_TimerID timer_id,
-                               Uint32 interval);
+  bool handle_sdl_event(const SDL_Event &event);
 };
 
 #endif  // SRC_EVENT_LOOP_SDL_H_
