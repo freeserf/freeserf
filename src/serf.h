@@ -37,6 +37,8 @@ class SaveReaderText;
 class SaveWriterText;
 
 class Serf : public GameObject {
+  /* The computer player reads the fields as the original does. */
+  friend class AI;
  public:
   typedef enum Type {
     TypeNone = -1,

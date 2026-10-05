@@ -35,7 +35,13 @@ target_check_style(tools)
 
 # Game library
 
-set(GAME_SOURCES building.cc
+set(GAME_SOURCES ai.cc
+                 ai-core.cc
+                 ai-manage.cc
+                 ai-rate.cc
+                 ai-road.cc
+                 ai-want.cc
+                 building.cc
                  flag.cc
                  game.cc
                  inventory.cc
@@ -48,7 +54,14 @@ set(GAME_SOURCES building.cc
                  serf.cc
                  game-manager.cc)
 
-set(GAME_HEADERS building.h
+set(GAME_HEADERS ai.h
+                 ai-core.h
+                 ai-internal.h
+                 ai-manage.h
+                 ai-rate.h
+                 ai-road.h
+                 ai-want.h
+                 building.h
                  flag.h
                  game.h
                  inventory.h

@@ -258,6 +258,10 @@ class Collection {
 
   size_t
   size() const { return objects.size() - free_object_indexes.size(); }
+
+  /* One past the highest index in use (the original's max_*_index). */
+  unsigned int
+  get_max_index() const { return static_cast<unsigned int>(objects.size()); }
 };
 
 #endif  // SRC_OBJECTS_H_
