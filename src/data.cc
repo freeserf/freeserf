@@ -31,6 +31,7 @@
 #include "src/data-source-dos.h"
 #include "src/data-source-amiga.h"
 #include "src/data-source-custom.h"
+#include "src/data-source-mixed.h"
 
 #ifdef _WIN32
 // need for GetModuleFileName
@@ -92,51 +93,67 @@ Data::get_instance() {
 Data::~Data() {
 }
 
-// Try to load data file from given path or standard paths.
+// Try to load the game data from the given paths or the standard paths.
 //
-// Return true if successful. Standard paths will be searched only if the
-// given path is empty string.
+// Return true if any data is found. Standard paths are searched only if no
+// path is given. Each path is searched with its subfolders dos, amiga and
+// custom, so that the data of several versions can be installed together.
 bool
-Data::load(const std::string &path) {
-  // If it is possible, prefer DOS game data.
+Data::load(const std::list<std::string> &paths) {
   typedef std::function<Data::PSource(const std::string &)> SourceFactory;
-  std::vector<SourceFactory> sources_factories;
-  sources_factories.push_back([](const std::string &path)->Data::PSource{
-    return std::make_shared<DataSourceCustom>(path); });
-  sources_factories.push_back([](const std::string &path)->Data::PSource{
-    return std::make_shared<DataSourceDOS>(path); });
-  sources_factories.push_back([](const std::string &path)->Data::PSource{
-    return std::make_shared<DataSourceAmiga>(path); });
+  struct Factory {
+    DataSourceMixed::Kind kind;
+    SourceFactory create;
+  };
+  const Factory factories[] = {
+    { DataSourceMixed::KindCustom, [](const std::string &path) {
+        return Data::PSource(std::make_shared<DataSourceCustom>(path)); } },
+    { DataSourceMixed::KindDOS, [](const std::string &path) {
+        return Data::PSource(std::make_shared<DataSourceDOS>(path)); } },
+    { DataSourceMixed::KindAmiga, [](const std::string &path) {
+        return Data::PSource(std::make_shared<DataSourceAmiga>(path)); } },
+  };
 
   std::list<std::string> search_paths;
-  if (path.empty()) {
-    search_paths = get_standard_search_paths();
-  } else {
-    search_paths.push_front(path);
+  for (const std::string &path : paths.empty() ? get_standard_search_paths()
+                                               : paths) {
+    search_paths.push_back(path);
+    for (const char *sub : { "dos", "amiga", "custom" }) {
+      search_paths.push_back(path + "/" + sub);
+    }
   }
 
-  // Use each data source to try to find the data files in the search paths.
-  for (const SourceFactory &factory : sources_factories) {
+  mixed = std::make_shared<DataSourceMixed>();
+  for (const Factory &factory : factories) {
     for (const std::string &path : search_paths) {
-      Data::PSource source = factory(path);
+      Data::PSource source = factory.create(path);
       if (source->check()) {
         Log::Info["data"] << "Game data found in '" << source->get_path()
                           << "'...";
         if (source->load()) {
-          data_source = std::move(source);
+          mixed->add_source(factory.kind, source);
           break;
         }
       }
     }
-    if (data_source) {
-      break;
-    }
   }
 
-  return data_source.get() != nullptr;
+  if (mixed->is_empty()) {
+    mixed = nullptr;
+    data_source = nullptr;
+    return false;
+  }
+  data_source = mixed;
+  return true;
 }
 
-// Return standard game data search paths for current platform.
+bool
+Data::load(const std::string &path) {
+  std::list<std::string> paths;
+  if (!path.empty()) paths.push_back(path);
+  return load(paths);
+}
+
 std::list<std::string>
 Data::get_standard_search_paths() const {
   // Data files are searched for in some common directories, some of which are

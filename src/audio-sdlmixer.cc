@@ -66,7 +66,7 @@ find_soundfont() {
   }
   Data::PSource data_source = Data::get_instance().get_data_source();
   if (data_source) {
-    std::string data_path = data_source->get_path();
+    std::string data_path = data_source->get_music_path();
     size_t sep = data_path.find_last_of("/\\");
     if (sep != std::string::npos) {
       dirs.push_back(data_path.substr(0, sep + 1));

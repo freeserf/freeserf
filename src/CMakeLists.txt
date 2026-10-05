@@ -115,6 +115,7 @@ target_check_style(platform)
 # Data library
 
 set(DATA_SOURCES data.cc
+                 data-source-mixed.cc
                  data-source-dos.cc
                  data-source-amiga.cc
                  data-source-legacy.cc
@@ -126,6 +127,7 @@ set(DATA_SOURCES data.cc
                  data-source.cc)
 
 set(DATA_HEADERS data.h
+                 data-source-mixed.h
                  data-source-dos.h
                  data-source-amiga.h
                  data-source-legacy.h
