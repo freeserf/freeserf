@@ -180,6 +180,7 @@ class Graphics {
   float map_zoom;
 
   Graphics();
+  void set_cursor_from_data();
 
  public:
   virtual ~Graphics();
@@ -200,6 +201,9 @@ class Graphics {
 
   float get_zoom_factor();
   bool set_zoom_factor(float factor);
+  /* The graphics now come from another data source: forget the images
+     and take the cursor from it. */
+  void data_changed();
   float get_map_zoom() const { return map_zoom; }
   void set_map_zoom(float zoom) { map_zoom = zoom; }
   void get_screen_factor(float *fx, float *fy);

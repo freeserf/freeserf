@@ -109,6 +109,8 @@ class AudioSDL : public Audio, public Audio::VolumeController {
     virtual Audio::PVolumeController get_volume_controller() {
       return shared_from_this();
     }
+    /* Play the current track again from the new data. */
+    virtual void clear_cache();
 
    protected:
     virtual Audio::PTrack create_track(int track_id);
@@ -142,6 +144,7 @@ class AudioSDL : public Audio, public Audio::VolumeController {
   virtual Audio::VolumeController *get_volume_controller() { return this; }
   virtual Audio::PPlayer get_sound_player() { return sfx_player; }
   virtual Audio::PPlayer get_music_player() { return midi_player; }
+  virtual void data_changed(bool sounds, bool music);
 
  public:
   virtual float get_volume();

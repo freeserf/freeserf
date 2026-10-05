@@ -55,6 +55,21 @@ autosave_text(const Interface *interface) {
   return (minutes == 0) ? "Off" : std::to_string(minutes) + " min";
 }
 
+static std::string
+graphics_text(const Interface *interface) {
+  return interface->get_data_source_name(0);
+}
+
+static std::string
+sound_text(const Interface *interface) {
+  return interface->get_data_source_name(1);
+}
+
+static std::string
+music_text(const Interface *interface) {
+  return interface->get_data_source_name(2);
+}
+
 static const Option options[] = {
   { "Invert scrolling", &Interface::get_invert_scrolling, nullptr,
     &Interface::switch_invert_scrolling },
@@ -64,6 +79,10 @@ static const Option options[] = {
     &Interface::next_autosave_interval },
   { "Stock box until occupied", &Interface::get_stock_box_occupied, nullptr,
     &Interface::switch_stock_box_occupied },
+  /* With the data of several versions installed. */
+  { "Graphics", nullptr, graphics_text, &Interface::next_graphics_source },
+  { "Sounds", nullptr, sound_text, &Interface::next_sound_source },
+  { "Music", nullptr, music_text, &Interface::next_music_source },
 };
 
 /* Width of the value texts, right aligned to the check boxes. */
