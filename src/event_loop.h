@@ -103,6 +103,8 @@ class EventLoop {
   virtual void run() = 0;
   virtual void quit() = 0;
   virtual void deferred_call(DeferredCall call, void *data) = 0;
+  /* Milliseconds since the start. */
+  virtual unsigned int get_ticks() = 0;
 
   void add_handler(Handler *handler);
   void del_handler(Handler *handler);

@@ -118,9 +118,17 @@ class Interface : public GuiObject, public GameManager::Handler {
   int return_timeout;
   int return_pos;
 
+  /* Frames per second display (Ctrl+Shift+F). */
+  bool show_fps;
+  unsigned int fps;
+  unsigned int fps_frames;
+  unsigned int fps_start;
+
  public:
   Interface();
   virtual ~Interface();
+
+  void draw_fps(Frame *frame);
 
   PGame get_game() { return game; }
   void set_game(PGame game);
