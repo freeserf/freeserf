@@ -27,6 +27,21 @@ SpriteFile::SpriteFile() {
 }
 
 bool
+SpriteFile::load_resource(const std::string &name) {
+  const char *base = SDL_GetBasePath();
+  if (base != nullptr && load(std::string(base) + "resources/" + name)) {
+    return true;
+  }
+#ifdef FREESERF_RESOURCES_DIR
+  /* Running from the build tree. */
+  if (load(std::string(FREESERF_RESOURCES_DIR) + "/" + name)) {
+    return true;
+  }
+#endif
+  return false;
+}
+
+bool
 SpriteFile::load(const std::string &path) {
   SDL_Surface *image = IMG_Load(path.c_str());
   if (image == nullptr) {

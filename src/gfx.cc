@@ -21,11 +21,14 @@
 
 #include "src/gfx.h"
 
+#include <functional>
+
 #include <utility>
 #include <algorithm>
 
 #include "src/log.h"
 #include "src/data.h"
+#include "src/sprite-file.h"
 #include "src/video.h"
 
 const Color Color::black = Color(0x00, 0x00, 0x00);
@@ -460,6 +463,24 @@ Frame::~Frame() {
 void
 Frame::draw_frame(int dx, int dy, int sx, int sy, Frame *src, int w, int h) {
   video->draw_frame(dx, dy, video_frame, sx, sy, src->video_frame, w, h);
+}
+
+void
+Frame::draw_resource_image(int x, int y, const std::string &name) {
+  /* Cached apart from the sprites of the game data (bit 63). */
+  uint64_t id = (static_cast<uint64_t>(1) << 63) |
+                (std::hash<std::string>()(name) >> 1);
+  Image *image = Image::get_cached_image(id);
+  if (image == nullptr) {
+    PSpriteFile sprite = std::make_shared<SpriteFile>();
+    if (!sprite->load_resource(name)) {
+      Log::Warn["graphics"] << "Failed to load resource image " << name;
+      return;
+    }
+    image = new Image(video, sprite);
+    Image::cache_image(id, image);
+  }
+  video->draw_image(image->get_video_image(), x, y, 0, video_frame);
 }
 
 void
