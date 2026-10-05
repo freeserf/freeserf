@@ -3478,6 +3478,7 @@ PopupBox::handle_action(int action, int x_, int /*y_*/) {
     break;
   case ACTION_CLOSE_OPTIONS:
     interface->close_popup();
+    interface->store_settings();
     break;
   case ACTION_OPTIONS_ADVANCED:
     play_sound(Audio::TypeSfxClick);

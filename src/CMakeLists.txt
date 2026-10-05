@@ -158,6 +158,7 @@ target_check_style(data)
 set(OTHER_SOURCES pathfinder.cc
                   advanced-box.cc
                   box-frame.cc
+                  settings.cc
                   gfx.cc
                   viewport.cc
                   minimap.cc
@@ -175,6 +176,7 @@ set(OTHER_SOURCES pathfinder.cc
 set(OTHER_HEADERS pathfinder.h
                   advanced-box.h
                   box-frame.h
+                  settings.h
                   gfx.h
                   viewport.h
                   minimap.h

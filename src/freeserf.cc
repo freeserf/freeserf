@@ -33,6 +33,7 @@
 #include "src/audio.h"
 #include "src/gfx.h"
 #include "src/interface.h"
+#include "src/settings.h"
 #include "src/game-manager.h"
 #include "src/command_line.h"
 
@@ -132,6 +133,14 @@ main(int argc, char *argv[]) {
   interface.set_size(screen_width, screen_height);
   interface.set_displayed(true);
 
+  /* Settings of the last run; -f asks for fullscreen in any case. */
+  Settings &settings = Settings::get_instance();
+  settings.load();
+  interface.apply_settings();
+  if (fullscreen || settings.get("options", "fullscreen", false)) {
+    gfx.set_fullscreen(true);
+  }
+
   if (save_file.empty()) {
     interface.open_game_init();
   }
@@ -144,6 +153,9 @@ main(int argc, char *argv[]) {
   event_loop.run();
 
   event_loop.del_handler(&interface);
+
+  /* Options changed by keys (music, sound, fullscreen) too. */
+  interface.store_settings();
 
   Log::Info["main"] << "Cleaning up...";
 

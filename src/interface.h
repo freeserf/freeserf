@@ -151,6 +151,11 @@ class Interface : public GuiObject, public GameManager::Handler {
   bool get_invert_scrolling() const { return invert_scrolling; }
   void switch_invert_scrolling() { invert_scrolling = !invert_scrolling; }
 
+  /* Settings kept between the runs (Settings): the options of the options
+     and advanced boxes. */
+  void apply_settings();
+  void store_settings();
+
   MapPos get_map_cursor_pos() const { return map_cursor_pos; }
   CursorType get_map_cursor_type() const { return map_cursor_type; }
   int get_map_cursor_sprite(int i) const {
