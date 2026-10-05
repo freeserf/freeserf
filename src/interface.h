@@ -113,6 +113,7 @@ class Interface : public GuiObject, public GameManager::Handler {
   /* Advanced options (not in the original game). */
   bool invert_scrolling;
   bool large_numbers;
+  bool stock_box_occupied;
   unsigned int autosave_minutes;  // 0: off
   unsigned int autosave_last_ticks;
   unsigned int autosave_last_game_tick;
@@ -158,6 +159,11 @@ class Interface : public GuiObject, public GameManager::Handler {
   /* Counts over 999 in the boxes shortened (15K, .2M) instead of >999. */
   bool get_large_numbers() const { return large_numbers; }
   void switch_large_numbers() { large_numbers = !large_numbers; }
+  /* A new stock opens its building box until its serf has arrived, not
+     the inventory box. */
+  bool get_stock_box_occupied() const { return stock_box_occupied; }
+  void switch_stock_box_occupied() {
+    stock_box_occupied = !stock_box_occupied; }
   /* Save the game every few minutes into one file (0: off). */
   unsigned int get_autosave_minutes() const { return autosave_minutes; }
   void next_autosave_interval();

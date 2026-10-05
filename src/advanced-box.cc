@@ -62,6 +62,8 @@ static const Option options[] = {
     &Interface::switch_large_numbers },
   { "Autosave", nullptr, autosave_text,
     &Interface::next_autosave_interval },
+  { "Stock box until occupied", &Interface::get_stock_box_occupied, nullptr,
+    &Interface::switch_stock_box_occupied },
 };
 
 /* Width of the value texts, right aligned to the check boxes. */

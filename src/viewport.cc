@@ -2515,7 +2515,12 @@ Viewport::open_object_box(MapPos clk_pos) {
         interface->open_popup(PopupBox::TypeCastleRes);
       } else if (building->get_type() == Building::TypeStock) {
         if (!building->is_active()) return 0;
-        interface->open_popup(PopupBox::TypeCastleRes);
+        if (interface->get_stock_box_occupied() && !building->has_serf()) {
+          /* Advanced option: no inventory before the serf arrives. */
+          interface->open_popup(PopupBox::TypeBldStock);
+        } else {
+          interface->open_popup(PopupBox::TypeCastleRes);
+        }
       } else if (building->get_type() == Building::TypeHut ||
                  building->get_type() == Building::TypeTower ||
                  building->get_type() == Building::TypeFortress) {
