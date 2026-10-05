@@ -301,7 +301,8 @@ Frame *
 Viewport::get_tile_frame(unsigned int tid, int tc, int tr) {
   TilesMap::iterator it = landscape_tiles.find(tid);
   if (it != landscape_tiles.end()) {
-    return it->second.get();
+    it->second.last_use = tile_use_counter;
+    return it->second.frame.get();
   }
 
   int tile_width = MAP_TILE_COLS*MAP_TILE_WIDTH;
@@ -339,9 +340,28 @@ Viewport::get_tile_frame(unsigned int tid, int tc, int tr) {
                            << ", tc,tr: " << tc << "," << tr << ", tw,th: "
                            << tile_width << "," << tile_height;
 
-  landscape_tiles[tid] = std::move(tile_frame);
+  LandscapeTile &tile = landscape_tiles[tid];
+  tile.frame = std::move(tile_frame);
+  tile.last_use = tile_use_counter;
 
-  return landscape_tiles[tid].get();
+  return tile.frame.get();
+}
+
+/* Keep the tiles in view and those used most recently: up to three times
+   the tiles in view, at least kMinCachedTiles (20 MB each 32 tiles). */
+void
+Viewport::trim_tile_cache(unsigned int tiles_in_view) {
+  static const unsigned int kMinCachedTiles = 64;
+  size_t limit = std::max(kMinCachedTiles, 3 * tiles_in_view);
+  while (landscape_tiles.size() > limit) {
+    TilesMap::iterator oldest = landscape_tiles.begin();
+    for (TilesMap::iterator it = landscape_tiles.begin();
+         it != landscape_tiles.end(); ++it) {
+      if (it->second.last_use < oldest->second.last_use) oldest = it;
+    }
+    if (oldest->second.last_use == tile_use_counter) break;
+    landscape_tiles.erase(oldest);
+  }
 }
 
 void
@@ -354,6 +374,9 @@ Viewport::draw_landscape() {
 
   int map_width = map->get_cols()*MAP_TILE_WIDTH;
   int map_height = map->get_rows()*MAP_TILE_HEIGHT;
+
+  tile_use_counter++;
+  unsigned int tiles_in_view = 0;
 
   int my = offset_y;
   int ly = 0;
@@ -376,6 +399,7 @@ Viewport::draw_landscape() {
       int tid = tc + horiz_tiles*tr;
 
       Frame *tile_frame = get_tile_frame(tid, tc, tr);
+      tiles_in_view++;
 
       int w = tile_width - tx;
       if (lx+w > width) {
@@ -394,6 +418,8 @@ Viewport::draw_landscape() {
     ly += tile_height - ty;
     my += tile_height - ty;
   }
+
+  trim_tile_cache(tiles_in_view);
 }
 
 
@@ -2571,6 +2597,7 @@ Viewport::Viewport(Interface *_interface, PMap _map)
   offset_y = 0;
   last_width = 0;
   last_height = 0;
+  tile_use_counter = 0;
 
   last_tick = 0;
   water_in_view = 0;
