@@ -3,6 +3,7 @@ cmake_minimum_required(VERSION 3.14 FATAL_ERROR)
 option(ENABLE_SDL3_MIXER "Enable audio support using SDL3_mixer" ON)
 option(ENABLE_SDL3_IMAGE "Enable image loading using SDL3_image" ON)
 option(ENABLE_SDL3_TTF "Enable the TrueType font of the texts using SDL3_ttf" ON)
+option(ENABLE_TRANSLATIONS "Enable the translations of the texts using tinygettext (downloaded)" ON)
 
 find_package(SDL3 REQUIRED CONFIG)
 if(SDL3_DIR)
@@ -163,11 +164,23 @@ else()
   list(APPEND DATA_SOURCES font-dummy.cc)
 endif()
 
+list(APPEND DATA_HEADERS translation.h)
+if(ENABLE_TRANSLATIONS)
+  include(Tinygettext)
+  list(APPEND DATA_SOURCES translation.cc)
+else()
+  list(APPEND DATA_SOURCES translation-dummy.cc)
+endif()
+
 add_library(data STATIC ${DATA_SOURCES} ${DATA_HEADERS})
 # Images and the font of the game's own (resources/), found next to the
 # program; from the build tree they are read from the sources.
 target_compile_definitions(data PRIVATE
-                           FREESERF_RESOURCES_DIR="${PROJECT_SOURCE_DIR}/resources")
+                           FREESERF_RESOURCES_DIR="${PROJECT_SOURCE_DIR}/resources"
+                           FREESERF_PO_DIR="${PROJECT_SOURCE_DIR}/po")
+if(ENABLE_TRANSLATIONS)
+  target_link_libraries(data tinygettext SDL3::SDL3)
+endif()
 if(ENABLE_SDL3_IMAGE AND SDL3_image_DIR)
   target_link_libraries(data SDL3::SDL3 SDL3_image::SDL3_image)
 endif()
@@ -253,6 +266,25 @@ else()
                              ${RESOURCE_FILES}
                              "$<TARGET_FILE_DIR:FreeSerf>/resources")
   install(FILES ${RESOURCE_FILES} DESTINATION "resources")
+endif()
+
+# The translations of the texts, next to the program (in the bundle
+# resources on macOS).
+file(GLOB PO_FILES "${PROJECT_SOURCE_DIR}/po/*.po")
+if(ENABLE_TRANSLATIONS AND PO_FILES)
+  if(APPLE)
+    target_sources(FreeSerf PRIVATE ${PO_FILES})
+    set_source_files_properties(${PO_FILES} PROPERTIES
+                                MACOSX_PACKAGE_LOCATION Resources/po)
+  else()
+    add_custom_command(TARGET FreeSerf POST_BUILD
+                       COMMAND ${CMAKE_COMMAND} -E make_directory
+                               "$<TARGET_FILE_DIR:FreeSerf>/po"
+                       COMMAND ${CMAKE_COMMAND} -E copy_if_different
+                               ${PO_FILES}
+                               "$<TARGET_FILE_DIR:FreeSerf>/po")
+    install(FILES ${PO_FILES} DESTINATION "po")
+  endif()
 endif()
 
 # General MIDI SoundFont for the MIDI music of the DOS data: SDL3_mixer

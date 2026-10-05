@@ -178,6 +178,8 @@ class Interface : public GuiObject, public GameManager::Handler {
   /* Save the game every few minutes into one file (0: off). */
   unsigned int get_autosave_minutes() const { return autosave_minutes; }
   void next_autosave_interval();
+  /* The next language with a translation, then the original English. */
+  void next_language();
 
   /* Settings kept between the runs (Settings): the options of the options
      and advanced boxes. */

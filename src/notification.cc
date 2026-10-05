@@ -28,6 +28,7 @@
 #include "src/game.h"
 #include "src/debug.h"
 #include "src/data.h"
+#include "src/translation.h"
 
 void
 NotificationBox::draw_icon(int ix, int iy, int sprite) {
@@ -88,80 +89,80 @@ NotificationBox::NotificationView notification_views[] = {
   { Message::TypeUnderAttack,
       NOTIFICATION_SHOW_OPPONENT,
       0,
-      "Your settlement\nis under attack" },
+      N_("Your settlement\nis under attack") },
   { Message::TypeLoseFight,
       NOTIFICATION_SHOW_OPPONENT,
       0,
-      "Your knights\njust lost the\nfight" },
+      N_("Your knights\njust lost the\nfight") },
   { Message::TypeWinFight,
       NOTIFICATION_SHOW_OPPONENT,
       0,
-      "You gained\na victory here" },
+      N_("You gained\na victory here") },
   { Message::TypeMineEmpty,
       NOTIFICATION_SHOW_MINE,
       0,
-      "This mine hauls\nno more raw\nmaterials" },
+      N_("This mine hauls\nno more raw\nmaterials") },
   { Message::TypeCallToLocation,
       NOTIFICATION_SHOW_MAP_OBJECT,
       0x90,
-      "You wanted me\nto call you to\nthis location" },
+      N_("You wanted me\nto call you to\nthis location") },
   { Message::TypeKnightOccupied,
       NOTIFICATION_SHOW_BUILDING,
       0,
-      "A knight has\noccupied this\nnew building" },
+      N_("A knight has\noccupied this\nnew building") },
   { Message::TypeNewStock,
       NOTIFICATION_SHOW_MAP_OBJECT,
       map_building_sprite[Building::TypeStock],
-      "A new stock\nhas been built" },
+      N_("A new stock\nhas been built") },
   { Message::TypeLostLand,
       NOTIFICATION_SHOW_OPPONENT,
       0,
-      "Because of this\nenemy building\nyou lost some\nland" },
+      N_("Because of this\nenemy building\nyou lost some\nland") },
   { Message::TypeLostBuildings,
       NOTIFICATION_SHOW_OPPONENT,
       0,
-      "Because of this\nenemy building\nyou lost some\n"
-      "land and\nsome buildings" },
+      N_("Because of this\nenemy building\nyou lost some\n"
+         "land and\nsome buildings") },
   { Message::TypeEmergencyActive,
       NOTIFICATION_SHOW_MAP_OBJECT,
       map_building_sprite[Building::TypeCastle] + 1,
-      "Emergency\nprogram\nactivated" },
+      N_("Emergency\nprogram\nactivated") },
   { Message::TypeEmergencyNeutral,
       NOTIFICATION_SHOW_MAP_OBJECT,
       map_building_sprite[Building::TypeCastle],
-      "Emergency\nprogram\nneutralized" },
+      N_("Emergency\nprogram\nneutralized") },
   { Message::TypeFoundGold,
       NOTIFICATION_SHOW_ICON,
       0x2f,
-      "A geologist\nhas found gold" },
+      N_("A geologist\nhas found gold") },
   { Message::TypeFoundIron,
       NOTIFICATION_SHOW_ICON,
       0x2c,
-      "A geologist\nhas found iron" },
+      N_("A geologist\nhas found iron") },
   { Message::TypeFoundCoal,
       NOTIFICATION_SHOW_ICON,
       0x2e,
-      "A geologist\nhas found coal" },
+      N_("A geologist\nhas found coal") },
   { Message::TypeFoundStone,
       NOTIFICATION_SHOW_ICON,
       0x2b,
-      "A geologist\nhas found stone" },
+      N_("A geologist\nhas found stone") },
   { Message::TypeCallToMenu,
       NOTIFICATION_SHOW_MENU,
       0,
-      "You wanted me\nto call you\nto this menu" },
+      N_("You wanted me\nto call you\nto this menu") },
   { Message::Type30MSinceSave,
       NOTIFICATION_SHOW_ICON,
       0x5d,
-      "30 min. passed\nsince the last\nsaving" },
+      N_("30 min. passed\nsince the last\nsaving") },
   { Message::Type1HSinceSave,
       NOTIFICATION_SHOW_ICON,
       0x5d,
-      "One hour passed\nsince the last\nsaving" },
+      N_("One hour passed\nsince the last\nsaving") },
   { Message::TypeCallToStock,
       NOTIFICATION_SHOW_MAP_OBJECT,
       map_building_sprite[Building::TypeStock],
-      "You wanted me\nto call you\nto this stock" },
+      N_("You wanted me\nto call you\nto this stock") },
   { Message::TypeNone, 0, 0, NULL }
 };
 
@@ -173,7 +174,7 @@ NotificationBox::draw_notification(NotificationView *view) {
     0xea, 0xeb, 0x12a, 0x12b
   };
 
-  draw_string(1, 10, view->text);
+  draw_string(1, 10, _(view->text));
   switch (view->decoration) {
     case NOTIFICATION_SHOW_OPPONENT:
       draw_player_face(18, 8, message.data);

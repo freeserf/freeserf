@@ -38,6 +38,7 @@
 #include "src/list.h"
 #include "src/game-manager.h"
 #include "src/popup.h"
+#include "src/translation.h"
 
 class RandomInput : public TextInput {
  protected:
@@ -208,8 +209,8 @@ GameInitBox::internal_draw() {
       std::stringstream level;
       level << (game_mission+1);
 
-      draw_box_string(10, 2, "Start mission");
-      draw_box_string(10, 18, "Mission:");
+      draw_box_string(10, 2, _("Start mission"));
+      draw_box_string(10, 18, _("Mission:"));
       draw_box_string(20, 18, level.str());
 
       draw_box_icon(33, 0, 237);  // Up button
@@ -223,8 +224,8 @@ GameInitBox::internal_draw() {
       std::stringstream level;
       level << (game_tutorial+1);
 
-      draw_box_string(10, 2, "Start tutorial");
-      draw_box_string(10, 18, "Tutorial:");
+      draw_box_string(10, 2, _("Start tutorial"));
+      draw_box_string(10, 18, _("Tutorial:"));
       draw_box_string(20, 18, level.str());
 
       draw_box_icon(33, 0, 237);  // Up button
@@ -238,8 +239,8 @@ GameInitBox::internal_draw() {
       std::stringstream str_map_size;
       str_map_size << mission->get_map_size();
 
-      draw_box_string(10, 2, "New game");
-      draw_box_string(10, 18, "Mapsize:");
+      draw_box_string(10, 2, _("New game"));
+      draw_box_string(10, 18, _("Mapsize:"));
       draw_box_string(18, 18, str_map_size.str());
 
       draw_box_icon(25, 0, 265);
@@ -249,7 +250,7 @@ GameInitBox::internal_draw() {
     case GameLoad: {
       draw_box_icon(5, 0, 316);  // Game type
 
-      draw_box_string(10, 2, "Load game");
+      draw_box_string(10, 2, _("Load game"));
 
       break;
     }

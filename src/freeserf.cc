@@ -37,6 +37,7 @@
 #include "src/settings.h"
 #include "src/game-manager.h"
 #include "src/command_line.h"
+#include "src/translation.h"
 
 int
 main(int argc, char *argv[]) {
@@ -91,16 +92,23 @@ main(int argc, char *argv[]) {
 
   Log::Info["main"] << "freeserf " << FREESERF_VERSION;
 
+  /* Settings of the last run; the language already for the messages. */
+  Settings &settings = Settings::get_instance();
+  settings.load();
+  Translation::get_instance().set_language(
+    settings.get("advanced", "language", std::string()));
+
   Data &data = Data::get_instance();
   if (!data.load(data_dirs)) {
     Log::Error["main"] << "Could not load game data.";
     /* Without the data there is no font to show it in the game. */
+    std::string message = _("Could not find the game data.\n\n"
+                            "Copy the data file of the original game "
+                            "(SPAE.PA, SPAD.PA, SPAF.PA or SPAU.PA) into "
+                            "the FreeSerf data directory, or give its "
+                            "directory with -g DATA-PATH.");
     SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "FreeSerf",
-                             "Could not find the game data.\n\n"
-                             "Copy the data file of the original game "
-                             "(SPAE.PA, SPAD.PA, SPAF.PA or SPAU.PA) into "
-                             "the FreeSerf data directory, or give its "
-                             "directory with -g DATA-PATH.", nullptr);
+                             message.c_str(), nullptr);
     return EXIT_FAILURE;
   }
 
@@ -138,8 +146,6 @@ main(int argc, char *argv[]) {
   interface.set_displayed(true);
 
   /* Settings of the last run; -f asks for fullscreen in any case. */
-  Settings &settings = Settings::get_instance();
-  settings.load();
   interface.apply_settings();
   if (fullscreen || settings.get("options", "fullscreen", false)) {
     gfx.set_fullscreen(true);

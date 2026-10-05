@@ -39,6 +39,7 @@
 #include "src/inventory.h"
 #include "src/list.h"
 #include "src/text-input.h"
+#include "src/translation.h"
 
 /* Action types that can be fired from
    clicks in the popup window. */
@@ -381,6 +382,39 @@ PopupBox::draw_green_string(int sx, int sy, const std::string &str) {
                      text_shadow ? Color::black : Color::transparent);
 }
 
+/* Draw the lines of a green text in a popup frame. */
+void
+PopupBox::draw_green_lines(int sx, int sy, const std::string &text,
+                           int line_height) {
+  std::istringstream lines(text);
+  std::string line;
+  while (std::getline(lines, line)) {
+    draw_green_string(sx, sy, line);
+    sy += line_height;
+  }
+}
+
+/* Draw the lines of a green text in a popup frame, each centred in the
+   16 columns of the box. */
+void
+PopupBox::draw_green_centered(int sy, const std::string &text,
+                              int line_height) {
+  std::istringstream lines(text);
+  std::string line;
+  while (std::getline(lines, line)) {
+    draw_green_centered_at(8 + 64, sy, line);
+    sy += line_height;
+  }
+}
+
+/* Draw a green string in a popup frame, centred at the pixel cx. */
+void
+PopupBox::draw_green_centered_at(int cx, int sy, const std::string &str) {
+  frame->draw_string(cx - frame->get_string_width(str) / 2, sy + 9, str,
+                     Color::green,
+                     text_shadow ? Color::black : Color::transparent);
+}
+
 /* Draw a green number in a popup frame.
    n must be non-negative. If > 999 simply draw ">999" (three characters). */
 void
@@ -405,11 +439,15 @@ std::string
 PopupBox::format_count(int n) {
   if (n < 1000) return std::to_string(n);
   int thousands = (n + 500) / 1000;
-  if (thousands < 100) return std::to_string(thousands) + "K";
+  if (thousands < 100) {
+    return std::to_string(thousands) + C_("thousands", "K");
+  }
   int tenths = (n + 50000) / 100000;
-  if (tenths < 10) return "." + std::to_string(tenths) + "M";
+  if (tenths < 10) {
+    return "." + std::to_string(tenths) + C_("millions", "M");
+  }
   int millions = std::min((n + 500000) / 1000000, 99);
-  return std::to_string(millions) + "M";
+  return std::to_string(millions) + C_("millions", "M");
 }
 
 /* Draw a green number in a popup frame.
@@ -476,16 +514,16 @@ PopupBox::draw_custom_icon_box(const int sprites[]) {
 /* Translate resource amount to text. */
 const std::string
 PopupBox::prepare_res_amount_text(int amount) const {
-  if (amount == 0) return "Not Present";
-  else if (amount < 100) return "Minimum";
-  else if (amount < 180) return "Very Few";
-  else if (amount < 240) return "Few";
-  else if (amount < 300) return "Below Average";
-  else if (amount < 400) return "Average";
-  else if (amount < 500) return "Above Average";
-  else if (amount < 600) return "Much";
-  else if (amount < 800) return "Very Much";
-  return "Perfect";
+  if (amount == 0) return C_("ground analysis", "Not Present");
+  else if (amount < 100) return C_("ground analysis", "Minimum");
+  else if (amount < 180) return C_("ground analysis", "Very Few");
+  else if (amount < 240) return C_("ground analysis", "Few");
+  else if (amount < 300) return C_("ground analysis", "Below Average");
+  else if (amount < 400) return C_("ground analysis", "Average");
+  else if (amount < 500) return C_("ground analysis", "Above Average");
+  else if (amount < 600) return C_("ground analysis", "Much");
+  else if (amount < 800) return C_("ground analysis", "Very Much");
+  return C_("ground analysis", "Perfect");
 }
 
 void
@@ -1590,7 +1628,7 @@ PopupBox::draw_ground_analysis_box() {
   draw_box_background(PatternStripedGreen);
   draw_custom_icon_box(layout);
   interface->get_game()->prepare_ground_analysis(pos, estimates);
-  draw_green_string(0, 30, "GROUND-ANALYSIS:");
+  draw_green_string(0, 30, _("GROUND-ANALYSIS:"));
 
   /* Gold */
   std::string s = prepare_res_amount_text(2*estimates[Map::MineralsGold]);
@@ -1748,7 +1786,9 @@ PopupBox::draw_sett_3_box() {
 void
 PopupBox::draw_knight_level_box() {
   const char *level_str[] = {
-    "Minimum", "Weak", "Medium", "Good", "Full", "ERROR", "ERROR", "ERROR",
+    NC_("knight occupation", "Minimum"), NC_("knight occupation", "Weak"),
+    NC_("knight occupation", "Medium"), NC_("knight occupation", "Good"),
+    NC_("knight occupation", "Full"), "ERROR", "ERROR", "ERROR",
   };
 
   const int layout[] = {
@@ -1784,11 +1824,10 @@ PopupBox::draw_knight_level_box() {
 
   for (int i = 0; i < 4; i++) {
     int ly = 8 + (34*i);
-    draw_green_string(8, ly,
-                      level_str[(player->get_knight_occupation(3-i) >> 4) &
-                                0x7]);
-    draw_green_string(8, ly + 11,
-                      level_str[player->get_knight_occupation(3-i) & 0x7]);
+    draw_green_string(8, ly, C_("knight occupation",
+      level_str[(player->get_knight_occupation(3-i) >> 4) & 0x7]));
+    draw_green_string(8, ly + 11, C_("knight occupation",
+      level_str[player->get_knight_occupation(3-i) & 0x7]));
   }
 
   draw_custom_icon_box(layout);
@@ -1888,30 +1927,27 @@ void
 PopupBox::draw_quit_confirm_box() {
   draw_box_background(PatternDiagonalGreen);
 
-  draw_green_string(0, 10, "   Do you want");
-  draw_green_string(0, 20, "     to quit");
-  draw_green_string(0, 30, "   this game?");
-  draw_green_string(0, 45, "  Yes       No");
+  draw_green_centered(10, _("Do you want\nto quit\nthis game?"));
+  /* Over the buttons. */
+  draw_green_centered_at(36, 45, _("Yes"));
+  draw_green_centered_at(112, 45, _("No"));
 }
 
 void
 PopupBox::draw_no_save_quit_confirm_box() {
-  draw_green_string(0, 70, "The game has not");
-  draw_green_string(0, 80, "   been saved");
-  draw_green_string(0, 90, "   recently.");
-  draw_green_string(0, 100, "    Are you");
-  draw_green_string(0, 110, "     sure?");
-  draw_green_string(0, 125, "  Yes       No");
+  draw_green_centered(70, _("The game has not\nbeen saved\nrecently.\n"
+                            "Are you\nsure?"));
+  draw_green_centered_at(36, 125, _("Yes"));
+  draw_green_centered_at(112, 125, _("No"));
 }
 
 void
 PopupBox::draw_options_box() {
   draw_box_background(PatternDiagonalGreen);
 
-  draw_green_string(1, 14, "Music");
-  draw_green_string(1, 30, "Sound");
-  draw_green_string(1, 39, "effects");
-  draw_green_string(1, 54, "Volume");
+  draw_green_string(1, 14, _("Music"));
+  draw_green_lines(1, 30, _("Sound\neffects"), 9);
+  draw_green_string(1, 54, _("Volume"));
 
   Audio &audio = Audio::get_instance();
   Audio::PPlayer player = audio.get_music_player();
@@ -1932,24 +1968,23 @@ PopupBox::draw_options_box() {
   str << static_cast<int>(volume);
   draw_green_string(8, 54, str.str());
 
-  draw_green_string(1, 70, "Fullscreen");
-  draw_green_string(1, 79, "video");
+  draw_green_lines(1, 70, _("Fullscreen\nvideo"), 9);
 
   draw_popup_icon(13, 70,   /* Fullscreen mode */
                   Graphics::get_instance().is_fullscreen() ? 288 : 220);
 
-  const char *value = "All";
+  const char *value = NC_("messages", "All");
   if (!interface->get_config(3)) {
-    value = "Most";
+    value = NC_("messages", "Most");
     if (!interface->get_config(4)) {
-      value = "Few";
+      value = NC_("messages", "Few");
       if (!interface->get_config(5)) {
-        value = "None";
+        value = NC_("messages", "None");
       }
     }
   }
-  draw_green_string(1, 94, "Messages");
-  draw_green_string(11, 94, value);
+  draw_green_string(1, 94, _("Messages"));
+  draw_green_string(11, 94, C_("messages", value));
 
   /* Advanced options (not in the original game) */
   frame->draw_resource_image(8 * 0 + 8, 128 + 9, "button-advanced.png");
@@ -2057,8 +2092,7 @@ PopupBox::draw_mine_output_box() {
   draw_green_string(lx, 38, "%");
   draw_green_number(6, 38, output);
 
-  draw_green_string(1, 14, "MINING");
-  draw_green_string(1, 24, "OUTPUT:");
+  draw_green_lines(1, 14, _("MINING\nOUTPUT:"));
 
   /* Exit box */
   draw_popup_icon(14, 128, 0x3c);
@@ -2087,8 +2121,7 @@ PopupBox::draw_ordered_building_box() {
   if (sprite == 0xc0 /*stock*/ || sprite < 0x9e /*tower*/) lx = 4;
   draw_popup_building(lx, 40, sprite);
 
-  draw_green_string(2, 4, "Ordered");
-  draw_green_string(2, 14, "Building");
+  draw_green_lines(2, 4, _("Ordered\nBuilding"));
 
   if (building->has_serf()) {
     if (building->get_progress() == 0) { /* Digger */
@@ -2168,7 +2201,7 @@ PopupBox::draw_defenders_box() {
   }
 
   /* Draw heading string */
-  draw_green_string(3, 62, "Defenders:");
+  draw_green_string(3, 62, _("Defenders:"));
 
   /* Draw knights */
   int next_knight = building->get_first_knight();
@@ -2178,7 +2211,7 @@ PopupBox::draw_defenders_box() {
     next_knight = serf->get_next();
   }
 
-  draw_green_string(0, 128, "State:");
+  draw_green_string(0, 128, _("State:"));
   draw_green_number(7, 128, static_cast<int>(building->get_threat_level()));
 
   draw_popup_icon(14, 128, 0x3c); /* Exit box */
@@ -2245,7 +2278,7 @@ PopupBox::draw_transport_info_box() {
     draw_popup_icon(7, 51, 0x135);
   }
 
-  draw_green_string(0, 4, "Transport Info:");
+  draw_green_string(0, 4, _("Transport Info:"));
   draw_popup_icon(2, 96, 0x1c); /* Geologist */
   draw_popup_icon(14, 128, 0x3c); /* Exit box */
 
@@ -2257,7 +2290,7 @@ PopupBox::draw_transport_info_box() {
     }
   }
 
-  draw_green_string(0, 128, "Index:");
+  draw_green_string(0, 128, _("Index:"));
   draw_green_number(7, 128, static_cast<int>(flag->get_index()));
 }
 
@@ -2596,8 +2629,7 @@ PopupBox::draw_building_stock_box() {
   if (bld_sprite == 0xc0 /*stock*/ || bld_sprite < 0x9e /*tower*/) lx = 4;
   draw_popup_building(lx, 30, bld_sprite);
 
-  draw_green_string(1, 4, "Stock of");
-  draw_green_string(1, 14, "this building:");
+  draw_green_lines(1, 4, _("Stock of\nthis building:"));
 
   draw_popup_icon(14, 128, 0x3c); /* exit box */
 }
@@ -2663,40 +2695,36 @@ PopupBox::draw_game_end_box() {
   switch (game->get_game_type()) {
     case Game::GameTypeMission:
       if (winner == 0) {
-        draw_green_string(0, 4, "CONGRATULATIONS.");
-        draw_green_string(0, 16, "  YOUR ENEMIES");
-        draw_green_string(0, 26, "  RESIGN. YOU");
-        draw_green_string(0, 36, " HAVE WON THIS");
-        draw_green_string(0, 46, "    MISSION.");
+        draw_green_centered(4, _("CONGRATULATIONS."));
+        draw_green_centered(16, _("YOUR ENEMIES\nRESIGN. YOU\nHAVE WON THIS\n"
+                                  "MISSION."));
 
         /* The password is the name of the next mission. */
         PGameInfo next = GameInfo::get_mission(game->get_mission_level() + 1);
         if (next) {
-          draw_green_string(0, 126, "  NEW PASSWORD:");
+          draw_green_centered(126, _("NEW PASSWORD:"));
           draw_green_string(4, 135, next->get_name());
         }
       } else {
-        draw_green_string(0, 6, "SORRY, ONLY ONE");
-        draw_green_string(0, 16, "OF YOUR ENEMIES");
-        draw_green_string(0, 26, "HAS GAINED THE");
-        draw_green_string(0, 36, " SUPERIORITY IN");
-        draw_green_string(0, 46, "  THIS MISSION");
+        draw_green_centered(6, _("SORRY, ONLY ONE\nOF YOUR ENEMIES\n"
+                                 "HAS GAINED THE\nSUPERIORITY IN\n"
+                                 "THIS MISSION"));
       }
       break;
     case Game::GameTypeTutorial:
-      draw_green_string(0, 4, "   WELL DONE.");
-      draw_green_string(0, 16, " YOU COMPLETED");
-      draw_green_string(0, 26, " THIS TUTORIAL");
-      draw_green_string(0, 36, "     GAME.");
+      draw_green_centered(4, _("WELL DONE."));
+      draw_green_centered(16, _("YOU COMPLETED\nTHIS TUTORIAL\nGAME."));
       break;
     default: {
-      const char *const color[] = {
-        "    THE BLUE", "    THE RED", "   THE VIOLET", "   THE YELLOW"
+      /* The whole sentence for each color, for the grammar of the
+         translations. */
+      const char *const won[] = {
+        N_("THE BLUE\nSETTLERS HAVE\nGAINED THE\nSUPERIORITY"),
+        N_("THE RED\nSETTLERS HAVE\nGAINED THE\nSUPERIORITY"),
+        N_("THE VIOLET\nSETTLERS HAVE\nGAINED THE\nSUPERIORITY"),
+        N_("THE YELLOW\nSETTLERS HAVE\nGAINED THE\nSUPERIORITY")
       };
-      draw_green_string(0, 6, color[winner & 3]);
-      draw_green_string(0, 16, " SETTLERS HAVE");
-      draw_green_string(0, 26, "   GAINED THE");
-      draw_green_string(0, 36, "  SUPERIORITY");
+      draw_green_centered(6, _(won[winner & 3]));
       break;
     }
   }
@@ -2708,14 +2736,13 @@ void
 PopupBox::draw_tutorial_orders_box() {
   draw_box_background(PatternStripedGreen);
 
-  /* The font has no comma. */
   const char *const orders[] = {
-    "Build a guard hut and a guard tower and a fortress.",
-    "Produce five planks and five stones.",
-    "Produce five fish and five meat and five bread.",
-    "Smelt five steel bars and five gold bars.",
-    "Make ten weapons and ten tools.",
-    "Conquer all the land of the enemy."
+    N_("Build a guard hut and a guard tower and a fortress."),
+    N_("Produce five planks and five stones."),
+    N_("Produce five fish and five meat and five bread."),
+    N_("Smelt five steel bars and five gold bars."),
+    N_("Make ten weapons and ten tools."),
+    N_("Conquer all the land of the enemy.")
   };
 
   PGame game = interface->get_game();
@@ -2724,21 +2751,29 @@ PopupBox::draw_tutorial_orders_box() {
     return;
   }
 
-  draw_green_string(0, 6, "   TUTORIAL " + std::to_string(level));
-  draw_green_string(0, 26, "    ORDERS:");
+  /* TRANSLATORS: %d is the number of the tutorial. */
+  std::string title = _("TUTORIAL %d");
+  size_t number = title.find("%d");
+  if (number != std::string::npos) {
+    title.replace(number, 2, std::to_string(level));
+  }
+  draw_green_centered(6, title);
+  draw_green_centered(26, _("ORDERS:"));
 
-  /* Word wrap to the 16 characters of a line. */
-  std::istringstream words(orders[level - 1]);
+  /* Word wrap to the width of the box. */
+  std::istringstream words(_(orders[level - 1]));
   std::string word;
   std::string line;
   int y = 46;
   while (words >> word) {
-    if (!line.empty() && line.length() + 1 + word.length() > 16) {
+    std::string longer = line + (line.empty() ? "" : " ") + word;
+    if (!line.empty() && frame->get_string_width(longer) > 128) {
       draw_green_string(0, y, line);
       y += 10;
-      line.clear();
+      line = word;
+    } else {
+      line = longer;
     }
-    line += (line.empty() ? "" : " ") + word;
   }
   if (!line.empty()) {
     draw_green_string(0, y, line);
@@ -2752,10 +2787,9 @@ PopupBox::draw_demolish_box() {
   draw_popup_icon(14, 128, 60); /* Exit */
   draw_popup_icon(7, 45, 288); /* Checkbox */
 
-  draw_green_string(0, 10, "    Demolish:");
-  draw_green_string(0, 30, "   Click here");
-  draw_green_string(0, 68, "   if you are");
-  draw_green_string(0, 86, "      sure");
+  draw_green_centered(10, _("Demolish:"));
+  draw_green_centered(30, _("Click here"));
+  draw_green_centered(68, _("if you are\nsure"), 18);
 }
 
 void
@@ -2768,7 +2802,7 @@ PopupBox::draw_save_box() {
   draw_box_background(PatternDiagonalGreen);
   draw_custom_icon_box(layout);
 
-  draw_green_string(3, 2, "Save  Game");
+  draw_green_centered(2, _("Save Game"));
 
   draw_popup_icon(14, 128, 60); /* Exit */
 }

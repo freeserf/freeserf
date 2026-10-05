@@ -22,6 +22,7 @@
 #include "src/interface.h"
 
 #include <algorithm>
+#include <vector>
 #include <iostream>
 #include <fstream>
 #include <memory>
@@ -43,6 +44,7 @@
 #include "src/notification.h"
 #include "src/panel.h"
 #include "src/savegame.h"
+#include "src/translation.h"
 
 // Interval between automatic save games
 
@@ -205,6 +207,8 @@ Interface::apply_settings() {
   large_numbers = settings.get("advanced", "large_numbers", false);
   stock_box_occupied = settings.get("advanced", "stock_box_occupied", false);
   autosave_minutes = settings.get("advanced", "autosave", 0u);
+  Translation::get_instance().set_language(
+    settings.get("advanced", "language", std::string()));
 
   /* Data source of each category, by name (DOS, Amiga, Custom). */
   static const char *data_keys[] = { "graphics", "sound", "music" };
@@ -243,6 +247,8 @@ Interface::store_settings() {
   settings.set("advanced", "large_numbers", large_numbers);
   settings.set("advanced", "stock_box_occupied", stock_box_occupied);
   settings.set("advanced", "autosave", autosave_minutes);
+  settings.set("advanced", "language",
+               Translation::get_instance().get_language());
   if (Data::get_instance().get_mixed_source()) {
     settings.set("data", "graphics", get_data_source_name(0));
     settings.set("data", "sound", get_data_source_name(1));
@@ -1073,6 +1079,22 @@ Interface::next_data_source(int category) {
 }
 
 /* Advanced option: off, then every 10, 20, 30 or 60 minutes. */
+void
+Interface::next_language() {
+  Translation &translation = Translation::get_instance();
+  std::vector<std::string> languages = translation.get_languages();
+  std::sort(languages.begin(), languages.end());
+  languages.insert(languages.begin(), std::string());
+  auto it = std::find(languages.begin(), languages.end(),
+                      translation.get_language());
+  size_t next = (it == languages.end()) ? 0 :
+                (static_cast<size_t>(it - languages.begin()) + 1) %
+                languages.size();
+  translation.set_language(languages[next]);
+  /* All the texts again. */
+  invalidate();
+}
+
 void
 Interface::next_autosave_interval() {
   static const unsigned int intervals[] = { 0, 10, 20, 30, 60 };

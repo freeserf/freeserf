@@ -28,6 +28,7 @@
 #include "src/box-frame.h"
 #include "src/audio.h"
 #include "src/data.h"
+#include "src/translation.h"
 
 /* Exit button in the bottom right corner, where the options box has it. */
 static const int kExitWidth = 16;
@@ -52,7 +53,20 @@ typedef struct Option {
 static std::string
 autosave_text(const Interface *interface) {
   unsigned int minutes = interface->get_autosave_minutes();
-  return (minutes == 0) ? "Off" : std::to_string(minutes) + " min";
+  if (minutes == 0) return _("Off");
+  /* TRANSLATORS: %d is a number of minutes. */
+  std::string text = _("%d min");
+  size_t number = text.find("%d");
+  if (number != std::string::npos) {
+    text.replace(number, 2, std::to_string(minutes));
+  }
+  return text;
+}
+
+static std::string
+language_text(const Interface *interface) {
+  Translation &translation = Translation::get_instance();
+  return translation.get_language_name(translation.get_language());
 }
 
 static std::string
@@ -71,18 +85,21 @@ music_text(const Interface *interface) {
 }
 
 static const Option options[] = {
-  { "Invert scrolling", &Interface::get_invert_scrolling, nullptr,
+  { N_("Invert scrolling"), &Interface::get_invert_scrolling, nullptr,
     &Interface::switch_invert_scrolling },
-  { "Large numbers", &Interface::get_large_numbers, nullptr,
+  { N_("Large numbers"), &Interface::get_large_numbers, nullptr,
     &Interface::switch_large_numbers },
-  { "Autosave", nullptr, autosave_text,
+  { N_("Autosave"), nullptr, autosave_text,
     &Interface::next_autosave_interval },
-  { "Stock box until occupied", &Interface::get_stock_box_occupied, nullptr,
+  { N_("Stock box until occupied"), &Interface::get_stock_box_occupied, nullptr,
     &Interface::switch_stock_box_occupied },
   /* With the data of several versions installed. */
-  { "Graphics", nullptr, graphics_text, &Interface::next_graphics_source },
-  { "Sounds", nullptr, sound_text, &Interface::next_sound_source },
-  { "Music", nullptr, music_text, &Interface::next_music_source },
+  { N_("Graphics"), nullptr, graphics_text,
+    &Interface::next_graphics_source },
+  { N_("Sounds"), nullptr, sound_text, &Interface::next_sound_source },
+  { N_("Music"), nullptr, music_text, &Interface::next_music_source },
+  /* With a translation installed. */
+  { N_("Language"), nullptr, language_text, &Interface::next_language },
 };
 
 /* Width of the value texts, right aligned to the check boxes. */
@@ -108,7 +125,7 @@ AdvancedBox::internal_draw() {
   int check_x = width - 24 - kCheckSize;
   for (int i = 0; i < kOptionCount; i++) {
     int y = kFirstRowY + i * kRowHeight;
-    frame->draw_string(kLabelX, y + 4, options[i].label, Color::green,
+    frame->draw_string(kLabelX, y + 4, _(options[i].label), Color::green,
                        Color::black);
     if (options[i].get != nullptr) {
       bool on = (interface->*options[i].get)();

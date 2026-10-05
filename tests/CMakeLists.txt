@@ -102,3 +102,17 @@ gtest_add_tests(TARGET test_sfx2wav
 foreach(test IN LISTS test_list)
   set_tests_properties(${test} PROPERTIES ENVIRONMENT "GTEST_OUTPUT=xml:${PROJECT_BINARY_DIR}/${test}.xml")
 endforeach(test)
+
+set(TEST_TRANSLATION_SOURCES test_translation.cc)
+add_executable(test_translation ${TEST_TRANSLATION_SOURCES})
+target_check_style(test_translation)
+set_property(TARGET test_translation PROPERTY FOLDER "Tests")
+if(ENABLE_TRANSLATIONS)
+  target_compile_definitions(test_translation PRIVATE FREESERF_TRANSLATIONS)
+endif()
+target_link_libraries(test_translation data tools gtest gtest_main ${CMAKE_THREAD_LIBS_INIT})
+gtest_add_tests(TARGET test_translation
+                TEST_LIST test_list)
+foreach(test IN LISTS test_list)
+  set_tests_properties(${test} PROPERTIES ENVIRONMENT "GTEST_OUTPUT=xml:${PROJECT_BINARY_DIR}/${test}.xml")
+endforeach(test)
