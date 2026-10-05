@@ -287,6 +287,7 @@ typedef enum Action {
   ACTION_DEMOLISH,
   ACTION_OPTIONS_SFX,
   ACTION_SAVE,
+  ACTION_OPTIONS_ADVANCED,
   ACTION_NEW_NAME
 } Action;
 
@@ -1924,6 +1925,8 @@ PopupBox::draw_options_box() {
   draw_green_string(1, 94, "Messages");
   draw_green_string(11, 94, value);
 
+  /* Advanced options (not in the original game) */
+  frame->draw_resource_image(8 * 0 + 8, 128 + 9, "button-advanced.png");
   draw_popup_icon(14, 128, 60); /* exit */
 }
 
@@ -3476,6 +3479,10 @@ PopupBox::handle_action(int action, int x_, int /*y_*/) {
   case ACTION_CLOSE_OPTIONS:
     interface->close_popup();
     break;
+  case ACTION_OPTIONS_ADVANCED:
+    play_sound(Audio::TypeSfxClick);
+    interface->open_advanced();
+    break;
   case ACTION_OPTIONS_MESSAGE_COUNT_1:
     if (interface->get_config(3)) {
       interface->switch_config(3);
@@ -3783,6 +3790,7 @@ PopupBox::handle_box_options_clk(int cx, int cy) {
     ACTION_OPTIONS_FULLSCREEN, 106, 70, 16, 16,
     ACTION_OPTIONS_MESSAGE_COUNT_1, 90, 90, 32, 16,
     ACTION_CLOSE_OPTIONS, 112, 126, 16, 16,
+    ACTION_OPTIONS_ADVANCED, 0, 126, 56, 16,
     -1
   };
   handle_clickmap(cx, cy, clkmap);

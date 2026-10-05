@@ -2586,6 +2586,9 @@ Viewport::open_object_box(MapPos clk_pos) {
 
 bool
 Viewport::handle_drag(int lx, int ly) {
+  if (interface->get_invert_scrolling()) {
+    ly = -ly;
+  }
   if (lx != 0 || ly != 0) {
     move_by_pixels(lx, ly);
   }

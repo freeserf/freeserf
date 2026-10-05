@@ -35,6 +35,7 @@
 #include "src/freeserf.h"
 #include "src/popup.h"
 #include "src/game-init.h"
+#include "src/advanced-box.h"
 #include "src/viewport.h"
 #include "src/notification.h"
 #include "src/panel.h"
@@ -59,6 +60,7 @@ Interface::Interface()
   /* Settings */
   config = 0x39;
   msg_flags = 0;
+  invert_scrolling = false;
   return_timeout = 0;
 
   selected_stat_scale = StatScale30Min;
@@ -84,6 +86,7 @@ Interface::Interface()
   panel = nullptr;
   popup = nullptr;
   init_box = nullptr;
+  advanced_box = nullptr;
   notification_box = nullptr;
 
   GameManager::get_instance().add_handler(this);
@@ -98,6 +101,7 @@ Interface::~Interface() {
   delete panel;
   delete popup;
   delete init_box;
+  delete advanced_box;
   delete notification_box;
 }
 
@@ -159,6 +163,37 @@ Interface::open_game_init() {
     panel->set_displayed(false);
   }
   viewport->set_enabled(false);
+  layout();
+}
+
+void
+Interface::open_advanced() {
+  if (advanced_box == nullptr) {
+    advanced_box = new AdvancedBox(this);
+    add_float(advanced_box, 0, 0);
+  }
+  advanced_box->set_displayed(true);
+  advanced_box->set_enabled(true);
+  if (panel != nullptr) {
+    panel->set_enabled(false);
+  }
+  viewport->set_enabled(false);
+  layout();
+}
+
+void
+Interface::close_advanced() {
+  if (advanced_box != nullptr) {
+    advanced_box->set_displayed(false);
+    del_float(advanced_box);
+    delete advanced_box;
+    advanced_box = nullptr;
+  }
+  if (panel != nullptr) {
+    panel->set_enabled(true);
+  }
+  viewport->set_enabled(true);
+  close_popup();
   layout();
 }
 
@@ -816,6 +851,11 @@ Interface::layout() {
     int init_box_y = (height - init_box_height) / 2;
     init_box->move_to(init_box_x, init_box_y);
     init_box->set_size(init_box_width, init_box_height);
+  }
+
+  if (advanced_box != nullptr) {
+    advanced_box->move_to((width - AdvancedBox::kWidth) / 2,
+                          (height - AdvancedBox::kHeight) / 2);
   }
 
   if (notification_box != nullptr) {
