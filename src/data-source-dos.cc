@@ -406,8 +406,21 @@ DataSourceDOS::get_sound(size_t index) {
     return nullptr;
   }
 
+  int level = -32;
+  if (index == 62) {
+    /* The smelter clip is the only one not centred on 32: its samples
+       lie in 0..15 around 8, followed by silence padding at 32. Played
+       as is, the offset and the jump to the padding give a loud click on
+       every repeat. Centre it on 8 and drop the padding. */
+    level = -8;
+    const uint8_t *samples = reinterpret_cast<const uint8_t*>(data->get_data());
+    size_t size = data->get_size();
+    while (size > 0 && samples[size - 1] == 32) size--;
+    data = data->get_subbuffer(0, size);
+  }
+
   try {
-    ConvertorSFX2WAV convertor(data, -32);
+    ConvertorSFX2WAV convertor(data, level);
     return convertor.convert();
   } catch (...) {
     Log::Error["data"] << "Could not convert SFX clip to WAV: #" << index;
