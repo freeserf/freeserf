@@ -266,6 +266,13 @@ Viewport::draw_down_tile_col(MapPos pos, int x_base, int y_base,
 
 void
 Viewport::layout() {
+  /* Keep the map position in the middle of the view when the size
+     changes (window resize, zoom). */
+  if (last_width != 0 && last_height != 0) {
+    move_by_pixels((last_width - width) / 2, (last_height - height) / 2);
+  }
+  last_width = width;
+  last_height = height;
   landscape_tiles.clear();
 }
 
@@ -2562,6 +2569,8 @@ Viewport::Viewport(Interface *_interface, PMap _map)
 
   offset_x = 0;
   offset_y = 0;
+  last_width = 0;
+  last_height = 0;
 
   last_tick = 0;
   water_in_view = 0;

@@ -35,6 +35,11 @@ class GuiObject : public EventLoop::Handler {
  protected:
   int x, y;
   int width, height;
+  /* Magnification of the object on its parent: the frame and the
+     coordinates inside are width x height, it takes width * zoom x
+     height * zoom of the parent. */
+  float zoom;
+  float drag_rest_x, drag_rest_y;
   bool displayed;
   bool enabled;
   bool redraw;
@@ -56,6 +61,10 @@ class GuiObject : public EventLoop::Handler {
   virtual bool handle_focus_loose() { return false; }
 
   void delete_frame();
+  int outer_width() const {
+    return static_cast<int>(static_cast<float>(width) * zoom + 0.5f); }
+  int outer_height() const {
+    return static_cast<int>(static_cast<float>(height) * zoom + 0.5f); }
 
  public:
   GuiObject();
@@ -66,6 +75,7 @@ class GuiObject : public EventLoop::Handler {
   void get_position(int *x, int *y);
   void set_size(int width, int height);
   void get_size(int *width, int *height);
+  void set_zoom(float zoom);
   void set_displayed(bool displayed);
   void set_enabled(bool enabled);
   void set_redraw();

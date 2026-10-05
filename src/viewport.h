@@ -55,6 +55,7 @@ class Viewport : public GuiObject, public Map::Handler {
   TilesMap landscape_tiles;
 
   int offset_x, offset_y;
+  int last_width, last_height;
   unsigned int layers;
   Interface *interface;
   unsigned int last_tick;

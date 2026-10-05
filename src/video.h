@@ -78,6 +78,9 @@ class Video {
                           int y_offset, Frame *dest) = 0;
   virtual void draw_frame(int dx, int dy, Frame *dest, int sx, int sy,
                           Frame *src, int w, int h) = 0;
+  /* Draw all w x h of src scaled to dw x dh at dx, dy. */
+  virtual void draw_frame_scaled(int dx, int dy, int dw, int dh, Frame *dest,
+                                 Frame *src, int w, int h) = 0;
   virtual void draw_rect(int x, int y, unsigned int width, unsigned int height,
                          const Video::Color color, Frame *dest) = 0;
   virtual void fill_rect(int x, int y, unsigned int width, unsigned int height,

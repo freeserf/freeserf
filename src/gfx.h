@@ -160,6 +160,8 @@ class Frame {
 
   /* Frame functions */
   void draw_frame(int dx, int dy, int sx, int sy, Frame *src, int w, int h);
+  void draw_frame_scaled(int dx, int dy, int dw, int dh, Frame *src,
+                         int w, int h);
 
  protected:
   void draw_char_sprite(int x, int y, unsigned char c, const Color &color,
@@ -172,6 +174,8 @@ class Graphics {
  protected:
   static Graphics *instance;
   Video *video;
+  /* Magnification of the map view on top of the screen zoom. */
+  float map_zoom;
 
   Graphics();
 
@@ -194,6 +198,8 @@ class Graphics {
 
   float get_zoom_factor();
   bool set_zoom_factor(float factor);
+  float get_map_zoom() const { return map_zoom; }
+  void set_map_zoom(float zoom) { map_zoom = zoom; }
   void get_screen_factor(float *fx, float *fy);
 };
 

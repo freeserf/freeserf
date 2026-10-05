@@ -113,7 +113,8 @@ Image::clear_cache() {
 
 Graphics *Graphics::instance = nullptr;
 
-Graphics::Graphics() {
+Graphics::Graphics()
+  : map_zoom(1.f) {
   if (instance != nullptr) {
     throw ExceptionGFX("Unable to create second instance.");
   }
@@ -459,6 +460,13 @@ Frame::~Frame() {
 void
 Frame::draw_frame(int dx, int dy, int sx, int sy, Frame *src, int w, int h) {
   video->draw_frame(dx, dy, video_frame, sx, sy, src->video_frame, w, h);
+}
+
+void
+Frame::draw_frame_scaled(int dx, int dy, int dw, int dh, Frame *src,
+                         int w, int h) {
+  video->draw_frame_scaled(dx, dy, dw, dh, video_frame, src->video_frame,
+                           w, h);
 }
 
 void
