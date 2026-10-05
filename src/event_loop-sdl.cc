@@ -265,6 +265,17 @@ EventLoopSDL::handle_sdl_event(const SDL_Event &event) {
       apply_zoom();
       break;
     }
+    case SDL_EVENT_RENDER_DEVICE_RESET:
+      /* All textures are gone, also the sprites. */
+      Image::clear_cache();
+      /* fall through */
+    case SDL_EVENT_RENDER_TARGETS_RESET:
+      /* The contents of the render targets are gone (Direct3D on window
+         resize or device loss): make a new screen and draw everything
+         again. */
+      apply_zoom();
+      notify_invalidate();
+      break;
     case SDL_EVENT_USER:
       switch (event.user.code) {
         case EventUserTypeQuit:

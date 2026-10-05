@@ -244,6 +244,15 @@ GuiObject::set_enabled(bool enabled) {
 }
 
 void
+GuiObject::invalidate() {
+  delete_frame();
+  redraw = true;
+  for (GuiObject *float_window : floats) {
+    float_window->invalidate();
+  }
+}
+
+void
 GuiObject::set_redraw() {
   redraw = true;
   if (parent != nullptr) {

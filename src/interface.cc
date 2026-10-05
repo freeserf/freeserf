@@ -1090,6 +1090,9 @@ Interface::handle_event(const Event *event) {
       draw(reinterpret_cast<Frame*>(event->object));
       draw_fps(reinterpret_cast<Frame*>(event->object));
       break;
+    case Event::TypeInvalidate:
+      invalidate();
+      break;
 
     default:
       return GuiObject::handle_event(event);
