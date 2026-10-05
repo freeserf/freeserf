@@ -277,6 +277,12 @@ Viewport::layout() {
 }
 
 void
+Viewport::invalidate() {
+  GuiObject::invalidate();
+  landscape_tiles.clear();
+}
+
+void
 Viewport::redraw_map_pos(MapPos pos) {
   int mx, my;
   map_pix_from_map_coord(pos, map->get_height(pos), &mx, &my);

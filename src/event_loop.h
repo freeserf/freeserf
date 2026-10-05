@@ -35,6 +35,8 @@ class Event {
     TypeResize,
     TypeUpdate,
     TypeDraw,
+    /* The pictures kept by the GUI objects were lost. */
+    TypeInvalidate,
   } Type;
 
   typedef enum Button {
@@ -119,6 +121,7 @@ class EventLoop {
   bool notify_drag(int x, int y, int dx, int dy, Event::Button button);
   bool notify_key_pressed(unsigned char key, unsigned char morifier);
   bool notify_resize(unsigned int width, unsigned int height);
+  bool notify_invalidate();
   bool notify_update();
   bool notify_draw(Frame *frame);
 };

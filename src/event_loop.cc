@@ -104,6 +104,17 @@ EventLoop::notify_key_pressed(unsigned char key, unsigned char morifier) {
 }
 
 bool
+EventLoop::notify_invalidate() {
+  Event event;
+  event.type = Event::TypeInvalidate;
+  event.x = 0;
+  event.y = 0;
+  event.dx = 0;
+  event.dy = 0;
+  return notify_handlers(&event);
+}
+
+bool
 EventLoop::notify_resize(unsigned int width, unsigned int height) {
   Event event;
   event.type = Event::TypeResize;

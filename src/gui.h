@@ -79,6 +79,9 @@ class GuiObject : public EventLoop::Handler {
   void set_displayed(bool displayed);
   void set_enabled(bool enabled);
   void set_redraw();
+  /* Draw again into new frames, the old ones lost their content (the
+     render targets were reset). Children too. */
+  virtual void invalidate();
   bool is_displayed() { return displayed; }
   GuiObject *get_parent() { return parent; }
   void set_parent(GuiObject *parent) { this->parent = parent; }
