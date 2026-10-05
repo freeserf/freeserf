@@ -2806,7 +2806,7 @@ operator >> (SaveReaderBinary &reader, Game &game) {
                      (game.game_type == Game::GameTypeTutorial) ?
                      tutorial_level : mission_level);
 
-  reader.skip(50);
+  reader.skip(48);
 
   reader >> v16;  // 174
   int max_inventory_index = v16;
