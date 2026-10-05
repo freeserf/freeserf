@@ -50,9 +50,15 @@ class Viewport : public GuiObject, public Map::Handler {
   } Layer;
 
  protected:
-  /* Cache prerendered tiles of the landscape. */
-  typedef std::map<unsigned int, std::unique_ptr<Frame>> TilesMap;
+  /* Cache prerendered tiles of the landscape. Only the recently used
+     ones are kept: all tiles of a large map take more than a gigabyte. */
+  typedef struct LandscapeTile {
+    std::unique_ptr<Frame> frame;
+    unsigned int last_use;
+  } LandscapeTile;
+  typedef std::map<unsigned int, LandscapeTile> TilesMap;
   TilesMap landscape_tiles;
+  unsigned int tile_use_counter;
 
   int offset_x, offset_y;
   int last_width, last_height;
@@ -142,6 +148,7 @@ class Viewport : public GuiObject, public Map::Handler {
   virtual bool handle_drag(int x, int y);
 
   Frame *get_tile_frame(unsigned int tid, int tc, int tr);
+  void trim_tile_cache(unsigned int tiles_in_view);
 
  public:
   virtual void on_height_changed(MapPos pos);
