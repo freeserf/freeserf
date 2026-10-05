@@ -62,6 +62,7 @@ Interface::Interface()
   msg_flags = 0;
   invert_scrolling = false;
   large_numbers = false;
+  stock_box_occupied = false;
   autosave_minutes = 0;
   autosave_last_ticks = 0;
   autosave_last_game_tick = 0;
@@ -200,6 +201,7 @@ Interface::apply_settings() {
 
   invert_scrolling = settings.get("advanced", "invert_scrolling", false);
   large_numbers = settings.get("advanced", "large_numbers", false);
+  stock_box_occupied = settings.get("advanced", "stock_box_occupied", false);
   autosave_minutes = settings.get("advanced", "autosave", 0u);
 }
 
@@ -225,6 +227,7 @@ Interface::store_settings() {
 
   settings.set("advanced", "invert_scrolling", invert_scrolling);
   settings.set("advanced", "large_numbers", large_numbers);
+  settings.set("advanced", "stock_box_occupied", stock_box_occupied);
   settings.set("advanced", "autosave", autosave_minutes);
 
   settings.save();
