@@ -86,6 +86,18 @@ save_state(Game *game) {
   return str.str();
 }
 
+/* The section and line where two saves begin to differ. */
+static std::string
+first_difference(const std::string &a, const std::string &b) {
+  std::istringstream la(a), lb(b);
+  std::string x, y, section;
+  while (std::getline(la, x) && std::getline(lb, y)) {
+    if (!x.empty() && x[0] == '[') section = x;
+    if (x != y) return section + " " + x + " / " + y;
+  }
+  return "the length";
+}
+
 /* A loaded game goes on as the saved one: everything that changes the
    course of the game is in the save. A mission with its computer players,
    the same in every run (the generator of the game set in its save), is
@@ -115,8 +127,11 @@ check_loaded_game_goes_on(size_t mission, int save_at, int steps) {
     game->update();
     loaded->update();
     if (i % 100 == 0) {
-      ASSERT_TRUE(save_state(game.get()) == save_state(loaded.get())) <<
-        "The loaded game went another way by step " << i;
+      std::string original = save_state(game.get());
+      std::string continued = save_state(loaded.get());
+      ASSERT_TRUE(original == continued) <<
+        "The loaded game went another way by step " << i << ": " <<
+        first_difference(original, continued).substr(0, 300);
     }
   }
 }
@@ -177,4 +192,14 @@ TEST(SaveGame, OlderSave) {
   EXPECT_EQ(game->get_player(0)->get_land_area(),
             loaded->get_player(0)->get_land_area());
   EXPECT_TRUE(loaded->get_player(0)->has_castle());
+}
+
+/* An unsigned value over the range of int is read back as written, also
+   where long has 32 bits (Windows). */
+TEST(SaveGame, LargeUnsignedValue) {
+  unsigned int value = 0;
+  SaveReaderTextValue("4294967295") >> value;
+  EXPECT_EQ(value, 4294967295u);
+  SaveReaderTextValue("3000000000") >> value;
+  EXPECT_EQ(value, 3000000000u);
 }
