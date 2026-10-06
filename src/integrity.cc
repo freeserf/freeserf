@@ -117,7 +117,7 @@ IntegrityCheck::check_flags(Game *game, bool fix) {
         problems++;
         if (fix) {
           flag->slot[i].dir = DirectionNone;
-          flag->endpoint |= BIT(7);
+          flag->resources_waiting = true;
         }
       } else if (dir == DirectionNone && flag->slot[i].dest == 0 &&
                  !flag->has_resources()) {
@@ -127,7 +127,7 @@ IntegrityCheck::check_flags(Game *game, bool fix) {
         Log::Warn["integrity"] << "flag " << flag->get_index() << " slot "
                                << i << " is never scheduled";
         problems++;
-        if (fix) flag->endpoint |= BIT(7);
+        if (fix) flag->resources_waiting = true;
       }
     }
   }

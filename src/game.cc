@@ -54,7 +54,8 @@ Game::Game()
   , tutorial_level(0)
   , mission_level(0)
   , map_preserve_bugs(0)
-  , player_score_leader(0)
+  , land_leader(-1)
+  , military_leader(-1)
   , winning_player(-1)
   , game_end_pending(false)
   , ai_game() {
@@ -634,14 +635,11 @@ Game::update_winner() {
     return;
   }
 
+  /* The leader of both the land and the military. */
   int leader = -1;
-  for (Player *player : players) {
-    int index = static_cast<int>(player->get_index());
-    int mask = BIT(index) | BIT(index + 4);
-    if ((player_score_leader & mask) == mask) {
-      leader = index;
-      break;
-    }
+  if (land_leader >= 0 && land_leader == military_leader &&
+      players[land_leader] != nullptr) {
+    leader = land_leader;
   }
 
   if (winning_player < 0) {
@@ -656,6 +654,17 @@ Game::update_winner() {
   }
 }
 
+/* The leaders of a save, a bit for each player. */
+void
+Game::set_score_leader_bits(int bits) {
+  land_leader = -1;
+  military_leader = -1;
+  for (int i = 0; i < 4; i++) {
+    if (BIT_TEST(bits, i) && land_leader < 0) land_leader = i;
+    if (BIT_TEST(bits, i + 4) && military_leader < 0) military_leader = i;
+  }
+}
+
 /* Update statistics of the game. */
 void
 Game::update_game_stats() {
@@ -664,7 +673,8 @@ Game::update_game_stats() {
   } else {
     game_stats_counter += 1500 - tick_diff;
 
-    player_score_leader = 0;
+    land_leader = -1;
+    military_leader = -1;
 
     int update_level = 0;
 
@@ -710,8 +720,7 @@ Game::update_game_stats() {
       values[player->get_index()] = player->get_land_area();
     }
     record_player_history(update_level, 1, player_history_index, values);
-    int land_leader = calculate_clear_winner(values);
-    if (land_leader >= 0) player_score_leader |= BIT(land_leader);
+    land_leader = calculate_clear_winner(values);
 
     /* Store building stats in history. */
     for (Player *player : players) {
@@ -724,8 +733,7 @@ Game::update_game_stats() {
       values[player->get_index()] = player->get_military_score();
     }
     record_player_history(update_level, 3, player_history_index, values);
-    int military_leader = calculate_clear_winner(values);
-    if (military_leader >= 0) player_score_leader |= BIT(military_leader + 4);
+    military_leader = calculate_clear_winner(values);
 
     /* Store condensed score of all aspects in history. */
     for (Player *player : players) {
@@ -1120,8 +1128,8 @@ Game::remove_road_forwards(MapPos pos, Direction dir) {
 bool
 Game::demolish_road_(MapPos pos) {
   /* TODO necessary?
-  game.player[0]->flags |= BIT(4);
-  game.player[1]->flags |= BIT(4);
+  game.player[0]->knight_level_reduced = true;
+  game.player[1]->knight_level_reduced = true;
   */
 
   if (!map->remove_road_backrefs(pos)) {
@@ -2832,7 +2840,7 @@ operator >> (SaveReaderBinary &reader, Game &game) {
   reader.skip(2);
   uint8_t v8;
   reader >> v8;  // 204
-  game.player_score_leader = v8;
+  game.set_score_leader_bits(v8);
 
   reader.skip(45);
 
@@ -3060,7 +3068,9 @@ operator >> (SaveReaderText &reader, Game &game) {
   /* Older saves did not use the scheduler slots. */
   if (game.max_next_index < 33) game.max_next_index = 33;
   game_reader->value("map.gold_morale_factor") >> game.map_gold_morale_factor;
-  game_reader->value("player_score_leader") >> game.player_score_leader;
+  int leader_bits = 0;
+  game_reader->value("player_score_leader") >> leader_bits;
+  game.set_score_leader_bits(leader_bits);
 
   game_reader->value("gold_deposit") >> game.gold_total;
   if (game_reader->has_value("ai_ticks")) {
@@ -3229,7 +3239,9 @@ operator << (SaveWriterText &writer, Game &game) {
     game.inventory_schedule_counter;
   writer.value("game_end_pending") << (game.game_end_pending ? 1 : 0);
   writer.value("map.gold_morale_factor") << game.map_gold_morale_factor;
-  writer.value("player_score_leader") << game.player_score_leader;
+  writer.value("player_score_leader") <<
+    ((game.land_leader >= 0 ? BIT(game.land_leader) : 0) |
+     (game.military_leader >= 0 ? BIT(game.military_leader + 4) : 0));
 
   writer.value("gold_deposit") << game.gold_total;
 

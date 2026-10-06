@@ -57,10 +57,10 @@ Player::Player(Game* game, unsigned int index)
   , player_stat_history{}
   , resource_count_history{}
   , attacking_knights{} {
-  build = 0;
+  set_build_bits(0);
   color = { 0 };
   face = -1;
-  flags = 0;
+  set_flags_bits(0);
   castle_inventory = 0;
   reproduction_counter = 0;
   reproduction_reset = 0;
@@ -82,7 +82,9 @@ Player::Player(Game* game, unsigned int index)
   temp_index = 0;
 
   building = 0;
-  emergency_flags = BIT(0);
+  /* No emergency program. */
+  set_emergency_bits(0);
+  emergency_over = true;
   emergency_counter = 0;
   extra_planks = 0;
   extra_stone = 0;
@@ -184,7 +186,8 @@ Player::Player(Game* game, unsigned int index)
 void
 Player::init(unsigned int _intelligence, unsigned int _supplies,
              unsigned int _reproduction) {
-  flags = BIT(6); /* In game (Amiga player_init_all @0x54c4) */
+  set_flags_bits(0);
+  in_game = true; /* Amiga player_init_all @0x54c4 */
 
   initial_supplies = _supplies;
   reproduction_reset = (60 - _reproduction) * 50;
@@ -197,7 +200,7 @@ Player::init_view(Color _color, unsigned int _face) {
   face = _face;
 
   if (face < 12) { /* AI player */
-    flags |= BIT(7); /* Set AI bit */
+    computer = true;
     /* With an AI player the scheduler cycle is 49 updates
        (Amiga player_init_all @0x54e2). */
     game->set_max_next_index(49);
@@ -215,7 +218,8 @@ void
 Player::init_passive(Color _color) {
   face = 0;
   color = _color;
-  flags = BIT(0);
+  set_flags_bits(0);
+  castle = true;
   for (int i = 0; i < 4; i++) {
     knight_occupation[i] = 0x44;
   }
@@ -246,7 +250,7 @@ Player::init_ai_values(size_t face_) {
 /* Enqueue a new notification message for player. */
 void
 Player::add_notification(Message::Type type, MapPos pos, unsigned int data) {
-  flags |= BIT(3); /* Message in queue. */
+  message = true;
   Message new_message;
   new_message.type = type;
   new_message.pos = pos;
@@ -613,12 +617,69 @@ Player::start_attack() {
   }
 }
 
+int
+Player::get_flags_bits() const {
+  return (castle ? BIT(0) : 0) | (strongest ? BIT(1) : 0) |
+         (knight_cycling ? BIT(2) : 0) | (message ? BIT(3) : 0) |
+         (knight_level_reduced ? BIT(4) : 0) |
+         (knight_cycling_second ? BIT(5) : 0) | (in_game ? BIT(6) : 0) |
+         (computer ? BIT(7) : 0);
+}
+
+void
+Player::set_flags_bits(int bits) {
+  castle = BIT_TEST(bits, 0);
+  strongest = BIT_TEST(bits, 1);
+  knight_cycling = BIT_TEST(bits, 2);
+  message = BIT_TEST(bits, 3);
+  knight_level_reduced = BIT_TEST(bits, 4);
+  knight_cycling_second = BIT_TEST(bits, 5);
+  in_game = BIT_TEST(bits, 6);
+  computer = BIT_TEST(bits, 7);
+}
+
+int
+Player::get_build_bits() const {
+  return (no_military ? BIT(0) : 0) | (no_flag ? BIT(1) : 0) |
+         (serfs_spawning ? BIT(2) : 0) | (castle_standing ? BIT(3) : 0) |
+         (water_roads ? BIT(4) : 0);
+}
+
+void
+Player::set_build_bits(int bits) {
+  no_military = BIT_TEST(bits, 0);
+  no_flag = BIT_TEST(bits, 1);
+  serfs_spawning = BIT_TEST(bits, 2);
+  castle_standing = BIT_TEST(bits, 3);
+  water_roads = BIT_TEST(bits, 4);
+}
+
+int
+Player::get_emergency_bits() const {
+  return (emergency_over ? BIT(0) : 0) | (out_of_planks ? BIT(1) : 0) |
+         (out_of_stone ? BIT(2) : 0) | (emergency_lumberjack ? BIT(3) : 0) |
+         (emergency_sawmill ? BIT(4) : 0) | (emergency_stone ? BIT(5) : 0) |
+         (emergency_active ? BIT(6) : 0);
+}
+
+void
+Player::set_emergency_bits(int bits) {
+  emergency_over = BIT_TEST(bits, 0);
+  out_of_planks = BIT_TEST(bits, 1);
+  out_of_stone = BIT_TEST(bits, 2);
+  emergency_lumberjack = BIT_TEST(bits, 3);
+  emergency_sawmill = BIT_TEST(bits, 4);
+  emergency_stone = BIT_TEST(bits, 5);
+  emergency_active = BIT_TEST(bits, 6);
+}
+
 /* Begin cycling knights by sending knights from military buildings
    to inventories. The knights can then be replaced by more experienced
    knights. */
 void
 Player::cycle_knights() {
-  flags |= BIT(2) | BIT(4);
+  knight_cycling = true;
+  knight_level_reduced = true;
   knight_cycle_counter = 2400;
 }
 
@@ -647,8 +708,8 @@ Player::building_founded(Building *building_) {
   building_->set_owner(index);
 
   if (building_->get_type() == Building::TypeCastle) {
-    flags |= BIT(0); /* Has castle */
-    build |= BIT(3);
+    castle = true;
+    castle_standing = true;
     total_building_score += building_get_score_from_type(Building::TypeCastle);
     castle_inventory = building_->get_inventory()->get_index();
     building = building_->get_index();
@@ -707,7 +768,7 @@ Player::building_demolished(Building *building_) {
     if (building_->get_type() != Building::TypeCastle) {
       completed_building_count[building_->get_type()] -= 1;
     } else {
-      build &= ~BIT(3);
+      castle_standing = false;
       castle_score -= 1;
     }
   } else {
@@ -818,7 +879,7 @@ Player::decrease_serf_count(Serf::Type type) {
 /* Create the initial serfs that occupies the castle. */
 void
 Player::create_initial_castle_serfs(Building *castle) {
-  build |= BIT(2);
+  serfs_spawning = true;
 
   /* Spawn serf 4 */
   Inventory *inventory = castle->get_inventory();
@@ -902,7 +963,12 @@ void
 Player::start_emergency_program(unsigned int planks, unsigned int stone) {
   extra_planks = planks;
   extra_stone = stone;
-  emergency_flags &= ~0x3f;
+  emergency_over = false;
+  out_of_planks = false;
+  out_of_stone = false;
+  emergency_lumberjack = false;
+  emergency_sawmill = false;
+  emergency_stone = false;
   emergency_counter = 0;
   lumberjack_index = 0;
   sawmill_index = 0;
@@ -913,7 +979,7 @@ Player::start_emergency_program(unsigned int planks, unsigned int stone) {
    are designated (Amiga game_build_building @0x18752). */
 void
 Player::designate_emergency_building(const Building *bld) {
-  if (BIT_TEST(emergency_flags, 0)) {
+  if (emergency_over) {
     return;
   }
 
@@ -959,7 +1025,7 @@ emergency_building_ready(Game *game, unsigned int index) {
    they are ready (Amiga player_update_emergency_program @0xb23c). */
 void
 Player::update_emergency_program() {
-  if (!is_in_game() || BIT_TEST(emergency_flags, 0) || !has_castle()) {
+  if (!is_in_game() || emergency_over || !has_castle()) {
     return;
   }
   Inventory *inventory = game->get_inventory(castle_inventory);
@@ -969,21 +1035,21 @@ Player::update_emergency_program() {
     return;
   }
 
-  if (!BIT_TEST(emergency_flags, 1) &&
+  if (!out_of_planks &&
       inventory->get_count_of(Resource::TypePlank) == 0) {
-    emergency_flags |= BIT(1);
-    if (!BIT_TEST(emergency_flags, 2)) {
-      emergency_flags |= BIT(6);
+    out_of_planks = true;
+    if (!out_of_stone) {
+      emergency_active = true;
       add_notification(Message::TypeEmergencyActive, 0, 0);
     }
     emergency_counter = 2;
   }
 
-  if (!BIT_TEST(emergency_flags, 2) &&
+  if (!out_of_stone &&
       inventory->get_count_of(Resource::TypeStone) == 0) {
-    emergency_flags |= BIT(2);
-    if (!BIT_TEST(emergency_flags, 1)) {
-      emergency_flags |= BIT(6);
+    out_of_stone = true;
+    if (!out_of_planks) {
+      emergency_active = true;
       add_notification(Message::TypeEmergencyActive, 0, 0);
     }
     emergency_counter = 2;
@@ -993,13 +1059,13 @@ Player::update_emergency_program() {
   if (emergency_counter != 0) {
     emergency_counter -= 1;
     if (emergency_counter == 0) {
-      if (BIT_TEST(emergency_flags, 1) && extra_planks != 0) {
+      if (out_of_planks && extra_planks != 0) {
         inventory->set_count_of(Resource::TypePlank,
                                 inventory->get_count_of(Resource::TypePlank) +
                                 extra_planks);
         extra_planks = 0;
       }
-      if (BIT_TEST(emergency_flags, 2) && extra_stone != 0) {
+      if (out_of_stone && extra_stone != 0) {
         inventory->set_count_of(Resource::TypeStone,
                                 inventory->get_count_of(Resource::TypeStone) +
                                 extra_stone);
@@ -1008,29 +1074,30 @@ Player::update_emergency_program() {
     }
   }
 
-  if (!BIT_TEST(emergency_flags, 3) && lumberjack_index != 0 &&
+  if (!emergency_lumberjack && lumberjack_index != 0 &&
       emergency_building_ready(game, lumberjack_index)) {
-    emergency_flags |= BIT(3);
+    emergency_lumberjack = true;
     lumberjack_index = 0;
   }
-  if (!BIT_TEST(emergency_flags, 4) && sawmill_index != 0 &&
+  if (!emergency_sawmill && sawmill_index != 0 &&
       emergency_building_ready(game, sawmill_index)) {
-    emergency_flags |= BIT(4);
+    emergency_sawmill = true;
     sawmill_index = 0;
   }
-  if (!BIT_TEST(emergency_flags, 5) && stonecutter_index != 0 &&
+  if (!emergency_stone && stonecutter_index != 0 &&
       emergency_building_ready(game, stonecutter_index)) {
-    emergency_flags |= BIT(5);
+    emergency_stone = true;
     stonecutter_index = 0;
   }
 
-  if ((emergency_flags & 0x38) == 0x38) {
-    emergency_flags |= BIT(0);
-    if (emergency_flags & 0x06) {
-      emergency_flags &= ~BIT(6);
+  if (emergency_lumberjack && emergency_sawmill && emergency_stone) {
+    emergency_over = true;
+    if (out_of_planks || out_of_stone) {
+      emergency_active = false;
       add_notification(Message::TypeEmergencyNeutral, 0, 0);
     }
-    emergency_flags &= ~0x06;
+    out_of_planks = false;
+    out_of_stone = false;
     inventory->set_count_of(Resource::TypePlank,
                             inventory->get_count_of(Resource::TypePlank) +
                             extra_planks);
@@ -1062,11 +1129,11 @@ Player::update() {
   if (cycling_knight()) {
     knight_cycle_counter -= delta;
     if (knight_cycle_counter < 1) {
-      flags &= ~BIT(5);
-      flags &= ~BIT(2);
+      knight_cycling_second = false;
+      knight_cycling = false;
     } else if (knight_cycle_counter < 2048 && reduced_knight_level()) {
-      flags |= BIT(5);
-      flags &= ~BIT(4);
+      knight_cycling_second = true;
+      knight_level_reduced = false;
     }
   }
 
@@ -1292,9 +1359,9 @@ operator >> (SaveReaderBinary &reader, Player &player)  {
   player.index = v16;
   player.color = default_player_colors[player.index];
   reader >> v8;  // 130
-  player.flags = v8;
+  player.set_flags_bits(v8);
   reader >> v8;  // 131
-  player.build = v8;
+  player.set_build_bits(v8);
 
   for (int j = 0; j < 23; j++) {
     reader >> v16;  // 132
@@ -1424,8 +1491,11 @@ operator >> (SaveReaderBinary &reader, Player &player)  {
 
 SaveReaderText&
 operator >> (SaveReaderText &reader, Player &player) {
-  reader.value("flags") >> player.flags;
-  reader.value("build") >> player.build;
+  int bits = 0;
+  reader.value("flags") >> bits;
+  player.set_flags_bits(bits);
+  reader.value("build") >> bits;
+  player.set_build_bits(bits);
   unsigned int val;
   reader.value("color")[0] >> val; player.color.red = val;
   reader.value("color")[1] >> val; player.color.green = val;
@@ -1433,7 +1503,8 @@ operator >> (SaveReaderText &reader, Player &player) {
   reader.value("face") >> player.face;
   /* Older saves have no emergency program; it counts as over. */
   if (reader.has_value("emergency_flags")) {
-    reader.value("emergency_flags") >> player.emergency_flags;
+    reader.value("emergency_flags") >> bits;
+    player.set_emergency_bits(bits);
     reader.value("emergency_counter") >> player.emergency_counter;
     reader.value("extra_planks") >> player.extra_planks;
     reader.value("extra_stone") >> player.extra_stone;
@@ -1443,7 +1514,7 @@ operator >> (SaveReaderText &reader, Player &player) {
   }
   /* Saves from before the in-game bit: every player with a face takes
      part in the game. */
-  if (player.face != 0) player.flags |= BIT(6);
+  if (player.face != 0) player.in_game = true;
   for (int i = 0; i < 9; i++) {
     reader.value("tool_prio")[i] >> player.tool_prio[i];
   }
@@ -1585,13 +1656,13 @@ operator >> (SaveReaderText &reader, Player &player) {
 
 SaveWriterText&
 operator << (SaveWriterText &writer, Player &player) {
-  writer.value("flags") << player.flags;
-  writer.value("build") << player.build;
+  writer.value("flags") << player.get_flags_bits();
+  writer.value("build") << player.get_build_bits();
   writer.value("color") << player.color.red;
   writer.value("color") << player.color.green;
   writer.value("color") << player.color.blue;
   writer.value("face") << player.face;
-  writer.value("emergency_flags") << player.emergency_flags;
+  writer.value("emergency_flags") << player.get_emergency_bits();
   writer.value("emergency_counter") << player.emergency_counter;
   writer.value("extra_planks") << player.extra_planks;
   writer.value("extra_stone") << player.extra_stone;

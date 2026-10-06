@@ -42,6 +42,7 @@ Building::Building(Game *game, unsigned int index)
   holder = false;
   pos = 0;
   progress = 0;
+  under_attack = false;
   u = { 0 };
   inventory = nullptr;
 
@@ -163,6 +164,16 @@ Building::build_progress() {
   player->building_built(this);
 
   return true;
+}
+
+/* The bit 0 of the progress of a finished military building of a save is
+   whether it is under attack. */
+void
+Building::split_attack_bit() {
+  if (!constructing && is_military()) {
+    under_attack = BIT_TEST(progress, 0);
+    progress &= ~BIT(0);
+  }
 }
 
 void
@@ -1331,6 +1342,7 @@ operator >> (SaveReaderBinary &reader, Building &building) {
   building.first_knight = v16;
   reader >> v16;  // 12
   building.progress = v16;
+  building.split_attack_bit();
 
   if (has_inventory && !building.constructing) {
     reader >> v32;  // 14
@@ -1495,6 +1507,7 @@ operator >> (SaveReaderText &reader, Building &building) {
 
   reader.value("serf_index") >> building.first_knight;
   reader.value("progress") >> building.progress;
+  building.split_attack_bit();
   if (reader.has_value("queued_type")) {
     unsigned int queued_type;
     reader.value("queued_type") >> queued_type;
@@ -1546,7 +1559,8 @@ operator << (SaveWriterText &writer, Building &building) {
   writer.value("stock[1].maximum") << building.stock[1].maximum;
 
   writer.value("serf_index") << building.first_knight;
-  writer.value("progress") << building.progress;
+  writer.value("progress") << (building.progress |
+                                (building.under_attack ? BIT(0) : 0));
   if (building.queued_type != Building::TypeNone) {
     writer.value("queued_type") << building.queued_type;
   }

@@ -929,7 +929,7 @@ Serf::switch_waiting(Direction dir) {
 
     if (s.free_walking.dist_col == 0 && s.free_walking.dist_row == 0) {
       /* Arriving to destination */
-      s.free_walking.flags = BIT(3);
+      set_obstacle(0, true, 0);
     }
     return 1;
   } else if (state == StateDigging && s.digging.substate < 0) {
@@ -1533,7 +1533,7 @@ Serf::handle_serf_entering_building_state() {
             case Building::TypeSawmill:
             case Building::TypeToolMaker:
             case Building::TypeFortress:
-              s.building.material_step |= BIT(7);
+              set_building_tall();
               animation = 100;
               break;
             default:
@@ -1909,7 +1909,7 @@ Serf::handle_serf_leaving_building_state() {
       s.free_walking.dist_row = dist2;
       s.free_walking.neg_dist1 = neg_dist1;
       s.free_walking.neg_dist2 = neg_dist2;
-      s.free_walking.flags = 0;
+      clear_obstacle();
     } else if (state == StateKnightPrepareDefending || state == StateScatter) {
       /* No state. */
     } else {
@@ -2127,10 +2127,10 @@ Serf::handle_serf_building_state() {
       if (s.building.counter == 0) {
         s.building.mode = 1;
         animation = 98;
-        if (BIT_TEST(s.building.material_step, 7)) animation = 100;
+        if (is_building_tall()) animation = 100;
 
         /* 353A5 */
-        int material_step = s.building.material_step & 0xf;
+        int material_step = get_building_material_step();
         if (!BIT_TEST(material_order[building->get_type()], material_step)) {
           /* Planks */
           if (building->get_res_count_in_stock(0) == 0) {
@@ -2159,11 +2159,11 @@ Serf::handle_serf_building_state() {
       if (s.building.mode == 0) {
         s.building.mode = 1;
         animation = 98;
-        if (BIT_TEST(s.building.material_step, 7)) animation = 100;
+        if (is_building_tall()) animation = 100;
       }
 
       /* 353A5: Duplicate code */
-      int material_step = s.building.material_step & 0xf;
+      int material_step = get_building_material_step();
       if (!BIT_TEST(material_order[building->get_type()], material_step)) {
         /* Planks */
         if (building->get_res_count_in_stock(0) == 0) {
@@ -2190,7 +2190,7 @@ Serf::handle_serf_building_state() {
     }
 
     int rnd = (game->random_int() & 3) + 102;
-    if (BIT_TEST(s.building.material_step, 7)) rnd += 4;
+    if (is_building_tall()) rnd += 4;
     animation = rnd;
     counter += counter_from_animation[animation];
   }
@@ -2431,7 +2431,7 @@ Serf::handle_serf_free_walking_state_dest_reached() {
           /* The expected tree is gone */
           s.free_walking.neg_dist1 = -128;
           s.free_walking.neg_dist2 = 0;
-          s.free_walking.flags = 0;
+          clear_obstacle();
           counter = 0;
         }
       }
@@ -2464,7 +2464,7 @@ Serf::handle_serf_free_walking_state_dest_reached() {
           /* The expected stone is gone or unavailable */
           s.free_walking.neg_dist1 = -128;
           s.free_walking.neg_dist2 = 0;
-          s.free_walking.flags = 0;
+          clear_obstacle();
           counter = 0;
         }
       }
@@ -2486,7 +2486,7 @@ Serf::handle_serf_free_walking_state_dest_reached() {
           /* The expected free space is no longer empty */
           s.free_walking.neg_dist1 = -128;
           s.free_walking.neg_dist2 = 0;
-          s.free_walking.flags = 0;
+          clear_obstacle();
           counter = 0;
         }
       }
@@ -2520,13 +2520,13 @@ Serf::handle_serf_free_walking_state_dest_reached() {
           /* Cannot fish here after all. */
           s.free_walking.neg_dist1 = -128;
           s.free_walking.neg_dist2 = 0;
-          s.free_walking.flags = 0;
+          clear_obstacle();
           counter = 0;
         } else {
           set_state(StateFishing);
           s.free_walking.neg_dist1 = 0;
           s.free_walking.neg_dist2 = 0;
-          s.free_walking.flags = 0;
+          reset_fishing_attempts();
           animation = a;
           counter = counter_from_animation[a];
         }
@@ -2562,7 +2562,7 @@ Serf::handle_serf_free_walking_state_dest_reached() {
           /* Space not available after all. */
           s.free_walking.neg_dist1 = -128;
           s.free_walking.neg_dist2 = 0;
-          s.free_walking.flags = 0;
+          clear_obstacle();
           counter = 0;
           break;
         }
@@ -2594,7 +2594,7 @@ Serf::handle_serf_free_walking_state_dest_reached() {
           /* Destination is not a free space after all. */
           s.free_walking.neg_dist1 = -128;
           s.free_walking.neg_dist2 = 0;
-          s.free_walking.flags = 0;
+          clear_obstacle();
           counter = 0;
         }
       }
@@ -2638,7 +2638,7 @@ Serf::handle_serf_free_walking_switch_on_dir(Direction dir) {
 
   if (s.free_walking.dist_col == 0 && s.free_walking.dist_row == 0) {
     /* Arriving to destination */
-    s.free_walking.flags = BIT(3);
+    set_obstacle(0, true, 0);
   }
 }
 
@@ -2680,7 +2680,7 @@ Serf::handle_serf_free_walking_switch_with_other() {
     if (s.free_walking.dist_col == 0 &&
         s.free_walking.dist_row == 0) {
       /* Arriving to destination */
-      s.free_walking.flags = BIT(3);
+      set_obstacle(0, true, 0);
     }
 
     /* Switch with other serf. */
@@ -2749,14 +2749,14 @@ Serf::handle_free_walking_follow_edge() {
   int dir_index = -1;
   const Direction *dir_arr = NULL;
 
-  if (BIT_TEST(s.free_walking.flags, 3)) {
-    /* Follow right-hand edge */
+  if (is_obstacle_left_edge()) {
+    /* Follow left-hand edge */
     dir_arr = dir_left_edge;
-    dir_index = (s.free_walking.flags & 7)-1;
+    dir_index = get_obstacle_dir_index() - 1;
   } else {
     /* Follow right-hand edge */
     dir_arr = dir_right_edge;
-    dir_index = (s.free_walking.flags & 7)-1;
+    dir_index = get_obstacle_dir_index() - 1;
   }
 
   int d1 = s.free_walking.dist_col;
@@ -2776,7 +2776,7 @@ Serf::handle_free_walking_follow_edge() {
         s.free_walking.dist_row += s.free_walking.neg_dist2;
         s.free_walking.neg_dist1 = 0;
         s.free_walking.neg_dist2 = 0;
-        s.free_walking.flags = 0;
+        clear_obstacle();
         animation = 82;
         counter = counter_from_animation[animation];
       } else {
@@ -2790,7 +2790,7 @@ Serf::handle_free_walking_follow_edge() {
     if (state == StateKnightFreeWalking && s.free_walking.neg_dist1 != -128 &&
         game->get_map()->has_serf(new_pos)) {
       /* Wait for other serfs */
-      s.free_walking.flags = 0;
+      clear_obstacle();
       animation = 82;
       counter = counter_from_animation[animation];
       return 0;
@@ -2813,24 +2813,22 @@ Serf::handle_free_walking_follow_edge() {
   }
 
   if (i0 > DirectionNone) {
-    int upper = ((s.free_walking.flags >> 4) & 0xf) + i0 - 2;
+    int upper = get_obstacle_turns() + i0 - 2;
     if (i0 < 2 && upper < 0) {
-      s.free_walking.flags = 0;
+      clear_obstacle();
       handle_serf_free_walking_switch_on_dir(dir);
       return 0;
     } else if (i0 > 2 && upper > 15) {
-      s.free_walking.flags = 0;
+      clear_obstacle();
     } else {
       int dir_index = dir+1;
-      s.free_walking.flags = (upper << 4) |
-                             (s.free_walking.flags & 0x8) | dir_index;
+      set_obstacle(upper, is_obstacle_left_edge(), dir_index);
       handle_serf_free_walking_switch_on_dir(dir);
       return 0;
     }
   } else {
     int dir_index = 0;
-    s.free_walking.flags = (s.free_walking.flags & 0xf8) | dir_index;
-    s.free_walking.flags &= ~BIT(3);
+    set_obstacle(get_obstacle_turns(), false, dir_index);
     handle_serf_free_walking_switch_with_other();
     return 0;
   }
@@ -2887,14 +2885,13 @@ Serf::handle_free_walking_common() {
 
   int water = (state == StateFreeSailing);
 
-  if (BIT_TEST(s.free_walking.flags, 3) &&
-      (s.free_walking.flags & 7) == 0) {
+  if (is_obstacle_left_edge() && get_obstacle_dir_index() == 0) {
     /* Destination reached */
     handle_serf_free_walking_state_dest_reached();
     return;
   }
 
-  if ((s.free_walking.flags & 7) != 0) {
+  if (get_obstacle_dir_index() != 0) {
     /* Obstacle encountered, follow along the edge */
     int r = handle_free_walking_follow_edge();
     if (r >= 0) return;
@@ -2977,7 +2974,7 @@ Serf::handle_free_walking_common() {
         s.free_walking.dist_row += s.free_walking.neg_dist2;
         s.free_walking.neg_dist1 = 0;
         s.free_walking.neg_dist2 = 0;
-        s.free_walking.flags = 0;
+        clear_obstacle();
       } else {
         set_state(StateLost);
         s.lost.field_B = 0;
@@ -3062,7 +3059,7 @@ Serf::handle_free_walking_common() {
   if (BIT_TEST(dir_index ^ i0, 0)) edge = 1;
   int upper = (i0/2) + 1;
 
-  s.free_walking.flags = (upper << 4) | (edge << 3) | (dir+1);
+  set_obstacle(upper, edge != 0, dir + 1);
 
   handle_serf_free_walking_switch_on_dir(dir);
 }
@@ -3105,7 +3102,7 @@ Serf::handle_serf_logging_state() {
       counter = 0;
       s.free_walking.neg_dist1 = -128;
       s.free_walking.neg_dist2 = 1;
-      s.free_walking.flags = 0;
+      clear_obstacle();
       return;
     }
   }
@@ -3182,7 +3179,7 @@ Serf::handle_serf_planting_state() {
       set_state(StateFreeWalking);
       s.free_walking.neg_dist1 = -128;
       s.free_walking.neg_dist2 = 0;
-      s.free_walking.flags = 0;
+      clear_obstacle();
       counter = 0;
       return;
     }
@@ -3245,7 +3242,7 @@ Serf::handle_stonecutter_free_walking() {
       s.free_walking.neg_dist2 += s.free_walking.dist_row;
       s.free_walking.dist_col = 0;
       s.free_walking.dist_row = 0;
-      s.free_walking.flags = 8;
+      set_obstacle(0, true, 0);
     }
 
     handle_free_walking_common();
@@ -3271,7 +3268,7 @@ Serf::handle_serf_stonecutting_state() {
       set_state(StateFreeWalking);
       s.free_walking.neg_dist1 = -128;
       s.free_walking.neg_dist2 = 1;
-      s.free_walking.flags = 0;
+      clear_obstacle();
       counter = 0;
       return;
     }
@@ -3360,7 +3357,7 @@ Serf::handle_serf_lost_state() {
           s.free_walking.dist_row = Map::get_spiral_pattern()[2 * dist +1];
           s.free_walking.neg_dist1 = -128;
           s.free_walking.neg_dist2 = -1;
-          s.free_walking.flags = 0;
+          clear_obstacle();
           counter = 0;
           return;
         }
@@ -3402,7 +3399,7 @@ Serf::handle_serf_lost_state() {
         s.free_walking.dist_row = row;
         s.free_walking.neg_dist1 = -128;
         s.free_walking.neg_dist2 = -1;
-        s.free_walking.flags = 0;
+        clear_obstacle();
         counter = 0;
         return;
       }
@@ -3433,7 +3430,7 @@ Serf::handle_lost_sailor() {
           s.free_walking.dist_row = Map::get_spiral_pattern()[2*i+1];
           s.free_walking.neg_dist1 = -128;
           s.free_walking.neg_dist2 = -1;
-          s.free_walking.flags = 0;
+          clear_obstacle();
           counter = 0;
           return;
         }
@@ -3454,7 +3451,7 @@ Serf::handle_lost_sailor() {
         s.free_walking.dist_row = row;
         s.free_walking.neg_dist1 = -128;
         s.free_walking.neg_dist2 = -1;
-        s.free_walking.flags = 0;
+        clear_obstacle();
         counter = 0;
         return;
       }
@@ -3712,11 +3709,11 @@ Serf::handle_serf_fishing_state() {
 
   while (counter < 0) {
     if (s.free_walking.neg_dist2 != 0 ||
-        s.free_walking.flags == 10) {
+        get_fishing_attempts() == 10) {
       /* Stop fishing. Walk back. */
       set_state(StateFreeWalking);
       s.free_walking.neg_dist1 = -128;
-      s.free_walking.flags = 0;
+      clear_obstacle();
       counter = 0;
       return;
     }
@@ -3751,7 +3748,7 @@ Serf::handle_serf_fishing_state() {
       s.free_walking.neg_dist2 = 1 + Resource::TypeFish;
     }
 
-    s.free_walking.flags += 1;
+    count_fishing_attempt();
     animation += 2;
     counter += 128;
   }
@@ -3846,7 +3843,7 @@ Serf::handle_serf_farming_state() {
 
   set_state(StateFreeWalking);
   s.free_walking.neg_dist1 = -128;
-  s.free_walking.flags = 0;
+  clear_obstacle();
   counter = 0;
 }
 
@@ -4234,7 +4231,7 @@ Serf::handle_serf_looking_for_geo_spot_state() {
         s.free_walking.dist_row = Map::get_spiral_pattern()[2 * dist + 1];
         s.free_walking.neg_dist1 = -Map::get_spiral_pattern()[2 * dist];
         s.free_walking.neg_dist2 = -Map::get_spiral_pattern()[2 * dist + 1];
-        s.free_walking.flags = 0;
+        clear_obstacle();
         tick = game->get_tick();
         Log::Verbose["serf"] << "looking for geo spot: found, dist "
                              << s.free_walking.dist_col << ", "
@@ -4321,7 +4318,7 @@ Serf::handle_serf_sampling_geo_spot_state() {
     set_state(StateFreeWalking);
     s.free_walking.neg_dist1 = -128;
     s.free_walking.neg_dist2 = 0;
-    s.free_walking.flags = 0;
+    clear_obstacle();
     counter = 0;
   }
 }
@@ -4814,9 +4811,9 @@ Serf::handle_knight_attacking_victory_free() {
     s.free_walking.neg_dist2 = 0;
 
     if (s.attacking.move != 0) {
-      s.free_walking.flags = 1;
+      set_obstacle(0, false, 1);
     } else {
-      s.free_walking.flags = 0;
+      clear_obstacle();
     }
 
     animation = 179;
@@ -4849,7 +4846,7 @@ Serf::handle_serf_knight_attacking_defeat_free_state() {
     other->s.free_walking.dist_row = dist_row;
     other->s.free_walking.neg_dist1 = 0;
     other->s.free_walking.neg_dist2 = 0;
-    other->s.free_walking.flags = 0;
+    other->clear_obstacle();
 
     other->animation = 179;
     other->counter = 0;
@@ -5022,7 +5019,7 @@ Serf::handle_scatter_state() {
       s.free_walking.dist_row = row;
       s.free_walking.neg_dist1 = -128;
       s.free_walking.neg_dist2 = -1;
-      s.free_walking.flags = 0;
+      clear_obstacle();
       counter = 0;
       return;
     }

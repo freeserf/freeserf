@@ -104,7 +104,11 @@ class Building : public GameObject {
   Stock stock[kMaxStock];
   unsigned int first_knight;
   int burning_counter;
+  /* The construction, or the history of the mining of a mine. */
   int progress;
+  /* A military building under attack (bit 0 of progress in the original
+     and in the saves). */
+  bool under_attack;
   /* Type to build on the site once this burning building is gone
      (replace building by a special click). */
   Type queued_type;
@@ -157,8 +161,9 @@ class Building : public GameObject {
   int get_progress() const { return progress; }
   bool build_progress();
   void increase_mining(int res);
-  void set_under_attack() { progress |= BIT(0); }
-  bool is_under_attack() const { return BIT_TEST(progress, 0); }
+  void set_under_attack() { under_attack = true; }
+  bool is_under_attack() const { return under_attack; }
+  void split_attack_bit();
 
   /* The threat level of the building. Higher values mean that
    the building is closer to the enemy. */

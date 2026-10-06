@@ -60,23 +60,43 @@ class Flag : public GameObject {
  protected:
   unsigned int owner;
   MapPos pos; /* ADDITION */
-  int path_con;
-  int endpoint;
+  int path_con;               /* Directions with paths. */
+  int land_path_set;          /* Directions with land paths. */
+  bool building_connected;    /* A building at the up left. */
+  bool resources_waiting;     /* Resources not yet scheduled. */
   ResourceSlot slot[FLAG_MAX_RES_COUNT];
 
   int search_num;
   Direction search_dir;
-  int transporter;
-  size_t length[6];
+  int transporter_set;        /* Directions with transporters. */
+  bool serf_request_failed;   /* A transporter was requested in vain. */
+  /* Of each path. */
+  unsigned int free_transporters[6];
+  unsigned int path_length_category[6];
+  bool transporter_requested[6];
   union other_endpoint {
     Building *b[6];
     Flag *f[6];
     void *v[6];
   } other_endpoint;
-  int other_end_dir[6];
+  unsigned int pickup_slot[6];     /* The slot scheduled for pickup. */
+  Direction other_end_direction[6];
+  bool pickup_scheduled[6];
 
-  int bld_flags;
-  int bld2_flags;
+  /* Of the inventory of the building. */
+  bool inventory_building;
+  bool serfs_accepted;
+  bool resources_accepted;
+
+  /* The fields as the bytes of the original, for the saves. */
+  int get_endpoint_bits() const;
+  void set_endpoint_bits(int bits);
+  int get_transporter_bits() const;
+  void set_transporter_bits(int bits);
+  int get_length_bits(int dir) const;
+  void set_length_bits(int dir, int bits);
+  int get_other_end_bits(int dir) const;
+  void set_other_end_bits(int dir, int bits);
 
  public:
   Flag(Game *game, unsigned int index);
@@ -99,55 +119,57 @@ class Flag : public GameObject {
   void set_owner(unsigned int _owner) { owner = _owner; }
 
   /* Bitmap showing whether the outgoing paths are land paths. */
-  int land_paths() const { return endpoint & 0x3f; }
+  int land_paths() const { return land_path_set; }
   /* Whether the path in the given direction is a water path. */
   bool is_water_path(Direction dir) const {
-    return !(endpoint & (1 << (dir))); }
+    return !(land_path_set & (1 << (dir))); }
   /* Whether a building is connected to this flag. If so, the pointer to
    the other endpoint is a valid building pointer.
    (Always at UP LEFT direction). */
-  bool has_building() const { return (endpoint >> 6) & 1; }
+  bool has_building() const { return building_connected; }
 
   /* Whether resources exist that are not yet scheduled. */
-  bool has_resources() const { return (endpoint >> 7) & 1; }
+  bool has_resources() const { return resources_waiting; }
 
   /* Bitmap showing whether the outgoing paths have transporters
    servicing them. */
-  int transporters() const { return transporter & 0x3f; }
+  int transporters() const { return transporter_set; }
   /* Whether the path in the given direction has a transporter
    serving it. */
   bool has_transporter(Direction dir) const {
-    return ((transporter & (1 << (dir))) != 0); }
+    return ((transporter_set & (1 << (dir))) != 0); }
   /* Whether this flag has tried to request a transporter without success. */
-  bool serf_request_fail() const { return (transporter >> 7) & 1; }
-  void serf_request_clear() { transporter &= ~BIT(7); }
+  bool serf_request_fail() const { return serf_request_failed; }
+  void serf_request_clear() { serf_request_failed = false; }
 
   /* Current number of transporters on path. */
   unsigned int free_transporter_count(Direction dir) const {
-    return length[dir] & 0xf; }
-  void transporter_to_serve(Direction dir) { length[dir] -= 1; }
+    return free_transporters[dir]; }
+  void transporter_to_serve(Direction dir) { free_transporters[dir] -= 1; }
   /* Length category of path determining max number of transporters. */
   unsigned int length_category(Direction dir) const {
-    return (length[dir] >> 4) & 7; }
+    return path_length_category[dir]; }
   /* Whether a transporter serf was successfully requested for this path. */
-  bool serf_requested(Direction dir) const { return (length[dir] >> 7) & 1; }
-  void cancel_serf_request(Direction dir) { length[dir] &= ~BIT(7); }
+  bool serf_requested(Direction dir) const {
+    return transporter_requested[dir]; }
+  void cancel_serf_request(Direction dir) {
+    transporter_requested[dir] = false; }
   void complete_serf_request(Direction dir) {
-    length[dir] &= ~BIT(7);
-    length[dir] += 1;
+    transporter_requested[dir] = false;
+    free_transporters[dir] += 1;
   }
 
   /* The slot that is scheduled for pickup by the given path. */
   unsigned int scheduled_slot(Direction dir) const {
-    return other_end_dir[dir] & 7; }
+    return pickup_slot[dir]; }
   /* The direction from the other endpoint leading back to this flag. */
   Direction get_other_end_dir(Direction dir) const {
-    return (Direction)((other_end_dir[dir] >> 3) & 7); }
+    return other_end_direction[dir]; }
   Flag *get_other_end_flag(Direction dir) const {
     return other_endpoint.f[dir]; }
   /* Whether the given direction has a resource pickup scheduled. */
   bool is_scheduled(Direction dir) const {
-    return (other_end_dir[dir] >> 7) & 1; }
+    return pickup_scheduled[dir]; }
   bool pick_up_resource(unsigned int slot, Resource::Type *res,
                         unsigned int *dest);
   bool drop_resource(Resource::Type res, unsigned int dest);
@@ -158,18 +180,20 @@ class Flag : public GameObject {
   Resource::Type get_resource_at_slot(int slot) const;
 
   /* Whether this flag has an inventory building. */
-  bool has_inventory() const { return ((bld_flags >> 6) & 1); }
+  bool has_inventory() const { return inventory_building; }
   /* Whether this inventory accepts resources. */
-  bool accepts_resources() const { return ((bld2_flags >> 7) & 1); }
+  bool accepts_resources() const { return resources_accepted; }
   /* Whether this inventory accepts serfs. */
-  bool accepts_serfs() const { return ((bld_flags >> 7) & 1); }
+  bool accepts_serfs() const { return serfs_accepted; }
 
-  void set_has_inventory() { bld_flags |= BIT(6); }
-  void set_accepts_resources(bool accepts) { accepts ? bld2_flags |= BIT(7) :
-                                                       bld2_flags &= ~BIT(7); }
-  void set_accepts_serfs(bool accepts) { accepts ? bld_flags |= BIT(7) :
-                                                   bld_flags &= ~BIT(7); }
-  void clear_flags() { bld_flags = 0; bld2_flags = 0; }
+  void set_has_inventory() { inventory_building = true; }
+  void set_accepts_resources(bool accepts) { resources_accepted = accepts; }
+  void set_accepts_serfs(bool accepts) { serfs_accepted = accepts; }
+  void clear_flags() {
+    inventory_building = false;
+    serfs_accepted = false;
+    resources_accepted = false;
+  }
 
   friend SaveReaderBinary&
     operator >> (SaveReaderBinary &reader, Flag &flag);

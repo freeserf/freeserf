@@ -31,8 +31,8 @@ class AI::Core {
   /* ai_update_build_damping_all @0xb094 (scheduler slot 32). */
   static void update_build_damping_all();
   /* determine_map_cursor_type @0x19368 for the AI cursor: sets
-     ai.map_cursor_type, ai.panel_btn_type and the allow bits of
-     player->build. */
+     ai.map_cursor_type, ai.panel_btn_type, player->no_flag and
+     player->no_military. */
   static void determine_map_cursor_type(Player *player);
   /* player_ai @0x2d162: random site scan. */
   static void scan_sites(Player *player);

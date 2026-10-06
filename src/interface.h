@@ -110,8 +110,12 @@ class Interface : public GuiObject, public GameManager::Handler {
   int building_road_valid_dir;
 
   Player *player;
-  int config;
-  int msg_flags;
+  /* The messages shown: 3 all, 2 most, 1 few, 0 none (config bits 3, 4
+     and 5 of the original). */
+  int message_level;
+  bool message_waiting;   /* A message to show in the queue. */
+  bool message_opened;    /* A message was opened: skip the hidden ones. */
+  bool return_arrow;      /* The arrow back from the message is shown. */
   /* Advanced options (not in the original game). */
   bool invert_scrolling;
   bool large_numbers;
@@ -152,9 +156,10 @@ class Interface : public GuiObject, public GameManager::Handler {
   PopupBox *get_popup_box();
   NotificationBox *get_notification_box() { return notification_box; }
 
-  bool get_config(int i) const { return (BIT_TEST(config, i) != 0); }
-  void set_config(int i) { config |= BIT(i); }
-  void switch_config(int i) { BIT_INVERT(config, i); }
+  int get_message_level() const { return message_level; }
+  /* All, most, few, none, all again. */
+  void next_message_level() {
+    message_level = (message_level == 0) ? 3 : message_level - 1; }
   /* Mouse dragging moves the map vertically the other way. */
   bool get_invert_scrolling() const { return invert_scrolling; }
   void switch_invert_scrolling() { invert_scrolling = !invert_scrolling; }
@@ -193,8 +198,8 @@ class Interface : public GuiObject, public GameManager::Handler {
 
   Random *get_random() { return &random; }
 
-  bool get_msg_flag(int i) const { return (BIT_TEST(msg_flags, i) != 0); }
-  void set_msg_flag(int i) { msg_flags |= BIT(i); }
+  bool has_return_arrow() const { return return_arrow; }
+  bool shows_message(Message::Type type) const;
 
   StatScale get_selected_stat_scale() const { return selected_stat_scale; }
   void set_selected_stat_scale(StatScale scale) { selected_stat_scale = scale; }

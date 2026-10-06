@@ -85,16 +85,24 @@ Flag::Flag(Game *game, unsigned int index)
   , owner(-1)
   , pos(0)
   , path_con(0)
-  , endpoint(0)
+  , land_path_set(0)
+  , building_connected(false)
+  , resources_waiting(false)
   , slot{}
   , search_num(0)
   , search_dir(DirectionRight)
-  , transporter(0)
-  , length{}
+  , transporter_set(0)
+  , serf_request_failed(false)
+  , free_transporters{}
+  , path_length_category{}
+  , transporter_requested{}
   , other_endpoint{}
-  , other_end_dir{}
-  , bld_flags(0)
-  , bld2_flags(0) {
+  , pickup_slot{}
+  , other_end_direction{}
+  , pickup_scheduled{}
+  , inventory_building(false)
+  , serfs_accepted(false)
+  , resources_accepted(false) {
   for (int j = 0; j < FLAG_MAX_RES_COUNT; j++) {
     slot[j].type = Resource::TypeNone;
     slot[j].dest = 0;
@@ -106,18 +114,18 @@ void
 Flag::add_path(Direction dir, bool water) {
   path_con |= BIT(dir);
   if (water) {
-    endpoint &= ~BIT(dir);
+    land_path_set &= ~BIT(dir);
   } else {
-    endpoint |= BIT(dir);
+    land_path_set |= BIT(dir);
   }
-  transporter &= ~BIT(dir);
+  transporter_set &= ~BIT(dir);
 }
 
 void
 Flag::del_path(Direction dir) {
   path_con &= ~BIT(dir);
-  endpoint &= ~BIT(dir);
-  transporter &= ~BIT(dir);
+  land_path_set &= ~BIT(dir);
+  transporter_set &= ~BIT(dir);
 
   if (serf_requested(dir)) {
     cancel_serf_request(dir);
@@ -127,7 +135,8 @@ Flag::del_path(Direction dir) {
     }
   }
 
-  other_end_dir[dir] &= 0x78;
+  pickup_slot[dir] = 0;
+  pickup_scheduled[dir] = false;
   other_endpoint.f[dir] = NULL;
 
   /* Mark resource path for recalculation if they would
@@ -166,7 +175,7 @@ Flag::switch_resource(unsigned int from_slot, Resource::Type *res,
     throw ExceptionFreeserf("Wrong flag slot index.");
   }
 
-  endpoint |= BIT(7);
+  resources_waiting = true;
 
   Resource::Type temp_res = *res;
   unsigned int temp_dest = *dest;
@@ -188,7 +197,7 @@ Flag::drop_resource(Resource::Type res, unsigned int dest) {
       slot[i].type = res;
       slot[i].dest = dest;
       slot[i].dir = DirectionNone;
-      endpoint |= BIT(7);
+      resources_waiting = true;
       return true;
     }
   }
@@ -235,9 +244,9 @@ Flag::fix_scheduled() {
   }
 
   if (scheduled_slots) {
-    endpoint |= BIT(7);
+    resources_waiting = true;
   } else {
-    endpoint &= ~BIT(7);
+    resources_waiting = false;
   }
 }
 
@@ -329,7 +338,7 @@ Flag::schedule_slot_to_unknown_dest(int slot_num) {
       }
 
       slot[slot_num].dest = dest_bld->get_flag_index();
-      endpoint |= BIT(7);
+      resources_waiting = true;
       return;
     }
   }
@@ -344,7 +353,7 @@ Flag::schedule_slot_to_unknown_dest(int slot_num) {
      In the latter case we need to move it
      forth and back once before it can be delivered. */
     if (transporters() == 0) {
-      endpoint |= BIT(7);
+      resources_waiting = true;
     } else {
       Direction dir = DirectionNone;
       for (Direction d : cycle_directions_ccw()) {
@@ -359,14 +368,14 @@ Flag::schedule_slot_to_unknown_dest(int slot_num) {
       }
 
       if (!is_scheduled(dir)) {
-        other_end_dir[dir] = BIT(7) |
-          (other_end_dir[dir] & 0x38) | slot_num;
+        pickup_scheduled[dir] = true;
+        pickup_slot[dir] = slot_num;
       }
       slot[slot_num].dir = dir;
     }
   } else {
     this->slot[slot_num].dest = r;
-    endpoint |= BIT(7);
+    resources_waiting = true;
   }
 }
 
@@ -434,17 +443,16 @@ Flag::schedule_known_dest_cb_(Flag *src, Flag *dest, int _slot) {
     if (this->search_dir != 6) {
       if (!src->is_scheduled(this->search_dir)) {
         /* Item is requesting to be fetched */
-        src->other_end_dir[this->search_dir] =
-          BIT(7) | (src->other_end_dir[this->search_dir] & 0x78) | _slot;
+        src->pickup_scheduled[this->search_dir] = true;
+        src->pickup_slot[this->search_dir] = _slot;
       } else {
         Player *player = game->get_player(this->get_owner());
-        int other_dir = src->other_end_dir[this->search_dir];
-        int prio_old = player->get_flag_prio(src->slot[other_dir & 7].type);
+        int prio_old = player->get_flag_prio(
+                         src->slot[src->pickup_slot[this->search_dir]].type);
         int prio_new = player->get_flag_prio(src->slot[_slot].type);
         if (prio_new > prio_old) {
           /* This item has the highest priority now */
-          src->other_end_dir[this->search_dir] =
-            (src->other_end_dir[this->search_dir] & 0xf8) | _slot;
+          src->pickup_slot[this->search_dir] = _slot;
         }
         src->slot[_slot].dir = this->search_dir;
       }
@@ -466,7 +474,7 @@ Flag::schedule_slot_to_known_dest(int slot_, unsigned int res_waiting[4]) {
   int sources = 0;
 
   /* Directions where transporters are idle (zero slots waiting) */
-  int flags = (res_waiting[0] ^ 0x3f) & transporter;
+  int flags = (res_waiting[0] ^ 0x3f) & transporter_set;
 
   if (flags != 0) {
     for (Direction k : cycle_directions_ccw()) {
@@ -526,10 +534,10 @@ Flag::schedule_slot_to_known_dest(int slot_, unsigned int res_waiting[4]) {
       game->cancel_transported_resource(this->slot[slot_].type,
                                         this->slot[slot_].dest);
       this->slot[slot_].dest = 0;
-      endpoint |= BIT(7);
+      resources_waiting = true;
     }
   } else {
-    endpoint |= BIT(7);
+    resources_waiting = true;
   }
 }
 
@@ -550,8 +558,12 @@ Flag::prioritize_pickup(Direction dir, Player *player) {
     }
   }
 
-  other_end_dir[dir] &= 0x78;
-  if (res_next > -1) other_end_dir[dir] |= BIT(7) | res_next;
+  pickup_slot[dir] = 0;
+  pickup_scheduled[dir] = false;
+  if (res_next > -1) {
+    pickup_scheduled[dir] = true;
+    pickup_slot[dir] = res_next;
+  }
 }
 
 void
@@ -559,7 +571,7 @@ Flag::invalidate_resource_path(Direction dir) {
   for (int i = 0; i < FLAG_MAX_RES_COUNT; i++) {
     if (slot[i].type != Resource::TypeNone && slot[i].dir == dir) {
       slot[i].dir = DirectionNone;
-      endpoint |= BIT(7);
+      resources_waiting = true;
     }
   }
 }
@@ -578,20 +590,77 @@ Flag::get_road_length_value(size_t length) {
   return 0;
 }
 
+/* The bytes of the original: the land paths in bits 0..5 with the
+   building (6) and the resources waiting (7); the transporters with the
+   failed request (7); the free transporters (0..3), the length category
+   (4..6) and the requested transporter (7) of a path; the pickup slot
+   (0..2), the direction at the other end (3..5) and the scheduled pickup
+   (7). */
+int
+Flag::get_endpoint_bits() const {
+  return land_path_set | (building_connected ? BIT(6) : 0) |
+         (resources_waiting ? BIT(7) : 0);
+}
+
+void
+Flag::set_endpoint_bits(int bits) {
+  land_path_set = bits & 0x3f;
+  building_connected = BIT_TEST(bits, 6);
+  resources_waiting = BIT_TEST(bits, 7);
+}
+
+int
+Flag::get_transporter_bits() const {
+  return transporter_set | (serf_request_failed ? BIT(7) : 0);
+}
+
+void
+Flag::set_transporter_bits(int bits) {
+  transporter_set = bits & 0x3f;
+  serf_request_failed = BIT_TEST(bits, 7);
+}
+
+int
+Flag::get_length_bits(int dir) const {
+  return static_cast<int>(free_transporters[dir] |
+                          (path_length_category[dir] << 4)) |
+         (transporter_requested[dir] ? BIT(7) : 0);
+}
+
+void
+Flag::set_length_bits(int dir, int bits) {
+  free_transporters[dir] = bits & 0xf;
+  path_length_category[dir] = (bits >> 4) & 7;
+  transporter_requested[dir] = BIT_TEST(bits, 7);
+}
+
+int
+Flag::get_other_end_bits(int dir) const {
+  return static_cast<int>(pickup_slot[dir] |
+                          (other_end_direction[dir] << 3)) |
+         (pickup_scheduled[dir] ? BIT(7) : 0);
+}
+
+void
+Flag::set_other_end_bits(int dir, int bits) {
+  pickup_slot[dir] = bits & 7;
+  other_end_direction[dir] = static_cast<Direction>((bits >> 3) & 7);
+  pickup_scheduled[dir] = BIT_TEST(bits, 7);
+}
+
 void
 Flag::link_with_flag(Flag *dest_flag, bool water_path, size_t length_,
                      Direction in_dir, Direction out_dir) {
   dest_flag->add_path(in_dir, water_path);
   add_path(out_dir, water_path);
 
-  dest_flag->other_end_dir[in_dir] =
-    (dest_flag->other_end_dir[in_dir] & 0xc7) | (out_dir << 3);
-  other_end_dir[out_dir] = (other_end_dir[out_dir] & 0xc7) | (in_dir << 3);
+  dest_flag->other_end_direction[in_dir] = out_dir;
+  other_end_direction[out_dir] = in_dir;
 
   size_t len = get_road_length_value(length_);
 
-  dest_flag->length[in_dir] = len << 4;
-  this->length[out_dir] = len << 4;
+  dest_flag->set_length_bits(in_dir, static_cast<int>(len << 4));
+  set_length_bits(out_dir, static_cast<int>(len << 4));
 
   dest_flag->other_endpoint.f[in_dir] = this;
   other_endpoint.f[out_dir] = dest_flag;
@@ -606,21 +675,22 @@ Flag::restore_path_serf_info(Direction dir, SerfPathInfo *data) {
 
   add_path(dir, other_flag->is_water_path(other_dir));
 
-  other_flag->transporter &= ~BIT(other_dir);
+  other_flag->transporter_set &= ~BIT(other_dir);
 
   size_t len = Flag::get_road_length_value(data->path_len);
 
-  length[dir] = len << 4;
-  other_flag->length[other_dir] =
-    (0x80 & other_flag->length[other_dir]) | (len << 4);
+  /* The number of free transporters starts again, the request of the
+     other end stays. */
+  set_length_bits(dir, static_cast<int>(len << 4));
+  other_flag->free_transporters[other_dir] = 0;
+  other_flag->path_length_category[other_dir] = static_cast<unsigned int>(len);
 
   if (other_flag->serf_requested(other_dir)) {
-    length[dir] |= BIT(7);
+    transporter_requested[dir] = true;
   }
 
-  other_end_dir[dir] = (other_end_dir[dir] & 0xc7) | (other_dir << 3);
-  other_flag->other_end_dir[other_dir] =
-    (other_flag->other_end_dir[other_dir] & 0xc7) | (dir << 3);
+  other_end_direction[dir] = other_dir;
+  other_flag->other_end_direction[other_dir] = dir;
 
   other_endpoint.f[dir] = other_flag;
   other_flag->other_endpoint.f[other_dir] = this;
@@ -637,11 +707,12 @@ Flag::restore_path_serf_info(Direction dir, SerfPathInfo *data) {
 
   if (std::min(data->serf_count, max_serfs) > 0) {
     /* There are still transporters on the paths. */
-    transporter |= BIT(dir);
-    other_flag->transporter |= BIT(other_dir);
+    transporter_set |= BIT(dir);
+    other_flag->transporter_set |= BIT(other_dir);
 
-    length[dir] |= std::min(data->serf_count, max_serfs);
-    other_flag->length[other_dir] |= std::min(data->serf_count, max_serfs);
+    free_transporters[dir] |= std::min(data->serf_count, max_serfs);
+    other_flag->free_transporters[other_dir] |=
+      std::min(data->serf_count, max_serfs);
   }
 }
 
@@ -814,34 +885,32 @@ Flag::merge_paths(MapPos pos_) {
   Direction dir_1 = path_1_data.flag_dir;
   Direction dir_2 = path_2_data.flag_dir;
 
-  flag_1->other_end_dir[dir_1] =
-    (flag_1->other_end_dir[dir_1] & 0xc7) | (dir_2 << 3);
-  flag_2->other_end_dir[dir_2] =
-    (flag_2->other_end_dir[dir_2] & 0xc7) | (dir_1 << 3);
+  flag_1->other_end_direction[dir_1] = dir_2;
+  flag_2->other_end_direction[dir_2] = dir_1;
 
   flag_1->other_endpoint.f[dir_1] = flag_2;
   flag_2->other_endpoint.f[dir_2] = flag_1;
 
-  flag_1->transporter &= ~BIT(dir_1);
-  flag_2->transporter &= ~BIT(dir_2);
+  flag_1->transporter_set &= ~BIT(dir_1);
+  flag_2->transporter_set &= ~BIT(dir_2);
 
   size_t len = Flag::get_road_length_value(path_1_data.path_len +
                                            path_2_data.path_len);
-  flag_1->length[dir_1] = len << 4;
-  flag_2->length[dir_2] = len << 4;
+  flag_1->set_length_bits(dir_1, static_cast<int>(len << 4));
+  flag_2->set_length_bits(dir_2, static_cast<int>(len << 4));
 
   int max_serfs = max_transporters[flag_1->length_category(dir_1)];
   int serf_count = path_1_data.serf_count + path_2_data.serf_count;
   if (serf_count > 0) {
-    flag_1->transporter |= BIT(dir_1);
-    flag_2->transporter |= BIT(dir_2);
+    flag_1->transporter_set |= BIT(dir_1);
+    flag_2->transporter_set |= BIT(dir_2);
 
     if (serf_count > max_serfs) {
       /* TODO 59B8B */
     }
 
-    flag_1->length[dir_1] += serf_count;
-    flag_2->length[dir_2] += serf_count;
+    flag_1->free_transporters[dir_1] += serf_count;
+    flag_2->free_transporters[dir_2] += serf_count;
   }
 
   /* Update serfs with reference to this flag. */
@@ -879,7 +948,7 @@ Flag::update() {
   int waiting_count = 0;
 
   if (has_resources()) {
-    endpoint &= ~BIT(7);
+    resources_waiting = false;
     for (int slot_ = 0; slot_ < FLAG_MAX_RES_COUNT; slot_++) {
       if (slot[slot_].type != Resource::TypeNone) {
         waiting_count += 1;
@@ -906,10 +975,10 @@ Flag::update() {
       if (serf_requested(j)) {
         if (BIT_TEST(res_waiting[2], j)) {
           if (waiting_count >= 7) {
-            transporter &= ~BIT(j);
+            transporter_set &= ~BIT(j);
           }
         } else if (free_transporter_count(j) != 0) {
-          transporter |= BIT(j);
+          transporter_set |= BIT(j);
         }
       } else if (free_transporter_count(j) == 0 ||
                  BIT_TEST(res_waiting[2], j)) {
@@ -917,13 +986,13 @@ Flag::update() {
         if (free_transporter_count(j) < (unsigned int)max_tr &&
             !serf_request_fail()) {
           bool r = call_transporter(j, is_water_path(j));
-          if (!r) transporter |= BIT(7);
+          if (!r) serf_request_failed = true;
         }
         if (waiting_count >= 7) {
-          transporter &= ~BIT(j);
+          transporter_set &= ~BIT(j);
         }
       } else {
-        transporter |= BIT(j);
+        transporter_set |= BIT(j);
       }
     }
   }
@@ -990,8 +1059,8 @@ Flag::call_transporter(Direction dir, bool water) {
 
   Flag *dest_flag = game->get_flag(inventory->get_flag_index());
 
-  length[dir] |= BIT(7);
-  src_2->length[dir_2] |= BIT(7);
+  transporter_requested[dir] = true;
+  src_2->transporter_requested[dir_2] = true;
 
   Flag *src = this;
   if (dest_flag->search_dir == src_2->search_dir) {
@@ -1010,7 +1079,7 @@ Flag::reset_transport(Flag *other) {
     if (other->slot[slot_].type != Resource::TypeNone &&
         other->slot[slot_].dest == index) {
       other->slot[slot_].dest = 0;
-      other->endpoint |= BIT(7);
+      other->resources_waiting = true;
 
       if (other->slot[slot_].dir != DirectionNone) {
         Direction dir = other->slot[slot_].dir;
@@ -1035,13 +1104,13 @@ Flag::reset_destination_of_stolen_resources() {
 void
 Flag::link_building(Building *building) {
   other_endpoint.b[DirectionUpLeft] = building;
-  endpoint |= BIT(6);
+  building_connected = true;
 }
 
 void
 Flag::unlink_building() {
   other_endpoint.b[DirectionUpLeft] = nullptr;
-  endpoint &= ~BIT(6);
+  building_connected = false;
   clear_flags();
 }
 
@@ -1061,14 +1130,14 @@ operator >> (SaveReaderBinary &reader, Flag &flag) {
   flag.path_con = val8 & 0x3f;
 
   reader >> val8;  // 4
-  flag.endpoint = val8;
+  flag.set_endpoint_bits(val8);
 
   reader >> val8;  // 5
-  flag.transporter = val8;
+  flag.set_transporter_bits(val8);
 
   for (Direction j : cycle_directions_cw()) {
     reader >> val8;  // 6+j
-    flag.length[j] = val8;
+    flag.set_length_bits(j, val8);
   }
 
   for (int j = 0; j < 8; j++) {
@@ -1108,11 +1177,12 @@ operator >> (SaveReaderBinary &reader, Flag &flag) {
   // base + 60
   for (Direction j : cycle_directions_cw()) {
     reader >> val8;
-    flag.other_end_dir[j] = val8;
+    flag.set_other_end_bits(j, val8);
   }
 
   reader >> val8;  // 66
-  flag.bld_flags = val8;
+  flag.inventory_building = BIT_TEST(val8, 6);
+  flag.serfs_accepted = BIT_TEST(val8, 7);
 
   reader >> val8;  // 67
   if (flag.has_building()) {
@@ -1120,7 +1190,7 @@ operator >> (SaveReaderBinary &reader, Flag &flag) {
   }
 
   reader >> val8;  // 68
-  flag.bld2_flags = val8;
+  flag.resources_accepted = BIT_TEST(val8, 7);
 
   reader >> val8;  // 69
   if (flag.has_building()) {
@@ -1148,13 +1218,16 @@ operator >> (SaveReaderText &reader, Flag &flag) {
     flag.path_con = (val & 0x3f);
     flag.owner = ((val >> 6) & 3);
   }
-  reader.value("endpoints") >> flag.endpoint;
-  reader.value("transporter") >> flag.transporter;
+  int bits = 0;
+  reader.value("endpoints") >> bits;
+  flag.set_endpoint_bits(bits);
+  reader.value("transporter") >> bits;
+  flag.set_transporter_bits(bits);
 
   for (Direction i : cycle_directions_cw()) {
     int len;
     reader.value("length")[i] >> len;
-    flag.length[i] = len;
+    flag.set_length_bits(i, len);
     unsigned int obj_index;
     reader.value("other_endpoint")[i] >> obj_index;
     if (flag.has_building() && (i == DirectionUpLeft)) {
@@ -1167,7 +1240,8 @@ operator >> (SaveReaderText &reader, Flag &flag) {
       }
       flag.other_endpoint.f[i] = other_flag;
     }
-    reader.value("other_end_dir")[i] >> flag.other_end_dir[i];
+    reader.value("other_end_dir")[i] >> bits;
+    flag.set_other_end_bits(i, bits);
   }
 
   for (int i = 0; i < FLAG_MAX_RES_COUNT; i++) {
@@ -1176,8 +1250,11 @@ operator >> (SaveReaderText &reader, Flag &flag) {
     reader.value("slot.dest")[i] >> flag.slot[i].dest;
   }
 
-  reader.value("bld_flags") >> flag.bld_flags;
-  reader.value("bld2_flags") >> flag.bld2_flags;
+  reader.value("bld_flags") >> bits;
+  flag.inventory_building = BIT_TEST(bits, 6);
+  flag.serfs_accepted = BIT_TEST(bits, 7);
+  reader.value("bld2_flags") >> bits;
+  flag.resources_accepted = BIT_TEST(bits, 7);
 
   return reader;
 }
@@ -1190,11 +1267,11 @@ operator << (SaveWriterText &writer, Flag &flag) {
   writer.value("search_dir") << flag.search_dir;
   writer.value("path_con") << flag.path_con;
   writer.value("owner") << flag.owner;
-  writer.value("endpoints") << flag.endpoint;
-  writer.value("transporter") << flag.transporter;
+  writer.value("endpoints") << flag.get_endpoint_bits();
+  writer.value("transporter") << flag.get_transporter_bits();
 
   for (Direction d : cycle_directions_cw()) {
-    writer.value("length") << static_cast<int>(flag.length[d]);
+    writer.value("length") << flag.get_length_bits(d);
     if (d == DirectionUpLeft && flag.has_building()) {
       writer.value("other_endpoint") <<
         flag.other_endpoint.b[DirectionUpLeft]->get_index();
@@ -1205,7 +1282,7 @@ operator << (SaveWriterText &writer, Flag &flag) {
         writer.value("other_endpoint") << 0;
       }
     }
-    writer.value("other_end_dir") << flag.other_end_dir[d];
+    writer.value("other_end_dir") << flag.get_other_end_bits(d);
   }
 
   for (int i = 0; i < FLAG_MAX_RES_COUNT; i++) {
@@ -1214,8 +1291,9 @@ operator << (SaveWriterText &writer, Flag &flag) {
     writer.value("slot.dest") << flag.slot[i].dest;
   }
 
-  writer.value("bld_flags") << flag.bld_flags;
-  writer.value("bld2_flags") << flag.bld2_flags;
+  writer.value("bld_flags") << ((flag.inventory_building ? BIT(6) : 0) |
+                                 (flag.serfs_accepted ? BIT(7) : 0));
+  writer.value("bld2_flags") << (flag.resources_accepted ? BIT(7) : 0);
 
   return writer;
 }

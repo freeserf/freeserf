@@ -62,8 +62,10 @@ Interface::Interface()
   player = nullptr;
 
   /* Settings */
-  config = 0x39;
-  msg_flags = 0;
+  message_level = 3;
+  message_waiting = false;
+  message_opened = false;
+  return_arrow = false;
   invert_scrolling = false;
   large_numbers = false;
   stock_box_occupied = false;
@@ -195,13 +197,9 @@ Interface::apply_settings() {
     volume->set_volume(settings.get("options", "volume", current) / 100.f);
   }
 
-  /* Messages: 3 all, 2 most, 1 few, 0 none (config bits 3, 4, 5). */
-  int current_messages = get_config(3) ? 3 : get_config(4) ? 2 :
-                         get_config(5) ? 1 : 0;
-  int messages = settings.get("options", "messages", current_messages);
-  for (int i = 3; i <= 5; i++) {
-    if (get_config(i) != (messages >= 6 - i)) switch_config(i);
-  }
+  /* Messages: 3 all, 2 most, 1 few, 0 none. */
+  message_level = std::max(0, std::min(3, settings.get("options", "messages",
+                                                       message_level)));
 
   invert_scrolling = settings.get("advanced", "invert_scrolling", false);
   large_numbers = settings.get("advanced", "large_numbers", false);
@@ -240,8 +238,7 @@ Interface::store_settings() {
   settings.set("options", "fullscreen",
                Graphics::get_instance().is_fullscreen());
 
-  int messages = get_config(3) ? 3 : get_config(4) ? 2 : get_config(5) ? 1 : 0;
-  settings.set("options", "messages", messages);
+  settings.set("options", "messages", message_level);
 
   settings.set("advanced", "invert_scrolling", invert_scrolling);
   settings.set("advanced", "large_numbers", large_numbers);
@@ -314,9 +311,8 @@ Interface::open_message() {
   if (!player->has_notification()) {
     play_sound(Audio::TypeSfxClick);
     return;
-  } else if (!BIT_TEST(msg_flags, 3)) {
-    msg_flags |= BIT(4);
-    msg_flags |= BIT(3);
+  } else if (!return_arrow) {
+    return_arrow = true;
     MapPos pos = viewport->get_current_map_pos();
     return_pos = pos;
   }
@@ -340,16 +336,28 @@ Interface::open_message() {
     update_map_cursor_pos(message.pos);
   }
 
-  msg_flags |= BIT(1);
+  message_opened = true;
   return_timeout = 60*TICKS_PER_SEC;
   play_sound(Audio::TypeSfxClick);
 }
 
+/* Whether a message of the type is shown at the message level: some
+   always, the others from all (3), most (2) or few (1) messages. */
+bool
+Interface::shows_message(Message::Type type) const {
+  /* The least level that shows the type, 0 always (the config bits of the
+     original, 3 to 5, for the levels 3 to 1). */
+  const int least_level[] = {
+    4, 1, 1, 1, 2, 0, 2, 3, 2, 1,
+    1, 1, 2, 2, 2, 2, 0, 0, 0, 0
+  };
+  return message_level >= least_level[type];
+}
+
 void
 Interface::return_from_message() {
-  if (BIT_TEST(msg_flags, 3)) { /* Return arrow present */
-    msg_flags |= BIT(4);
-    msg_flags &= ~BIT(3);
+  if (return_arrow) {
+    return_arrow = false;
 
     return_timeout = 0;
     viewport->move_to_map_pos(return_pos);
@@ -1185,42 +1193,36 @@ Interface::update() {
 
   /* Clear return arrow after a timeout */
   if (return_timeout < tick_diff) {
-    msg_flags |= BIT(4);
-    msg_flags &= ~BIT(3);
+    return_arrow = false;
     return_timeout = 0;
   } else {
     return_timeout -= tick_diff;
   }
-
-  const int msg_category[] = {
-    -1, 5, 5, 5, 4, 0, 4, 3, 4, 5,
-    5, 5, 4, 4, 4, 4, 0, 0, 0, 0
-  };
 
   /* Handle newly enqueued messages */
   if ((player != nullptr) && player->has_message()) {
     player->drop_message();
     while (player->has_notification()) {
       Message message = player->peek_notification();
-      if (BIT_TEST(config, msg_category[message.type])) {
+      if (shows_message(message.type)) {
         play_sound(Audio::TypeSfxMessage);
-        msg_flags |= BIT(0);
+        message_waiting = true;
         break;
       }
       player->pop_notification();
     }
   }
 
-  if ((player != nullptr) && BIT_TEST(msg_flags, 1)) {
-    msg_flags &= ~BIT(1);
+  if ((player != nullptr) && message_opened) {
+    message_opened = false;
     while (1) {
       if (!player->has_notification()) {
-        msg_flags &= ~BIT(0);
+        message_waiting = false;
         break;
       }
 
       Message message = player->peek_notification();
-      if (BIT_TEST(config, msg_category[message.type])) break;
+      if (shows_message(message.type)) break;
       player->pop_notification();
     }
   }

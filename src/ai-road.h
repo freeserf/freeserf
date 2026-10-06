@@ -27,7 +27,7 @@
 class AI::Road {
  public:
   /* ai_build_road @0x2a8f2: road from the cursor; parameters in
-     ai.u_19c, u_19e, u_1a4, u_1a8, u_1ba and player->build bit 4.
+     ai.u_19c, u_19e, u_1a4, u_1a8, u_1ba and player->water_roads.
      Returns < 0 on failure (the original's N flag). */
   static int build_road(Player *player);
   /* ai_find_flag_connection @0x29316. */
