@@ -113,7 +113,10 @@ class Game {
   int tutorial_level;
   int mission_level;
   int map_preserve_bugs;
-  int player_score_leader;
+  /* The clear leaders of the land and of the military, -1 none (packed as
+     "player_score_leader" in the saves: bits 0..3 and 4..7). */
+  int land_leader;
+  int military_leader;
   int winning_player;
   bool game_end_pending;
 
@@ -268,6 +271,7 @@ class Game {
                                Player *player);
   void update_tutorial();
   void update_game_stats();
+  void set_score_leader_bits(int bits);
   void get_resource_estimate(MapPos pos, int weight, int estimates[5]);
   bool road_segment_in_water(MapPos pos, Direction dir) const;
   void flag_reset_transport(Flag *flag);

@@ -396,7 +396,7 @@ AI::Core::get_map_cursor(const Player *player, MapPos pos, Cursor *c) {
     int paths = 0;
     for (int d = 5; d >= 0; d--) {
       if (!(flag->path_con & BIT(d))) continue;
-      if (!(flag->endpoint & BIT(d))) {
+      if (!(flag->land_paths() & BIT(d))) {
         /* Water path */
         c->cursor_type = AI_CURSOR_FLAG;
         return;
@@ -439,17 +439,9 @@ void
 AI::Core::set_cursor_result(Player *player, const Cursor *c) {
   player->ai.map_cursor_type = c->cursor_type;
   player->ai.panel_btn_type = c->possibility;
-  if (c->no_flag) {
-    player->build |= BIT(1);
-  } else {
-    player->build &= ~BIT(1);
-  }
+  player->no_flag = c->no_flag;
   if (c->military_known) {
-    if (c->no_military) {
-      player->build |= BIT(0);
-    } else {
-      player->build &= ~BIT(0);
-    }
+    player->no_military = c->no_military;
   }
 }
 
@@ -503,8 +495,8 @@ AI::Core::scan_sites(Player *player) {
 
       AI_SET_CURSOR(player, pos);
       uint32_t cat = site_categories[ai->panel_btn_type - 1];
-      if (player->build & BIT(0)) cat &= ~0x600800; /* no military */
-      if (player->build & BIT(1)) cat &= ~1; /* no flag */
+      if (player->no_military) cat &= ~0x600800; /* no military */
+      if (player->no_flag) cat &= ~1; /* no flag */
       AI::Rate::scan_points_of_interest(player);
       AI::Rate::rate_building_site(player, cat);
       return;
@@ -689,11 +681,8 @@ void
 AI::Core::adjust_flags(Player *player) {
   PlayerAI *ai = &player->ai;
 
-  if (AI_GAME->random_int() < W(player->ai_value_4)) {
-    player->flags |= BIT(1);
-  } else {
-    player->flags &= ~BIT(1);
-  }
+  /* Send the strongest knights to fight, by chance. */
+  player->strongest = (AI_GAME->random_int() < W(player->ai_value_4));
 
   if (ai->u_1b0 == 0 && player->knight_cycle_counter == 0) {
     unsigned int k0 = W(player->serf_count[Serf::TypeKnight0]);
@@ -731,7 +720,8 @@ AI::Core::adjust_flags(Player *player) {
 
     if (d2 < d1 && d2 < d0) {
       /* Start cycling the knights. */
-      player->flags |= BIT(2) | BIT(4);
+      player->knight_cycling = true;
+      player->knight_level_reduced = true;
       player->knight_cycle_counter = 1200;
       ai->u_1b0 = 15000;
     }
@@ -1161,7 +1151,7 @@ AI::Core::build_building(Player *player) {
     determine_map_cursor_type(player);
     if (ai->map_cursor_type < AI_CURSOR_CLEAR_BY_FLAG) continue;
     if (!(allowed & BIT(ai->panel_btn_type & 7))) continue;
-    if ((player->build & BIT(0)) &&
+    if (player->no_military &&
         (category == Building::TypeHut || category == Building::TypeTower ||
          category == Building::TypeFortress)) {
       continue;
@@ -1193,10 +1183,10 @@ AI::Core::build_building(Player *player) {
     AI_GAME->build_flag(AI_CURSOR_POS(player), player);
     if (rating < 0x9470) {
       AI::Road::pull_roads_through_flag(player);
-      player->build |= BIT(4);
+      player->water_roads = true;
       road_params(player, 0, 0, 0, 0, -1);
     } else {
-      player->build &= ~BIT(4);
+      player->water_roads = false;
       road_params(player, 0, 0, 0, 6, -1);
     }
     AI::Road::build_road(player);
@@ -1238,7 +1228,7 @@ AI::Core::build_building(Player *player) {
       } else {
         ai->u_1a8 = 8;
       }
-      player->build &= ~BIT(4);
+      player->water_roads = false;
       if (AI::Road::build_road(player) < 0) {
         /* build_flag may have refused. */
         MapPos fpos = AI_CURSOR_POS(player);
@@ -1271,7 +1261,7 @@ AI::Core::build_building(Player *player) {
     ai->u_19e = 0;
   }
   ai->u_1a4 = 0;
-  player->build &= ~BIT(4);
+  player->water_roads = false;
   if (AI::Road::build_road(player) < 0) {
     MapPos pos = MAP_POS((ai->cursor_col - 1) & AI_MAP->get_col_mask(),
                          (ai->cursor_row - 1) & AI_MAP->get_row_mask());
@@ -1311,16 +1301,16 @@ AI::Core::want_and_build(Player *player) {
      the want of type 25 stays set and wins every later choice. */
   for (int i = 0; i < 25; i++) ai->build_want[i] = 0;
 
-  if (BIT_TEST(player->emergency_flags, 6)) {
-    if (!BIT_TEST(player->emergency_flags, 3) &&
+  if (player->emergency_active) {
+    if (!player->emergency_lumberjack &&
         W(player->lumberjack_index) == 0) {
       AI::Want::want_lumberjack(player);
     }
-    if (!BIT_TEST(player->emergency_flags, 4) &&
+    if (!player->emergency_sawmill &&
         W(player->sawmill_index) == 0) {
       AI::Want::want_sawmill(player);
     }
-    if (!BIT_TEST(player->emergency_flags, 5) &&
+    if (!player->emergency_stone &&
         W(player->stonecutter_index) == 0) {
       AI::Want::want_stonecutter(player);
     }
@@ -1436,7 +1426,7 @@ AI::Core::connect_roads(Player *player) {
       ai->cursor_col = ecol;
       ai->cursor_row = erow;
       road_params(player, 0, 0, 12, 0, -1);
-      player->build &= ~BIT(4);
+      player->water_roads = false;
       AI::Road::build_road(player);
       budget = -1;
     } else {
@@ -1455,7 +1445,7 @@ AI::Core::connect_roads(Player *player) {
         determine_map_cursor_type(player);
         if (ai->map_cursor_type < AI_CURSOR_PATH ||
             ai->panel_btn_type < AI_CAN_BUILD_FLAG ||
-            (player->build & BIT(1))) {
+            player->no_flag) {
           continue;
         }
 
@@ -1463,7 +1453,7 @@ AI::Core::connect_roads(Player *player) {
         ai->cursor_col = ecol;
         ai->cursor_row = erow;
         road_params(player, 0, 0, 12, 0, -1);
-        player->build &= ~BIT(4);
+        player->water_roads = false;
         AI::Road::build_road(player);
         if (MAP_HAS_FLAG(p)) {
           int dummy = budget;

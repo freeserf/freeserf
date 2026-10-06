@@ -101,7 +101,6 @@ PanelBar::draw_panel_frame() {
 /* Draw notification icon in action panel. */
 void
 PanelBar::draw_message_notify() {
-  interface->set_msg_flag(2);
   frame->draw_sprite(40, 4, Data::AssetFrameBottom, 2);
 }
 
@@ -124,7 +123,7 @@ PanelBar::draw_panel_buttons() {
     }
 
     /* Return arrow icon. */
-    if (interface->get_msg_flag(3)) {
+    if (interface->has_return_arrow()) {
       draw_return_arrow();
     }
   }

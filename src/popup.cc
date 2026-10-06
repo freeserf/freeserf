@@ -1973,16 +1973,11 @@ PopupBox::draw_options_box() {
   draw_popup_icon(13, 70,   /* Fullscreen mode */
                   Graphics::get_instance().is_fullscreen() ? 288 : 220);
 
-  const char *value = NC_("messages", "All");
-  if (!interface->get_config(3)) {
-    value = NC_("messages", "Most");
-    if (!interface->get_config(4)) {
-      value = NC_("messages", "Few");
-      if (!interface->get_config(5)) {
-        value = NC_("messages", "None");
-      }
-    }
-  }
+  const char *const levels[] = {
+    NC_("messages", "None"), NC_("messages", "Few"),
+    NC_("messages", "Most"), NC_("messages", "All")
+  };
+  const char *value = levels[interface->get_message_level()];
   draw_green_string(1, 94, _("Messages"));
   draw_green_string(11, 94, C_("messages", value));
 
@@ -3547,19 +3542,7 @@ PopupBox::handle_action(int action, int x_, int /*y_*/) {
     interface->open_advanced();
     break;
   case ACTION_OPTIONS_MESSAGE_COUNT_1:
-    if (interface->get_config(3)) {
-      interface->switch_config(3);
-      interface->set_config(4);
-    } else if (interface->get_config(4)) {
-      interface->switch_config(4);
-      interface->set_config(5);
-    } else if (interface->get_config(5)) {
-      interface->switch_config(5);
-    } else {
-      interface->set_config(3);
-      interface->set_config(4);
-      interface->set_config(5);
-    }
+    interface->next_message_level();
     break;
   case ACTION_DEFAULT_SETT_1:
     interface->open_popup(TypeSett1);

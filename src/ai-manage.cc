@@ -252,7 +252,7 @@ AI::Manage::manage_stock(Player *player, Building *building, int budget) {
       budget -= 100;
       if (find_other_resource_inventory(flag) < 0) {
         mode = 0;
-      } else if (inv->res_dir & BIT(1)) {
+      } else if ((inv->resource_mode & 2)) {
         mode = 3;
       } else if (player->ai.u_1b2 >= 10000) {
         /* Original bug: the original reads and writes
@@ -270,12 +270,8 @@ AI::Manage::manage_stock(Player *player, Building *building, int budget) {
       mode = 0;
     }
 
-    inv->res_dir = (inv->res_dir & ~3) | mode;
-    if (mode == 0) {
-      flag->bld2_flags |= BIT(7);
-    } else {
-      flag->bld2_flags &= ~BIT(7);
-    }
+    inv->resource_mode = static_cast<Inventory::Mode>(mode);
+    flag->set_accepts_resources(mode == 0);
 
     /* Serf mode (res_dir bits 2-3) from the generic serfs. */
     unsigned int serfs = inv->generic_count & 0xffff;
@@ -287,7 +283,7 @@ AI::Manage::manage_stock(Player *player, Building *building, int budget) {
          meant (A1 is set up for it). */
       if (find_other_serf_inventory(flag) < 0) {
         mode = 0;
-      } else if (inv->res_dir & BIT(3)) {
+      } else if ((inv->serf_mode & 2)) {
         mode = 3;
       } else if (player->ai.u_1b2 >= 10000) {
         /* Original bug: A4 = inventory, as above. */
@@ -302,12 +298,8 @@ AI::Manage::manage_stock(Player *player, Building *building, int budget) {
       mode = 0;
     }
 
-    inv->res_dir = (inv->res_dir & ~0xc) | (mode << 2);
-    if (mode == 0) {
-      flag->bld_flags |= BIT(7);
-    } else {
-      flag->bld_flags &= ~BIT(7);
-    }
+    inv->serf_mode = static_cast<Inventory::Mode>(mode);
+    flag->set_accepts_serfs(mode == 0);
 
     return budget - 10;
   }

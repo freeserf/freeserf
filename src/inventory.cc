@@ -36,7 +36,8 @@ Inventory::Inventory(Game *game, unsigned int index)
   , out_queue{}
   , serfs_out(0)
   , generic_count(0)
-  , res_dir(0) {
+  , resource_mode(ModeIn)
+  , serf_mode(ModeIn) {
   for (int i = 0; i < 2; i++) {
     out_queue[i].type = Resource::TypeNone;
     out_queue[i].dest = 0;
@@ -417,7 +418,8 @@ operator >> (SaveReaderBinary &reader, Inventory &inventory) {
   reader >> byte;
   inventory.owner = byte;  // 0
   reader >> byte;
-  inventory.res_dir = byte;  // 1
+  inventory.resource_mode = static_cast<Inventory::Mode>(byte & 3);  // 1
+  inventory.serf_mode = static_cast<Inventory::Mode>((byte >> 2) & 3);
   uint16_t word;
   reader >> word;  // 2
   inventory.flag = word;
@@ -453,7 +455,10 @@ operator >> (SaveReaderBinary &reader, Inventory &inventory) {
 SaveReaderText&
 operator >> (SaveReaderText &reader, Inventory &inventory) {
   reader.value("player") >> inventory.owner;
-  reader.value("res_dir") >> inventory.res_dir;
+  unsigned int modes = 0;
+  reader.value("res_dir") >> modes;
+  inventory.resource_mode = static_cast<Inventory::Mode>(modes & 3);
+  inventory.serf_mode = static_cast<Inventory::Mode>((modes >> 2) & 3);
   reader.value("flag") >> inventory.flag;
   reader.value("building") >> inventory.building;
 
@@ -479,7 +484,8 @@ operator >> (SaveReaderText &reader, Inventory &inventory) {
 SaveWriterText&
 operator << (SaveWriterText &writer, Inventory &inventory) {
   writer.value("player") << inventory.owner;
-  writer.value("res_dir") << inventory.res_dir;
+  writer.value("res_dir") << (inventory.resource_mode |
+                               (inventory.serf_mode << 2));
   writer.value("flag") << inventory.flag;
   writer.value("building") << inventory.building;
 

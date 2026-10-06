@@ -60,7 +60,10 @@ class Inventory : public GameObject {
   unsigned int serfs_out;
   /* Count of generic serfs */
   int generic_count;
-  int res_dir;
+  /* The modes of the resources and of the serfs (packed as "res_dir" in
+     the saves: bits 0..1 and 2..3). */
+  Mode resource_mode;
+  Mode serf_mode;
   /* Indices to serfs of each type */
   Serf::SerfMap serfs;
 
@@ -77,13 +80,14 @@ class Inventory : public GameObject {
   int get_building_index() { return building; }
   void set_building_index(int building_index) { building = building_index; }
 
-  Inventory::Mode get_res_mode() { return (Inventory::Mode)(res_dir & 3); }
-  void set_res_mode(Inventory::Mode mode) { res_dir = (res_dir & 0xFC) | mode; }
+  Inventory::Mode get_res_mode() { return resource_mode; }
+  void set_res_mode(Inventory::Mode mode) { resource_mode = mode; }
   Inventory::Mode get_serf_mode() {
-    return (Inventory::Mode)((res_dir >> 2) & 3); }
+    return serf_mode; }
   void set_serf_mode(Inventory::Mode mode) {
-    res_dir = (res_dir & 0xF3) | (mode << 2); }
-  bool have_any_out_mode() { return ((res_dir & 0x0A) != 0); }
+    serf_mode = mode; }
+  bool have_any_out_mode() {
+    return ((resource_mode & 2) != 0) || ((serf_mode & 2) != 0); }
 
   int get_serf_queue_length() { return serfs_out; }
   void serf_away() { serfs_out--; }

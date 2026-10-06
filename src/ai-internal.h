@@ -158,7 +158,7 @@ bool ai_map_blocked(MapPos pos);
 #define PLAYER_IN_GAME(p)        ((p) != nullptr && (p)->is_in_game())
 #define PLAYER_IS_AI(p)          ((p)->is_ai())
 #define PLAYER_HAS_CASTLE(p)     ((p)->has_castle())
-#define PLAYER_ALLOW_FLAG(p)     (!(((p)->build >> 1) & 1))
+#define PLAYER_ALLOW_FLAG(p)     ((p)->allow_flag())
 
 /* Cursor of the computer player. */
 #define AI_CURSOR_POS(player) \

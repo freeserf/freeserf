@@ -436,6 +436,30 @@ class Serf : public GameObject {
   int get_mining_res() const { return s.mining.res; }
   int get_attacking_field_D() const { return s.attacking.field_D; }
   int get_attacking_def_index() const { return s.attacking.def_index; }
+  /* The packed words of the states stay one word each, as in the
+     original: the states share their memory (see Serf::s). */
+  /* Building: the step of the materials (bits 0..3), a tall building
+     (bit 7, the builder on the scaffold). */
+  unsigned int get_building_material_step() const {
+    return s.building.material_step & 0xf; }
+  bool is_building_tall() const {
+    return (s.building.material_step & BIT(7)) != 0; }
+  void set_building_tall() { s.building.material_step |= BIT(7); }
+  /* Free walking around an obstacle: the direction index + 1 (bits 0..2, 0
+     none), along the left edge (bit 3), the turns (bits 4..7). */
+  int get_obstacle_dir_index() const { return s.free_walking.flags & 7; }
+  bool is_obstacle_left_edge() const {
+    return (s.free_walking.flags & BIT(3)) != 0; }
+  int get_obstacle_turns() const { return (s.free_walking.flags >> 4) & 0xf; }
+  void set_obstacle(int turns, bool left_edge, int dir_index) {
+    s.free_walking.flags = (turns << 4) | (left_edge ? BIT(3) : 0) |
+                           dir_index; }
+  void clear_obstacle() { s.free_walking.flags = 0; }
+  /* Fishing: the same word counts the attempts. */
+  int get_fishing_attempts() const { return s.free_walking.flags; }
+  void reset_fishing_attempts() { s.free_walking.flags = 0; }
+  void count_fishing_attempt() { s.free_walking.flags += 1; }
+
   int get_walking_wait_counter() const { return s.walking.wait_counter; }
   void set_walking_wait_counter(int new_counter) {
     s.walking.wait_counter = new_counter; }

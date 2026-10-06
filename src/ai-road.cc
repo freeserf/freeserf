@@ -44,7 +44,7 @@
 #define MAX_TARGETS  63
 
 /* Amiga player->build bit 4: build water roads. */
-#define AI_BUILD_WATER(player)  (((player)->build >> 4) & 1)
+#define AI_BUILD_WATER(player)  ((player)->water_roads)
 
 /* Grid index offsets of the six directions (right, down right,
    down, left, up left, up). */
@@ -378,7 +378,7 @@ AI::Road::build_road_along_path(Player *player, uint64_t path,
             -1/-2: connecting a flag (ai_find_flag_connection, the
             flag search id is in u_1a6),
      u_19e  set to 0 when a road was built (callers set -1),
-     player->build bit 4: water roads.
+     player->water_roads (build bit 4): water roads.
    Returns u_19e (< 0: no road built). */
 int
 AI::Road::build_road(Player *player) {
@@ -679,7 +679,7 @@ AI::Road::find_flag_connection(Player *player) {
       Flag *f = in[i];
       f->search_dir = layer_dir;
       for (int d = DirectionUp; d >= DirectionRight; d--) {
-        if (!BIT_TEST(f->endpoint, d)) continue;
+        if (!BIT_TEST(f->land_paths(), d)) continue;
         Flag *other = f->other_endpoint.f[d];
         if (other->search_num == id) continue;
         if (FLAG_HAS_INVENTORY(other)) found = 1;
@@ -720,7 +720,7 @@ AI::Road::find_flag_connection(Player *player) {
   }
 
   AI_SET_CURSOR(player, pos);
-  player->build &= ~BIT(4);
+  player->water_roads = false;
   if (build_road(player) < 0) return -1;
   return 0;
 }
