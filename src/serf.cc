@@ -5659,6 +5659,15 @@ operator >> (SaveReaderText &reader, Serf &serf) {
   serf.pos = serf.get_game()->get_map()->pos(x, y);
   reader.value("tick") >> serf.tick;
   reader.value("state") >> serf.state;
+  /* Older saves have only the values of the current state. */
+  if (reader.has_value("state.raw")) {
+    SaveReaderTextValue raw_value = reader.value("state.raw");
+    int *raw = reinterpret_cast<int *>(&serf.s);
+    for (size_t i = 0;
+         i < sizeof(serf.s) / sizeof(int) && i < raw_value.size(); i++) {
+      raw_value[i] >> raw[i];
+    }
+  }
 
   switch (serf.state) {
     case Serf::StateIdleInStock:
@@ -5906,6 +5915,13 @@ operator << (SaveWriterText &writer, Serf &serf) {
   writer.value("pos") << serf.get_game()->get_map()->pos_row(serf.pos);
   writer.value("tick") << serf.tick;
   writer.value("state") << serf.state;
+  /* The whole memory of the states: a state may go on with the values that
+     an earlier state left in it, as in the original. */
+  static_assert(sizeof(serf.s) % sizeof(int) == 0, "serf state of ints");
+  const int *raw = reinterpret_cast<const int *>(&serf.s);
+  for (size_t i = 0; i < sizeof(serf.s) / sizeof(int); i++) {
+    writer.value("state.raw") << raw[i];
+  }
 
   switch (serf.state) {
     case Serf::StateIdleInStock:

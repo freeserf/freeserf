@@ -254,6 +254,7 @@ class Building : public GameObject {
   void knight_occupy();
 
   void update_military_flag_state();
+  void set_threat_level(int level) { threat_level = level; }
 
   void update(unsigned int tick);
 

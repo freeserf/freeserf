@@ -81,6 +81,8 @@ class SaveReaderTextValue {
   const SaveReaderTextValue& operator >> (uint16_t &val) const;
   const SaveReaderTextValue& operator >> (std::string &val) const;
   const SaveReaderTextValue& operator[] (size_t pos) const;
+  /* The number of parts of a list. */
+  size_t size() const { return parts.size(); }
 };
 
 class SaveWriterTextValue {
