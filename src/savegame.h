@@ -23,6 +23,7 @@
 #define SRC_SAVEGAME_H_
 
 #include <iostream>
+#include <cstdlib>
 #include <string>
 #include <list>
 #include <vector>
@@ -70,8 +71,7 @@ class SaveReaderTextValue {
   template <typename = std::enable_if<
                                     !std::is_same<size_t, unsigned int>::value>>
     const SaveReaderTextValue& operator >> (size_t &val) const {
-      int result = atoi(value.c_str());
-      val = result;
+      val = static_cast<size_t>(std::strtoull(value.c_str(), nullptr, 10));
       return *this;
     }
   const SaveReaderTextValue& operator >> (Direction &val) const;
@@ -81,6 +81,8 @@ class SaveReaderTextValue {
   const SaveReaderTextValue& operator >> (uint16_t &val) const;
   const SaveReaderTextValue& operator >> (std::string &val) const;
   const SaveReaderTextValue& operator[] (size_t pos) const;
+  /* The number of parts of a list. */
+  size_t size() const { return parts.size(); }
 };
 
 class SaveWriterTextValue {

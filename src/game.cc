@@ -3066,6 +3066,27 @@ operator >> (SaveReaderText &reader, Game &game) {
   if (game_reader->has_value("ai_ticks")) {
     game_reader->value("ai_ticks") >> game.ai_game.ticks_288;
   }
+  /* Older saves did not keep these: the generator of the map is the game's,
+     the counters start again. */
+  if (game_reader->has_value("map_random")) {
+    std::string map_rnd_str;
+    game_reader->value("map_random") >> map_rnd_str;
+    game.init_map_rnd = Random(map_rnd_str);
+  } else {
+    game.init_map_rnd = game.rnd;
+  }
+  if (game_reader->has_value("knight_morale_counter")) {
+    game_reader->value("knight_morale_counter") >> game.knight_morale_counter;
+  }
+  if (game_reader->has_value("inventory_schedule_counter")) {
+    game_reader->value("inventory_schedule_counter") >>
+      game.inventory_schedule_counter;
+  }
+  if (game_reader->has_value("game_end_pending")) {
+    int pending = 0;
+    game_reader->value("game_end_pending") >> pending;
+    game.game_end_pending = (pending != 0);
+  }
 
   Map::UpdateState update_state;
   int x, y;
@@ -3149,7 +3170,30 @@ operator >> (SaveReaderText &reader, Game &game) {
   game.game_speed = 0;
   game.game_speed_save = DEFAULT_GAME_SPEED;
 
+  /* Older saves did not keep the castle of a player. */
+  for (Building *building : game.buildings) {
+    if (building->get_index() == 0 ||
+        building->get_type() != Building::TypeCastle) {
+      continue;
+    }
+    Player *player = game.players[building->get_owner()];
+    if (player != nullptr) {
+      player->restore_castle(building);
+    }
+  }
+
+  /* The owners of the land are not saved: computed again from the military
+     buildings. That would also update the threat levels of the military
+     buildings, which the game updates only when the land near them
+     changes: they stay as saved. */
+  std::map<unsigned int, int> threat_levels;
+  for (Building *building : game.buildings) {
+    threat_levels[building->get_index()] = building->get_threat_level();
+  }
   game.init_land_ownership();
+  for (Building *building : game.buildings) {
+    building->set_threat_level(threat_levels[building->get_index()]);
+  }
 
   return reader;
 }
@@ -3179,6 +3223,11 @@ operator << (SaveWriterText &writer, Game &game) {
 
   writer.value("max_next_index") << game.max_next_index;
   writer.value("ai_ticks") << game.ai_game.ticks_288;
+  writer.value("map_random") << (std::string)game.init_map_rnd;
+  writer.value("knight_morale_counter") << game.knight_morale_counter;
+  writer.value("inventory_schedule_counter") <<
+    game.inventory_schedule_counter;
+  writer.value("game_end_pending") << (game.game_end_pending ? 1 : 0);
   writer.value("map.gold_morale_factor") << game.map_gold_morale_factor;
   writer.value("player_score_leader") << game.player_score_leader;
 

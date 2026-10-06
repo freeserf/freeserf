@@ -299,6 +299,8 @@ class Player : public GameObject {
   void decrease_res_count(Resource::Type type) { resource_count[type]--; }
 
   void building_founded(Building *building);
+  /* The castle of a save that did not keep it. */
+  void restore_castle(Building *castle);
   void building_built(Building *building);
   void building_captured(Building *building);
   void building_demolished(Building *building);

@@ -463,6 +463,9 @@ operator >> (SaveReaderText &reader, Inventory &inventory) {
   }
 
   reader.value("generic_count") >> inventory.generic_count;
+  if (reader.has_value("serfs_out")) {
+    reader.value("serfs_out") >> inventory.serfs_out;
+  }
 
   for (int i = 0; i < 26; i++) {
     reader.value("resources")[i] >> inventory.resources[(Resource::Type)i];
@@ -486,6 +489,7 @@ operator << (SaveWriterText &writer, Inventory &inventory) {
   }
 
   writer.value("generic_count") << inventory.generic_count;
+  writer.value("serfs_out") << inventory.serfs_out;
 
   for (int i = 0; i < 26; i++) {
     writer.value("resources") << inventory.resources[(Resource::Type)i];

@@ -633,6 +633,16 @@ Player::decrease_castle_knights_wanted() {
 }
 
 void
+Player::restore_castle(Building *castle) {
+  if (building == 0) {
+    building = castle->get_index();
+    if (castle->get_inventory() != nullptr) {
+      castle_inventory = castle->get_inventory()->get_index();
+    }
+  }
+}
+
+void
 Player::building_founded(Building *building_) {
   building_->set_owner(index);
 
@@ -1448,11 +1458,14 @@ operator >> (SaveReaderText &reader, Player &player) {
     reader.value("knight_occupation")[i] >> player.knight_occupation[i];
     reader.value("attacking_knights")[i] >> player.attacking_knights[i];
   }
-  for (int i = 0; i < 23; i++) {
-    reader.value("completed_building_count")[i] >>
-      player.completed_building_count[i];
-    reader.value("incomplete_building_count")[i] >>
-      player.incomplete_building_count[i];
+  /* All 24 types; older saves have 23 of them, without the gold
+     smelters. */
+  SaveReaderTextValue completed = reader.value("completed_building_count");
+  SaveReaderTextValue incomplete = reader.value("incomplete_building_count");
+  for (size_t i = 0; i < 24 && i < completed.size() && i < incomplete.size();
+       i++) {
+    completed[i] >> player.completed_building_count[i];
+    incomplete[i] >> player.incomplete_building_count[i];
   }
   for (int i = 0; i < 64; i++) {
     reader.value("attacking_buildings")[i] >> player.attacking_buildings[i];
@@ -1514,6 +1527,59 @@ operator >> (SaveReaderText &reader, Player &player) {
     }
   }
 
+  /* Older saves did not keep these. The castle is found again after
+     the buildings (Game). */
+  if (reader.has_value("castle")) {
+    reader.value("castle") >> player.building;
+    reader.value("castle_inventory") >> player.castle_inventory;
+  }
+  if (reader.has_value("cont_search_after_non_optimal_find")) {
+    reader.value("cont_search_after_non_optimal_find") >>
+      player.cont_search_after_non_optimal_find;
+    reader.value("send_generic_delay") >> player.send_generic_delay;
+    reader.value("send_knight_delay") >> player.send_knight_delay;
+    reader.value("knight_morale") >> player.knight_morale;
+    reader.value("gold_deposited") >> player.gold_deposited;
+    reader.value("military_max_gold") >> player.military_max_gold;
+  }
+  if (reader.has_value("timers")) {
+    SaveReaderTextValue timers = reader.value("timers");
+    for (size_t i = 0; i + 1 < timers.size(); i += 2) {
+      PosTimer timer;
+      timers[i] >> timer.timeout;
+      timers[i + 1] >> timer.pos;
+      player.timers.push_back(timer);
+    }
+  }
+  if (reader.has_value("messages")) {
+    SaveReaderTextValue messages = reader.value("messages");
+    for (size_t i = 0; i + 2 < messages.size(); i += 3) {
+      Message message;
+      int type = 0;
+      messages[i] >> type;
+      message.type = static_cast<Message::Type>(type);
+      messages[i + 1] >> message.pos;
+      messages[i + 2] >> message.data;
+      player.messages.push(message);
+    }
+  }
+  if (reader.has_value("player_stat_history")) {
+    SaveReaderTextValue history = reader.value("player_stat_history");
+    for (int mode = 0; mode < 16; mode++) {
+      for (int i = 0; i < 112; i++) {
+        history[mode * 112 + i] >> player.player_stat_history[mode][i];
+      }
+    }
+  }
+  if (reader.has_value("resource_count_history")) {
+    SaveReaderTextValue history = reader.value("resource_count_history");
+    for (int res = 0; res < 26; res++) {
+      for (int i = 0; i < 120; i++) {
+        history[res * 120 + i] >> player.resource_count_history[res][i];
+      }
+    }
+  }
+
   return reader;
 }
 
@@ -1550,7 +1616,7 @@ operator << (SaveWriterText &writer, Player &player) {
     writer.value("attacking_knights") << player.attacking_knights[i];
   }
 
-  for (int i = 0; i < 23; i++) {
+  for (int i = 0; i < 24; i++) {
     writer.value("completed_building_count") <<
       player.completed_building_count[i];
     writer.value("incomplete_building_count") <<
@@ -1614,6 +1680,43 @@ operator << (SaveWriterText &writer, Player &player) {
   const int *ai = reinterpret_cast<const int *>(&player.ai);
   for (size_t i = 0; i < sizeof(player.ai) / sizeof(int); i++) {
     writer.value("ai") << ai[i];
+  }
+
+  writer.value("castle") << player.building;
+  writer.value("castle_inventory") << player.castle_inventory;
+  writer.value("cont_search_after_non_optimal_find") <<
+    player.cont_search_after_non_optimal_find;
+  writer.value("send_generic_delay") << player.send_generic_delay;
+  writer.value("send_knight_delay") << player.send_knight_delay;
+  writer.value("knight_morale") << player.knight_morale;
+  writer.value("gold_deposited") << player.gold_deposited;
+  writer.value("military_max_gold") << player.military_max_gold;
+
+  /* The timers and messages of the player, as pairs or triples. */
+  for (const PosTimer &timer : player.timers) {
+    writer.value("timers") << timer.timeout;
+    writer.value("timers") << timer.pos;
+  }
+  Messages messages = player.messages;
+  while (!messages.empty()) {
+    const Message &message = messages.front();
+    writer.value("messages") << static_cast<int>(message.type);
+    writer.value("messages") << message.pos;
+    writer.value("messages") << message.data;
+    messages.pop();
+  }
+
+  for (int mode = 0; mode < 16; mode++) {
+    for (int i = 0; i < 112; i++) {
+      writer.value("player_stat_history") <<
+        player.player_stat_history[mode][i];
+    }
+  }
+  for (int res = 0; res < 26; res++) {
+    for (int i = 0; i < 120; i++) {
+      writer.value("resource_count_history") <<
+        player.resource_count_history[res][i];
+    }
   }
 
   return writer;

@@ -1460,6 +1460,10 @@ operator >> (SaveReaderText &reader, Building &building) {
     building.active = (temp != 0);
     reader.value("burning") >> temp;
     building.burning = (temp != 0);
+    /* Older saves did not keep it: the fire ends at once. */
+    if (reader.has_value("burning_counter")) {
+      reader.value("burning_counter") >> building.burning_counter;
+    }
     reader.value("holder") >> temp;
     building.holder = (temp != 0);
     reader.value("serf_requested") >> temp;
@@ -1523,6 +1527,7 @@ operator << (SaveWriterText &writer, Building &building) {
   writer.value("serf_request_failed") << building.serf_request_failed;
   writer.value("serf_requested") << building.serf_requested;
   writer.value("burning") << building.burning;
+  writer.value("burning_counter") << building.burning_counter;
   writer.value("active") << building.active;
   writer.value("holder") << building.holder;
 
