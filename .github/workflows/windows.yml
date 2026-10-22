@@ -41,8 +41,8 @@ jobs:
           # The version comes from the latest tag (git describe).
           fetch-depth: 0
 
-      # vcpkg of the runner image builds the libraries of cmake/vcpkg.json;
-      # its binary cache is kept between the runs.
+      # vcpkg of the runner image; its binary cache is kept between the
+      # runs.
       - name: Set up vcpkg
         run: |
           echo "VERSION=$(git describe --tags --always)" >> "$GITHUB_ENV"
@@ -59,13 +59,13 @@ jobs:
           restore-keys: |
             vcpkg-${{ matrix.triplet }}-
 
-      # Visual Studio of the runner image; vcpkg installs the libraries here.
-      - name: Configure
+      # The libraries of cmake/vcpkg.json, built when not in the cache.
+      - name: Install dependencies
         run: |
-          cmake -S . -B build -A ${{ matrix.platform }} \
-                -DCMAKE_TOOLCHAIN_FILE="$VCPKG_INSTALLATION_ROOT\\scripts\\buildsystems\\vcpkg.cmake" \
-                -DVCPKG_MANIFEST_DIR="$GITHUB_WORKSPACE\\cmake" \
-                -DVCPKG_TARGET_TRIPLET=${{ matrix.triplet }}
+          "$VCPKG_INSTALLATION_ROOT\\vcpkg.exe" install \
+                --triplet=${{ matrix.triplet }} \
+                --x-manifest-root="$GITHUB_WORKSPACE\\cmake" \
+                --x-install-root="$RUNNER_TEMP\\vcpkg_installed"
 
       - name: Save vcpkg packages
         if: always() && steps.vcpkg-cache.outputs.cache-hit != 'true'
@@ -74,13 +74,27 @@ jobs:
           path: ${{ runner.temp }}\vcpkg-cache
           key: ${{ steps.vcpkg-cache.outputs.cache-primary-key }}
 
+      # Visual Studio of the runner image; the toolchain of vcpkg only finds
+      # the installed libraries.
+      - name: Configure
+        run: |
+          cmake -S . -B build -A ${{ matrix.platform }} \
+                -DCMAKE_TOOLCHAIN_FILE="$VCPKG_INSTALLATION_ROOT\\scripts\\buildsystems\\vcpkg.cmake" \
+                -DVCPKG_MANIFEST_DIR="$GITHUB_WORKSPACE\\cmake" \
+                -DVCPKG_MANIFEST_INSTALL=OFF \
+                -DVCPKG_INSTALLED_DIR="$RUNNER_TEMP\\vcpkg_installed" \
+                -DVCPKG_TARGET_TRIPLET=${{ matrix.triplet }}
+
       - name: Build
         run: cmake --build build --config Release --parallel
 
       - name: Test
         run: ctest --test-dir build --build-config Release --output-on-failure
 
-      # NSIS of the runner image.
+      # NSIS is not in the runner image, Chocolatey is.
+      - name: Install NSIS
+        run: choco install nsis -y --no-progress
+
       - name: Pack installer
         run: |
           cd build
