@@ -1,111 +1,100 @@
 name: macos
 
 on:
-  pull_request:
   push:
+  pull_request:
   release:
-    types: published
+    types: [published]
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+env:
+  # The libraries from Homebrew, installed as bottles.
+  BREW_PACKAGES: sdl3 sdl3_image sdl3_ttf sdl3_mixer
+  HOMEBREW_NO_AUTO_UPDATE: 1
+  HOMEBREW_NO_INSTALL_CLEANUP: 1
+  HOMEBREW_NO_INSTALLED_DEPENDENTS_CHECK: 1
 
 jobs:
   build:
-    # Attaches the packages to a published release.
-    permissions:
-      contents: write
-    runs-on: macos-latest
+    name: macos (${{ matrix.arch }})
+    runs-on: ${{ matrix.runner }}
 
     strategy:
+      fail-fast: false
       matrix:
-        buildtype: [Debug, Release]
+        include:
+          - arch: arm64
+            runner: macos-15
+          - arch: x86_64
+            runner: macos-15-intel
 
     steps:
       - name: Checkout
         uses: actions/checkout@v7
         with:
-          submodules: 'recursive'
           # The version comes from the latest tag (git describe).
           fetch-depth: 0
 
-      - name: Get macOS version
-        id: macos
-        run: |
-          echo "major=$(sw_vers -productVersion | cut -d. -f1)" >> "$GITHUB_OUTPUT"
+      - name: Version
+        run: echo "VERSION=$(git describe --tags --always)" >> "$GITHUB_ENV"
 
-      # MacPorts with the SDL3 ports takes about 10 minutes to install, so
-      # /opt/local is cached. The key changes with the macOS version, the
-      # runner architecture and this workflow (e.g. the list of ports).
-      - name: Cache MacPorts
-        id: cache-macports
+      - name: Homebrew cache directory
+        run: echo "BREW_CACHE=$(brew --cache)" >> "$GITHUB_ENV"
+
+      # The downloaded bottles, kept between the runs.
+      - name: Cache Homebrew downloads
         uses: actions/cache@v6
         with:
-          path: ~/macports
-          key: macports-${{ steps.macos.outputs.major }}-${{ runner.arch }}-${{ hashFiles('.github/workflows/macos.yml') }}
+          path: ${{ env.BREW_CACHE }}/downloads
+          key: brew-${{ matrix.runner }}-${{ env.BREW_PACKAGES }}-${{ github.run_id }}
+          restore-keys: |
+            brew-${{ matrix.runner }}-${{ env.BREW_PACKAGES }}-
 
       - name: Install dependencies
-        if: steps.cache-macports.outputs.cache-hit != 'true'
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          MACOS_MAJOR=${{ steps.macos.outputs.major }}
-          MACPORTS_PKG=$(gh api repos/macports/macports-base/releases/latest \
-                         --jq ".assets[] | select(.name | test(\"^MacPorts-[0-9.]+-${MACOS_MAJOR}-[A-Za-z]+\\\\.pkg$\")) | .browser_download_url")
-          wget -q "${MACPORTS_PKG}" -O MacPorts.pkg
-          sudo installer -pkg ./MacPorts.pkg -target /
-          export PATH="/opt/local/bin:/opt/local/sbin:$PATH"
-          sudo port selfupdate -N
-          sudo port install SDL3 +universal -N
-          sudo port install SDL3_mixer +universal -N
-          sudo port install SDL3_image +universal -N
-          sudo port install SDL3_ttf +universal -N
-          # Copy for the cache, without the ports tree, downloads and archives.
-          mkdir -p ~/macports/local
-          sudo rsync -a --exclude var/macports/sources \
-                        --exclude var/macports/distfiles \
-                        --exclude var/macports/build \
-                        --exclude var/macports/software \
-                        /opt/local/ ~/macports/local/
-          sudo chown -R $USER:staff ~/macports
+        run: brew install $BREW_PACKAGES
 
-      - name: Restore dependencies
-        if: steps.cache-macports.outputs.cache-hit == 'true'
-        run: |
-          sudo mkdir -p /opt/local
-          sudo rsync -a ~/macports/local/ /opt/local/
+      - name: Configure
+        run: cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
 
-      - name: Configure FreeSerf
-        run: |
-          cmake -B build -G "Unix Makefiles"
+      - name: Build
+        run: cmake --build build --parallel
 
-      - name: Check style
+      - name: Test
+        run: ctest --test-dir build --output-on-failure
+
+      # The Homebrew libraries are copied into the bundle.
+      - name: Pack disk image
         run: |
           cd build
-          make check_style
+          cpack -G DragNDrop -D CPACK_PACKAGE_FILE_NAME="FreeSerf-$VERSION-macOS-${{ matrix.arch }}"
 
-      - name: Build FreeSerf
-        run: |
-          export PATH="/opt/local/bin:/opt/local/sbin:$PATH"
-          cd build
-          make
-
-      - name: Run Tests
-        run: |
-          cd build
-          make test
-
-      - name: Pack FreeSerf
-        run: |
-          cd build
-          make package
-
-      - name: Upload artifact
+      - name: Upload packages
         uses: actions/upload-artifact@v7
         with:
-          name: FreeSerf-${{ matrix.buildtype }}
-          path: ./build/FreeSerf.dmg
+          name: FreeSerf-macOS-${{ matrix.arch }}
+          path: build/FreeSerf-*.dmg
+
+  release:
+    if: github.event_name == 'release'
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Download packages
+        uses: actions/download-artifact@v7
+        with:
+          path: packages
+          merge-multiple: true
 
       - name: Attach to release
-        if: github.event_name == 'release' && matrix.buildtype == 'Release'
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh release upload "${{ github.event.release.tag_name }}" \
-            ./build/FreeSerf.dmg --clobber
+          gh release upload "${{ github.event.release.tag_name }}" packages/* \
+            --repo "${{ github.repository }}" --clobber

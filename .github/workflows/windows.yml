@@ -1,102 +1,116 @@
 name: windows
 
 on:
-  pull_request:
   push:
+  pull_request:
   release:
-    types: published
+    types: [published]
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+env:
+  VCPKG_DISABLE_METRICS: 1
 
 jobs:
   build:
-    # Attaches the packages to a published release.
-    permissions:
-      contents: write
+    name: windows (${{ matrix.arch }})
     runs-on: windows-latest
 
     strategy:
+      fail-fast: false
       matrix:
-        buildtype: [Debug, Release]
-        architecture: [x86, x64]
+        include:
+          - arch: x64
+            platform: x64
+            triplet: x64-windows
+          - arch: x86
+            platform: Win32
+            triplet: x86-windows
+
+    defaults:
+      run:
+        shell: bash
 
     steps:
       - name: Checkout
         uses: actions/checkout@v7
         with:
-          submodules: 'recursive'
           # The version comes from the latest tag (git describe).
           fetch-depth: 0
 
-      - name: Setup environment
-        uses: ilammy/msvc-dev-cmd@v1
-        with:
-          arch: ${{ matrix.architecture }}
+      # vcpkg of the runner image builds the libraries of cmake/vcpkg.json;
+      # its binary cache is kept between the runs.
+      - name: Set up vcpkg
+        run: |
+          echo "VERSION=$(git describe --tags --always)" >> "$GITHUB_ENV"
+          echo "VCPKG_COMMIT=$(git -C "$VCPKG_INSTALLATION_ROOT" rev-parse HEAD)" >> "$GITHUB_ENV"
+          echo "VCPKG_BINARY_SOURCES=clear;files,$RUNNER_TEMP\\vcpkg-cache,readwrite" >> "$GITHUB_ENV"
+          mkdir -p "$RUNNER_TEMP/vcpkg-cache"
 
-      # vcpkg's binary cache in a directory kept with actions/cache. The
-      # x-gha backend run-vcpkg sets up by default was removed from vcpkg,
-      # so without this SDL3 and its dependencies are built on every run.
-      - name: Cache vcpkg packages
-        uses: actions/cache@v6
+      - name: Restore vcpkg packages
+        id: vcpkg-cache
+        uses: actions/cache/restore@v6
         with:
-          path: ${{ github.workspace }}/vcpkg_cache
-          key: vcpkg-${{ matrix.architecture }}-${{ hashFiles('cmake/vcpkg.json', '.github/workflows/windows.yml') }}
+          path: ${{ runner.temp }}\vcpkg-cache
+          key: vcpkg-${{ matrix.triplet }}-${{ env.VCPKG_COMMIT }}-${{ hashFiles('cmake/vcpkg.json') }}
           restore-keys: |
-            vcpkg-${{ matrix.architecture }}-
+            vcpkg-${{ matrix.triplet }}-
 
-      - name: Create vcpkg cache directory
-        shell: bash
+      # Visual Studio of the runner image; vcpkg installs the libraries here.
+      - name: Configure
         run: |
-          mkdir -p vcpkg_cache
+          cmake -S . -B build -A ${{ matrix.platform }} \
+                -DCMAKE_TOOLCHAIN_FILE="$VCPKG_INSTALLATION_ROOT\\scripts\\buildsystems\\vcpkg.cmake" \
+                -DVCPKG_MANIFEST_DIR="$GITHUB_WORKSPACE\\cmake" \
+                -DVCPKG_TARGET_TRIPLET=${{ matrix.triplet }}
 
-      - name: Install dependencies
-        uses: lukka/run-vcpkg@v11
-        env:
-          VCPKG_DEFAULT_TRIPLET: '${{ matrix.architecture }}-windows'
-          VCPKG_INSTALLED_DIR: '${{ github.workspace }}/vcpkg/installed'
-          VCPKG_BINARY_SOURCES: 'clear;files,${{ github.workspace }}/vcpkg_cache,readwrite'
+      - name: Save vcpkg packages
+        if: always() && steps.vcpkg-cache.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v6
         with:
-          vcpkgDirectory: '${{ github.workspace }}/vcpkg'
-          vcpkgGitCommitId: '9e593bb18ea69cc5095e012465dcd675a822ed0d'
-          runVcpkgInstall: true
-          vcpkgJsonGlob: '**/cmake/vcpkg.json'
+          path: ${{ runner.temp }}\vcpkg-cache
+          key: ${{ steps.vcpkg-cache.outputs.cache-primary-key }}
 
-      - name: Configure FreeSerf
-        run: |
-          cmake -B build -G "NMake Makefiles" -DCMAKE_BUILD_TYPE=${{ matrix.buildtype }}
+      - name: Build
+        run: cmake --build build --config Release --parallel
 
-      - name: Build FreeSerf
-        shell: bash
-        run: |
-          cd build
-          nmake
+      - name: Test
+        run: ctest --test-dir build --build-config Release --output-on-failure
 
-      - name: Run Tests
-        shell: bash
+      # NSIS of the runner image.
+      - name: Pack installer
         run: |
           cd build
-          nmake test
+          cpack -C Release -G "NSIS;ZIP" -D CPACK_PACKAGE_FILE_NAME="FreeSerf-$VERSION-Windows-${{ matrix.arch }}"
 
-      - name: Install NSIS
-        run: |
-          choco install nsis -y
-
-      - name: Pack FreeSerf
-        shell: bash
-        run: |
-          cd build
-          nmake package
-
-      - name: Upload artifact
+      - name: Upload packages
         uses: actions/upload-artifact@v7
         with:
-          name: FreeSerf-${{ matrix.architecture }}-${{ matrix.buildtype }}
-          path: ./build/FreeSerf-${{ matrix.architecture }}-${{ matrix.buildtype }}.exe
+          name: FreeSerf-Windows-${{ matrix.arch }}
+          path: |
+            build/FreeSerf-*.exe
+            build/FreeSerf-*.zip
+
+  release:
+    if: github.event_name == 'release'
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Download packages
+        uses: actions/download-artifact@v7
+        with:
+          path: packages
+          merge-multiple: true
 
       - name: Attach to release
-        if: github.event_name == 'release'
-        shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh release upload "${{ github.event.release.tag_name }}" \
-            ./build/FreeSerf-${{ matrix.architecture }}-${{ matrix.buildtype }}.exe \
-            --clobber
+          gh release upload "${{ github.event.release.tag_name }}" packages/* \
+            --repo "${{ github.repository }}" --clobber

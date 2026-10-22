@@ -1,97 +1,100 @@
 name: linux
 
 on:
-  pull_request:
   push:
+  pull_request:
   release:
-    types: published
+    types: [published]
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   build:
-    # Attaches the packages to a published release.
-    permissions:
-      contents: write
-    runs-on: ubuntu-24.04
+    name: linux (x86_64)
+    runs-on: ubuntu-latest
+    # Ubuntu has no SDL3_mixer package yet, Debian testing has all the SDL3
+    # libraries.
+    container: debian:testing
 
-    strategy:
-      matrix:
-        buildtype: [Debug, Release]
+    env:
+      DEBIAN_FRONTEND: noninteractive
 
     steps:
+      # The downloaded packages stay in the apt cache for actions/cache.
+      - name: Keep apt downloads
+        run: rm -f /etc/apt/apt.conf.d/docker-clean
+
+      - name: Cache apt downloads
+        uses: actions/cache@v6
+        with:
+          path: /var/cache/apt/archives
+          key: apt-debian-testing-${{ hashFiles('.github/workflows/linux.yml') }}-${{ github.run_id }}
+          restore-keys: |
+            apt-debian-testing-${{ hashFiles('.github/workflows/linux.yml') }}-
+            apt-debian-testing-
+
+      - name: Install dependencies
+        run: |
+          apt-get update
+          apt-get install -y --no-install-recommends \
+            build-essential cmake git ca-certificates python3 \
+            libsdl3-dev libsdl3-image-dev libsdl3-ttf-dev libsdl3-mixer-dev
+
       - name: Checkout
         uses: actions/checkout@v7
         with:
-          submodules: 'recursive'
           # The version comes from the latest tag (git describe).
           fetch-depth: 0
 
-      # SDL3_mixer is not packaged in Ubuntu yet, so SDL3 and its libraries
-      # are built with vcpkg (cmake/vcpkg.json); the packages are kept in
-      # vcpkg's binary cache.
-      - name: Install build tools and system libraries
+      - name: Version
         run: |
-          sudo apt-get update
-          sudo apt-get install -y autoconf autoconf-archive automake libtool \
-            libltdl-dev bison flex gettext \
-            pkg-config ninja-build libx11-dev libxext-dev libxrandr-dev \
-            libxcursor-dev libxfixes-dev libxi-dev libxss-dev libxtst-dev \
-            libxkbcommon-dev libwayland-dev wayland-protocols libegl1-mesa-dev \
-            libgl1-mesa-dev libdrm-dev libgbm-dev libasound2-dev libpulse-dev \
-            libpipewire-0.3-dev libdbus-1-dev libudev-dev libibus-1.0-dev
+          git config --global --add safe.directory "$GITHUB_WORKSPACE"
+          echo "VERSION=$(git describe --tags --always)" >> "$GITHUB_ENV"
 
-      - name: Cache vcpkg packages
-        uses: actions/cache@v6
-        with:
-          path: ${{ github.workspace }}/vcpkg_cache
-          key: vcpkg-linux-${{ hashFiles('cmake/vcpkg.json', '.github/workflows/linux.yml') }}
-          restore-keys: |
-            vcpkg-linux-
+      - name: Configure
+        run: cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
 
-      - name: Create vcpkg cache directory
+      - name: Check style
+        run: cmake --build build --target check_style
+
+      - name: Build
+        run: cmake --build build --parallel
+
+      - name: Test
+        run: ctest --test-dir build --output-on-failure
+
+      # The tracked files of the commit.
+      - name: Pack sources
         run: |
-          mkdir -p vcpkg_cache
+          git archive --format=tar.gz --prefix="FreeSerf-$VERSION/" \
+                      -o "build/FreeSerf-$VERSION-src.tar.gz" HEAD
 
-      - name: Install dependencies
-        uses: lukka/run-vcpkg@v11
-        env:
-          VCPKG_DEFAULT_TRIPLET: 'x64-linux'
-          VCPKG_INSTALLED_DIR: '${{ github.workspace }}/vcpkg/installed'
-          VCPKG_BINARY_SOURCES: 'clear;files,${{ github.workspace }}/vcpkg_cache,readwrite'
-        with:
-          vcpkgDirectory: '${{ github.workspace }}/vcpkg'
-          vcpkgGitCommitId: '9e593bb18ea69cc5095e012465dcd675a822ed0d'
-          runVcpkgInstall: true
-          vcpkgJsonGlob: '**/cmake/vcpkg.json'
-
-      - name: Configure FreeSerf
-        run: |
-          cmake -B build -G "Unix Makefiles" -DCMAKE_BUILD_TYPE=${{ matrix.buildtype }}
-
-      - name: Build FreeSerf
-        run: |
-          cd build
-          make
-
-      - name: Run Tests
-        run: |
-          cd build
-          make test
-
-      - name: Pack FreeSerf
-        run: |
-          cd build
-          make package
-
-      - name: Upload artifact
+      - name: Upload packages
         uses: actions/upload-artifact@v7
         with:
-          name: FreeSerf-${{ matrix.buildtype }}
-          path: ./build/FreeSerf-*-Linux.tar.*
+          name: FreeSerf-src
+          path: build/FreeSerf-*-src.tar.gz
+
+  release:
+    if: github.event_name == 'release'
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Download packages
+        uses: actions/download-artifact@v7
+        with:
+          path: packages
+          merge-multiple: true
 
       - name: Attach to release
-        if: github.event_name == 'release' && matrix.buildtype == 'Release'
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh release upload "${{ github.event.release.tag_name }}" \
-            ./build/FreeSerf-*-Linux.tar.* --clobber
+          gh release upload "${{ github.event.release.tag_name }}" packages/* \
+            --repo "${{ github.repository }}" --clobber
