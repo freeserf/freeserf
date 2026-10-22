@@ -21,10 +21,11 @@
 
 #include <gtest/gtest.h>
 
-#include <iostream>
 #include <fstream>
-#include <vector>
+#include <iostream>
 #include <iterator>
+#include <string>
+#include <vector>
 
 #include "src/map.h"
 #include "src/map-generator.h"

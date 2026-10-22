@@ -23,6 +23,7 @@
 
 #include <ctime>
 #include <sstream>
+#include <string>
 
 Random::Random() {
   srand((unsigned int)time(NULL));

@@ -3,9 +3,9 @@ Freeserf
 
 Build status
 ------------
-[![Windows Build Status](https://github.com/freeserf/freeserf/workflows/windows/badge.svg)](https://github.com/freeserf/freeserf/actions/workflows/windows.yml)
-[![Linux Build Status](https://github.com/freeserf/freeserf/workflows/linux/badge.svg)](https://github.com/freeserf/freeserf/actions/workflows/linux.yml)
-[![macOS Build Status](https://github.com/freeserf/freeserf/workflows/macos/badge.svg)](https://github.com/freeserf/freeserf/actions/workflows/macos.yml)
+[![Windows Build Status](https://github.com/freeserf/freeserf/actions/workflows/windows.yml/badge.svg?branch=master)](https://github.com/freeserf/freeserf/actions/workflows/windows.yml)
+[![Linux Build Status](https://github.com/freeserf/freeserf/actions/workflows/linux.yml/badge.svg?branch=master)](https://github.com/freeserf/freeserf/actions/workflows/linux.yml)
+[![macOS Build Status](https://github.com/freeserf/freeserf/actions/workflows/macos.yml/badge.svg?branch=master)](https://github.com/freeserf/freeserf/actions/workflows/macos.yml)
 
 Play
 ------

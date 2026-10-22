@@ -21,15 +21,17 @@
 
 #include "src/configfile.h"
 
-#include <sstream>
-#include <vector>
-#include <map>
-#include <fstream>
-#include <functional>
-#include <memory>
 #include <algorithm>
 #include <cctype>
 #include <clocale>
+#include <fstream>
+#include <functional>
+#include <list>
+#include <map>
+#include <memory>
+#include <sstream>
+#include <string>
+#include <vector>
 
 #include "src/log.h"
 

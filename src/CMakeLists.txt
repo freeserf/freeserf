@@ -335,10 +335,31 @@ if(WIN32)
                  verify_app("${CMAKE_INSTALL_PREFIX}/$<TARGET_FILE_NAME:FreeSerf>")
                ]])
 elseif(APPLE)
+  # The libraries not of the system (e.g. of Homebrew) are copied into the
+  # bundle; the @rpath ones are looked for in the directories of the SDL
+  # libraries and of Homebrew. The changed libraries are signed again
+  # (ad hoc), arm64 does not load them otherwise.
+  set(BUNDLE_LIBRARY_DIRS)
+  foreach(LIBRARY SDL3::SDL3 SDL3_mixer::SDL3_mixer SDL3_image::SDL3_image SDL3_ttf::SDL3_ttf)
+    if(TARGET ${LIBRARY})
+      list(APPEND BUNDLE_LIBRARY_DIRS "$<TARGET_FILE_DIR:${LIBRARY}>")
+    endif()
+  endforeach()
+  find_program(BREW_COMMAND brew)
+  if(BREW_COMMAND)
+    execute_process(COMMAND ${BREW_COMMAND} --prefix
+                    OUTPUT_VARIABLE BREW_PREFIX
+                    OUTPUT_STRIP_TRAILING_WHITESPACE)
+    list(APPEND BUNDLE_LIBRARY_DIRS "${BREW_PREFIX}/lib")
+  endif()
+  install(CODE "set(BUNDLE_LIBRARY_DIRS \"${BUNDLE_LIBRARY_DIRS}\")")
   install(CODE [[
                  include(BundleUtilities)
                  set(BU_CHMOD_BUNDLE_ITEMS TRUE)
-                 fixup_bundle("${CMAKE_INSTALL_PREFIX}/$<TARGET_BUNDLE_DIR_NAME:FreeSerf>" "" "")
+                 fixup_bundle("${CMAKE_INSTALL_PREFIX}/$<TARGET_BUNDLE_DIR_NAME:FreeSerf>" "" "${BUNDLE_LIBRARY_DIRS}")
+                 execute_process(COMMAND codesign --force --deep --sign -
+                                         "${CMAKE_INSTALL_PREFIX}/$<TARGET_BUNDLE_DIR_NAME:FreeSerf>"
+                                 COMMAND_ERROR_IS_FATAL ANY)
                  verify_app("${CMAKE_INSTALL_PREFIX}/$<TARGET_BUNDLE_DIR_NAME:FreeSerf>")
                ]])
 endif()

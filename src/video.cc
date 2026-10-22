@@ -22,6 +22,7 @@
 #include "src/video.h"
 
 #include <sstream>
+#include <string>
 
 ExceptionVideo::ExceptionVideo(const std::string &description) :
   ExceptionFreeserf(description) {

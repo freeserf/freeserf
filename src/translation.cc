@@ -24,7 +24,10 @@
 #include <SDL3/SDL.h>
 
 #include <exception>
+#include <memory>
 #include <set>
+#include <string>
+#include <vector>
 
 #include <tinygettext/log.hpp>
 #include <tinygettext/tinygettext.hpp>

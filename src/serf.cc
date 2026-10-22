@@ -22,6 +22,7 @@
 #include "src/serf.h"
 
 #include <algorithm>
+#include <cstring>
 #include <map>
 #include <sstream>
 #include <string>
@@ -298,7 +299,9 @@ Serf::Serf(Game *game, unsigned int index) : GameObject(game, index) {
   counter = 0;
   pos = -1;
   tick = 0;
-  s = { { 0 } };
+  /* All of the union: a state can read what an earlier one left, and
+     {0} sets only the first member (GCC 15 leaves the rest as is). */
+  std::memset(&s, 0, sizeof(s));
 }
 
 /* Change type of serf and update all global tables

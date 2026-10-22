@@ -21,16 +21,18 @@
 
 #include "src/savegame.h"
 
+#include <algorithm>
+#include <array>
 #include <cstdlib>
-#include <sstream>
-#include <vector>
-#include <map>
+#include <ctime>
 #include <fstream>
 #include <iostream>
-#include <array>
-#include <ctime>
+#include <list>
+#include <map>
+#include <sstream>
+#include <string>
 #include <utility>
-#include <algorithm>
+#include <vector>
 
 #include "src/game.h"
 #include "src/integrity.h"
@@ -389,7 +391,7 @@ SaveReaderTextValue::operator >> (Serf::State &val) const {
 const SaveReaderTextValue&
 SaveReaderTextValue::operator >> (uint16_t &val) const {
   int result = atoi(value.c_str());
-  val = (uint16_t)result;
+  val = static_cast<uint16_t>(result);
 
   return *this;
 }

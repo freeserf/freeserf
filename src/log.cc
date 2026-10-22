@@ -21,6 +21,7 @@
 
 #include "src/log.h"
 
+#include <cstdio>
 #include <iostream>
 
 #ifdef _WIN32

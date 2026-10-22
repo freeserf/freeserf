@@ -21,6 +21,8 @@
 
 #include "src/debug.h"
 
+#include <string>
+
 ExceptionFreeserf::ExceptionFreeserf(const std::string &description_) throw()
   : description(description_) {
 }

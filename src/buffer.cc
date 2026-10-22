@@ -21,9 +21,11 @@
 
 #include "src/buffer.h"
 
-#include <fstream>
-#include <string>
+#include <algorithm>
 #include <cstddef>
+#include <fstream>
+#include <memory>
+#include <string>
 
 #include "src/debug.h"
 

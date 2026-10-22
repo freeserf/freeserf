@@ -138,40 +138,6 @@ uint8_t palette_logo[] = {
   0xDD, 0xDD, 0x00,   // 31
 };
 
-uint8_t palette_symbols[] = {
-  0x00, 0x00, 0x00,   // 0
-  0xFF, 0xAA, 0x00,   // 1
-  0x00, 0x00, 0x00,   // 2
-  0x00, 0xEE, 0xEE,   // 3
-  0x00, 0x00, 0xBB,   // 4
-  0x44, 0x44, 0xDD,   // 5
-  0x88, 0x88, 0xFF,   // 6
-  0x00, 0xCC, 0xBB,   // 7
-  0x22, 0x44, 0x00,   // 8
-  0x33, 0x55, 0x00,   // 9
-  0x33, 0x66, 0x33,   // 10
-  0xEE, 0x88, 0xFF,   // 11
-  0x44, 0x88, 0x00,   // 12
-  0x66, 0x99, 0x00,   // 13
-  0x77, 0xBB, 0x44,   // 14
-  0xCC, 0x77, 0xDD,   // 15
-  0x44, 0x44, 0x44,   // 16
-  0x99, 0x99, 0x99,   // 17
-  0xFF, 0xFF, 0xFF,   // 18
-  0xEE, 0x66, 0x66,   // 19
-  0x22, 0x22, 0x22,   // 20
-  0x66, 0x66, 0x66,   // 21
-  0xCC, 0xCC, 0xCC,   // 22
-  0xDD, 0x33, 0x33,   // 23
-  0x55, 0x22, 0x00,   // 24
-  0x77, 0x33, 0x00,   // 25
-  0x99, 0x55, 0x22,   // 26
-  0xFF, 0xFF, 0x99,   // 27
-  0xBB, 0x88, 0x55,   // 28
-  0xDD, 0xAA, 0x77,   // 29
-  0xFF, 0xDD, 0xBB,   // 30
-  0xDD, 0xDD, 0x00,   // 31
-};
 
 uint8_t palette2[] = {
   0x00, 0x00, 0x00,  // 0
@@ -241,6 +207,43 @@ uint8_t palette3[] = {
   0xDD, 0xAA, 0x77,   // 29
   0xFF, 0xDD, 0xBB,   // 30
   0xDD, 0xDD, 0x00,   // 31
+};
+
+/* Colours of the end sequence, set by its own copper list
+   (Amiga copper list @0x3c6a, shown by play_extro @0x1db1a). */
+uint8_t palette_extro[] = {
+  0x00, 0x00, 0x00,   // 0
+  0xFF, 0xFF, 0xFF,   // 1
+  0x88, 0x44, 0x00,   // 2
+  0xEE, 0x66, 0x00,   // 3
+  0x77, 0x55, 0x44,   // 4
+  0xAA, 0x88, 0x66,   // 5
+  0xEE, 0xAA, 0x88,   // 6
+  0xFF, 0xCC, 0x99,   // 7
+  0x44, 0x33, 0x11,   // 8
+  0x77, 0x55, 0x22,   // 9
+  0x99, 0x88, 0x33,   // 10
+  0xBB, 0xAA, 0x44,   // 11
+  0x33, 0x55, 0x11,   // 12
+  0x55, 0x77, 0x22,   // 13
+  0x77, 0x99, 0x22,   // 14
+  0x99, 0xCC, 0x33,   // 15
+  0xAA, 0xDD, 0x44,   // 16
+  0xAA, 0xEE, 0x44,   // 17
+  0x11, 0x33, 0x22,   // 18
+  0x11, 0x44, 0x55,   // 19
+  0x22, 0x55, 0x55,   // 20
+  0x33, 0x77, 0x77,   // 21
+  0x33, 0x88, 0x88,   // 22
+  0x44, 0x99, 0xAA,   // 23
+  0x00, 0x00, 0xCC,   // 24
+  0x11, 0x44, 0xCC,   // 25
+  0x33, 0x77, 0xDD,   // 26
+  0x55, 0x99, 0xDD,   // 27
+  0x77, 0xBB, 0xEE,   // 28
+  0x99, 0xDD, 0xEE,   // 29
+  0xBB, 0xFF, 0xFF,   // 30
+  0xDD, 0xFF, 0xFF,   // 31
 };
 
 DataSourceAmiga::DataSourceAmiga(const std::string &_path)
@@ -317,7 +320,7 @@ DataSourceAmiga::load() {
   data_pointers[2] = gfxfast;   // Ground masks catalog (4 * 81)
   data_pointers[3] = gfxfast;   // Path sprites catalog (4 * 27)
   data_pointers[4] = gfxfast;   // Ground sprites catalog (4 * 32)
-  data_pointers[5] = gfxchip;   // ?
+  data_pointers[5] = gfxchip;   // Road textures
   data_pointers[6] = gfxfast;   // Map objects catalog (4 * 194)
   data_pointers[7] = gfxfast;   // Hud multiplayer
   data_pointers[8] = gfxchip;   // Borders
@@ -367,6 +370,17 @@ DataSourceAmiga::load() {
     Log::Warn["data"] << "Failed to load 'gfxpics'";
   }
 
+  try {
+    extro = std::make_shared<Buffer>(path + "/extro", Buffer::EndianessBig);
+    extro = decode(extro);
+    extro = unpack(extro);
+    Log::Debug["data"] << "Data file 'extro' loaded (size = "
+                       << extro->get_size() << ")";
+  } catch (...) {
+    Log::Warn["data"] << "Failed to load 'extro'";
+    extro = nullptr;
+  }
+
   return load_animation_table(data_pointers[1]->get_subbuffer(0, 30528));
 }
 
@@ -375,7 +389,13 @@ DataSourceAmiga::get_sprite_parts(Data::Resource res, size_t index) {
   Data::PSprite sprite;
 
   switch (res) {
-    case Data::AssetArtLandscape:
+    case Data::AssetExtroBg:
+      /* The panorama of the end sequence: 640x216, five interleaved
+         bitplanes, scrolled by play_extro @0x1db1a. */
+      if (extro) {
+        sprite = decode_interlased_sprite(extro, 640/8, 216, 0, 0,
+                                          palette_extro);
+      }
       break;
     case Data::AssetSerfShadow: {
       uint16_t shadow[6] = {betoh<uint16_t>(0x01C0), betoh<uint16_t>(0x07C0),
@@ -389,9 +409,29 @@ DataSourceAmiga::get_sprite_parts(Data::Resource res, size_t index) {
       sprite = m;
       break;
     }
-    case Data::AssetDottedLines:
+    case Data::AssetExtroFlag:
+      /* The waving flag of the end sequence: 64x32 frames after the
+         panorama and the owl frames, copied onto the panorama at (512, 35)
+         by extro_scroll_frame @0x1ddf2. The offset is that place. */
+      if (extro) {
+        PBuffer data = extro->get_tail(0x15298 + index * 0x500);
+        PSpriteAmiga flag = decode_interlased_sprite(data, 64/8, 32, 0, 0,
+                                                     palette_extro);
+        flag->set_offset(512, 35);
+        sprite = flag;
+      }
       break;
-    case Data::AssetArtFlag:
+    case Data::AssetExtroOwl:
+      /* The blinking owl of the end sequence: frames of the two lines with
+         its eyes, copied onto the panorama at (144, 73) by
+         extro_scroll_frame @0x1ddf2. The offset is that place. */
+      if (extro) {
+        PBuffer data = extro->get_tail(0x15180 + index * 40);
+        PSpriteAmiga owl = decode_interlased_sprite(data, 32/8, 2, 0, 0,
+                                                    palette_extro);
+        owl->set_offset(144, 73);
+        sprite = owl;
+      }
       break;
     case Data::AssetArtBox:
       if ((index < pics.size()) && pics[index]) {
@@ -399,8 +439,9 @@ DataSourceAmiga::get_sprite_parts(Data::Resource res, size_t index) {
       }
       break;
     case Data::AssetCreditsBg:
-      sprite = decode_interlased_sprite(data_pointers[23], 40, 200, 0, 0,
-                                        palette_intro);
+      /* The title picture has 216 lines: the PAL version shows all of them,
+         the NTSC one lines 36..203 (Amiga init_copy_static_gfx @0x2b5a). */
+      sprite = decode_startup_sprite(data_pointers[23], 40, 216);
       break;
     case Data::AssetLogo: {
       PBuffer data = gfxfast->get_tail(188356);
@@ -408,8 +449,10 @@ DataSourceAmiga::get_sprite_parts(Data::Resource res, size_t index) {
       break;
     }
     case Data::AssetSymbol: {
+      /* The symbols of the copy protection on the startup screen
+         (show_startup_info @0x7578, copy_popup_frame_to_screen @0x4656). */
       PBuffer data = gfxfast->get_tail(178116 + (640*index));
-      sprite = decode_interlased_sprite(data, 32/8, 32, 0, 0, palette_symbols);
+      sprite = decode_startup_sprite(data, 32/8, 32);
       break;
     }
     case Data::AssetMapMaskUp:
@@ -440,7 +483,7 @@ DataSourceAmiga::get_sprite_parts(Data::Resource res, size_t index) {
       break;
     }
     case Data::AssetPathGround:
-      sprite = get_ground_sprite(index);
+      sprite = get_path_sprite(index);
       break;
     case Data::AssetGameObject:
       sprite = get_game_object_sprite(15, index+1);
@@ -506,15 +549,7 @@ DataSourceAmiga::get_sprite_parts(Data::Resource res, size_t index) {
       }
       break;
     case Data::AssetIndicator:
-//      sprite = decode_planned_sprite(reinterpret_cast<uint8_t*>(gfxfast) +
-//                                     43076, 1, 7, 0, 0);
-//      if (index > 3) {
-//        index -= 4;
-//      }
-//    sprite = decode_amiga_sprite(reinterpret_cast<uint8_t*>(gfxfast) + 43076,
-//                                 5, 7, palette);  // 5 indicators WTF?
-//    10 indicators WTF?
-      sprite = decode_amiga_sprite(gfxfast->get_tail(44676), 10, 7, palette2);
+      sprite = get_indicator_sprite(index);
       break;
     case Data::AssetFont: {
       PBuffer data = data_pointers[14]->get_subbuffer(index * 8, 8);
@@ -523,8 +558,7 @@ DataSourceAmiga::get_sprite_parts(Data::Resource res, size_t index) {
     }
     case Data::AssetFontShadow: {
       PBuffer data = data_pointers[14]->get_subbuffer(index * 8, 8);
-      PSpriteAmiga s = decode_mask_sprite(data, 8, 8);
-      return std::make_tuple(make_shadow_from_symbol(s), nullptr);
+      return std::make_tuple(get_font_shadow(data), nullptr);
     }
     case Data::AssetIcon:
       sprite = get_icon_sprite(index);
@@ -549,16 +583,10 @@ DataSourceAmiga::get_sprite_parts(Data::Resource res, size_t index) {
         unsigned int backs[] = {3, 4, 10, 12, 14, 16, 2, 8};
         PSpriteAmiga s = get_menu_sprite(backs[index], data_pointers[16],
                                          32, 32, 16, 0);
-        PBuffer l_data = get_data_from_catalog(17, 0, gfxchip);
-        PBuffer r_data = get_data_from_catalog(17, 16, gfxchip);
-        PSpriteAmiga left = decode_interlased_sprite(l_data, 2, 29, 28, 20,
-                                                     palette2);
-        left->make_transparent();
-        PSpriteAmiga right = decode_interlased_sprite(r_data, 2, 29, 28, 20,
-                                                      palette2);
-        right->make_transparent();
-        PSpriteAmiga star = left->merge_horizontaly(right);
-        s->stick(star, 0, 1);
+        PSpriteAmiga star = get_star_sprite(0);
+        if (star) {
+          s->stick(star, 0, 2);
+        }
         sprite = s;
       }
       break;
@@ -590,6 +618,9 @@ DataSourceAmiga::get_sprite_parts(Data::Resource res, size_t index) {
       sprite = get_game_object_sprite(20, index);
       break;
     case Data::AssetFrameSplit:
+      break;
+    case Data::AssetStar:
+      sprite = get_star_sprite(index);
       break;
     case Data::AssetCursor: {
       PBuffer data = data_pointers[12];
@@ -747,7 +778,19 @@ DataSourceAmiga::get_sound(size_t index) {
 }
 
 PBuffer
-DataSourceAmiga::get_music(size_t /*index*/) {
+DataSourceAmiga::get_music(size_t index) {
+  /* Track 2 is the music of the end sequence (as DATA_MUSIC_ENDING of the
+     DOS data). The extro file has the player code at 0x17598 followed by
+     the module (play_extro @0x1db1a). */
+  if (index == 2 && extro) {
+    const char *str = reinterpret_cast<const char*>(extro->get_data());
+    std::string string(str, str + extro->get_size());
+    size_t pos = string.find("M.K.");
+    if (pos != std::string::npos && pos >= 1080) {
+      return extro->get_tail(pos - 1080);
+    }
+  }
+
   if (music) {
     return music;
   }
@@ -873,9 +916,78 @@ DataSourceAmiga::get_data_from_catalog(size_t catalog_index, size_t index,
   return base->get_tail(offset);
 }
 
-/* Ground texture bitplane size and height (Amiga gfxchip). */
-static const size_t ground_plane_size = 84;
-static const size_t ground_rows = ground_plane_size / 2 - 1;
+/* Ground and road textures (Amiga gfxchip) start with a byte of the filled
+   bitplanes and a byte of the bitplanes that are not stored, followed by the
+   stored bitplanes of plane_size bytes (a word per line). The original blits
+   them with a source modulo of -2 (Amiga draw_landscape_cols @0x931e,
+   draw_path_segment_down @0x9e7c), so line r is made of words r and r+1,
+   which gives plane_size / 2 - 1 lines of 32 pixels. A 16 pixels wide blit
+   uses the left half. The landscape is drawn off screen and copied to the
+   screen with the third bitplane inverted (blit_panel @0x19f78). */
+/* Pictures of the startup screen (the title picture and the symbols) are
+   drawn on the panel screen, which is shown with the game view colours and
+   the third bitplane inverted (blit_panel @0x19f78). While the startup
+   screen is shown, four of the colours are changed for the sky
+   (startup_info_set_colors @0x3f2e). */
+DataSourceAmiga::PSpriteAmiga
+DataSourceAmiga::decode_startup_sprite(PBuffer data, size_t width,
+                                       size_t height) {
+  static uint8_t startup_palette[sizeof(palette)] = {};
+  if (startup_palette[18 * 3] == 0) {  // colour 18 is white
+    std::copy(palette, palette + sizeof(palette), startup_palette);
+    const struct { size_t index; uint16_t color; } sky[] = {
+      { 1, 0x46d }, { 11, 0x68e }, { 15, 0x00d }, { 27, 0x57d }
+    };
+    for (const auto &c : sky) {
+      startup_palette[c.index * 3 + 0] = ((c.color >> 8) & 0x0f) * 0x11;
+      startup_palette[c.index * 3 + 1] = ((c.color >> 4) & 0x0f) * 0x11;
+      startup_palette[c.index * 3 + 2] = (c.color & 0x0f) * 0x11;
+    }
+  }
+
+  const uint8_t *src = reinterpret_cast<const uint8_t*>(data->get_data());
+  PMutableBuffer planes = std::make_shared<MutableBuffer>(Buffer::EndianessBig);
+  for (size_t i = 0; i < width * 5 * height; i++) {
+    planes->push<uint8_t>(((i / width) % 5 == 2) ? ~src[i] : src[i]);
+  }
+
+  return decode_interlased_sprite(planes, width, height, 0, 0,
+                                  startup_palette);
+}
+
+DataSourceAmiga::PSpriteAmiga
+DataSourceAmiga::decode_texture(PBuffer data, size_t plane_size) {
+  uint8_t filled = data->pop<uint8_t>();
+  uint8_t compressed = data->pop<uint8_t>();
+  size_t rows_count = plane_size / 2 - 1;
+
+  /* The bitplanes follow the two bytes read above. */
+  PBuffer stored = data->pop_tail();
+  const uint8_t *planes = reinterpret_cast<const uint8_t*>(stored->get_data());
+  PMutableBuffer rows = std::make_shared<MutableBuffer>(Buffer::EndianessBig);
+  for (size_t b = 0; b < 5; b++) {
+    if ((compressed >> b) & 0x01) {
+      continue;
+    }
+    for (size_t r = 0; r < rows_count; r++) {
+      for (size_t i = 0; i < 4; i++) {
+        uint8_t byte = planes[r * 2 + i];
+        rows->push<uint8_t>((b == 2) ? ~byte : byte);
+      }
+    }
+    planes += plane_size;
+  }
+  filled ^= 0x04;
+
+  PSpriteAmiga sprite = decode_planned_sprite(rows, 4, rows_count,
+                                              compressed, filled, palette);
+  if (sprite) {
+    sprite->set_delta(1, 0);
+    sprite->set_offset(0, 0);
+  }
+
+  return sprite;
+}
 
 DataSourceAmiga::PSpriteAmiga
 DataSourceAmiga::get_ground_sprite(size_t index) {
@@ -884,39 +996,74 @@ DataSourceAmiga::get_ground_sprite(size_t index) {
     return nullptr;
   }
 
-  uint8_t filled = data->pop<uint8_t>();
-  uint8_t compressed = data->pop<uint8_t>();
+  /* Every stored bitplane holds 42 words: 41 lines. */
+  return decode_texture(data, 84);
+}
 
-  /* Every stored bitplane holds 42 words. The original blits the texture
-     with a source modulo of -2 (Amiga draw_landscape_cols @0x931e), so row
-     r is made of words r and r+1, which gives 41 rows of 32 pixels. The
-     landscape is drawn off screen and copied to the screen with the third
-     bitplane inverted (blit_panel @0x19f78). */
-  const uint8_t *planes = reinterpret_cast<const uint8_t*>(data->get_data());
-  PMutableBuffer rows = std::make_shared<MutableBuffer>(Buffer::EndianessBig);
-  for (size_t b = 0; b < 5; b++) {
-    if ((compressed >> b) & 0x01) {
-      continue;
-    }
-    for (size_t r = 0; r < ground_rows; r++) {
-      for (size_t i = 0; i < 4; i++) {
-        uint8_t byte = planes[r * 2 + i];
-        rows->push<uint8_t>((b == 2) ? ~byte : byte);
-      }
-    }
-    planes += ground_plane_size;
-  }
-  filled ^= 0x04;
-
-  PSpriteAmiga sprite = decode_planned_sprite(rows, 4, ground_rows,
-                                              compressed, filled, palette);
-
-  if (sprite) {
-    sprite->set_delta(1, 0);
-    sprite->set_offset(0, 0);
+/* Road textures of 43 lines, by the index of Viewport::draw_path_segment:
+   grass, desert and snow with three slopes each, then water. The original
+   selects them the same way from a table of offsets into gfxchip block 5
+   (Amiga draw_path_segment_down @0x9e7c, offsets at 0x9f84). */
+DataSourceAmiga::PSpriteAmiga
+DataSourceAmiga::get_path_sprite(size_t index) {
+  static const size_t offsets[] = { 0, 178, 444, 710, 976, 1242, 1420, 1774,
+                                    2128, 2482 };
+  if (index >= sizeof(offsets) / sizeof(offsets[0])) {
+    return nullptr;
   }
 
-  return sprite;
+  return decode_texture(data_pointers[5]->get_tail(offsets[index]), 88);
+}
+
+/* Frames of the rotating star, the pointer while the panel waits (Amiga
+   update_pointer_sprite @0x34de). A frame is made of two hardware sprites
+   of 16 pixels (catalog 17: the left halves, then the right ones), each
+   with a line of two words after its two control words. The numbers of
+   lines are from init_pointer_sprite_vpos @0x3dea (table at 0x3e40). The
+   sprites have the panel's sprite colours 21..23 (palette2). */
+DataSourceAmiga::PSpriteAmiga
+DataSourceAmiga::get_star_sprite(size_t index) {
+  static const size_t lines[16] = { 27, 27, 27, 27, 27, 28, 28, 28, 28, 28,
+                                    28, 28, 28, 28, 27, 27 };
+  if (index >= 16) {
+    return nullptr;
+  }
+
+  PSpriteAmiga halves[2];
+  for (size_t side = 0; side < 2; side++) {
+    PBuffer data = get_data_from_catalog(17, index + side * 16, gfxchip);
+    if (!data) {
+      return nullptr;
+    }
+    halves[side] = decode_interlased_sprite(data->get_tail(4), 2,
+                                            lines[index], 28, 20, palette2);
+    halves[side]->make_transparent();
+  }
+
+  return halves[0]->merge_horizontaly(halves[1]);
+}
+
+/* Player marks of the popup frame, 8x7 pixels: the four players, then the
+   four players marked as the current one. In the original they are columns
+   of bytes in 7 lines of 5 interleaved bitplanes of 4 bytes, the current
+   player's set 0x8c bytes after (Amiga blit_popup_frame @0x23696,
+   copy_5plane_7rows @0x238d0). */
+DataSourceAmiga::PSpriteAmiga
+DataSourceAmiga::get_indicator_sprite(size_t index) {
+  if (index >= 8) {
+    return nullptr;
+  }
+
+  PBuffer data = data_pointers[11]->get_tail(0x5a0 + ((index / 4) * 0x8c));
+  const uint8_t *src = reinterpret_cast<const uint8_t*>(data->get_data());
+  PMutableBuffer icon = std::make_shared<MutableBuffer>(Buffer::EndianessBig);
+  for (size_t line = 0; line < 7; line++) {
+    for (size_t plane = 0; plane < 5; plane++) {
+      icon->push<uint8_t>(src[line * 20 + plane * 4 + (index % 4)]);
+    }
+  }
+
+  return decode_interlased_sprite(icon, 1, 7, 0, 0, palette);
 }
 
 /* The original blits a down pointing ground triangle from the bottom up,
@@ -1446,13 +1593,31 @@ DataSourceAmiga::SpriteAmiga::split_horizontaly(bool return_right) {
   return s;
 }
 
+/* The shadow of a glyph as the original draws it around the text (DrawText
+   @0x43da): every line of the glyph widened by a pixel to both sides within
+   its byte, and the glyph itself a line above and below it. It has colour 0,
+   black on the screen (the panel screen is shown with the third bitplane
+   inverted, blit_panel @0x19f78). */
 DataSourceAmiga::PSpriteAmiga
-DataSourceAmiga::make_shadow_from_symbol(PSpriteAmiga symbol) {
-  PSpriteAmiga res = std::make_shared<SpriteAmiga>(10, 10);
-  res->stick(symbol, 1, 0);
-  res->stick(symbol, 0, 1);
-  res->stick(symbol, 2, 1);
-  res->stick(symbol, 1, 2);
-  res->fill_masked({0xFF, 0xFF, 0xFF, 0xFF});
-  return res;
+DataSourceAmiga::get_font_shadow(PBuffer data) {
+  const uint8_t *glyph = reinterpret_cast<const uint8_t*>(data->get_data());
+  uint8_t lines[10] = {};
+  for (size_t y = 0; y < 8; y++) {
+    uint8_t line = glyph[y];
+    lines[y] |= line;
+    lines[y + 1] |= static_cast<uint8_t>((line << 1) | line | (line >> 1));
+    lines[y + 2] |= line;
+  }
+
+  PSpriteAmiga sprite = std::make_shared<SpriteAmiga>(8, 10);
+  Data::Sprite::Color *pixel = sprite->get_writable_data();
+  for (size_t y = 0; y < 10; y++) {
+    for (int x = 7; x >= 0; x--) {
+      uint8_t alpha = ((lines[y] >> x) & 0x01) ? 0xFF : 0x00;
+      *pixel++ = { 0x00, 0x00, 0x00, alpha };
+    }
+  }
+  sprite->set_offset(0, -1);
+
+  return sprite;
 }

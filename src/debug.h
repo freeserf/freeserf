@@ -41,10 +41,11 @@ class ExceptionFreeserf : public std::exception {
 };
 
 #ifndef NDEBUG
-# define NOT_REACHED()  do { Log::Error["debug"] << "NOT_REACHED at line " \
-                                                 << __LINE__ << " of " \
-                                                 << __FILE__ << "."; \
-                             abort(); \
+# define NOT_REACHED()  do { \
+                          Log::Error["debug"] << "NOT_REACHED at line " \
+                                              << __LINE__ << " of " \
+                                              << __FILE__ << "."; \
+                          abort(); \
                         } while (0)
 #else
 # define NOT_REACHED()  do { } while (0)

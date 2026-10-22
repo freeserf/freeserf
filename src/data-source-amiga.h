@@ -41,7 +41,6 @@ class DataSourceAmiga : public DataSourceLegacy {
     virtual ~SpriteAmiga();
 
     void set_delta(int x, int y) { delta_x = x; delta_y = y; }
-    void set_offset(int x, int y) { offset_x = x; offset_y = y; }
     PSpriteAmiga get_amiga_masked(Data::PSprite mask);
     void clear() {}
     Sprite::Color *get_writable_data() {
@@ -78,6 +77,7 @@ class DataSourceAmiga : public DataSourceLegacy {
   PBuffer gfxchip;
   PBuffer sound;
   PBuffer music;
+  PBuffer extro;
 
   std::array<PBuffer, 24> data_pointers;
   std::array<PBuffer, 14> pics;
@@ -94,7 +94,13 @@ class DataSourceAmiga : public DataSourceLegacy {
                                unsigned char compression,
                                unsigned char filling);
   Data::PSprite get_icon_sprite(size_t index);
+  PSpriteAmiga decode_texture(PBuffer data, size_t plane_size);
+  PSpriteAmiga decode_startup_sprite(PBuffer data, size_t width,
+                                     size_t height);
   PSpriteAmiga get_ground_sprite(size_t index);
+  PSpriteAmiga get_path_sprite(size_t index);
+  PSpriteAmiga get_indicator_sprite(size_t index);
+  PSpriteAmiga get_star_sprite(size_t index);
   Data::PSprite get_ground_mask_sprite(size_t index);
   PSpriteAmiga get_mirrored_horizontaly_sprite(Data::PSprite sprite);
   Data::PSprite get_path_mask_sprite(size_t index);
@@ -118,7 +124,7 @@ class DataSourceAmiga : public DataSourceLegacy {
 
   unsigned int bitplane_count_from_compression(unsigned char compression);
 
-  PSpriteAmiga make_shadow_from_symbol(PSpriteAmiga symbol);
+  PSpriteAmiga get_font_shadow(PBuffer data);
 
   PBuffer get_sound_data(size_t index);
 };
