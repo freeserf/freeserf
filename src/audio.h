@@ -91,11 +91,9 @@ class Audio {
 
   typedef enum TypeMidi {
     TypeMidiNone = -1,
-    TypeMidiTrack0 = 0,
-    TypeMidiTrack1 = 1,
-    TypeMidiTrack2 = 2,
-    TypeMidiTrack3 = 4,
-    TypeMidiTrackLast = TypeMidiTrack3,
+    TypeMidiTrack0 = 0,  // game music
+    TypeMidiTrack1 = 1,  // ending
+    TypeMidiTrackLast = TypeMidiTrack1,
   } TypeMidi;
 
   class VolumeController {
