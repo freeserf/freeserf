@@ -21,6 +21,7 @@
 
 #include "src/game-manager.h"
 
+#include <memory>
 #include <string>
 #include <utility>
 

@@ -21,6 +21,8 @@
 
 #include "src/text-input.h"
 
+#include <string>
+
 TextInput::TextInput() : GuiObject() {
   max_length = 0;
   filter = NULL;

@@ -21,9 +21,11 @@
 
 #include "src/command_line.h"
 
-#include <queue>
 #include <iostream>
+#include <queue>
 #include <sstream>
+#include <string>
+#include <vector>
 
 CommandLine::CommandLine() {
 }

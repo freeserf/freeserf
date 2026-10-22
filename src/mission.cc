@@ -20,6 +20,9 @@
  */
 
 #include "src/mission.h"
+
+#include <memory>
+
 #include "src/game.h"
 #include "src/ai.h"
 

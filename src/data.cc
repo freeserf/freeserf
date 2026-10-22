@@ -21,11 +21,12 @@
 
 #include "src/data.h"
 
-#include <vector>
-#include <memory>
-#include <utility>
-#include <string>
 #include <functional>
+#include <list>
+#include <memory>
+#include <string>
+#include <utility>
+#include <vector>
 
 #include "src/log.h"
 #include "src/data-source-dos.h"

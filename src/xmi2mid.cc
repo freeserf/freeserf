@@ -21,11 +21,12 @@
 
 #include "src/xmi2mid.h"
 
-#include <queue>
 #include <algorithm>
-#include <memory>
-#include <string>
 #include <map>
+#include <memory>
+#include <queue>
+#include <string>
+#include <vector>
 
 #include "src/freeserf_endian.h"
 #include "src/log.h"

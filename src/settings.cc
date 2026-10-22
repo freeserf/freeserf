@@ -23,6 +23,8 @@
 
 #include <SDL3/SDL.h>
 
+#include <string>
+
 #include "src/log.h"
 
 Settings::Settings() {

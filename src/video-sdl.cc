@@ -24,6 +24,7 @@
 #include <SDL3/SDL.h>
 
 #include <sstream>
+#include <string>
 
 ExceptionSDL::ExceptionSDL(const std::string &description) throw()
   : ExceptionVideo(description) {

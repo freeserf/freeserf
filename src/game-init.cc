@@ -22,6 +22,7 @@
 #include "src/game-init.h"
 
 #include <algorithm>
+#include <memory>
 #include <sstream>
 #include <string>
 

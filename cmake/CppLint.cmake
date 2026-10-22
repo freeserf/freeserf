@@ -1,10 +1,10 @@
 find_package(Python3 COMPONENTS Interpreter)
 
 if(Python3_Interpreter_FOUND AND NOT CPPLINT_FOUND)
-  file(DOWNLOAD "https://github.com/cpplint/cpplint/archive/refs/tags/1.6.1.zip" "${CMAKE_CURRENT_BINARY_DIR}/styleguide.zip")
+  file(DOWNLOAD "https://github.com/cpplint/cpplint/archive/refs/tags/2.0.2.zip" "${CMAKE_CURRENT_BINARY_DIR}/styleguide.zip")
   execute_process(COMMAND ${CMAKE_COMMAND} -E tar xz styleguide.zip
                   WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR})
-  set(CPPLINT_COMMAND "${CMAKE_CURRENT_BINARY_DIR}/cpplint-1.6.1/cpplint.py" CACHE FILEPATH "CppLint commad")
+  set(CPPLINT_COMMAND "${CMAKE_CURRENT_BINARY_DIR}/cpplint-2.0.2/cpplint.py" CACHE FILEPATH "CppLint commad")
   set(CPPLINT_FOUND ON CACHE BOOL "CppLint found")
 endif()
 

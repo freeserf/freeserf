@@ -23,8 +23,9 @@
 
 #include <iomanip>
 #include <memory>
-#include <vector>
+#include <string>
 #include <utility>
+#include <vector>
 
 #include "src/sprite-file.h"
 #include "src/buffer.h"

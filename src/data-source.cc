@@ -26,6 +26,8 @@
 
 #include <algorithm>
 #include <fstream>
+#include <memory>
+#include <string>
 
 #include "src/freeserf_endian.h"
 #include "src/log.h"

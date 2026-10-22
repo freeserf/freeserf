@@ -23,6 +23,8 @@
 
 #include <SDL3_image/SDL_image.h>
 
+#include <string>
+
 SpriteFile::SpriteFile() {
 }
 

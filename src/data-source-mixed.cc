@@ -21,6 +21,8 @@
 
 #include "src/data-source-mixed.h"
 
+#include <string>
+
 DataSourceMixed::DataSourceMixed() {
   for (Kind &kind : selected) {
     kind = KindCount;

@@ -21,6 +21,8 @@
 
 #include "src/list.h"
 
+#include <string>
+
 ListSavedFiles::ListSavedFiles()
   : GuiObject()
   , save_game(&GameStore::get_instance()) {

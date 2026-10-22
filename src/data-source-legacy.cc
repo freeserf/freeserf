@@ -22,6 +22,7 @@
 #include "src/data-source-legacy.h"
 
 #include <algorithm>
+#include <string>
 #include <vector>
 
 #include "src/freeserf_endian.h"
