@@ -51,11 +51,11 @@
 
 DataSourceDOS::Resource dos_resources[] = {
   {   0, 0,    DataSourceDOS::SpriteTypeUnknown     },  // none
-  {   1, 3997, DataSourceDOS::SpriteTypeSolid       },  // art_landscape
+  {   1, 3997, DataSourceDOS::SpriteTypeSolid       },  // extro_bg
   {   2, 0,    DataSourceDOS::SpriteTypeUnknown     },  // animation
   {   4, 3,    DataSourceDOS::SpriteTypeOverlay     },  // serf_shadow
-  {   5, 3,    DataSourceDOS::SpriteTypeSolid       },  // dotted_lines
-  {  15, 3997, DataSourceDOS::SpriteTypeSolid       },  // art_flag
+  {   5, 3997, DataSourceDOS::SpriteTypeSolid       },  // extro_owl
+  {  15, 3997, DataSourceDOS::SpriteTypeSolid       },  // extro_flag
   {  25, 3,    DataSourceDOS::SpriteTypeSolid       },  // art_box
   {  40, 3998, DataSourceDOS::SpriteTypeSolid       },  // credits_bg
   {  41, 3998, DataSourceDOS::SpriteTypeSolid       },  // logo
@@ -297,6 +297,14 @@ DataSourceDOS::get_sprite_parts(Data::Resource res, size_t index) {
     }
     default:
       return std::make_tuple(nullptr, nullptr);
+  }
+
+  /* The owl and the flag of the end sequence are drawn over extro_bg,
+     their offsets are their places on it. */
+  if (res == Data::AssetExtroOwl) {
+    std::static_pointer_cast<SpriteBase>(sprite)->set_offset(142, 78);
+  } else if (res == Data::AssetExtroFlag) {
+    std::static_pointer_cast<SpriteBase>(sprite)->set_offset(506, 10);
   }
 
   return std::make_tuple(nullptr, sprite);

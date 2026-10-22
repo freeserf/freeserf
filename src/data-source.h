@@ -60,6 +60,8 @@ class SpriteBase : public Data::Sprite {
   virtual int get_offset_x() const { return offset_x; }
   virtual int get_offset_y() const { return offset_y; }
 
+  void set_offset(int x, int y) { offset_x = x; offset_y = y; }
+
   virtual Data::PSprite get_masked(Data::PSprite mask);
   virtual Data::PSprite create_mask(Data::PSprite other);
   virtual void fill(Sprite::Color color);

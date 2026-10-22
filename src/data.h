@@ -44,11 +44,11 @@ class Data {
 
   typedef enum Resource {
     AssetNone,
-    AssetArtLandscape,
+    AssetExtroBg,
     AssetAnimation,
     AssetSerfShadow,
-    AssetDottedLines,
-    AssetArtFlag,
+    AssetExtroOwl,
+    AssetExtroFlag,
     AssetArtBox,
     AssetCreditsBg,
     AssetLogo,
@@ -77,6 +77,7 @@ class Data {
     AssetSound,
     AssetMusic,
     AssetCursor,
+    AssetStar,
   } Asset;
 
   enum MusicFormat {

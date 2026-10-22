@@ -47,11 +47,11 @@ typedef struct DataResource {
 
 DataResource data_resources[] = {
   { Data::AssetNone,         Data::TypeUnknown,   0,   "error"         },
-  { Data::AssetArtLandscape, Data::TypeSprite,    1,   "art_landscape" },
+  { Data::AssetExtroBg,      Data::TypeSprite,    1,   "extro_bg"      },
   { Data::AssetAnimation,    Data::TypeAnimation, 200, "animation"     },
   { Data::AssetSerfShadow,   Data::TypeSprite,    1,   "serf_shadow"   },
-  { Data::AssetDottedLines,  Data::TypeSprite,    7,   "dotted_lines"  },
-  { Data::AssetArtFlag,      Data::TypeSprite,    7,   "art_flag"      },
+  { Data::AssetExtroOwl,     Data::TypeSprite,    7,   "extro_owl"     },
+  { Data::AssetExtroFlag,    Data::TypeSprite,    7,   "extro_flag"    },
   { Data::AssetArtBox,       Data::TypeSprite,    14,  "art_box"       },
   { Data::AssetCreditsBg,    Data::TypeSprite,    1,   "credits_bg"    },
   { Data::AssetLogo,         Data::TypeSprite,    1,   "logo"          },
@@ -80,6 +80,7 @@ DataResource data_resources[] = {
   { Data::AssetSound,        Data::TypeSound,     90,  "sound"         },
   { Data::AssetMusic,        Data::TypeMusic,     7,   "music"         },
   { Data::AssetCursor,       Data::TypeSprite,    1,   "cursor"        },
+  { Data::AssetStar,         Data::TypeSprite,    16,  "star"          },
 };
 
 Data::Data() : data_source(nullptr) {}

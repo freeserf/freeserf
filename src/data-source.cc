@@ -288,18 +288,18 @@ void
 SpriteBase::stick(Data::PSprite sticker, unsigned int dx, unsigned int dy) {
   Color *base = reinterpret_cast<Color*>(data);
   Color *stkr = reinterpret_cast<Color*>(sticker->get_data());
-  size_t w = std::min(width, sticker->get_width());
-  size_t h = std::min(height, sticker->get_height());
+  size_t x0 = std::min(width, static_cast<size_t>(dx));
+  size_t y0 = std::min(height, static_cast<size_t>(dy));
+  size_t w = std::min(sticker->get_width(), width - x0);
+  size_t h = std::min(sticker->get_height(), height - y0);
 
-  base += dy * width;
-  for (size_t y = 0; y < w; y++) {
-    base += dx;
-    for (size_t x = 0; x < h; x++) {
-      Color pixel = *stkr++;
-      if ((pixel.alpha & 0xFF) != 0x00) {
-        *base = pixel;
+  for (size_t y = 0; y < h; y++) {
+    Color *line = base + (y0 + y) * width + x0;
+    Color *src = stkr + y * sticker->get_width();
+    for (size_t x = 0; x < w; x++) {
+      if ((src[x].alpha & 0xFF) != 0x00) {
+        line[x] = src[x];
       }
-      base++;
     }
   }
 
