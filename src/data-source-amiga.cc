@@ -779,10 +779,10 @@ DataSourceAmiga::get_sound(size_t index) {
 
 PBuffer
 DataSourceAmiga::get_music(size_t index) {
-  /* Track 2 is the music of the end sequence (as DATA_MUSIC_ENDING of the
-     DOS data). The extro file has the player code at 0x17598 followed by
-     the module (play_extro @0x1db1a). */
-  if (index == 2 && extro) {
+  /* Track 0 is the game music, track 1 the music of the end sequence
+     (DATA_MUSIC_ENDING of the DOS data). The extro file has the
+     player code at 0x17598 followed by the module (play_extro @0x1db1a). */
+  if (index == 1 && extro) {
     const char *str = reinterpret_cast<const char*>(extro->get_data());
     std::string string(str, str + extro->get_size());
     size_t pos = string.find("M.K.");

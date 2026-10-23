@@ -79,7 +79,7 @@ DataResource data_resources[] = {
   { Data::AssetSerfHead,     Data::TypeSprite,    630, "serf_head"     },
   { Data::AssetFrameSplit,   Data::TypeSprite,    3,   "frame_split"   },
   { Data::AssetSound,        Data::TypeSound,     90,  "sound"         },
-  { Data::AssetMusic,        Data::TypeMusic,     7,   "music"         },
+  { Data::AssetMusic,        Data::TypeMusic,     2,   "music"         },
   { Data::AssetCursor,       Data::TypeSprite,    1,   "cursor"        },
   { Data::AssetStar,         Data::TypeSprite,    16,  "star"          },
 };

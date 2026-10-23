@@ -40,7 +40,7 @@
 #define DATA_SERF_ANIMATION_TABLE  2
 #define DATA_SERF_ARMS             1850  // 3, dos_sprite_type_transparent
 #define DATA_SFX_BASE              3900  // SFX sounds (index 0 is undefined)
-#define DATA_MUSIC_GAME            3990  // XMI music
+#define DATA_MUSIC_GAME            3991  // XMI music
 #define DATA_MUSIC_ENDING          3992  // XMI music
 
 // There are different types of sprites:
@@ -440,7 +440,15 @@ DataSourceDOS::get_sound(size_t index) {
 
 PBuffer
 DataSourceDOS::get_music(size_t index) {
-  PBuffer data = get_object(DATA_MUSIC_GAME + index);
+  /* The music objects are 3990..3996. Left out: 3990, the game music of 3991
+     with less percussion, 3994, the same ending as 3992, and the empty 3993,
+     3995 and 3996. */
+  const size_t music_objects[] = { DATA_MUSIC_GAME, DATA_MUSIC_ENDING };
+  if (index >= sizeof(music_objects) / sizeof(music_objects[0])) {
+    return nullptr;
+  }
+
+  PBuffer data = get_object(music_objects[index]);
   if (!data) {
     Log::Error["data"] << "Could not extract XMI clip: #" << index;
     return nullptr;
