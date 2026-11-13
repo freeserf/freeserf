@@ -286,7 +286,8 @@ Minimap::handle_scroll(int up) {
 }
 
 bool
-Minimap::handle_drag(int dx, int dy) {
+Minimap::handle_drag(int dx, int dy, Event::Button button) {
+  (void)button;
   if (dx != 0 || dy != 0) {
     move_by_pixels(dx, dy);
   }

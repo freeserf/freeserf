@@ -2590,7 +2590,10 @@ Viewport::open_object_box(MapPos clk_pos) {
 }
 
 bool
-Viewport::handle_drag(int lx, int ly) {
+Viewport::handle_drag(int lx, int ly, Event::Button button) {
+  if (button != Event::ButtonLeft && button != Event::ButtonRight) {
+    return false;
+  }
   if (interface->get_invert_scrolling()) {
     ly = -ly;
   }

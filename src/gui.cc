@@ -151,7 +151,7 @@ GuiObject::handle_event(const Event *event) {
       int dy = static_cast<int>(drag_rest_y);
       drag_rest_x -= static_cast<float>(dx);
       drag_rest_y -= static_cast<float>(dy);
-      result = handle_drag(dx, dy);
+      result = handle_drag(dx, dy, event->button);
       break;
     }
     case Event::TypeDoubleClick:

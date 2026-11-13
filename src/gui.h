@@ -56,7 +56,10 @@ class GuiObject : public EventLoop::Handler {
   virtual bool handle_click_right(int x, int y) { return false; }
   virtual bool handle_dbl_click(int x, int y, Event::Button button) {
     return false; }
-  virtual bool handle_drag(int dx, int dy) { return true; }
+  virtual bool handle_drag(int dx, int dy, Event::Button button) {
+    (void)button;
+    return true;
+  }
   virtual bool handle_key_pressed(char key, int modifier) { return false; }
   virtual bool handle_focus_loose() { return false; }
 

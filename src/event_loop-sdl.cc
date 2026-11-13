@@ -43,20 +43,65 @@ EventLoop::get_instance() {
 /* How much the mouse can move between events to be still
  considered as a double click. */
 #define MOUSE_MOVE_SENSITIVITY  8
+/* How far the mouse must move before a button press becomes a drag. */
+#define MOUSE_DRAG_SENSITIVITY  4
+
+static bool
+is_drag_button(Uint8 button) {
+  return button == SDL_BUTTON_LEFT ||
+         button == SDL_BUTTON_MIDDLE ||
+         button == SDL_BUTTON_RIGHT;
+}
 
 EventLoopSDL::EventLoopSDL()
   : zoom_factor(1.f)
   , zoom_level(1.f)
   , screen_factor_x(1.f)
   , screen_factor_y(1.f)
-  , drag_button(0)
-  , drag_x(0)
-  , drag_y(0)
   , last_click_x(0)
   , last_click_y(0)
   , screen(nullptr) {
   for (unsigned int &click : last_click) click = 0;
   SDL_InitSubSystem(SDL_INIT_EVENTS);
+}
+
+void
+EventLoopSDL::release_drag() {
+  SDL_Window *window = drag.window;
+  bool relative = drag.relative_mouse_mode;
+
+  /* Clear the state before disabling relative mode. SDL may emit a motion
+     event while changing the mode, and it must not be treated as a drag. */
+  drag = DragContext();
+
+  if (relative && window != nullptr) {
+    if (!SDL_SetWindowRelativeMouseMode(window, false)) {
+      Log::Warn["event"] << "SDL_SetWindowRelativeMouseMode(false) failed: "
+                           << SDL_GetError();
+    }
+  }
+}
+
+void
+EventLoopSDL::cancel_drag() {
+  if (drag.state == DragContext::StateIdle ||
+      drag.state == DragContext::StateCancelled) {
+    return;
+  }
+
+  SDL_Window *window = drag.window;
+  bool relative = drag.relative_mouse_mode;
+  Event::Button button = drag.button;
+
+  drag = DragContext();
+  drag.state = DragContext::StateCancelled;
+  drag.button = button;
+
+  if (relative && window != nullptr &&
+      !SDL_SetWindowRelativeMouseMode(window, false)) {
+    Log::Warn["event"] << "SDL_SetWindowRelativeMouseMode(false) failed: "
+                         << SDL_GetError();
+  }
 }
 
 void
@@ -93,66 +138,106 @@ EventLoopSDL::handle_sdl_event(const SDL_Event &event) {
 
   switch (event.type) {
     case SDL_EVENT_MOUSE_BUTTON_UP: {
-      if (drag_button == event.button.button) {
-        drag_button = 0;
+      if (!is_drag_button(event.button.button) ||
+          drag.state == DragContext::StateIdle ||
+          drag.button != static_cast<Event::Button>(event.button.button)) {
+        break;
       }
 
-      if (event.button.button <= 3) {
-        int x = static_cast<int>(static_cast<float>(event.button.x) *
-                                 zoom_factor * screen_factor_x);
-        int y = static_cast<int>(static_cast<float>(event.button.y) *
-                                 zoom_factor * screen_factor_y);
-        notify_click(x, y, (Event::Button)event.button.button);
-
-        int bx = static_cast<int>(event.button.x);
-        int by = static_cast<int>(event.button.y);
-        if (current_ticks - last_click[event.button.button] <
-              MOUSE_TIME_SENSITIVITY &&
-            bx >= (last_click_x - MOUSE_MOVE_SENSITIVITY) &&
-            bx <= (last_click_x + MOUSE_MOVE_SENSITIVITY) &&
-            by >= (last_click_y - MOUSE_MOVE_SENSITIVITY) &&
-            by <= (last_click_y + MOUSE_MOVE_SENSITIVITY)) {
-          notify_dbl_click(x, y, (Event::Button)event.button.button);
-        }
-
-        last_click[event.button.button] = current_ticks;
-        last_click_x = bx;
-        last_click_y = by;
+      if (drag.state == DragContext::StateCancelled) {
+        drag = DragContext();
+        break;
       }
+
+      bool was_dragging = drag.state == DragContext::StateDragging;
+      release_drag();
+
+      /* A drag must not also be interpreted as a click at the release
+         position. */
+      if (was_dragging) {
+        /* Do not let a click before the drag pair with the next click
+           after it as a double click. */
+        last_click[event.button.button] = 0;
+        break;
+      }
+
+      int x = static_cast<int>(static_cast<float>(event.button.x) *
+                               zoom_factor * screen_factor_x);
+      int y = static_cast<int>(static_cast<float>(event.button.y) *
+                               zoom_factor * screen_factor_y);
+      notify_click(x, y, static_cast<Event::Button>(event.button.button));
+
+      int bx = static_cast<int>(event.button.x);
+      int by = static_cast<int>(event.button.y);
+      if (current_ticks - last_click[event.button.button] <
+            MOUSE_TIME_SENSITIVITY &&
+          bx >= (last_click_x - MOUSE_MOVE_SENSITIVITY) &&
+          bx <= (last_click_x + MOUSE_MOVE_SENSITIVITY) &&
+          by >= (last_click_y - MOUSE_MOVE_SENSITIVITY) &&
+          by <= (last_click_y + MOUSE_MOVE_SENSITIVITY)) {
+        notify_dbl_click(x, y,
+                         static_cast<Event::Button>(event.button.button));
+      }
+
+      last_click[event.button.button] = current_ticks;
+      last_click_x = bx;
+      last_click_y = by;
       break;
     }
     case SDL_EVENT_MOUSE_BUTTON_DOWN:
+      if (is_drag_button(event.button.button) &&
+          (drag.state == DragContext::StateIdle ||
+           drag.state == DragContext::StateCancelled)) {
+        drag = DragContext();
+        drag.state = DragContext::StatePressed;
+        drag.button = static_cast<Event::Button>(event.button.button);
+        drag.anchor_x = static_cast<int>(event.button.x);
+        drag.anchor_y = static_cast<int>(event.button.y);
+        drag.window = SDL_GetWindowFromID(event.button.windowID);
+      }
       break;
     case SDL_EVENT_MOUSE_MOTION: {
-      int mx = static_cast<int>(event.motion.x);
-      int my = static_cast<int>(event.motion.y);
-      for (int button = 1; button <= 3; button++) {
-        if (event.motion.state & SDL_BUTTON_MASK(button)) {
-          if (drag_button == 0) {
-            drag_button = button;
-            drag_x = mx;
-            drag_y = my;
-            break;
+      if (drag.state != DragContext::StatePressed &&
+          drag.state != DragContext::StateDragging) {
+        break;
+      }
+
+      drag.pending_x += event.motion.xrel;
+      drag.pending_y += event.motion.yrel;
+
+      if (drag.state == DragContext::StatePressed &&
+          (std::fabs(drag.pending_x) >= MOUSE_DRAG_SENSITIVITY ||
+           std::fabs(drag.pending_y) >= MOUSE_DRAG_SENSITIVITY)) {
+        drag.state = DragContext::StateDragging;
+        if (drag.window != nullptr) {
+          drag.relative_mouse_mode =
+            SDL_SetWindowRelativeMouseMode(drag.window, true);
+          if (!drag.relative_mouse_mode) {
+            Log::Warn["event"]
+              << "SDL_SetWindowRelativeMouseMode(true) failed: "
+              << SDL_GetError();
           }
-
-          int x = static_cast<int>(static_cast<float>(drag_x) *
-                                   zoom_factor * screen_factor_x);
-          int y = static_cast<int>(static_cast<float>(drag_y) *
-                                   zoom_factor * screen_factor_y);
-          int dx = mx - drag_x;
-          int dy = my - drag_y;
-          if ((dx == 0) && (dy == 0)) {
-              break;
-          }
-
-          notify_drag(x, y, dx, dy, (Event::Button)drag_button);
-
-          SDL_WarpMouseInWindow(SDL_GetWindowFromID(event.motion.windowID),
-                                static_cast<float>(drag_x),
-                                static_cast<float>(drag_y));
-
-          break;
         }
+      }
+
+      if (drag.state != DragContext::StateDragging) {
+        break;
+      }
+
+      int x = static_cast<int>(static_cast<float>(drag.anchor_x) *
+                               zoom_factor * screen_factor_x);
+      int y = static_cast<int>(static_cast<float>(drag.anchor_y) *
+                               zoom_factor * screen_factor_y);
+      drag.pixel_rest_x += drag.pending_x * zoom_factor * screen_factor_x;
+      drag.pixel_rest_y += drag.pending_y * zoom_factor * screen_factor_y;
+      int dx = static_cast<int>(drag.pixel_rest_x);
+      int dy = static_cast<int>(drag.pixel_rest_y);
+      drag.pixel_rest_x -= static_cast<float>(dx);
+      drag.pixel_rest_y -= static_cast<float>(dy);
+      drag.pending_x = 0.f;
+      drag.pending_y = 0.f;
+      if (dx != 0 || dy != 0) {
+        notify_drag(x, y, dx, dy, drag.button);
       }
       break;
     }
@@ -265,6 +350,9 @@ EventLoopSDL::handle_sdl_event(const SDL_Event &event) {
       apply_zoom();
       break;
     }
+    case SDL_EVENT_WINDOW_FOCUS_LOST:
+      cancel_drag();
+      break;
     case SDL_EVENT_RENDER_DEVICE_RESET:
       /* All textures are gone, also the sprites. */
       Image::clear_cache();

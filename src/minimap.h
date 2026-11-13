@@ -72,7 +72,7 @@ class Minimap : public GuiObject {
   void map_pix_from_map_coord(MapPos pos, int *mx, int *my);
 
   virtual void internal_draw();
-  virtual bool handle_drag(int dx, int dy);
+  virtual bool handle_drag(int dx, int dy, Event::Button button);
 };
 
 class MinimapGame : public Minimap {

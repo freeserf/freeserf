@@ -42,10 +42,40 @@ class EventLoopSDL : public EventLoop {
   float screen_factor_x;
   float screen_factor_y;
 
+  struct DragContext {
+    enum State {
+      StateIdle,
+      StatePressed,
+      StateDragging,
+      StateCancelled,
+    };
+
+    State state;
+    Event::Button button;
+    int anchor_x;
+    int anchor_y;
+    float pending_x;
+    float pending_y;
+    float pixel_rest_x;
+    float pixel_rest_y;
+    SDL_Window *window;
+    bool relative_mouse_mode;
+
+    DragContext()
+      : state(StateIdle)
+      , button(Event::ButtonLeft)
+      , anchor_x(0)
+      , anchor_y(0)
+      , pending_x(0.f)
+      , pending_y(0.f)
+      , pixel_rest_x(0.f)
+      , pixel_rest_y(0.f)
+      , window(nullptr)
+      , relative_mouse_mode(false) {}
+  };
+
   /* Mouse state between events. */
-  int drag_button;
-  int drag_x;
-  int drag_y;
+  DragContext drag;
   unsigned int last_click[6];
   int last_click_x;
   int last_click_y;
@@ -63,6 +93,8 @@ class EventLoopSDL : public EventLoop {
  protected:
   void zoom(float delta);
   void apply_zoom();
+  void release_drag();
+  void cancel_drag();
   bool handle_sdl_event(const SDL_Event &event);
 };
 

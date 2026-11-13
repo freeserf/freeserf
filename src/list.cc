@@ -84,7 +84,8 @@ ListSavedFiles::handle_click_left(int /*cx*/, int cy) {
 }
 
 bool
-ListSavedFiles::handle_drag(int dx, int dy) {
+ListSavedFiles::handle_drag(int dx, int dy, Event::Button button) {
+  (void)button;
   if (!focused) {
     return false;
   }
