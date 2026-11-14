@@ -52,7 +52,7 @@ class GuiObject : public EventLoop::Handler {
   virtual void layout();
 
   virtual bool handle_click_left(int x, int y) { return false; }
-  /* The original's special click (right button held). */
+  /* The original's special click (right button held while left is clicked). */
   virtual bool handle_click_right(int x, int y) { return false; }
   virtual bool handle_dbl_click(int x, int y, Event::Button button) {
     return false; }

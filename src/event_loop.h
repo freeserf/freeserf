@@ -55,6 +55,11 @@ class Event {
 
 class Frame;
 
+enum class SpecialClickMode {
+  CombinedButtons,
+  RightButtonOnly,
+};
+
 class Timer {
  public:
   class Handler {
@@ -107,6 +112,12 @@ class EventLoop {
   virtual void deferred_call(DeferredCall call, void *data) = 0;
   /* Milliseconds since the start. */
   virtual unsigned int get_ticks() = 0;
+  virtual void set_special_click_mode(SpecialClickMode mode) {
+    (void)mode;
+  }
+  virtual SpecialClickMode get_special_click_mode() const {
+    return SpecialClickMode::CombinedButtons;
+  }
 
   void add_handler(Handler *handler);
   void del_handler(Handler *handler);

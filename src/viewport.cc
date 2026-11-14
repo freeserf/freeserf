@@ -2412,7 +2412,7 @@ Viewport::handle_click_left(int lx, int ly) {
   return true;
 }
 
-/* The original's special click (right button held). */
+/* The original's special click (right button held while left is clicked). */
 bool
 Viewport::handle_click_right(int lx, int ly) {
   set_redraw();
