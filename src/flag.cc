@@ -1123,7 +1123,8 @@ operator >> (SaveReaderBinary &reader, Flag &flag) {
 
   uint8_t val8;
   reader >> val8;  // 2
-  flag.search_dir = (Direction)val8;
+  /* A signed byte: 0xff for no direction. */
+  flag.search_dir = static_cast<Direction>(static_cast<int8_t>(val8));
 
   reader >> val8;  // 3
   flag.owner = (val8 >> 6) & 3;
@@ -1208,7 +1209,11 @@ operator >> (SaveReaderText &reader, Flag &flag) {
   reader.value("pos")[1] >> y;
   flag.pos = flag.get_game()->get_map()->pos(x, y);
   reader.value("search_num") >> flag.search_num;
-  reader.value("search_dir") >> flag.search_dir;
+  /* Older saves kept no direction as 255 (of the original's byte). */
+  int search_dir = 0;
+  reader.value("search_dir") >> search_dir;
+  flag.search_dir = static_cast<Direction>(
+    (search_dir == 255) ? static_cast<int>(DirectionNone) : search_dir);
   unsigned int val;
   reader.value("path_con") >> val;
   if (reader.has_value("owner")) {

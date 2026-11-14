@@ -586,12 +586,12 @@ Player::start_attack() {
       while (knight_index != 0) {
         Serf *knight = game->get_serf(knight_index);
         if (send_strongest()) {
-          if (knight->get_type() >= best_type) {
+          if (best_index == -1 || knight->get_type() > best_type) {
             best_index = knight_index;
             best_type = knight->get_type();
           }
         } else {
-          if (knight->get_type() <= best_type) {
+          if (best_index == -1 || knight->get_type() < best_type) {
             best_index = knight_index;
             best_type = knight->get_type();
           }
@@ -1501,6 +1501,10 @@ operator >> (SaveReaderText &reader, Player &player) {
   reader.value("color")[1] >> val; player.color.green = val;
   reader.value("color")[2] >> val; player.color.blue = val;
   reader.value("face") >> player.face;
+  /* Older saves kept no face (-1): a human face or an AI character. */
+  if (player.face > 13) {
+    player.face = player.is_ai() ? 1 + player.index : 12;
+  }
   /* Older saves have no emergency program; it counts as over. */
   if (reader.has_value("emergency_flags")) {
     reader.value("emergency_flags") >> bits;

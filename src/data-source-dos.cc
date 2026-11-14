@@ -140,17 +140,23 @@ DataSourceDOS::load() {
     return false;
   }
 
-  // Check that data file is decompressed
-  try {
-    UnpackerTPWM unpacker(spae);
-    spae = unpacker.convert();
+  // The original data file is compressed.
+  if (UnpackerTPWM::is_packed(spae)) {
+    try {
+      UnpackerTPWM unpacker(spae);
+      spae = unpacker.convert();
+    } catch (...) {
+      Log::Error["data"] << "Could not unpack the data file";
+      return false;
+    }
     Log::Verbose["data"] << "Data file is compressed";
-  }  catch (...) {
+  } else {
     Log::Verbose["data"] << "Data file is not compressed";
   }
 
-  // Read the number of entries in the index table.
+  // The size of the data, then the number of entries in the index table.
   // Some entries are undefined (size and offset are zero).
+  spae->pop<uint32_t>();
   size_t entry_count = spae->pop<uint32_t>();
   entries.push_back({0, 0});  // first entry is whole file itself, drop it
   for (size_t i = 0; i < entry_count; i++) {
