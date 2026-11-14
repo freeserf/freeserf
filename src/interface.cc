@@ -208,6 +208,14 @@ Interface::apply_settings() {
   Translation::get_instance().set_language(
     settings.get("advanced", "language", std::string()));
 
+  /* Original special click: right button held while left is clicked. */
+  SpecialClickMode special_click_mode = SpecialClickMode::CombinedButtons;
+  if (settings.get("advanced", "special_click", std::string()) ==
+      "right_only") {
+    special_click_mode = SpecialClickMode::RightButtonOnly;
+  }
+  EventLoop::get_instance().set_special_click_mode(special_click_mode);
+
   /* Data source of each category, by name (DOS, Amiga, Custom). */
   static const char *data_keys[] = { "graphics", "sound", "music" };
   for (int cat = 0; cat < DataSourceMixed::CategoryCount; cat++) {
@@ -246,6 +254,12 @@ Interface::store_settings() {
   settings.set("advanced", "autosave", autosave_minutes);
   settings.set("advanced", "language",
                Translation::get_instance().get_language());
+  std::string special_click = "combined";
+  if (EventLoop::get_instance().get_special_click_mode() ==
+      SpecialClickMode::RightButtonOnly) {
+    special_click = "right_only";
+  }
+  settings.set("advanced", "special_click", special_click);
   if (Data::get_instance().get_mixed_source()) {
     settings.set("data", "graphics", get_data_source_name(0));
     settings.set("data", "sound", get_data_source_name(1));
