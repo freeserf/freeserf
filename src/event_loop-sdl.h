@@ -46,6 +46,9 @@ class EventLoopSDL : public EventLoop {
   int drag_button;
   int drag_x;
   int drag_y;
+  Uint32 buttons_down;
+  bool special_click_pending;
+  SpecialClickMode special_click_mode;
   unsigned int last_click[6];
   int last_click_x;
   int last_click_y;
@@ -59,6 +62,8 @@ class EventLoopSDL : public EventLoop {
   virtual void run();
   virtual void deferred_call(DeferredCall call, void *data);
   virtual unsigned int get_ticks();
+  virtual void set_special_click_mode(SpecialClickMode mode);
+  virtual SpecialClickMode get_special_click_mode() const;
 
  protected:
   void zoom(float delta);

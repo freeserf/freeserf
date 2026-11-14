@@ -185,6 +185,16 @@ class Interface : public GuiObject, public GameManager::Handler {
   void next_autosave_interval();
   /* The next language with a translation, then the original English. */
   void next_language();
+  SpecialClickMode get_special_click_mode() const {
+    return EventLoop::get_instance().get_special_click_mode();
+  }
+  void next_special_click_mode() {
+    EventLoop &event_loop = EventLoop::get_instance();
+    SpecialClickMode mode = event_loop.get_special_click_mode();
+    event_loop.set_special_click_mode(
+      (mode == SpecialClickMode::CombinedButtons) ?
+        SpecialClickMode::RightButtonOnly : SpecialClickMode::CombinedButtons);
+  }
 
   /* Settings kept between the runs (Settings): the options of the options
      and advanced boxes. */

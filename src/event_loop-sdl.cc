@@ -52,11 +52,24 @@ EventLoopSDL::EventLoopSDL()
   , drag_button(0)
   , drag_x(0)
   , drag_y(0)
+  , buttons_down(0)
+  , special_click_pending(false)
+  , special_click_mode(SpecialClickMode::CombinedButtons)
   , last_click_x(0)
   , last_click_y(0)
   , screen(nullptr) {
   for (unsigned int &click : last_click) click = 0;
   SDL_InitSubSystem(SDL_INIT_EVENTS);
+}
+
+void
+EventLoopSDL::set_special_click_mode(SpecialClickMode mode) {
+  special_click_mode = mode;
+}
+
+SpecialClickMode
+EventLoopSDL::get_special_click_mode() const {
+  return special_click_mode;
 }
 
 void
@@ -93,41 +106,98 @@ EventLoopSDL::handle_sdl_event(const SDL_Event &event) {
 
   switch (event.type) {
     case SDL_EVENT_MOUSE_BUTTON_UP: {
+      if (event.button.button > 3) {
+        break;
+      }
+
+      Uint32 button_mask = SDL_BUTTON_MASK(event.button.button);
+      buttons_down &= ~button_mask;
+
+      bool was_dragging = drag_button == event.button.button;
       if (drag_button == event.button.button) {
         drag_button = 0;
       }
 
-      if (event.button.button <= 3) {
-        int x = static_cast<int>(static_cast<float>(event.button.x) *
-                                 zoom_factor * screen_factor_x);
-        int y = static_cast<int>(static_cast<float>(event.button.y) *
-                                 zoom_factor * screen_factor_y);
-        notify_click(x, y, (Event::Button)event.button.button);
+      int x = static_cast<int>(static_cast<float>(event.button.x) *
+                               zoom_factor * screen_factor_x);
+      int y = static_cast<int>(static_cast<float>(event.button.y) *
+                               zoom_factor * screen_factor_y);
 
-        int bx = static_cast<int>(event.button.x);
-        int by = static_cast<int>(event.button.y);
-        if (current_ticks - last_click[event.button.button] <
-              MOUSE_TIME_SENSITIVITY &&
-            bx >= (last_click_x - MOUSE_MOVE_SENSITIVITY) &&
-            bx <= (last_click_x + MOUSE_MOVE_SENSITIVITY) &&
-            by >= (last_click_y - MOUSE_MOVE_SENSITIVITY) &&
-            by <= (last_click_y + MOUSE_MOVE_SENSITIVITY)) {
-          notify_dbl_click(x, y, (Event::Button)event.button.button);
+      if (special_click_mode == SpecialClickMode::CombinedButtons &&
+          special_click_pending && drag_button == 0) {
+        if (event.button.button == SDL_BUTTON_LEFT) {
+          /* Right was pressed first, so the left release is the original
+             special click. */
+          notify_click(x, y, Event::ButtonRight);
+          special_click_pending = false;
+          last_click[SDL_BUTTON_LEFT] = 0;
+          last_click[SDL_BUTTON_RIGHT] = 0;
+          break;
         }
 
-        last_click[event.button.button] = current_ticks;
-        last_click_x = bx;
-        last_click_y = by;
+        if (event.button.button == SDL_BUTTON_RIGHT) {
+          /* The right button was released before the left one. */
+          special_click_pending = false;
+          break;
+        }
+      }
+
+      if (special_click_mode == SpecialClickMode::RightButtonOnly &&
+          event.button.button == SDL_BUTTON_RIGHT && !was_dragging) {
+        notify_click(x, y, Event::ButtonRight);
+        break;
+      }
+
+      /* Right-click alone is camera input in the original control scheme.
+         A drag must not also become a click at release. */
+      if (event.button.button == SDL_BUTTON_RIGHT || was_dragging) {
+        break;
+      }
+
+      notify_click(x, y, (Event::Button)event.button.button);
+
+      int bx = static_cast<int>(event.button.x);
+      int by = static_cast<int>(event.button.y);
+      if (current_ticks - last_click[event.button.button] <
+            MOUSE_TIME_SENSITIVITY &&
+          bx >= (last_click_x - MOUSE_MOVE_SENSITIVITY) &&
+          bx <= (last_click_x + MOUSE_MOVE_SENSITIVITY) &&
+          by >= (last_click_y - MOUSE_MOVE_SENSITIVITY) &&
+          by <= (last_click_y + MOUSE_MOVE_SENSITIVITY)) {
+        notify_dbl_click(x, y, (Event::Button)event.button.button);
+      }
+
+      last_click[event.button.button] = current_ticks;
+      last_click_x = bx;
+      last_click_y = by;
+      break;
+    }
+    case SDL_EVENT_MOUSE_BUTTON_DOWN: {
+      if (event.button.button > 3) {
+        break;
+      }
+
+      bool right_was_down =
+        (buttons_down & SDL_BUTTON_MASK(SDL_BUTTON_RIGHT)) != 0;
+      buttons_down |= SDL_BUTTON_MASK(event.button.button);
+
+      if (special_click_mode == SpecialClickMode::CombinedButtons &&
+          event.button.button == SDL_BUTTON_LEFT && right_was_down &&
+          drag_button == 0) {
+        special_click_pending = true;
       }
       break;
     }
-    case SDL_EVENT_MOUSE_BUTTON_DOWN:
-      break;
     case SDL_EVENT_MOUSE_MOTION: {
       int mx = static_cast<int>(event.motion.x);
       int my = static_cast<int>(event.motion.y);
       for (int button = 1; button <= 3; button++) {
         if (event.motion.state & SDL_BUTTON_MASK(button)) {
+          if (special_click_pending &&
+              (event.motion.xrel != 0 || event.motion.yrel != 0)) {
+            special_click_pending = false;
+          }
+
           if (drag_button == 0) {
             drag_button = button;
             drag_x = mx;
