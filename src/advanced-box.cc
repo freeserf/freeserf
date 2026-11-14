@@ -84,6 +84,15 @@ music_text(const Interface *interface) {
   return interface->get_data_source_name(2);
 }
 
+static std::string
+special_click_text(const Interface *interface) {
+  if (interface->get_special_click_mode() ==
+      SpecialClickMode::RightButtonOnly) {
+    return _("Right only");
+  }
+  return _("Combined");
+}
+
 static const Option options[] = {
   { N_("Invert scrolling"), &Interface::get_invert_scrolling, nullptr,
     &Interface::switch_invert_scrolling },
@@ -93,6 +102,8 @@ static const Option options[] = {
     &Interface::next_autosave_interval },
   { N_("Stock box until occupied"), &Interface::get_stock_box_occupied, nullptr,
     &Interface::switch_stock_box_occupied },
+  { N_("Special click"), nullptr, special_click_text,
+    &Interface::next_special_click_mode },
   /* With the data of several versions installed. */
   { N_("Graphics"), nullptr, graphics_text,
     &Interface::next_graphics_source },
