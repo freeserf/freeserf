@@ -66,6 +66,7 @@ class DataSourceMixed : public Data::Source {
   bool select(Category category, Kind kind);
 
   static const char *get_kind_name(Kind kind);
+  static Kind get_kind_from_name(const std::string &name);
 
   /* Data::Source */
   virtual std::string get_name() const;

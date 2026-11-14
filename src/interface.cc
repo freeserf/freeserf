@@ -212,11 +212,10 @@ Interface::apply_settings() {
   static const char *data_keys[] = { "graphics", "sound", "music" };
   for (int cat = 0; cat < DataSourceMixed::CategoryCount; cat++) {
     std::string name = settings.get("data", data_keys[cat], std::string());
-    for (int kind = 0; kind < DataSourceMixed::KindCount; kind++) {
-      if (name == DataSourceMixed::get_kind_name(
-                                   static_cast<DataSourceMixed::Kind>(kind))) {
-        select_data_source(cat, kind);
-      }
+    DataSourceMixed::Kind kind =
+      DataSourceMixed::get_kind_from_name(name);
+    if (kind != DataSourceMixed::KindCount) {
+      select_data_source(cat, kind);
     }
   }
 }
