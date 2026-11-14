@@ -21,7 +21,22 @@
 
 #include "src/data-source-mixed.h"
 
+#include <algorithm>
+#include <cctype>
 #include <string>
+
+namespace {
+
+std::string
+lowercase(std::string value) {
+  std::transform(value.begin(), value.end(), value.begin(),
+                 [](unsigned char c) {
+                   return static_cast<char>(std::tolower(c));
+                 });
+  return value;
+}
+
+}  // namespace
 
 DataSourceMixed::DataSourceMixed() {
   for (Kind &kind : selected) {
@@ -60,6 +75,18 @@ DataSourceMixed::get_kind_name(Kind kind) {
     case KindAmiga: return "Amiga";
     default: return "None";
   }
+}
+
+DataSourceMixed::Kind
+DataSourceMixed::get_kind_from_name(const std::string &name) {
+  std::string normalized = lowercase(name);
+  for (int kind = 0; kind < KindCount; kind++) {
+    Kind candidate = static_cast<Kind>(kind);
+    if (normalized == lowercase(get_kind_name(candidate))) {
+      return candidate;
+    }
+  }
+  return KindCount;
 }
 
 std::string
