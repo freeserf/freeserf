@@ -21,44 +21,64 @@
 
 #include "src/tpwm.h"
 
-#include <string>
+#include <cstring>
 #include <memory>
+#include <vector>
 
 #include "src/freeserf_endian.h"
 #include "src/debug.h"
 
 UnpackerTPWM::UnpackerTPWM(PBuffer _buffer) : Convertor(_buffer) {
-  if (buffer->get_size() < 8) {
+  if (!is_packed(buffer)) {
     throw ExceptionFreeserf("Data is not TPWM archive");
   }
+  buffer->pop(4);
+}
 
-  PBuffer id = buffer->pop(4);
-  if ((std::string)*id.get() != "TPWM") {
-    throw ExceptionFreeserf("Data is not TPWM archive");
-  }
+bool
+UnpackerTPWM::is_packed(PBuffer buffer) {
+  return (buffer->get_size() >= 8) &&
+         (std::memcmp(buffer->get_data(), "TPWM", 4) == 0);
 }
 
 PBuffer
 UnpackerTPWM::convert() {
-  size_t res_size = buffer->pop<uint16_t>();
-  PMutableBuffer result = std::make_shared<MutableBuffer>(Buffer::EndianessBig);
+  /* The size of the unpacked data: 32 bits, little endian. */
+  buffer->set_endianess(Buffer::EndianessLittle);
+  size_t res_size = buffer->pop<uint32_t>();
+  std::vector<uint8_t> result;
+  result.reserve(res_size);
+
+  /* Buffer::pop does not check the end. */
+  auto pop_byte = [this]() -> size_t {
+    if (!buffer->readable()) {
+      throw ExceptionFreeserf("TPWM source data corrupted");
+    }
+    return buffer->pop<uint8_t>();
+  };
 
   try {
-    while (buffer->readable()) {
-      size_t flag = buffer->pop<uint8_t>();
-      for (int i = 0 ; i < 8 ; i++) {
+    /* The last flags byte may have bits left over the end. */
+    while (result.size() < res_size) {
+      size_t flag = pop_byte();
+      for (int i = 0 ; (i < 8) && (result.size() < res_size) ; i++) {
         flag <<= 1;
         if (flag & ~0xFF) {
           flag &= 0xFF;
-          size_t temp = buffer->pop<uint8_t>();
+          size_t temp = pop_byte();
           size_t stamp_size = (temp & 0x0F) + 3;
-          size_t stamp_offset = buffer->pop<uint8_t>();
+          size_t stamp_offset = pop_byte();
           stamp_offset |= ((temp << 4) & 0x0F00);
-          PBuffer stamp = result->get_subbuffer(result->get_size() -
-                                                stamp_offset, stamp_size);
-          result->push(stamp);
+          if ((stamp_offset == 0) || (stamp_offset > result.size())) {
+            throw ExceptionFreeserf("TPWM source data corrupted");
+          }
+          /* Byte by byte: the copy may overlap what it adds. */
+          size_t from = result.size() - stamp_offset;
+          for (size_t j = 0; j < stamp_size; j++) {
+            result.push_back(result[from + j]);
+          }
         } else {
-          result->push<uint8_t>(buffer->pop<uint8_t>());
+          result.push_back(static_cast<uint8_t>(pop_byte()));
         }
       }
     }
@@ -66,9 +86,12 @@ UnpackerTPWM::convert() {
     throw ExceptionFreeserf("TPWM source data corrupted");
   }
 
-  if (result->get_size() != res_size) {
-    throw ExceptionFreeserf("TPWM source data corrupted");
-  }
-
-  return result;
+  /* An overlapping copy may go over the end. */
+  result.resize(res_size);
+  /* Reserved, so that reading starts at the data; the data of the
+     original is little endian. */
+  PMutableBuffer unpacked =
+    std::make_shared<MutableBuffer>(res_size, Buffer::EndianessLittle);
+  unpacked->push(static_cast<const void*>(result.data()), result.size());
+  return unpacked;
 }

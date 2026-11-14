@@ -2777,6 +2777,9 @@ operator >> (SaveReaderBinary &reader, Game &game) {
   reader >> r2;  // 86
   reader >> r3;  // 88
   game.rnd = Random(r1, r2, r3);
+  /* The save has no generator of the map apart: the game's, as for the
+     older text saves (not the clock seeded one of the new game). */
+  game.init_map_rnd = game.rnd;
 
   reader >> v16;  // 90
   int max_flag_index = v16;

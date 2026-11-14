@@ -4951,7 +4951,9 @@ Serf::handle_serf_idle_on_path_state() {
 
   /* Set walking dir in field_E. */
   if (flag->is_scheduled(rev_dir)) {
-    s.idle_on_path.field_E = (tick & 0xff) + 6;
+    /* The low byte of the tick keeps the direction - 6 (going idle on
+       the path); a signed byte, as the original's byte arithmetic. */
+    s.idle_on_path.field_E = static_cast<int8_t>(tick & 0xff) + 6;
   } else {
     Flag *other_flag = flag->get_other_end_flag(rev_dir);
     Direction other_dir = flag->get_other_end_dir((Direction)rev_dir);
@@ -5350,6 +5352,19 @@ Serf::update() {
   }
 }
 
+/* The flag of a 16-bit offset into the flags (70 bytes each): only the
+   low word of the offset is kept, so that it overflows from flag 937 on
+   larger maps. The offset is a multiple of 70 and 65536 is 2 * 32768: the
+   flag is the one below 32768 with that low word (an odd word is no
+   offset of a flag). */
+static unsigned int
+flag_index_from_offset(uint16_t offset) {
+  for (uint32_t full = offset; full < 35 * 0x10000; full += 0x10000) {
+    if (full % 70 == 0) return full / 70;
+  }
+  return offset / 70;
+}
+
 SaveReaderBinary&
 operator >> (SaveReaderBinary &reader, Serf &serf) {
   uint8_t v8;
@@ -5598,8 +5613,10 @@ operator >> (SaveReaderBinary &reader, Serf &serf) {
       reader >> v8;  // 11
       serf.s.idle_on_path.rev_dir = (Direction)v8;
       reader >> v16;  // 12
-      unsigned int index = v16/70;
-      serf.s.idle_on_path.flag = index;
+      /* Only idle on path the word is the offset of the flag (the others
+         do not read it). */
+      serf.s.idle_on_path.flag = (serf.state == Serf::StateIdleOnPath) ?
+                                 flag_index_from_offset(v16) : v16/70;
       reader >> v8;  // 14
       serf.s.idle_on_path.field_E = v8;
       break;
@@ -5686,6 +5703,10 @@ operator >> (SaveReaderText &reader, Serf &serf) {
       reader.value("state.res") >> serf.s.transporting.res;
       reader.value("state.dest") >> serf.s.transporting.dest;
       reader.value("state.dir") >> serf.s.transporting.dir;
+      /* Older saves may keep a direction over a byte (from idle on path):
+         a signed byte, as the original. */
+      serf.s.transporting.dir =
+        static_cast<int8_t>(serf.s.transporting.dir & 0xff);
       reader.value("state.wait_counter") >> serf.s.transporting.wait_counter;
       break;
 
@@ -5889,6 +5910,8 @@ operator >> (SaveReaderText &reader, Serf &serf) {
       reader.value("state.flag") >> flag_idex;
       serf.s.idle_on_path.flag = flag_idex;
       reader.value("state.field_E") >> serf.s.idle_on_path.field_E;
+      serf.s.idle_on_path.field_E =
+        static_cast<int8_t>(serf.s.idle_on_path.field_E & 0xff);
       break;
 
     case Serf::StateDefendingHut:

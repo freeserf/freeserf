@@ -30,6 +30,9 @@ class UnpackerTPWM : public Convertor {
   virtual ~UnpackerTPWM() {}
 
   virtual PBuffer convert();
+
+  /* The data starts with the signature "TPWM". */
+  static bool is_packed(PBuffer buffer);
 };
 
 #endif  // SRC_TPWM_H_

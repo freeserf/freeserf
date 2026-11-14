@@ -24,6 +24,7 @@
 #include <algorithm>
 #include <array>
 #include <cstdlib>
+#include <cstring>
 #include <ctime>
 #include <fstream>
 #include <iostream>
@@ -288,7 +289,8 @@ SaveReaderBinary::operator >> (uint8_t &val) {
 SaveReaderBinary&
 SaveReaderBinary::operator >> (uint16_t &val) {
   if (!has_data_left(2)) throw ExceptionFreeserf("Invalid read past end.");
-  val = *reinterpret_cast<uint16_t*>(current);
+  /* The data is not aligned. */
+  std::memcpy(&val, current, 2);
   current += 2;
   return *this;
 }
@@ -296,7 +298,8 @@ SaveReaderBinary::operator >> (uint16_t &val) {
 SaveReaderBinary&
 SaveReaderBinary::operator >> (uint32_t &val) {
   if (!has_data_left(4)) throw ExceptionFreeserf("Invalid read past end.");
-  val = *reinterpret_cast<uint32_t*>(current);
+  /* The data is not aligned. */
+  std::memcpy(&val, current, 4);
   current += 4;
   return *this;
 }

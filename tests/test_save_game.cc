@@ -203,3 +203,43 @@ TEST(SaveGame, LargeUnsignedValue) {
   SaveReaderTextValue("3000000000") >> value;
   EXPECT_EQ(value, 3000000000u);
 }
+
+/* Missing portraits must not index outside the sprite or AI tables. */
+TEST(SaveGame, MissingFace) {
+  for (unsigned int face : { 12u, 1u }) {
+    Game game;
+    game.init(3, Random("8667715887436237"));
+    game.add_player(35, 30, 40);
+    game.get_player(0)->init_view(Player::Color{0, 0, 0}, face);
+    std::string saved = save_state(&game);
+    size_t start = saved.find("face = ");
+    ASSERT_NE(std::string::npos, start);
+    size_t end = saved.find('\n', start);
+    saved.replace(start, end - start, "face = -1");
+    std::stringstream input(saved);
+    Game loaded;
+    ASSERT_TRUE(GameStore::get_instance().read(&input, &loaded));
+    EXPECT_EQ(face == 12 ? 12u : 1u, loaded.get_player(0)->get_face());
+  }
+}
+
+TEST(SaveGame, BinaryFlagWithoutSearchDirection) {
+  Game game;
+  game.init(3, Random("8667715887436237"));
+  uint8_t data[70] = {};
+  data[2] = 0xff;
+  SaveReaderBinary reader(data, sizeof(data));
+  Flag flag(&game, 1);
+  reader >> flag;
+  EXPECT_EQ(DirectionNone, flag.get_search_dir());
+}
+
+TEST(SaveGame, UnalignedBinaryValues) {
+  uint8_t data[] = { 0, 0x34, 0x12, 0x78, 0x56, 0x34, 0x12 };
+  SaveReaderBinary reader(data + 1, sizeof(data) - 1);
+  uint16_t word;
+  uint32_t dword;
+  reader >> word >> dword;
+  EXPECT_EQ(0x1234u, word);
+  EXPECT_EQ(0x12345678u, dword);
+}

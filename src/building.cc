@@ -256,18 +256,22 @@ Building::call_defender_out() {
 }
 
 Serf*
-Building::call_attacker_out(int) {
+Building::call_attacker_out(int knight_index) {
   stock[0].available -= 1;
 
-  /* Unlink knight from list. */
-  Serf *first_serf = game->get_serf(first_knight);
-  Serf *def_serf = first_serf->extract_last_knight_from_list();
-
-  if (def_serf->get_index() == first_knight) {
-    first_knight = 0;
+  /* Unlink the selected knight, preserving the order of the others. */
+  Serf *knight = game->get_serf(knight_index);
+  if (first_knight == knight->get_index()) {
+    first_knight = knight->get_next();
+  } else {
+    Serf *previous = game->get_serf(first_knight);
+    while (previous->get_next() != knight_index) {
+      previous = game->get_serf(previous->get_next());
+    }
+    previous->set_next(knight->get_next());
   }
 
-  return def_serf;
+  return knight;
 }
 
 unsigned int
@@ -754,8 +758,7 @@ Building::update() {
 
           Player *player = game->get_player(get_owner());
           if (holder &&
-              !inventory->have_any_out_mode() == 0 &&  // Not serf or
-                                                       // res OUT mode
+              !inventory->have_any_out_mode() &&  // Not serf or res OUT mode
               inventory->free_serf_count() == 0) {
             if (player->tick_send_generic_delay()) {
               send_serf_to_building(Serf::TypeGeneric,
